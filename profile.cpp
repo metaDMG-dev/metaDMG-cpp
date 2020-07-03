@@ -363,147 +363,8 @@ string alphabetHTSLIB = "NACNGNNNTNNNNNNN";
 
 #define MAXLENGTH 1000
 
-
-#define MAX2(a,b) (((a)>(b))?(a):(b))
-
-
-
-
-/* it is the structure created by samtools faidx */
-typedef struct faidx1_t {
-    int32_t line_len, line_blen;
-    int64_t len;
-    uint64_t offset;
-}faidx1_t,*FaidxPtr;
-/**
- * wrapper for a mmap, a fileid and some faidx indexes
- */
-class IndexedGenome
-{
-private:
-    /* used to get the size of the file */
-    struct stat buf;
-    /* genome fasta file file descriptor */
-    int fd;
-    /* the mmap (memory mapped) pointer */
-    char *mapptr;
-    /** reads an fill a string */
-    bool readline(gzFile in,string& line)
-    {
-	if(gzeof(in)) return false;
-	line.clear();
-	int c=-1;
-	while((c=gzgetc(in))!=EOF && c!='\n') line+=(char)c;
-	return true;
-    }
-	    
-public:
-    /* maps a chromosome to the samtools faidx index */
-    map<string,faidx1_t> name2index;
-
-    /** constructor 
-     * @param fasta: the path to the genomic fasta file indexed with samtools faidx
-     */
-    IndexedGenome(const char* fasta):fd(-1),mapptr(NULL)
-    {
-	string faidx(fasta);
-	//cout<<fasta<<endl;
-	string line;
-	faidx+=".fai";
-	/* open *.fai file */
-	//cout<<faidx<<endl;
-	ifstream in(faidx.c_str(),ios::in);
-	if(!in.is_open()){
-	    cerr << "cannot open " << faidx << endl;
-	    exit(EXIT_FAILURE);
-	}
-	/* read indexes in fai file */
-	while(getline(in,line,'\n'))
-	    {
-		if(line.empty()) continue;
-		const char* p=line.c_str();
-		char* tab=(char*)strchr(p,'\t');
-		if(tab==NULL) continue;
-		string chrom(p,tab-p);
-		++tab;
-		faidx1_t index;
-		if(sscanf(tab,"%ld\t%ld\t%d\t%d",
-			  &index.len, &index.offset, &index.line_blen,&index.line_len
-		)!=4)
-		    {
-			cerr << "Cannot read index in "<< line << endl;
-			exit(EXIT_FAILURE);
-		    }
-		/* insert in the map(chrom,faidx) */
-		name2index.insert(make_pair(chrom,index));
-	    }
-	/* close index file */
-	in.close();
-
-	/* get the whole size of the fasta file */
-	if(stat(fasta, &buf)!=0)
-	    {
-		perror("Cannot stat");
-		exit(EXIT_FAILURE);
-	    }
-			
-	/* open the fasta file */
-	fd = open(fasta, O_RDONLY);
-	if (fd == -1)
-	    {
-		perror("Error opening file for reading");
-		exit(EXIT_FAILURE);
-	    }
-	/* open a memory mapped file associated to this fasta file descriptor */
-	mapptr = (char*)mmap(0, buf.st_size, PROT_READ, MAP_SHARED, fd, 0);
-	if (mapptr == MAP_FAILED)
-	    {
-		close(fd);
-		perror("Error mmapping the file");
-		exit(EXIT_FAILURE);
-	    }
-    }
-    /* destructor */
-    ~IndexedGenome()
-    {
-	/* close memory mapped map */
-	if(mapptr!=NULL && munmap(mapptr,buf.st_size) == -1)
-	    {
-		perror("Error un-mmapping the file");
-	    }
-	/* dispose fasta file descriptor */
-	if(fd!=-1) close(fd);
-    }
-			
-
-    /* return the base at position 'index' for the chromosome indexed by faidx */
-    string returnStringCoord(const FaidxPtr faidx,int64_t index, unsigned int length){
-
-	int64_t index2=index;
-	// int64_t st=index2;
-	// int64_t en=index2+length;
-	string strToReturn="";
-	
-	for(unsigned int j=0;j<length;j++){ //for each char
-	    long pos= faidx->offset +
-		index2 / faidx->line_blen * faidx->line_len +
-		index2 % faidx->line_blen
-		;
-	    //cout<<char(toupper(mapptr[pos]));
-	    strToReturn+=char(toupper(mapptr[pos]));
-	    index2++;
-	}
-	
-	return strToReturn;
-    }//end returnStringCoord
-
-};
-// vector<unsigned int>    matches;
-// vector<unsigned int> mismatches;
-
 vector< vector<unsigned int> > typesOfDimer5p; //5' deam rates
 vector< vector<unsigned int> > typesOfDimer3p; //3' deam rates
-
 vector< vector<unsigned int> > typesOfDimer5p_cpg; //5' deam rates
 vector< vector<unsigned int> > typesOfDimer3p_cpg; //3' deam rates
 vector< vector<unsigned int> > typesOfDimer5p_noncpg; //5' deam rates
@@ -522,11 +383,7 @@ inline void increaseCounters(const   bam1_t  * b,string & reconstructedReference
     char refeBase;
     char readBase;
     int  qualBase;
-    //    int cycleToUse=firstCycleRead;
-    // cout<<"name "<<al.Name<<endl;
-    // cout<<"firstCycleRead "<<firstCycleRead<<endl;
-    // cout<<"increment      "<<increment<<endl;
-    // cout<<refFromFasta<<endl;
+ 
     //Checking if the 5' is deaminated
     bool isDeam5pS=false; //C->T 5'
     bool isDeam3pS=false; //C->T 3'
@@ -658,7 +515,6 @@ inline void increaseCounters(const   bam1_t  * b,string & reconstructedReference
     char refBaseFromFastaPrev  = 'N';
     char refBaseFromFastaNext  = 'N';
     int j=0;
-    //for(i=0;i<int(al.QueryBases.size());i++,j++){
     for(i=0;i<int(b->core.l_qseq);i++,j++){
 	// cout<<i<<endl;
 
@@ -670,10 +526,6 @@ inline void increaseCounters(const   bam1_t  * b,string & reconstructedReference
 	readBase=toupper( alphabetHTSLIB[ bam_seqi(bam_get_seq(b),i) ] ); //b->core.l_qseq[i]);
 	qualBase=int(             bam_get_qual(b)[i])-offset;  
   
-	//cout<<i<<"\t"<<qualBase<<"\t"<<minQualBase<<endl;
-	//cout<<"-"<<i<<"\t"<<qualBase<<"\t"<<minQualBase<<endl;
-	//cout<<"i="<<i<<" j="<<j<<" "<< refeBase<<" "<<readBase<<" "<<refFromFasta[j+1]<<endl;
-	//cerr<<"readBase "<<readBase<<" refeBase "<<refeBase<<endl;
 	if( refeBase == 'S'){ //don't care about soft clipped or indels	    
 	    j--;
 	    continue;
@@ -834,7 +686,6 @@ int main (int argc, char *argv[]) {
 
     string file5p="/dev/stdout";
     string file3p="/dev/stdout";
-    bool endo=false;
 
     bool allStr   =true;
     bool singleStr=false;
@@ -848,9 +699,6 @@ int main (int argc, char *argv[]) {
     bool hFormat=false;
     double errorToRemove=0.0;
     bool phred=false;
-    string genomeFile;
-    bool   genomeFileB=false;
-    IndexedGenome* genome=NULL;
     bool cpg=false;
     bool paired=false;
     bool quiet=false;
@@ -865,7 +713,6 @@ int main (int argc, char *argv[]) {
 			"\n\n\tOther options:\n"+
 			"\t\t"+"-minq\t\t\tRequire the base to have at least this quality to be considered (Default: "+stringify( minQualBase )+")\n"+
 			"\t\t"+"-minl\t\t\tRequire the base to have at least this quality to be considered (Default: "+stringify( minLength )+")\n"+
-			"\t\t"+"-endo\t\t\tRequire the 5' end to be deaminated to compute the 3' end and vice-versa (Default: "+stringify( endo )+")\n"+
 			"\t\t"+"-length\t[length]\tDo not consider bases beyond this length  (Default: "+stringify(lengthMaxToPrint)+" ) \n"+
 			"\t\t"+"-err\t[error rate]\tSubstract [error rate] from the rates to account for sequencing errors  (Default: "+stringify(errorToRemove)+" ) \n"+
 			"\t\t"+"-log\t\t\tPrint substitutions on a PHRED logarithmic scale  (Default: "+stringify(phred)+" ) \n"+
@@ -936,14 +783,7 @@ int main (int argc, char *argv[]) {
             continue;
         }
 
-        if(string(argv[i]) == "-fa"  ){
-	    genomeFile=string(argv[i+1]);
-	    genomeFileB=true;
-            i++;
-            continue;
-        }
-
-        if(string(argv[i]) == "-cpg"  ){
+	if(string(argv[i]) == "-cpg"  ){
 	    cpg=true;
             continue;
         }
@@ -972,12 +812,7 @@ int main (int argc, char *argv[]) {
             continue;
         }
 
-        if(string(argv[i]) == "-endo" ){
-	    endo   = true;
-            continue;
-        }
-
-        if(string(argv[i]) == "-both" ){
+	if(string(argv[i]) == "-both" ){
 	    //doubleStr=true;
 
 	    allStr           = false;
@@ -1012,11 +847,6 @@ int main (int argc, char *argv[]) {
 	return 1;
     }
 
-    if(  endo &&  paired ){
-	cerr<<"Error: cannot specify both -endo and -paired"<<endl;
-	return 1;
-    }
-
     if(phred && hFormat){
 	cerr<<"Error: cannot specify both -log and -h"<<endl;
 	return 1;
@@ -1025,20 +855,6 @@ int main (int argc, char *argv[]) {
     if(dpFormat && hFormat){
 	cerr<<"Error: cannot specify both -dp and -h"<<endl;
 	return 1;
-    }
-
-    if(endo){
-	if(singAnddoubleStr){
-	    cerr<<"Error: cannot use -singAnddoubleStr with -endo"<<endl;
-	    return 1;
-	}
-	
-	if( !singleStr &&
-	    !doubleStr ){
-	    cerr<<"Error: you have to provide the type of protocol used (single or double) when using endogenous"<<endl;
-	    return 1;
-	}
-
     }
 
     typesOfDimer5p       = vector< vector<unsigned int> >();
@@ -1069,11 +885,6 @@ int main (int argc, char *argv[]) {
 	typesOfDimer3pSingle.push_back( vector<unsigned int> ( 16,0 ) );
 
 	//}
-    }
-    
-    if(genomeFileB){
-	genome=new IndexedGenome(genomeFile.c_str());
-	cerr<<genomeFile<<" mapped into memory"<<endl;
     }
     
     string bamfiletopen = string( argv[ argc-1 ] );
@@ -1125,55 +936,8 @@ int main (int argc, char *argv[]) {
 		continue;
 	    }
 	}
-	//cerr<<"keeping "<<bam_get_qname(b)<<endl;
-	//cout<<bam_get_qname(b)<<endl;
-	// 	#define bam_is_paired(b)    (((b)->core.flag&BAM_FPAIRED) != 0)
-	// #define bam_is_qcfailed(b)  (((b)->core.flag&BAM_FQCFAIL)     != 0)
-	// #define bam_is_rmdup(b)     (((b)->core.flag&BAM_FDUP)        != 0)
-	// #define bam_is_failed(b)    ( bam_is_qcfailed(b) || bam_is_rmdup(b) )
-	// #define bam_mqual(b)        ((b)->core.qual)
-
 	
 	pair< string, vector<int> >  reconstructedReference = reconstructRefWithPosHTS(b);
-	if(genomeFileB){
-	    //string ch = refData[al.RefID].RefName;
-	    string ch = h->target_name[b->core.tid];
-	    
-
-	    if(genome->name2index.find(ch) == genome->name2index.end()){
-		cerr<<"Cannot find chr "<<ch<<endl;
-	    }else{
-		//cout<<"found"<<endl;
-	    }
-	    faidx1_t & findx=genome->name2index[ch];
-	
-	
-	    unsigned int lengthToExtract = reconstructedReference.first.size();
-	    for(int i=0;i<int(reconstructedReference.first.size());i++){
-		if(reconstructedReference.first[i] == 'I')
-		    lengthToExtract--;		
-	    }
-	    //int startPos = al.Position;
-	    int startPos = b->core.pos;
-	    if(startPos!=0)
-		startPos--;
-	    else
-		continue;
-	
-	    refFromFasta_ = genome->returnStringCoord(&findx,startPos,(lengthToExtract+2));
-	    refFromFasta = "";
-	    refFromFasta=refFromFasta_[0];
-	    int j=1;
-	    for(int i=0;i<int(reconstructedReference.first.size());i++){		
-		if(reconstructedReference.first[i] == 'I'){
-		    refFromFasta+="I";
-		}else{
-		    refFromFasta+=refFromFasta_[j++];
-		}
-	    }
-	    refFromFasta+=refFromFasta_[ refFromFasta_.size() -1 ];
-	}
-	
 	increaseCounters(b,reconstructedReference.first, reconstructedReference.second,minQualBase,refFromFasta,h,ispaired,isfirstpair); //start cycle numberOfCycles-1
     }
     
@@ -1181,106 +945,7 @@ int main (int argc, char *argv[]) {
     sam_close(fp);
     
     
-    /*
-      BamReader reader;
-    
-      if ( !reader.Open(bamfiletopen) ) {
-      cerr << "Could not open input BAM file"<< bamfiletopen << endl;
-      return 1;
-      }
-
-
-      vector<RefData>  refData=reader.GetReferenceData();
-    
-
-
-
-
-
-    //iterating over the alignments for these regions
-    BamAlignment al;
-    // bool pairedEnd=false;
-    // bool firstRead=true;
-    
-    while ( reader.GetNextAlignment(al) ) {
-	
-    	//cout<<"Read "<<al.Name<<" is wrong, cannot have a mixture of paired and unpaired read for this program"<<endl;
-	if( al.IsPaired()  ){
-	// cerr<<"Read "<<al.Name<<" is wrong, cannot have a mixture of paired and unpaired read for this program"<<endl;
-	// return 1;
-	continue;
-	}
-	
-	//skip unmapped
-	if(!al.IsMapped()){
-	continue;
-	}
-	
-	//string reconstructedReference = reconstructRef(&al);
-	pair< string, vector<int> >  reconstructedReference = reconstructRefWithPosOnRead(&al);
-	
-	if(genomeFileB){
-	string ch = refData[al.RefID].RefName;
-	
-	if(genome->name2index.find(ch) == genome->name2index.end()){
-	cerr<<"Cannot find chr "<<ch<<endl;
-	}else{
-	//cout<<"found"<<endl;
-	}
-	faidx1_t & findx=genome->name2index[ch];
-	
-	
-	unsigned int lengthToExtract = reconstructedReference.first.size();
-	for(int i=0;i<int(reconstructedReference.first.size());i++){
-	if(reconstructedReference.first[i] == 'I')
-	lengthToExtract--;		
-	}
-	int startPos = al.Position;
-	if(startPos!=0)
-	startPos--;
-	else
-	continue;
-	
-	refFromFasta_ = genome->returnStringCoord(&findx,startPos,(lengthToExtract+2));
-	refFromFasta = "";
-	refFromFasta=refFromFasta_[0];
-	int j=1;
-	for(int i=0;i<int(reconstructedReference.first.size());i++){		
-	if(reconstructedReference.first[i] == 'I'){
-	refFromFasta+="I";
-	}else{
-	refFromFasta+=refFromFasta_[j++];
-	}
-	}
-	refFromFasta+=refFromFasta_[ refFromFasta_.size() -1 ];
-	// cout<<"1  "<<al.QueryBases<<endl;
-	// cout<<"2 "<<refFromFasta<<endl;
-	// cout<<"3  "<<reconstructedReference.first<<" "<<reconstructedReference.first.size()<<endl;
-	// //cout<<"4  "<<vectorToString(reconstructedReference.second)<<" "<<reconstructedReference.second.size()<<endl;    
-	// cout<<endl;
-	
-	// //st,en-st+1-sizeProbes,sizeProbes,tiling,tosend,maxVarInProbe);
-	
-	}
-	// if(al.Qualities.size() != reconstructedReference.first.size()){
-	//     cerr<<"Quality line is not the same size as the reconstructed reference"<<endl;
-	//     return 1;
-	// }
-	
-	
-
-	
-	increaseCounters(al,reconstructedReference.first, reconstructedReference.second,minQualBase,refFromFasta); //start cycle numberOfCycles-1
-	
-	
-	
-      
-	}//end while  each read
-	
-
-
-	reader.Close();
-    */      
+  
     ofstream file5pFP;
     file5pFP.open(file5p.c_str());
 
@@ -1289,10 +954,7 @@ int main (int argc, char *argv[]) {
 	exit(1);
     }
 
-
-
-
-    //cout<<"cycle\tmatches\tmismatches\tmismatches%\tA>C\tA>C%\tA>G\tA>G%\tA>T\tA>T%\tC>A\tC>A%\tC>G\tC>G%\tC>T\tC>T%\tG>A\tG>A%\tG>C\tG>C%\tG>T\tG>T%\tT>A\tT>A%\tT>C\tT>C%\tT>G\tT>G%"<<endl;
+    
     if(dpFormat)
 	file5pFP<<"\t";
     if(hFormat)
@@ -1302,21 +964,7 @@ int main (int argc, char *argv[]) {
 
     vector< vector<unsigned int> > * typesOfDimer5pToUse;
 
-    if(endo){
-	if(doubleStr)
-	    typesOfDimer5pToUse = &typesOfDimer5pDouble;
-	else
-	    typesOfDimer5pToUse = &typesOfDimer5pSingle;
-    }else{
-	typesOfDimer5pToUse     = &typesOfDimer5p;
-    }
-    
-    if(genomeFileB){
-	if(cpg)
-	    typesOfDimer5pToUse     = &typesOfDimer5p_cpg;
-	else
-	    typesOfDimer5pToUse     = &typesOfDimer5p_noncpg;
-    }
+    typesOfDimer5pToUse     = &typesOfDimer5p;
     
     for(int l=0;l<lengthMaxToPrint;l++){
 	if(dpFormat)
@@ -1443,23 +1091,8 @@ int main (int argc, char *argv[]) {
 
     vector< vector<unsigned int> > * typesOfDimer3pToUse;
 
-    if(endo){
-	if(doubleStr)
-	    typesOfDimer3pToUse = &typesOfDimer3pDouble;
-	else
-	    typesOfDimer3pToUse = &typesOfDimer3pSingle;
-    }else{
-	typesOfDimer3pToUse     = &typesOfDimer3p;
-    }
-
-    if(genomeFileB){
-	if(cpg)
-	    typesOfDimer3pToUse     = &typesOfDimer3p_cpg;
-	else
-	    typesOfDimer3pToUse     = &typesOfDimer3p_noncpg;
-    }
+    typesOfDimer3pToUse     = &typesOfDimer3p;
     
-
     for(int le=0;le<lengthMaxToPrint;le++){
 
 	int l=le;
@@ -1573,8 +1206,6 @@ int main (int argc, char *argv[]) {
 	}
 	file3pFP<<endl;
     }
-
-
 
     file3pFP.close();
     return 0;
