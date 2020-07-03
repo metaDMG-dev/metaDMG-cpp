@@ -41,9 +41,6 @@ using namespace std;
 #define bam_is_read1(b)       (((b)->core.flag&BAM_FREAD1)      != 0)
 #define bam_is_failed(b)      ( bam_is_qcfailed(b) || bam_is_rmdup(b) || bam_is_sec(b) || bam_is_supp(b) )
 
-
-
-
 inline string printDoubleAsWhitePaddedString(double d,int digits,int precision){
     char buffer [digits+2+precision];
     sprintf(buffer,"%*.*f",digits+precision+1,precision, d);
@@ -63,7 +60,6 @@ inline string booleanAsString(bool toprint){
 	return string("not on/not used");
 }
 
-
 template <typename T>
 string stringify(const T i){
     stringstream s;
@@ -81,8 +77,6 @@ T destringify( const string& s ){
     }
     return x;
 } 
-	
-
 
 //Returns an index for every 2mer of different
 inline int twoBases2index(const char c1,const char c2){
@@ -516,12 +510,8 @@ inline void increaseCounters(const   bam1_t  * b,string & reconstructedReference
     char refBaseFromFastaNext  = 'N';
     int j=0;
     for(i=0;i<int(b->core.l_qseq);i++,j++){
-	// cout<<i<<endl;
 
 	refeBase=toupper(reconstructedReference[j]);
-
-	// readBase=toupper(          al.QueryBases[i]);
-	// qualBase=int(              al.Qualities[i])-offset;
 
 	readBase=toupper( alphabetHTSLIB[ bam_seqi(bam_get_seq(b),i) ] ); //b->core.l_qseq[i]);
 	qualBase=int(             bam_get_qual(b)[i])-offset;  
@@ -530,14 +520,11 @@ inline void increaseCounters(const   bam1_t  * b,string & reconstructedReference
 	    j--;
 	    continue;
 	}
-
-
 	
 	if( refeBase == 'I'){ //don't care about soft clipped or indels
 	  //i--;
 	  continue;
 	}
-
 
 	if(refeBase == 'D'){//deletion
 	    //j++;
@@ -561,9 +548,6 @@ inline void increaseCounters(const   bam1_t  * b,string & reconstructedReference
 		}
 
 	    }
-	    
-	
-	    
 	}else{
 	    if(!refFromFasta.empty()){
 		refBaseFromFasta         = refFromFasta[j+1];
@@ -577,8 +561,6 @@ inline void increaseCounters(const   bam1_t  * b,string & reconstructedReference
 	    }
 
 	}
-
-	// cout<<refBaseFromFastaPrev<<" "<<refBaseFromFasta<<" "<<refBaseFromFastaNext<<endl;
 	
 	if( isResolvedDNA(refeBase)  && 
 	    isResolvedDNA(readBase) ){
@@ -600,9 +582,7 @@ inline void increaseCounters(const   bam1_t  * b,string & reconstructedReference
 		cerr<<"Molecule found "<<bam_get_qname(b)<<" with length greater than limit"<<endl;
 		exit(1);
 	    }
-	       
 
-	    //mismatches[cycleToUse]++;
 	    if( !ispaired ||  isfirstpair){
 		//cerr<<"increase 5p"<<endl;
 		typesOfDimer5p[dist5p][twoBases2index(refeBase,readBase)]++;
