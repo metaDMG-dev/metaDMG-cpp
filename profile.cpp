@@ -146,8 +146,8 @@ void mdString2Vector2(const uint8_t *md,std::vector<mdField> &toReturn){
 }
 
 char *reconstructedTemp=(char*)calloc(256,1);
-void  reconstructRefWithPosHTS(const bam1_t   * b,std::pair< std::string, std::vector<int> > &pp){
-  pp.first = "";
+void  reconstructRefWithPosHTS(const bam1_t   * b,std::pair< kstring_t *, std::vector<int> > &pp){
+  pp.first->l = 0;
   pp.second.clear();
   memset(reconstructedTemp,0,256);
   std::vector<mdField> parsedMD;
@@ -173,8 +173,6 @@ void  reconstructRefWithPosHTS(const bam1_t   * b,std::pair< std::string, std::v
         int32_t oplen = bam_cigar_oplen(cigar[i]);
 	memset(reconstructedTemp+at,opchr,oplen);
 	at += oplen;
-	//	reconstructedTemp+=std::string(oplen,opchr);
-	//	cerr <<reconstructedTemp << endl;
     }
 
     //get a vector representation of the MD field	
@@ -200,14 +198,14 @@ void  reconstructRefWithPosHTS(const bam1_t   * b,std::pair< std::string, std::v
 		    if(parsedMD[mdVectorIndex].bp == DUMMYCHAR){ //no char to add, need to backtrack on the CIGAR
 			i--;
 		    }else{
-			pp.first += parsedMD[mdVectorIndex].bp;
-			pp.second.push_back(initialPositionControl++);
+		      kputc(parsedMD[mdVectorIndex].bp,pp.first);
+		      pp.second.push_back(initialPositionControl++);
 		    }
 		    mdVectorIndex++;
 		}else{ //wait until we reach a mismatch
-		    pp.first +=reconstructedTemp[i];
-		    parsedMD[mdVectorIndex].offset--;
-		    pp.second.push_back(initialPositionControl++);
+		  kputc(reconstructedTemp[i],pp.first);
+		  parsedMD[mdVectorIndex].offset--;
+		  pp.second.push_back(initialPositionControl++);
 		}
 
 		//skipping all the positions with deletions on the read
@@ -220,29 +218,26 @@ void  reconstructRefWithPosHTS(const bam1_t   * b,std::pair< std::string, std::v
 		}
 		    
 	    }else{
-		pp.first +=reconstructedTemp[i];
-		pp.second.push_back(initialPositionControl++);
+	      kputc(reconstructedTemp[i],pp.first);
+	      pp.second.push_back(initialPositionControl++);
 	    }
 	}else{
 	    if(reconstructedTemp[i] == 'S' || reconstructedTemp[i] == 'I'){ //soft clipped bases and indels
-		pp.first +=reconstructedTemp[i];
-		pp.second.push_back(initialPositionControl);
+	      kputc(reconstructedTemp[i],pp.first);
+	      pp.second.push_back(initialPositionControl);
 	    }
 	}
     }
 
-    if(int(pp.first.size()) != b->core.l_qseq){
+    if(strlen(pp.first->s) != b->core.l_qseq){
 	cerr << "Could not recreate the sequence for read "<<bam_get_qname(b)  << endl;
 	exit(1);
     }
 
-    if(pp.second.size() != pp.first.size()){
+    if(pp.second.size() != strlen(pp.first->s)){
 	cerr << "Could not determine the positions for the read "<<bam_get_qname(b) << endl;
 	exit(1);
     }
-
-
-    //    return pair< string, vector<int> >(reconstructed,positionsOnControl);
 }
 
 
@@ -438,7 +433,11 @@ int main(int argc, char *argv[]) {
         return 1;
     }
     b = bam_init1();
-    pair< string, vector<int> >  reconstructedReference;
+    kstring_t *kstr =(kstring_t *) malloc(sizeof(kstr));
+    kstr->l=kstr->m=0;
+    kstr->s=NULL;
+    pair< kstring_t*, vector<int> >  reconstructedReference;
+    reconstructedReference.first = kstr;
     while(sam_read1(fp, h, b) >= 0){
 	if(bam_is_unmapped(b) ){
 	    if(!quiet)
@@ -466,7 +465,7 @@ int main(int argc, char *argv[]) {
 	}
 	
 	reconstructRefWithPosHTS(b,reconstructedReference);
-	increaseCounters(b,reconstructedReference.first.c_str(), reconstructedReference.second,minQualBase,h,ispaired,isfirstpair); //start cycle numberOfCycles-1
+	increaseCounters(b,reconstructedReference.first->s, reconstructedReference.second,minQualBase,h,ispaired,isfirstpair); //start cycle numberOfCycles-1
     }
     
     bam_destroy1(b);
