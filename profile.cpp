@@ -33,15 +33,16 @@ char refToChar[256] = {
     4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,//239
     4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4//255
 };
+char toBase[4] = {'A','C','G','T'};
 
-char offset[4][4]={
+char toIndex[4][4]={
   {0,1,2,3},
   {4,5,6,7},
   {8,9,10,11},
   {12,13,14,15}
 };
 //a->t,c->g,g->c,t->a
-char complement[4] = {3,2,1,0};
+char com[4] = {3,2,1,0};
 
 typedef struct{
     char bp;
@@ -98,136 +99,9 @@ T destringify( const string& s ){
     return x;
 } 
 
-//Returns an index for every 2mer of different
-
-inline int twoBases2index(const char c1,const char c2){
-    char _c1= toupper(c1);
-    char _c2= toupper(c2);
-
-    if(_c1     ==    'A'){
-
-	if(_c2 ==    'A')
-	    return 0;
-	if(_c2 ==    'C')
-	    return 1;
-	if(_c2 ==    'G')
-	    return 2;
-	if(_c2 ==    'T')
-	    return 3;
-
-	//cerr<<"Utils.h:1 twoBases2index invalid dimer "<<c1<<" "<<c2<<endl;
-	exit(1);
-    }
-
-
-    if(_c1     ==    'C'){
-
-
-	if(_c2 ==    'A')
-	    return 4;
-	if(_c2 ==    'C')
-	    return 5;
-	if(_c2 ==    'G')
-	    return 6;
-	if(_c2 ==    'T')
-	    return 7;
-
-	//cerr<<"Utils.h:2 twoBases2index invalid dimer "<<c1<<" "<<c2<<endl;
-	exit(1);
-    }
-
-
-    if(_c1     ==    'G'){
-
-	if(_c2 ==    'A')
-	    return 8;
-	if(_c2 ==    'C')
-	    return 9;
-	if(_c2 ==    'G')
-	    return 10;
-	if(_c2 ==    'T')
-	    return 11;
-
-
-	//cerr<<"Utils.h:3 twoBases2index invalid dimer "<<c1<<" "<<c2<<endl;
-	exit(1);
-    }
-
-
-
-    if(_c1     ==    'T'){
-
-	if(_c2 ==    'A')
-	    return 12;
-	if(_c2 ==    'C')
-	    return 13;
-	if(_c2 ==    'G')
-	    return 14;
-	if(_c2 ==    'T')
-	    return 15;
-
-	//	cerr<<"Utils.h:4 twoBases2index invalid dimer "<<c1<<" "<<c2<<endl;
-	exit(1);
-    }
-
-
-
-    //    cerr<<"Utils.h:5 twoBases2index invalid dimer "<<c1<<" "<<c2<<endl;
-    exit(1);
-}
-
-
-inline char complement(const char c){
-    if(c ==    'A')
-	return 'T';
-
-    if(c ==    'C')
-	return 'G';
-
-    if(c ==    'G')
-	return 'C';
-
-    if(c ==    'T')
-	return 'A';
-
-
-
-    if(c ==    'a')
-	return 't';
-
-    if(c ==    'c')
-	return 'g';
-
-    if(c ==    'g')
-	return 'c';
-
-    if(c ==    't')
-	return 'a';
-
-
-
-    if(c ==    'N')
-	return 'N';
-    
-    exit(1);
-}
-//Check if it is either A,C,G,T
-inline bool isResolvedDNA(const char c){
-    char _c= toupper(c);
-
-    if(_c ==    'A')
-	return true;
-    if(_c ==    'C')
-	return true;
-    if(_c ==    'G')
-	return true;
-    if(_c ==    'T')
-	return true;
-    return false;
-}
-
-inline vector<mdField> mdString2Vector(const string & mdFieldToParse){
-    vector<mdField> toReturn;
+void mdString2Vector(uint8_t *md,std::vector<mdField> &toReturn){
+  std::string mdFieldToParse = std::string((const char*) md+1);
+  toReturn.clear();
     int i=0;
     // int addToOffset=0;
     mdField toadd;
@@ -269,14 +143,13 @@ inline vector<mdField> mdString2Vector(const string & mdFieldToParse){
 	}
 	i++;
     }
-    return toReturn;
 }
 
 std::pair< std::string, std::vector<int> >  reconstructRefWithPosHTS(const bam1_t   * b){
   std::string mdFieldString="";
   std::string reconstructed="";
   std::string reconstructedTemp="";
-
+  std::vector<mdField> parsedMD;
     //skip unmapped
     if( ((b)->core.flag&BAM_FUNMAP) != 0 ){
       fprintf(stderr,"The function reconstructRefWithPosOnReadHTS()  cannot be called for unmapped reads\n");
@@ -284,14 +157,12 @@ std::pair< std::string, std::vector<int> >  reconstructRefWithPosHTS(const bam1_
     }
     
     uint8_t *mdptr = bam_aux_get(b, "MD");
-    
-    if(mdptr){
-      mdFieldString = std::string( (const char*)(mdptr+1));
-    }else{
+    //    fprintf(stderr,"%s\n",bam_get_qname(b));
+    if(mdptr==NULL){
       fprintf(stderr,"ReconsReferenceHTSLIB: Cannot get MD tag from:%s ",bam_get_qname(b));
       exit(1);
     }
-
+    
     int32_t   n_cigar_op = b->core.n_cigar;
     uint32_t *cigar      = bam_get_cigar(b);
 
@@ -302,9 +173,11 @@ std::pair< std::string, std::vector<int> >  reconstructRefWithPosHTS(const bam1_
     }
 
     //get a vector representation of the MD field	
-
-    std::vector<mdField> parsedMD=mdString2Vector(mdFieldString);
-
+    mdString2Vector(mdptr,parsedMD);
+#if 1
+    for(int i=0;i<parsedMD.size();i++)
+      fprintf(stderr,"%d) %c %d\n",i,parsedMD[i].bp,parsedMD[i].offset);
+#endif
     vector<int> positionsOnControl;
     
     //int initialPositionControl=al->Position;
@@ -395,16 +268,13 @@ inline void increaseCounters(const   bam1_t  * b,string & reconstructedReference
     }
  iterateLoop:
 
-    
-    char refBaseFromFasta      = 'N';
-    char refBaseFromFastaPrev  = 'N';
-    char refBaseFromFastaNext  = 'N';
     int j=0;
     for(i=0;i<int(b->core.l_qseq);i++,j++){
 
 	refeBase=toupper(reconstructedReference[j]);
 
 	readBase=toupper( alphabetHTSLIB[ bam_seqi(bam_get_seq(b),i) ] ); //b->core.l_qseq[i]);
+	//	fprintf(stderr,"%c %c\n",refeBase,readBase);
 	qualBase=int(             bam_get_qual(b)[i])-offset;  
   
 	if( refeBase == 'S'){ //don't care about soft clipped or indels	    
@@ -429,14 +299,20 @@ inline void increaseCounters(const   bam1_t  * b,string & reconstructedReference
 	if(refeBase == 'M'){//match
 	    refeBase =  readBase;
 	}
-	
-	if( isResolvedDNA(refeBase)  && isResolvedDNA(readBase) ){
+
+	refeBase = refToChar[refeBase];
+	readBase = refToChar[readBase];
+
+
+	//if( isResolvedDNA(refeBase)  && isResolvedDNA(readBase) ){
+	if( refeBase!=4  && readBase!=4 ){
+	  //fprintf(stderr,"BASES:%d %d\n",refeBase,readBase);
 	    int dist5p=i;
 	    int dist3p=b->core.l_qseq-1-i;
 	    
 	    if( bam_is_rev(b) ){
-		refeBase=complement(refeBase);
-		readBase=complement(readBase);
+		refeBase=com[refeBase];
+		readBase=com[readBase];
 		//dist5p=int(al.QueryBases.size())-1-i;
 		dist5p=int(b->core.l_qseq)-1-i;
 		dist3p=i;
@@ -450,12 +326,12 @@ inline void increaseCounters(const   bam1_t  * b,string & reconstructedReference
 
 	    if( !ispaired ||  isfirstpair){
 	      //     fprintf(stderr,"increase5p: %d\n",dist5p);
-	      typesOfDimer5p[dist5p][twoBases2index(refeBase,readBase)]++;
+	      typesOfDimer5p[dist5p][toIndex[refeBase][readBase]]++;
 	    }
 
 	    if( !ispaired || !isfirstpair){
 	      //fprintf(stderr,"increase3p: %d\n",dist3p);
-		typesOfDimer3p[dist3p][twoBases2index(refeBase,readBase)]++;
+		typesOfDimer3p[dist3p][toIndex[refeBase][readBase]]++;
 	    }
 	}
     }
