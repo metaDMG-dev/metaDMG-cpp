@@ -145,11 +145,11 @@ void mdString2Vector2(const uint8_t *md,std::vector<mdField> &toReturn){
     }
 }
 
+char *reconstructedTemp=(char*)calloc(256,1);
 void  reconstructRefWithPosHTS(const bam1_t   * b,std::pair< std::string, std::vector<int> > &pp){
   pp.first = "";
   pp.second.clear();
-
-  std::string reconstructedTemp="";
+  memset(reconstructedTemp,0,256);
   std::vector<mdField> parsedMD;
     //skip unmapped
     if( ((b)->core.flag&BAM_FUNMAP) != 0 ){
@@ -167,11 +167,14 @@ void  reconstructRefWithPosHTS(const bam1_t   * b,std::pair< std::string, std::v
     int32_t   n_cigar_op = b->core.n_cigar;
     uint32_t *cigar      = bam_get_cigar(b);
 
+    int at =0;
     for(int32_t i = 0; i < n_cigar_op; i++){
 	char opchr = bam_cigar_opchr(cigar[i]);
         int32_t oplen = bam_cigar_oplen(cigar[i]);
-	reconstructedTemp+=std::string(oplen,opchr);
-	//cerr <<reconstructedTemp << endl;
+	memset(reconstructedTemp+at,opchr,oplen);
+	at += oplen;
+	//	reconstructedTemp+=std::string(oplen,opchr);
+	//	cerr <<reconstructedTemp << endl;
     }
 
     //get a vector representation of the MD field	
@@ -187,7 +190,7 @@ void  reconstructRefWithPosHTS(const bam1_t   * b,std::pair< std::string, std::v
     //combine the CIGAR and MD into one single string
     int mdVectorIndex=0;
 
-    for(unsigned int i=0;i<reconstructedTemp.size();i++){
+    for(unsigned int i=0;i<strlen(reconstructedTemp);i++){
 	if(reconstructedTemp[i] == 'M' ){ //only look at matches and indels	    
 		
 	    if(mdVectorIndex<int(parsedMD.size())){ //still have mismatches
