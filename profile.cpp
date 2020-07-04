@@ -1,27 +1,47 @@
 #include <iostream>
 #include <vector>
 #include <cstring>
-#include <cstring>
-#include <set>
 #include <ctype.h>
-#include <stdlib.h>
-#include <sys/mman.h>
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <fcntl.h>
-#include <iostream>
 #include <string>
 #include <utility>
 #include <htslib/sam.h>
 #include <htslib/hts.h>
 #include <cstdlib>
 #include <zlib.h>
-#include <map>
 #include <fstream>
 #include <cmath>
 #include <sstream>
 
 #define MAXLENGTH 1000
+
+//A=0,C=1,G=2,T=3
+char refToChar[256] = {
+    0,1,2,3,4,4,4,4,4,4,4,4,4,4,4,4,//15
+    4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,//31
+    4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,//47
+    0,1,2,3,4,4,4,4,4,4,4,4,4,4,4,4,//63
+    4,0,4,1,4,4,4,2,4,4,4,4,4,4,4,4,//79
+    4,4,4,4,3,4,4,4,4,4,4,4,4,4,4,4,//95
+    4,0,4,1,4,4,4,2,4,4,4,4,4,4,4,4,//111
+    4,4,4,4,3,4,4,4,4,4,4,4,4,4,4,4,//127
+    4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,//143
+    4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,//159
+    4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,//175
+    4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,//191
+    4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,//207
+    4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,//223
+    4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,//239
+    4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4//255
+};
+
+char offset[4][4]={
+  {0,1,2,3},
+  {4,5,6,7},
+  {8,9,10,11},
+  {12,13,14,15}
+};
+//a->t,c->g,g->c,t->a
+char complement[4] = {3,2,1,0};
 
 typedef struct{
     char bp;
@@ -79,6 +99,7 @@ T destringify( const string& s ){
 } 
 
 //Returns an index for every 2mer of different
+
 inline int twoBases2index(const char c1,const char c2){
     char _c1= toupper(c1);
     char _c2= toupper(c2);
@@ -349,7 +370,6 @@ std::pair< std::string, std::vector<int> >  reconstructRefWithPosHTS(const bam1_
 
 
 using namespace std;
-// using namespace BamTools;
 
 const int offset=0;
 int numberOfCycles;
@@ -359,149 +379,20 @@ string alphabetHTSLIB = "NACNGNNNTNNNNNNN";
 
 vector< vector<unsigned int> > typesOfDimer5p; //5' deam rates
 vector< vector<unsigned int> > typesOfDimer3p; //3' deam rates
-vector< vector<unsigned int> > typesOfDimer5p_cpg; //5' deam rates
-vector< vector<unsigned int> > typesOfDimer3p_cpg; //3' deam rates
-vector< vector<unsigned int> > typesOfDimer5p_noncpg; //5' deam rates
-vector< vector<unsigned int> > typesOfDimer3p_noncpg; //3' deam rates
-
-
-vector< vector<unsigned int> > typesOfDimer5pDouble; //5' deam rates when the 3' is deaminated according to a double str.
-vector< vector<unsigned int> > typesOfDimer3pDouble; //3' deam rates when the 5' is deaminated according to a double str.
-vector< vector<unsigned int> > typesOfDimer5pSingle; //5' deam rates when the 3' is deaminated according to a single str.
-vector< vector<unsigned int> > typesOfDimer3pSingle; //3' deam rates when the 5' is deaminated according to a single str.
-
 
 //increases the counters mismatches and typesOfMismatches of a given BamAlignment object
-inline void increaseCounters(const   bam1_t  * b,string & reconstructedReference,const vector<int> &  reconstructedReferencePos,const int & minQualBase,const string & refFromFasta, const bam_hdr_t *h,bool ispaired,bool isfirstpair){ // ,int firstCycleRead,int increment
+inline void increaseCounters(const   bam1_t  * b,string & reconstructedReference,const vector<int> &  reconstructedReferencePos,const int & minQualBase, const bam_hdr_t *h,bool ispaired,bool isfirstpair){ // ,int firstCycleRead,int increment
 
     char refeBase;
     char readBase;
     int  qualBase;
  
     //Checking if the 5' is deaminated
-    bool isDeam5pS=false; //C->T 5'
-    bool isDeam3pS=false; //C->T 3'
-    bool isDeam5pD=false; //C->T 5'
-    bool isDeam3pD=false; //G->A 3'
 
     int i;
-    //cerr<<"read  "<<bam_get_qname(b)<<endl;
     if(ispaired){ //since we cannot evaluate the 5' ends or 3' ends
 	goto iterateLoop;
     }
-
-
-    i=0; //5p for forward str, 3p for reverse
-
-    refeBase=toupper(reconstructedReference[i]);
-    
-    //readBase=toupper(         al.QueryBases[i]);
-    readBase=toupper( alphabetHTSLIB[ bam_seqi(bam_get_seq(b),i) ] ); //b->core.l_qseq[i]);
-    //qualBase=int(             al.Qualities[i])-offset;
-    qualBase=int(             bam_get_qual(b)[i])-offset;  
-
-    if(qualBase < minQualBase)
-	goto eval3pdeam;
-
-    if(refeBase == 'S' ||refeBase == 'I'){ //don't care about soft clipped or indels
-	goto eval3pdeam;
-    }
-    
-    if(refeBase == 'M'){//match
-	refeBase =  readBase;
-    }
-
-    if( isResolvedDNA(refeBase)  && 
-	isResolvedDNA(readBase) ){
-	// if(al.IsReverseStrand()){ //need to take the complement
-	if( bam_is_rev(b) ){
-	    refeBase=complement(refeBase);
-	    readBase=complement(readBase);
-	}
-	
-	if(refeBase == 'C' &&
-	   readBase == 'T' ){ //C->T
-
-	    //if(al.IsReverseStrand()){ //3'
-	    if( bam_is_rev(b) ){
-		isDeam3pS=true;		
-	    }else{                    //5'
-		isDeam5pS=true;
-		isDeam5pD=true;
-	    }
-	}
-
-
-	if(refeBase == 'G' &&
-	   readBase == 'A' ){ //G->A
-
-	    //if(al.IsReverseStrand()){ //3'
-	    if( bam_is_rev(b) ){
-		isDeam3pD=true;		
-	    }else{                    //5'
-	    }
-	}
-	   
-    }
-
-
- eval3pdeam:
-    //i=int(al.QueryBases.size())-1; //3p for forward str, 5p for reverse
-    i=b->core.l_qseq-1;
-    
-    refeBase=toupper(reconstructedReference[i]);
-    // readBase=toupper(         al.QueryBases[i]);
-    // qualBase=int(              al.Qualities[i])-offset;
-    readBase=toupper( alphabetHTSLIB[ bam_seqi(bam_get_seq(b),i) ] ); //b->core.l_qseq[i]);
-    qualBase=int(             bam_get_qual(b)[i])-offset;  
-    
-    if(qualBase < minQualBase)
-	goto iterateLoop;
-    
-    if(refeBase == 'S' || refeBase == 'I'){ //don't care about soft clipped or indels
-	goto iterateLoop;
-    }
-    
-    if(refeBase == 'M'){//match
-	refeBase =  readBase;
-    }
-
-    if( isResolvedDNA(refeBase)  && 
-	isResolvedDNA(readBase) ){
-	//if(al.IsReverseStrand()){ //need to take the complement
-	if( bam_is_rev(b) ){
-	    refeBase=complement(refeBase);
-	    readBase=complement(readBase);
-	}
-	
-	if(refeBase == 'C' &&
-	   readBase == 'T' ){ //C->T
-
-	    // if(al.IsReverseStrand()){ //5'
-	    if( bam_is_rev(b) ){
-
-		isDeam5pS=true;
-		isDeam5pD=true;		
-	    }else{                    //3'
-		isDeam3pS=true;
-	    }
-	}
-
-	if(refeBase == 'G' &&
-	   readBase == 'A' ){ //G->A
-
-	    // if(al.IsReverseStrand()){ //5'
-	    if( bam_is_rev(b) ){
-    
-	    }else{                    //3'
-		isDeam3pD=true;
-	    }
-	}
-	   
-
-
-    }
-
  iterateLoop:
 
     
@@ -537,38 +428,12 @@ inline void increaseCounters(const   bam1_t  * b,string & reconstructedReference
 	
 	if(refeBase == 'M'){//match
 	    refeBase =  readBase;
-
-	    if(!refFromFasta.empty()){
-		refBaseFromFasta         = refFromFasta[j+1];
-		refBaseFromFastaPrev     = refFromFasta[j  ];
-		refBaseFromFastaNext     = refFromFasta[j+2];		
-		if(refeBase != refBaseFromFasta){
-		    cerr<<"Discrepency#1 for "<<bam_get_qname(b)<<" where the reference base at position "<<i<<" "<<refeBase<<" "<<refBaseFromFasta<<endl;
-		    exit(1);
-		}
-
-	    }
-	}else{
-	    if(!refFromFasta.empty()){
-		refBaseFromFasta         = refFromFasta[j+1];
-		refBaseFromFastaPrev     = refFromFasta[j  ];
-		refBaseFromFastaNext     = refFromFasta[j+2];		
-		if(refeBase != refBaseFromFasta){
-		    cerr<<"Discrepency#2 for "<<bam_get_qname(b)<<" where the reference base at position "<<i<<" "<<refeBase<<" "<<refBaseFromFasta<<endl;
-		    exit(1);
-		}
-
-	    }
-
 	}
 	
-	if( isResolvedDNA(refeBase)  && 
-	    isResolvedDNA(readBase) ){
+	if( isResolvedDNA(refeBase)  && isResolvedDNA(readBase) ){
 	    int dist5p=i;
-	    //int dist3p=int(al.QueryBases.size())-1-i;
 	    int dist3p=b->core.l_qseq-1-i;
 	    
-	    //  if(al.IsReverseStrand()){ //need to take the complement
 	    if( bam_is_rev(b) ){
 		refeBase=complement(refeBase);
 		readBase=complement(readBase);
@@ -584,106 +449,27 @@ inline void increaseCounters(const   bam1_t  * b,string & reconstructedReference
 	    }
 
 	    if( !ispaired ||  isfirstpair){
-		//cerr<<"increase 5p"<<endl;
-		typesOfDimer5p[dist5p][twoBases2index(refeBase,readBase)]++;
+	      //     fprintf(stderr,"increase5p: %d\n",dist5p);
+	      typesOfDimer5p[dist5p][twoBases2index(refeBase,readBase)]++;
 	    }
 
 	    if( !ispaired || !isfirstpair){
-		//cerr<<"increase 3p"<<endl;
+	      //fprintf(stderr,"increase3p: %d\n",dist3p);
 		typesOfDimer3p[dist3p][twoBases2index(refeBase,readBase)]++;
 	    }
-	    
-	    if(!refFromFasta.empty()){
-		if(
-		    ( (refBaseFromFasta     == 'C' && refBaseFromFastaNext == 'G') && !bam_is_rev(b) ) //!al.IsReverseStrand() )
-		    ||
-		    ( (refBaseFromFastaPrev == 'C' && refBaseFromFasta     == 'G') &&  bam_is_rev(b) ) //al.IsReverseStrand() )
-		){
-		    //cout<<"   CPG: "<<refBaseFromFastaPrev<<" "<<refBaseFromFasta<<" "<<refBaseFromFastaNext<<" ref:"<<refeBase<<" read:"<<readBase<<" "<<al.IsReverseStrand()<<" same="<<(refeBase==readBase)<<endl;
-		    if( !ispaired ||  isfirstpair)
-			typesOfDimer5p_cpg[dist5p][twoBases2index(refeBase,readBase)]++;
-		    if( !ispaired || !isfirstpair)
-			typesOfDimer3p_cpg[dist3p][twoBases2index(refeBase,readBase)]++;
-
-		}else{
-		    if( isResolvedDNA(refBaseFromFasta)                               &&
-			isResolvedDNA(refBaseFromFastaPrev)                           &&
-			isResolvedDNA(refBaseFromFastaNext)                           &&
-			!(refBaseFromFasta     == 'C' && refBaseFromFastaNext == 'G') &&
-			!(refBaseFromFastaPrev == 'C' && refBaseFromFasta     == 'G')
-		    ){
-
-		       //cout<<"nonCPG: "<<refBaseFromFastaPrev<<" "<<refBaseFromFasta<<" "<<refBaseFromFastaNext<<" ref:"<<refeBase<<" read:"<<readBase<<" "<<al.IsReverseStrand()<<" same="<<(refeBase==readBase)<<endl;
-			if( !ispaired ||  isfirstpair)
-			    typesOfDimer5p_noncpg[dist5p][twoBases2index(refeBase,readBase)]++;
-			if( !ispaired || !isfirstpair)
-			    typesOfDimer3p_noncpg[dist3p][twoBases2index(refeBase,readBase)]++;
-			
-		    }
-		}
-	    }
-
-	    if(isDeam5pS){
-		if( !ispaired || !isfirstpair)
-		    typesOfDimer3pSingle[dist3p][twoBases2index(refeBase,readBase)]++;
-	    }
-
-	    if(isDeam3pS){
-		if( !ispaired ||  isfirstpair)
-		    typesOfDimer5pSingle[dist5p][twoBases2index(refeBase,readBase)]++;
-	    }
-
-
-	    if(isDeam5pD){
-		if( !ispaired || !isfirstpair)
-		    typesOfDimer3pDouble[dist3p][twoBases2index(refeBase,readBase)]++;
-	    }
-
-	    if(isDeam3pD){
-		if( !ispaired ||  isfirstpair)
-		    typesOfDimer5pDouble[dist5p][twoBases2index(refeBase,readBase)]++;
-	    }
-
-
 	}
     }
 }
 
-
-double dbl2log(const double d,bool phred){
-    double t= -10.0*(log(d)/log(10.0));
-    // if(d == 0){
-    // 	t = 
-    // }
-    if(phred)
-	return t;
-    else 
-	return d;
-}
-
-
-int main (int argc, char *argv[]) {
-
-    string file5p="/dev/stdout";
-    string file3p="/dev/stdout";
-
-    bool allStr   =true;
-    bool singleStr=false;
-    bool doubleStr=false;
-    bool singAnddoubleStr=false;
-
-    int lengthMaxToPrint = 5;
-    int minQualBase      = 0;
-    int minLength        = 35;
-    bool dpFormat=false;
-    bool hFormat=false;
-    double errorToRemove=0.0;
-    bool phred=false;
-    bool cpg=false;
-    bool paired=false;
-    bool quiet=false;
-
-    string usage=string(""+string(argv[0])+" <options>  [in BAM file]"+
+int main(int argc, char *argv[]) {
+  int lengthMaxToPrint = 5;
+  int minQualBase      = 0;
+  int minLength        = 35;
+  
+  bool paired=false;
+  bool quiet=false;
+  
+  string usage=string(""+string(argv[0])+" <options>  [in BAM file]"+
 			"\nThis program reads a BAM file and produces a deamination profile for the\n"+
 			"5' and 3' ends\n"+
 
@@ -694,22 +480,13 @@ int main (int argc, char *argv[]) {
 			"\t\t"+"-minq\t\t\tRequire the base to have at least this quality to be considered (Default: "+stringify( minQualBase )+")\n"+
 			"\t\t"+"-minl\t\t\tRequire the base to have at least this quality to be considered (Default: "+stringify( minLength )+")\n"+
 			"\t\t"+"-length\t[length]\tDo not consider bases beyond this length  (Default: "+stringify(lengthMaxToPrint)+" ) \n"+
-			"\t\t"+"-err\t[error rate]\tSubstract [error rate] from the rates to account for sequencing errors  (Default: "+stringify(errorToRemove)+" ) \n"+
-			"\t\t"+"-log\t\t\tPrint substitutions on a PHRED logarithmic scale  (Default: "+stringify(phred)+" ) \n"+
 			"\t\t"+"-paired\t\t\tAllow paired reads    (Default: "+booleanAsString( paired )+" ) \n"+
 
 
 			"\n\n\tYou can specify either one of the two:\n"+
-			"\t\t"+"-single\t\t\tUse the deamination profile of a single strand library  (Default: "+booleanAsString( singleStr )+")\n"+
-			"\t\t"+"-double\t\t\tUse the deamination profile of a double strand library  (Default: "+booleanAsString( doubleStr )+")\n"+
-			"\n\tor specify this option:\n"+
-			"\t\t"+"-both\t\t\tReport both C->T and G->A regardless of stand  (Default: "+booleanAsString( singAnddoubleStr )+")\n"+
 
 			"\n\n\tOutput options:\n"+
-			"\t\t"+"-5p\t[output file]\tOutput profile for the 5' end (Default: "+stringify(file5p)+")\n"+
-			"\t\t"+"-3p\t[output file]\tOutput profile for the 3' end (Default: "+stringify(file3p)+")\n"+
-			"\t\t"+"-dp\t\t\tOutput in damage-patterns format (Default: "+booleanAsString(dpFormat)+")\n"+
-			"\t\t"+"-h\t\t\tMore human readible output (Default: "+booleanAsString(hFormat)+")\n"+
+
 			"\t\t"+"-q\t\t\tDo not print why reads are skipped (Default: "+booleanAsString(quiet)+")\n"+
 		       
 			"\n");
@@ -723,26 +500,8 @@ int main (int argc, char *argv[]) {
 
     
     for(int i=1;i<(argc-1);i++){ //all but the last 3 args
-
-
-        if(string(argv[i]) == "-dp"  ){
-            dpFormat=true;
-            continue;
-        }
-
-        if(string(argv[i]) == "-log"  ){
-            phred=true;
-            continue;
-        }
-
-
         if(string(argv[i]) == "-paired"  ){
             paired=true;
-            continue;
-        }
-
-        if(string(argv[i]) == "-h"  ){
-            hFormat=true;
             continue;
         }
 
@@ -763,121 +522,31 @@ int main (int argc, char *argv[]) {
             continue;
         }
 
-	if(string(argv[i]) == "-cpg"  ){
-	    cpg=true;
-            continue;
-        }
-
         if(string(argv[i]) == "-length"  ){
             lengthMaxToPrint=destringify<int>(argv[i+1]);
             i++;
             continue;
         }
 
-        if(string(argv[i]) == "-err"  ){
-            errorToRemove=destringify<double>(argv[i+1]);
-            i++;
-            continue;
-        }
-
-        if(string(argv[i]) == "-5p" ){
-	    file5p = string(argv[i+1]);
-	    i++;
-            continue;
-        }
-
-        if(string(argv[i]) == "-3p" ){
-	    file3p = string(argv[i+1]);
-	    i++;
-            continue;
-        }
-
-	if(string(argv[i]) == "-both" ){
-	    //doubleStr=true;
-
-	    allStr           = false;
-	    singleStr        = false;
-	    doubleStr        = false;
-	    singAnddoubleStr = true;
-            continue;
-        }
-
-
-        if(string(argv[i]) == "-single" ){
-
-	    allStr    = false;
-	    singleStr = true;
-	    doubleStr = false;
-
-            continue;
-        }
-
-        if(string(argv[i]) == "-double" ){
-	    //doubleStr=true;
-
-	    allStr    = false;
-	    singleStr = false;
-	    doubleStr = true;
-
-            continue;
-        }
-
-
 	cerr<<"Error: unknown option "<<string(argv[i])<<endl;
-	return 1;
-    }
-
-    if(phred && hFormat){
-	cerr<<"Error: cannot specify both -log and -h"<<endl;
-	return 1;
-    }
-
-    if(dpFormat && hFormat){
-	cerr<<"Error: cannot specify both -dp and -h"<<endl;
 	return 1;
     }
 
     typesOfDimer5p       = vector< vector<unsigned int> >();
     typesOfDimer3p       = vector< vector<unsigned int> >();
-    typesOfDimer5p_cpg   = vector< vector<unsigned int> >();
-    typesOfDimer3p_cpg   = vector< vector<unsigned int> >();
-    typesOfDimer5p_noncpg= vector< vector<unsigned int> >();
-    typesOfDimer3p_noncpg= vector< vector<unsigned int> >();
-    
-    typesOfDimer5pDouble = vector< vector<unsigned int> >();
-    typesOfDimer3pDouble = vector< vector<unsigned int> >();
-    typesOfDimer5pSingle = vector< vector<unsigned int> >();
-    typesOfDimer3pSingle = vector< vector<unsigned int> >();
-
+        
     for(int l=0;l<MAXLENGTH;l++){
 	//for(int i=0;i<16;i++){
 	typesOfDimer5p.push_back( vector<unsigned int> ( 16,0 ) );
 	typesOfDimer3p.push_back( vector<unsigned int> ( 16,0 ) );
-	typesOfDimer5p_cpg.push_back( vector<unsigned int> ( 16,0 ) );
-	typesOfDimer3p_cpg.push_back( vector<unsigned int> ( 16,0 ) );
-	typesOfDimer5p_noncpg.push_back( vector<unsigned int> ( 16,0 ) );
-	typesOfDimer3p_noncpg.push_back( vector<unsigned int> ( 16,0 ) );
-
-
-	typesOfDimer5pDouble.push_back( vector<unsigned int> ( 16,0 ) );
-	typesOfDimer3pDouble.push_back( vector<unsigned int> ( 16,0 ) );
-	typesOfDimer5pSingle.push_back( vector<unsigned int> ( 16,0 ) );
-	typesOfDimer3pSingle.push_back( vector<unsigned int> ( 16,0 ) );
-
-	//}
     }
     
     string bamfiletopen = string( argv[ argc-1 ] );
-    // string deambam      = string( argv[ argc-2 ] );
-    // string nondeambam   = string( argv[ argc-1 ] );
 
     samFile  *fp;
     bam1_t    *b;
     bam_hdr_t *h;
 
-    string refFromFasta_;
-    string refFromFasta;
-    
     fp = sam_open_format(bamfiletopen.c_str(), "r", NULL); 
     if(fp == NULL){
 	cerr << "Could not open input BAM file"<< bamfiletopen << endl;
@@ -908,7 +577,6 @@ int main (int argc, char *argv[]) {
 	}
 	bool ispaired    = bam_is_paired(b);
 	bool isfirstpair = bam_is_read1(b);
-	
 	if(!paired){    
 	    if( ispaired   ){
 		if(!quiet)
@@ -918,28 +586,13 @@ int main (int argc, char *argv[]) {
 	}
 	
 	pair< string, vector<int> >  reconstructedReference = reconstructRefWithPosHTS(b);
-	increaseCounters(b,reconstructedReference.first, reconstructedReference.second,minQualBase,refFromFasta,h,ispaired,isfirstpair); //start cycle numberOfCycles-1
+	increaseCounters(b,reconstructedReference.first, reconstructedReference.second,minQualBase,h,ispaired,isfirstpair); //start cycle numberOfCycles-1
     }
     
     bam_destroy1(b);
     sam_close(fp);
     
-    
-  
-    ofstream file5pFP;
-    file5pFP.open(file5p.c_str());
-
-    if (!file5pFP.is_open()){
-	cerr << "Unable to write to 5p file "<<file5p<<endl;
-	exit(1);
-    }
-
-    
-    if(dpFormat)
-	file5pFP<<"\t";
-    if(hFormat)
-	file5pFP<<"pos\t";
-    file5pFP<<"A>C\tA>G\tA>T\tC>A\tC>G\tC>T\tG>A\tG>C\tG>T\tT>A\tT>C\tT>G"<<endl;
+    cout <<"pos\t"<<"A>C\tA>G\tA>T\tC>A\tC>G\tC>T\tG>A\tG>C\tG>T\tT>A\tT>C\tT>G"<<endl;
   
 
     vector< vector<unsigned int> > * typesOfDimer5pToUse;
@@ -947,11 +600,7 @@ int main (int argc, char *argv[]) {
     typesOfDimer5pToUse     = &typesOfDimer5p;
     
     for(int l=0;l<lengthMaxToPrint;l++){
-	if(dpFormat)
-	    file5pFP<<l<<"\t";
-
-	if(hFormat)
-	    file5pFP<<printIntAsWhitePaddedString(l,int(log10(lengthMaxToPrint))+1)<<"\t";
+      cout<<printIntAsWhitePaddedString(l,int(log10(lengthMaxToPrint))+1)<<"\t";
 	
 	for(int n1=0;n1<4;n1++){   
 	    int totalObs=0;
@@ -962,111 +611,18 @@ int main (int argc, char *argv[]) {
 	    for(int n2=0;n2<4;n2++){   
 		if(n1==n2)
 		    continue;
-		if(allStr){
-		    if(dpFormat)
-		      file5pFP<<dbl2log(std::max(0.0,double( (*typesOfDimer5pToUse)[l][4*n1+n2])/double(totalObs)-errorToRemove),phred)<<" [0..0]";
-		    else
-			if(hFormat)
-			  file5pFP<<printDoubleAsWhitePaddedString( std::max(0.0,double( (*typesOfDimer5pToUse)[l][4*n1+n2])/double(totalObs)-errorToRemove) ,1,5);
-			else
-			  file5pFP<<dbl2log( std::max(0.0,double( (*typesOfDimer5pToUse)[l][4*n1+n2])/double(totalObs)-errorToRemove),phred);  
-		}else{ 
-		    if(singAnddoubleStr){
-			if(         (n1==1 && n2==3) || (n1==2 && n2==0 )  ) { 
-			    if(dpFormat)
-			      file5pFP<<dbl2log( std::max(0.0,double((*typesOfDimer5pToUse)[l][4*n1+n2])/double(totalObs)-errorToRemove),phred)<<" [0..0]";
-			    else
-				if(hFormat)
-				  file5pFP<<printDoubleAsWhitePaddedString( std::max(0.0,double((*typesOfDimer5pToUse)[l][4*n1+n2])/double(totalObs)-errorToRemove),1,5);
-				else
-				  file5pFP<<dbl2log( std::max(0.0,double((*typesOfDimer5pToUse)[l][4*n1+n2])/double(totalObs)-errorToRemove),phred); 
-			} else { 
-			    if(dpFormat)
-				file5pFP<<(phred?"-Inf":"0.0")<<" [0..0]";
-			    else
-				if(hFormat)
-				    file5pFP<<printDoubleAsWhitePaddedString( 0.0,1,5);
-				else
-				    file5pFP<<(phred?"-Inf":"0.0")<<"";
-			}
-
-		    }else{
-			if(doubleStr){
-			    //          C        T
-			    if(         n1==1 && n2==3  ) { 
-				if(dpFormat)
-				  file5pFP<<dbl2log( std::max(0.0,double((*typesOfDimer5pToUse)[l][4*n1+n2])/double(totalObs)-errorToRemove),phred)<<" [0..0]";
-				else
-				    if(hFormat)
-				      file5pFP<<printDoubleAsWhitePaddedString( std::max(0.0,double((*typesOfDimer5pToUse)[l][4*n1+n2])/double(totalObs)-errorToRemove) ,1,5); 
-				    else
-					file5pFP<<dbl2log( std::max(0.0,double((*typesOfDimer5pToUse)[l][4*n1+n2])/double(totalObs)-errorToRemove),phred); 
-			    } else { 
-				if(dpFormat)
-				    file5pFP<<(phred?"-Inf":"0.0")<<" [0..0]";
-				else
-				    if(hFormat)
-					file5pFP<<printDoubleAsWhitePaddedString( 0.0,1,5);
-				    else					
-					file5pFP<<(phred?"-Inf":"0.0"); 
-			    }
-			}else{ 
-			    if(singleStr){
-				//      C        T
-				if(     n1==1 && n2==3  ) { 
-				    if(dpFormat)
-					file5pFP<<dbl2log( std::max(0.0,double((*typesOfDimer5pToUse)[l][4*n1+n2])/double(totalObs)-errorToRemove),phred)<<" [0..0]"; 
-				    else
-					if(hFormat)
-					    file5pFP<<printDoubleAsWhitePaddedString(std::max(0.0,double((*typesOfDimer5pToUse)[l][4*n1+n2])/double(totalObs)-errorToRemove),1,5);
-					else
-					    file5pFP<<dbl2log( std::max(0.0,double((*typesOfDimer5pToUse)[l][4*n1+n2])/double(totalObs)-errorToRemove),phred); 
-					    
-				} else { 
-				    if(dpFormat)
-					file5pFP<<(phred?"-Inf":"0.0")<<" [0..0]";
-				    else
-					if(hFormat)
-					    file5pFP<<printDoubleAsWhitePaddedString(0.0,1,5);
-					else										    
-					    file5pFP<<(phred?"-Inf":"0.0"); 
-				}
-			    }
-			}
-		    }
-		}
-
+		cout <<printDoubleAsWhitePaddedString( std::max(0.0,double( (*typesOfDimer5pToUse)[l][4*n1+n2])/double(totalObs)) ,1,5);
 		
 		if(!(n1 ==3 && n2 == 2 ))
-		    file5pFP<<"\t";
+		    cout <<"\t";
 	    }
 
 
 	}
-	file5pFP<<endl;
+	cout<<endl;
     }
 
-
-    file5pFP.close();
-
-    ofstream file3pFP;
-    if(file3p == "/dev/stdout"){
-	file3pFP.open(file3p.c_str(), ofstream::out | ofstream::app);
-    }else{
-	file3pFP.open(file3p.c_str());
-    }
-
-    if (!file3pFP.is_open()){
-	cerr << "Unable to write to 3p file "<<file3p<<endl;
-	exit(1);
-    }
-
-    if(dpFormat)
-	file3pFP<<"\t";
-    if(hFormat)
-	file3pFP<<"pos\t";
-
-    file3pFP<<"A>C\tA>G\tA>T\tC>A\tC>G\tC>T\tG>A\tG>C\tG>T\tT>A\tT>C\tT>G"<<endl;
+    cout<<"pos\t"<<"A>C\tA>G\tA>T\tC>A\tC>G\tC>T\tG>A\tG>C\tG>T\tT>A\tT>C\tT>G"<<endl;
 
 
     vector< vector<unsigned int> > * typesOfDimer3pToUse;
@@ -1076,23 +632,9 @@ int main (int argc, char *argv[]) {
     for(int le=0;le<lengthMaxToPrint;le++){
 
 	int l=le;
-	if(dpFormat){
-	    l=lengthMaxToPrint-1-le;
-	    if(l==0)
-		file3pFP<<""<<l<<"\t";	    
-	    else
-		file3pFP<<"-"<<l<<"\t";	    
-	}
-
-	if(hFormat){
-	    //l=lengthMaxToPrint-1-le;
-	    // if(l==0)
-	    // 	file3pFP<<""<<printIntAsWhitePaddedString(l,int(log10(lengthMaxToPrint)))<<"\t";	    
-	    // else
-	    // 	file3pFP<<"-"<<printIntAsWhitePaddedString(l,int(log10(lengthMaxToPrint)))<<"\t";	    
-	    file3pFP<<""<<printIntAsWhitePaddedString(l,int(log10(lengthMaxToPrint))+1)<<"\t";	    
-	}
-
+	
+	cout <<""<<printIntAsWhitePaddedString(l,int(log10(lengthMaxToPrint))+1)<<"\t";	    
+	
 	for(int n1=0;n1<4;n1++){   
 	    int totalObs=0;
 	    for(int n2=0;n2<4;n2++){   
@@ -1102,91 +644,16 @@ int main (int argc, char *argv[]) {
 	    for(int n2=0;n2<4;n2++){   
 		if(n1==n2)
 		    continue;
-		if(allStr){
-		    if(dpFormat)
-			file3pFP<<dbl2log( std::max(0.0,double( (*typesOfDimer3pToUse)[l][4*n1+n2])/double(totalObs)-errorToRemove),phred)<<" [0..0]";
-		    else
-			if(hFormat)
-			    file3pFP<<printDoubleAsWhitePaddedString( std::max(0.0,double( (*typesOfDimer3pToUse)[l][4*n1+n2])/double(totalObs)-errorToRemove) ,1,5);
-			else
-			    file3pFP<<dbl2log( std::max(0.0,double( (*typesOfDimer3pToUse)[l][4*n1+n2])/double(totalObs)-errorToRemove),phred);
-		}else{ 
-		    if(singAnddoubleStr){			
-			if(   (n1==1 && n2==3) || (n1==2 && n2==0 )  ) { 
-			    if(dpFormat)
-				file3pFP<<dbl2log( std::max(0.0,double((*typesOfDimer3pToUse)[l][4*n1+n2])/double(totalObs)-errorToRemove),phred)<<" [0..0]"; 
-			    else
-				if(hFormat)
-				    file3pFP<<printDoubleAsWhitePaddedString( std::max(0.0,double((*typesOfDimer3pToUse)[l][4*n1+n2])/double(totalObs)-errorToRemove) ,1,5);
-				else
-				    file3pFP<<dbl2log( std::max(0.0,double((*typesOfDimer3pToUse)[l][4*n1+n2])/double(totalObs)-errorToRemove),phred); 
-			} else { 
-			    if(dpFormat)
-				file3pFP<<(phred?"-Inf":"0.0")<<" [0..0]"; 
-			    else
-				if(hFormat)
-				    file3pFP<<printDoubleAsWhitePaddedString( 0.0 ,1,5);
-				else
-				    file3pFP<<(phred?"-Inf":"0.0"); 
-			}
-
-		    }else{
-			if(doubleStr){
-			    //          G        A
-			    if(         n1==2 && n2==0  ) { 
-				if(dpFormat)
-				    file3pFP<<dbl2log( std::max(0.0,double((*typesOfDimer3pToUse)[l][4*n1+n2])/double(totalObs)-errorToRemove),phred)<<" [0..0]"; 
-				else
-				    if(hFormat)
-					file3pFP<<printDoubleAsWhitePaddedString( std::max(0.0,double((*typesOfDimer3pToUse)[l][4*n1+n2])/double(totalObs)-errorToRemove) ,1,5);
-				    else					
-					file3pFP<<dbl2log( std::max(0.0,double((*typesOfDimer3pToUse)[l][4*n1+n2])/double(totalObs)-errorToRemove),phred); 
-			    } else { 				
-				if(dpFormat)
-				    file3pFP<<(phred?"-Inf":"0.0")<<" [0..0]"; 
-				else
-				    if(hFormat)
-					file3pFP<<printDoubleAsWhitePaddedString(  0.0 ,1,5);
-				    else	
-					file3pFP<<(phred?"-Inf":"0.0"); 
-			    }
-			}else{ 
-			    if(singleStr){
-				//      C        T
-				if(     n1==1 && n2==3  ) { 
-				    if(dpFormat)
-					file3pFP<<dbl2log( std::max(0.0,double((*typesOfDimer3pToUse)[l][4*n1+n2])/double(totalObs)-errorToRemove),phred)<<" [0..0]"; 
-				    else
-					if(hFormat)
-					    file3pFP<<printDoubleAsWhitePaddedString( std::max(0.0,double((*typesOfDimer3pToUse)[l][4*n1+n2])/double(totalObs)-errorToRemove) ,1,5);
-					else					
-					    file3pFP<<dbl2log( std::max(0.0,double((*typesOfDimer3pToUse)[l][4*n1+n2])/double(totalObs)-errorToRemove),phred); 
-				} else { 				    
-				    if(dpFormat)
-					file3pFP<<(phred?"-Inf":"0.0")<<" [0..0]"; 
-				    else
-					if(hFormat)
-					    file3pFP<<printDoubleAsWhitePaddedString(  0.0 , 1,5);
-					else	
-					    file3pFP<<(phred?"-Inf":"0.0"); 
-
-				}
-				
-			    }
-			}
-		    }
-		}
-
+		cout<<printDoubleAsWhitePaddedString( std::max(0.0,double( (*typesOfDimer3pToUse)[l][4*n1+n2])/double(totalObs)) ,1,5);
 		
 		if(!(n1 ==3 && n2 == 2 ))
-		    file3pFP<<"\t";
+		    cout<<"\t";
 	    }
 
 
 	}
-	file3pFP<<endl;
+	cout<<endl;
     }
 
-    file3pFP.close();
     return 0;
 }
