@@ -9,11 +9,13 @@
 #include <htslib/kstring.h>
 #include <cstdlib>
 #include <zlib.h>
-#include <fstream>
 #include <cmath>
 #include <sstream>
 
 #define MAXLENGTH 1000
+
+size_t **mm3p = NULL;//[MAXLENGTH][16];
+size_t **mm5p = NULL;//[MAXLENGTH][16];
 
 //A=0,C=1,G=2,T=3
 char refToChar[256] = {
@@ -34,7 +36,6 @@ char refToChar[256] = {
     4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,//239
     4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4//255
 };
-char toBase[4] = {'A','C','G','T'};
 
 char toIndex[4][4]={
   {0,1,2,3},
@@ -87,17 +88,6 @@ string stringify(const T i){
     s << i;
     return s.str();
 }
-	
-template <typename T>
-T destringify( const string& s ){
-    istringstream i(s);
-    T x;
-    if (!(i >> x)){
-	cerr<<"Utils.cpp: destringify() Unable to convert string=\""<<s<<"\""<<endl;
-	exit(1);
-    }
-    return x;
-} 
 
 void mdString2Vector2(const uint8_t *md,std::vector<mdField> &toReturn){
   const char *mdFieldToParse =(const char*) md+1;
@@ -189,9 +179,9 @@ void  reconstructRefWithPosHTS(const bam1_t   * b,std::pair< kstring_t *, std::v
     int mdVectorIndex=0;
 
     for(unsigned int i=0;i<strlen(reconstructedTemp);i++){
-	if(reconstructedTemp[i] == 'M' ){ //only look at matches and indels	    
+	if(reconstructedTemp[i] == 'M' ) { //only look at matches and indels	    
 		
-	    if(mdVectorIndex<int(parsedMD.size())){ //still have mismatches
+	  if(mdVectorIndex < (int)parsedMD.size() ){ //still have mismatches
 
 		if(parsedMD[mdVectorIndex].offset == 0){ //we have reached a mismatch				
 
@@ -208,11 +198,7 @@ void  reconstructRefWithPosHTS(const bam1_t   * b,std::pair< kstring_t *, std::v
 		  pp.second.push_back(initialPositionControl++);
 		}
 
-		//skipping all the positions with deletions on the read
-		//if(mdVectorIndex<int(parsedMD.size())){ //still have mismatches
-
-		while( (mdVectorIndex<int(parsedMD.size())) &&
-		       (parsedMD[mdVectorIndex].bp == '^' ) ){ 
+		while( (mdVectorIndex<(int)parsedMD.size()) && (parsedMD[mdVectorIndex].bp == '^' ) ){ 
 		    initialPositionControl+=parsedMD[mdVectorIndex].offset;
 		    mdVectorIndex++;
 		}
@@ -248,9 +234,6 @@ int numberOfCycles;
 string alphabetHTSLIB = "NACNGNNNTNNNNNNN";
 
 #define MAXLENGTH 1000
-
-vector< vector<unsigned int> > typesOfDimer5p; //5' deam rates
-vector< vector<unsigned int> > typesOfDimer3p; //3' deam rates
 
 //increases the counters mismatches and typesOfMismatches of a given BamAlignment object
 inline void increaseCounters(const   bam1_t  * b,const char * reconstructedReference,const vector<int> &  reconstructedReferencePos,const int & minQualBase, const bam_hdr_t *h,bool ispaired,bool isfirstpair){ // ,int firstCycleRead,int increment
@@ -301,10 +284,7 @@ inline void increaseCounters(const   bam1_t  * b,const char * reconstructedRefer
 	refeBase = refToChar[refeBase];
 	readBase = refToChar[readBase];
 
-
-	//if( isResolvedDNA(refeBase)  && isResolvedDNA(readBase) ){
 	if( refeBase!=4  && readBase!=4 ){
-	  //fprintf(stderr,"BASES:%d %d\n",refeBase,readBase);
 	    int dist5p=i;
 	    int dist3p=b->core.l_qseq-1-i;
 	    
@@ -324,24 +304,34 @@ inline void increaseCounters(const   bam1_t  * b,const char * reconstructedRefer
 
 	    if( !ispaired ||  isfirstpair){
 	      //     fprintf(stderr,"increase5p: %d\n",dist5p);
-	      typesOfDimer5p[dist5p][toIndex[refeBase][readBase]]++;
+	      mm5p[dist5p][toIndex[refeBase][readBase]]++;
 	    }
 
 	    if( !ispaired || !isfirstpair){
 	      //fprintf(stderr,"increase3p: %d\n",dist3p);
-	      typesOfDimer3p[dist3p][toIndex[refeBase][readBase]]++;
+	      mm3p[dist3p][toIndex[refeBase][readBase]]++;
 	    }
 	}
     }
 }
 
 int main(int argc, char *argv[]) {
+  mm3p = new size_t*[MAXLENGTH];
+  mm5p = new size_t*[MAXLENGTH];
+  for(int i=0;i<MAXLENGTH;i++){
+    mm3p[i] = new size_t[16];
+    mm5p[i] = new size_t[16];
+    for(int j=0;j<16;j++){
+      mm3p[i][j] = 0;
+      mm5p[i][j] = 0;
+    }
+  }
   int lengthMaxToPrint = 5;
   int minQualBase      = 0;
   int minLength        = 35;
   
-  bool paired=false;
-  bool quiet=false;
+  int paired=0;
+  int quiet=0;
   
   string usage=string(""+string(argv[0])+" <options>  [in BAM file]"+
 			"\nThis program reads a BAM file and produces a deamination profile for the\n"+
@@ -374,47 +364,33 @@ int main(int argc, char *argv[]) {
 
     
     for(int i=1;i<(argc-1);i++){ //all but the last 3 args
-        if(string(argv[i]) == "-paired"  ){
-            paired=true;
-            continue;
-        }
-
-        if(string(argv[i]) == "-q"  ){
-            quiet=true;
-            continue;
-        }
-
-        if(string(argv[i]) == "-minq"  ){
-            minQualBase=destringify<int>(argv[i+1]);
-            i++;
-            continue;
-        }
-
-        if(string(argv[i]) == "-minl"  ){
-            minLength=destringify<int>(argv[i+1]);
-            i++;
-            continue;
-        }
-
-        if(string(argv[i]) == "-length"  ){
-            lengthMaxToPrint=destringify<int>(argv[i+1]);
-            i++;
-            continue;
-        }
-
-	cerr<<"Error: unknown option "<<string(argv[i])<<endl;
-	return 1;
+      if(strcasecmp(argv[i],"-paired")==0){
+	paired=1;
+	continue;
+      }
+      if(strcasecmp(argv[i],"-q")==0){
+	quiet=1;
+	continue;
+      }
+      if(strcasecmp(argv[i],"-minq")==0){
+	minQualBase=atoi(argv[i+1]);
+	i++;
+	continue;
+      }
+      if(strcasecmp(argv[i],"-minl")==0){
+	minLength=atoi(argv[i+1]);
+	i++;
+	continue;
+      }
+      if(strcasecmp(argv[i],"-length")==0){
+	lengthMaxToPrint=atoi(argv[i+1]);
+	i++;
+	continue;
+      }
+      cerr<<"Error: unknown option "<<string(argv[i])<<endl;
+      return 1;
     }
 
-    typesOfDimer5p       = vector< vector<unsigned int> >();
-    typesOfDimer3p       = vector< vector<unsigned int> >();
-        
-    for(int l=0;l<MAXLENGTH;l++){
-	//for(int i=0;i<16;i++){
-	typesOfDimer5p.push_back( vector<unsigned int> ( 16,0 ) );
-	typesOfDimer3p.push_back( vector<unsigned int> ( 16,0 ) );
-    }
-    
     string bamfiletopen = string( argv[ argc-1 ] );
 
     samFile  *fp;
@@ -472,67 +448,48 @@ int main(int argc, char *argv[]) {
     sam_close(fp);
     
     cout <<"pos\t"<<"A>C\tA>G\tA>T\tC>A\tC>G\tC>T\tG>A\tG>C\tG>T\tT>A\tT>C\tT>G"<<endl;
-  
-
-    vector< vector<unsigned int> > * typesOfDimer5pToUse;
-
-    typesOfDimer5pToUse     = &typesOfDimer5p;
-    
+ 
     for(int l=0;l<lengthMaxToPrint;l++){
       cout<<printIntAsWhitePaddedString(l,int(log10(lengthMaxToPrint))+1)<<"\t";
+      
+      for(int n1=0;n1<4;n1++){   
+	int totalObs=0;
+	for(int n2=0;n2<4;n2++)
+	  totalObs+=mm5p[l][4*n1+n2];
 	
-	for(int n1=0;n1<4;n1++){   
-	    int totalObs=0;
-	    for(int n2=0;n2<4;n2++){   
-		totalObs+=(*typesOfDimer5pToUse)[l][4*n1+n2];
-	    }
-
-	    for(int n2=0;n2<4;n2++){   
-		if(n1==n2)
-		    continue;
-		cout <<printDoubleAsWhitePaddedString( std::max(0.0,double( (*typesOfDimer5pToUse)[l][4*n1+n2])/double(totalObs)) ,1,5);
-		
-		if(!(n1 ==3 && n2 == 2 ))
-		    cout <<"\t";
-	    }
-
-
+	
+	for(int n2=0;n2<4;n2++){   
+	  if(n1==n2)
+	    continue;
+	  cout <<printDoubleAsWhitePaddedString( std::max(0.0,double(mm5p[l][4*n1+n2])/double(totalObs)) ,1,5);
+	  if(!(n1 ==3 && n2 == 2 ))
+	    cout <<"\t";
 	}
-	cout<<endl;
+      }
+      cout<<endl;
     }
 
     cout<<"pos\t"<<"A>C\tA>G\tA>T\tC>A\tC>G\tC>T\tG>A\tG>C\tG>T\tT>A\tT>C\tT>G"<<endl;
 
-
-    vector< vector<unsigned int> > * typesOfDimer3pToUse;
-
-    typesOfDimer3pToUse     = &typesOfDimer3p;
-    
     for(int le=0;le<lengthMaxToPrint;le++){
-
-	int l=le;
-	
-	cout <<""<<printIntAsWhitePaddedString(l,int(log10(lengthMaxToPrint))+1)<<"\t";	    
-	
-	for(int n1=0;n1<4;n1++){   
-	    int totalObs=0;
-	    for(int n2=0;n2<4;n2++){   
-		totalObs+=(*typesOfDimer3pToUse)[l][4*n1+n2];
-	    }
-
-	    for(int n2=0;n2<4;n2++){   
-		if(n1==n2)
-		    continue;
-		cout<<printDoubleAsWhitePaddedString( std::max(0.0,double( (*typesOfDimer3pToUse)[l][4*n1+n2])/double(totalObs)) ,1,5);
-		
-		if(!(n1 ==3 && n2 == 2 ))
-		    cout<<"\t";
-	    }
-
-
+      int l=le;
+      cout <<""<<printIntAsWhitePaddedString(l,int(log10(lengthMaxToPrint))+1)<<"\t";	    
+      
+      for(int n1=0;n1<4;n1++){   
+	int totalObs=0;
+	for(int n2=0;n2<4;n2++)
+	  totalObs+=mm3p[l][4*n1+n2];
+	  
+	for(int n2=0;n2<4;n2++){   
+	  if(n1==n2)
+	    continue;
+	  cout<<printDoubleAsWhitePaddedString( std::max(0.0,double( mm3p[l][4*n1+n2])/double(totalObs)) ,1,5);
+	  
+	  if(!(n1 ==3 && n2 == 2 ))
+	    cout<<"\t";
 	}
-	cout<<endl;
+      }
+      cout<<endl;
     }
-
     return 0;
 }
