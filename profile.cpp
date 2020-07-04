@@ -10,7 +10,6 @@
 #include <cstdlib>
 #include <zlib.h>
 #include <cmath>
-#include <sstream>
 
 #define MAXLENGTH 1000
 
@@ -63,32 +62,6 @@ using namespace std;
 #define bam_is_read1(b)       (((b)->core.flag&BAM_FREAD1)      != 0)
 #define bam_is_failed(b)      ( bam_is_qcfailed(b) || bam_is_rmdup(b) || bam_is_sec(b) || bam_is_supp(b) )
 
-inline string printDoubleAsWhitePaddedString(double d,int digits,int precision){
-    char buffer [digits+2+precision];
-    sprintf(buffer,"%*.*f",digits+precision+1,precision, d);
-    return string(buffer);
-}
-
-inline string printIntAsWhitePaddedString(int i,int digits){
-    char buffer [digits+1];
-    sprintf(buffer,"%*d",digits,i);
-    return string(buffer);
-}
-
-inline string booleanAsString(bool toprint){
-    if(toprint)
-	return string("currently turned on/used");
-    else
-	return string("not on/not used");
-}
-
-template <typename T>
-string stringify(const T i){
-    stringstream s;
-    s << i;
-    return s.str();
-}
-
 void mdString2Vector2(const uint8_t *md,std::vector<mdField> &toReturn){
   const char *mdFieldToParse =(const char*) md+1;
   toReturn.clear();
@@ -135,8 +108,9 @@ void mdString2Vector2(const uint8_t *md,std::vector<mdField> &toReturn){
     }
 }
 
-char *reconstructedTemp=(char*)calloc(256,1);
+
 void  reconstructRefWithPosHTS(const bam1_t   * b,std::pair< kstring_t *, std::vector<int> > &pp){
+  static char *reconstructedTemp=(char*)calloc(256,1);
   pp.first->l = 0;
   pp.second.clear();
   memset(reconstructedTemp,0,256);
@@ -246,9 +220,8 @@ inline void increaseCounters(const   bam1_t  * b,const char * reconstructedRefer
 
     int i;
     if(ispaired){ //since we cannot evaluate the 5' ends or 3' ends
-	goto iterateLoop;
+      //	goto iterateLoop;
     }
- iterateLoop:
 
     int j=0;
     for(i=0;i<int(b->core.l_qseq);i++,j++){
@@ -315,6 +288,34 @@ inline void increaseCounters(const   bam1_t  * b,const char * reconstructedRefer
     }
 }
 
+int printinfo(FILE *fp){
+  fprintf(fp,"./profile <options>  [in BAM file]\nThis program reads a BAM file and produces a deamination profile for the 5' and 3' ends\n");
+  fprintf(fp,"Other options:\n\t-minq INT\n\t-minl INT\n\t-length INT\n\t-paired\n");
+}
+
+
+int printresults_grenaud2(FILE *fp,size_t **mm5p,int lengthMaxToPrint){
+  fprintf(fp,"pos\tA>C\tA>G\tA>T\tC>A\tC>G\tC>T\tG>A\tG>C\tG>T\tT>A\tT>C\tT>G\n");
+  for(int l=0;l<lengthMaxToPrint;l++){
+    fprintf(fp,"%*d\t",int(log10(lengthMaxToPrint))+1,l);
+    for(int n1=0;n1<4;n1++){   
+      int totalObs=0;
+      for(int n2=0;n2<4;n2++)
+	totalObs+=mm5p[l][4*n1+n2];
+      
+      for(int n2=0;n2<4;n2++){   
+	if(n1==n2)
+	  continue;
+	fprintf(fp,"%*.*f",1+5+1,5,std::max(0.0,double(mm5p[l][4*n1+n2])/double(totalObs)));
+	if(!(n1 ==3 && n2 == 2 ))
+	  fprintf(fp,"\t");
+      }
+    }
+    fprintf(fp,"\n");
+  }
+}
+
+
 int main(int argc, char *argv[]) {
   mm3p = new size_t*[MAXLENGTH];
   mm5p = new size_t*[MAXLENGTH];
@@ -333,33 +334,11 @@ int main(int argc, char *argv[]) {
   int paired=0;
   int quiet=0;
   
-  string usage=string(""+string(argv[0])+" <options>  [in BAM file]"+
-			"\nThis program reads a BAM file and produces a deamination profile for the\n"+
-			"5' and 3' ends\n"+
-
-			// "\nreads and the puts the rest into another bam file.\n"+
-			// "\nTip: if you do not need one of them, use /dev/null as your output\n"+
-
-			"\n\n\tOther options:\n"+
-			"\t\t"+"-minq\t\t\tRequire the base to have at least this quality to be considered (Default: "+stringify( minQualBase )+")\n"+
-			"\t\t"+"-minl\t\t\tRequire the base to have at least this quality to be considered (Default: "+stringify( minLength )+")\n"+
-			"\t\t"+"-length\t[length]\tDo not consider bases beyond this length  (Default: "+stringify(lengthMaxToPrint)+" ) \n"+
-			"\t\t"+"-paired\t\t\tAllow paired reads    (Default: "+booleanAsString( paired )+" ) \n"+
-
-
-			"\n\n\tYou can specify either one of the two:\n"+
-
-			"\n\n\tOutput options:\n"+
-
-			"\t\t"+"-q\t\t\tDo not print why reads are skipped (Default: "+booleanAsString(quiet)+")\n"+
-		       
-			"\n");
-
     if(argc == 1 ||
        (argc == 2 && (string(argv[0]) == "--help") )
     ){
-	cerr << "Usage "<<usage<<endl;
-	return 1;       
+      printinfo(stderr);
+      return 1;       
     }
 
     
@@ -446,50 +425,8 @@ int main(int argc, char *argv[]) {
     
     bam_destroy1(b);
     sam_close(fp);
-    
-    cout <<"pos\t"<<"A>C\tA>G\tA>T\tC>A\tC>G\tC>T\tG>A\tG>C\tG>T\tT>A\tT>C\tT>G"<<endl;
- 
-    for(int l=0;l<lengthMaxToPrint;l++){
-      cout<<printIntAsWhitePaddedString(l,int(log10(lengthMaxToPrint))+1)<<"\t";
-      
-      for(int n1=0;n1<4;n1++){   
-	int totalObs=0;
-	for(int n2=0;n2<4;n2++)
-	  totalObs+=mm5p[l][4*n1+n2];
-	
-	
-	for(int n2=0;n2<4;n2++){   
-	  if(n1==n2)
-	    continue;
-	  cout <<printDoubleAsWhitePaddedString( std::max(0.0,double(mm5p[l][4*n1+n2])/double(totalObs)) ,1,5);
-	  if(!(n1 ==3 && n2 == 2 ))
-	    cout <<"\t";
-	}
-      }
-      cout<<endl;
-    }
-
-    cout<<"pos\t"<<"A>C\tA>G\tA>T\tC>A\tC>G\tC>T\tG>A\tG>C\tG>T\tT>A\tT>C\tT>G"<<endl;
-
-    for(int le=0;le<lengthMaxToPrint;le++){
-      int l=le;
-      cout <<""<<printIntAsWhitePaddedString(l,int(log10(lengthMaxToPrint))+1)<<"\t";	    
-      
-      for(int n1=0;n1<4;n1++){   
-	int totalObs=0;
-	for(int n2=0;n2<4;n2++)
-	  totalObs+=mm3p[l][4*n1+n2];
-	  
-	for(int n2=0;n2<4;n2++){   
-	  if(n1==n2)
-	    continue;
-	  cout<<printDoubleAsWhitePaddedString( std::max(0.0,double( mm3p[l][4*n1+n2])/double(totalObs)) ,1,5);
-	  
-	  if(!(n1 ==3 && n2 == 2 ))
-	    cout<<"\t";
-	}
-      }
-      cout<<endl;
-    }
+    //    printresults_grenaud(mm5p,mm3p,lengthMaxToPrint);
+    printresults_grenaud2(stdout,mm5p,lengthMaxToPrint);
+    printresults_grenaud2(stdout,mm3p,lengthMaxToPrint);
     return 0;
 }
