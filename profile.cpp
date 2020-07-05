@@ -85,15 +85,6 @@ typedef struct{
 
 static char DUMMYCHAR='#';
 
-#define bam_is_sec(b)         (((b)->core.flag&BAM_FSECONDARY)        != 0)
-#define bam_is_supp(b)        (((b)->core.flag&BAM_FSUPPLEMENTARY)    != 0)
-#define bam_is_paired(b)      (((b)->core.flag&BAM_FPAIRED)     != 0)
-#define bam_is_rmdup(b)       (((b)->core.flag&BAM_FDUP)        != 0)
-#define bam_is_qcfailed(b)    (((b)->core.flag&BAM_FQCFAIL)     != 0)
-#define bam_is_unmapped(b)    (((b)->core.flag&BAM_FUNMAP)      != 0)
-#define bam_is_read1(b)       (((b)->core.flag&BAM_FREAD1)      != 0)
-#define bam_is_failed(b)      ( bam_is_qcfailed(b) || bam_is_rmdup(b) || bam_is_sec(b) || bam_is_supp(b) )
-
 void mdString2Vector2(const uint8_t *md,std::vector<mdField> &toReturn){
   const char *mdFieldToParse =(const char*) md+1;
   toReturn.clear();
@@ -298,7 +289,7 @@ inline void increaseCounters(const bam1_t *b,const char * reconstructedReference
     }
 }
 
-int damage::damage_analysis(const bam1_t *b,int which){
+int damage::damage_analysis(bam1_t *b,int which){
   if(assoc.find(which)==assoc.end()){
     triple val={0,getmatrix(MAXLENGTH,16),getmatrix(MAXLENGTH,16)};
     assoc[which] = val;
@@ -341,7 +332,12 @@ int printresults_grenaud2(FILE *fp,size_t **mm5p,int lengthMaxToPrint){
   }
 }
 
+void damage::printit(FILE *fp,int l){
+  printresults_grenaud2(fp,mm5p,l);
+  printresults_grenaud2(fp,mm3p,l);
+}
 
+#ifdef __WITH_MAIN__
 int main(int argc, char *argv[]) {
   int MAXLENGTH = 1000;
   int lengthMaxToPrint = 5;
@@ -433,3 +429,5 @@ int main(int argc, char *argv[]) {
   destroy_damage(dmg);
   return 0;
 }
+
+#endif
