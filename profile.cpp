@@ -322,8 +322,9 @@ void damage::write(char *fname,bam_hdr_t *hdr){
     if(it->second.nreads==0)//should never happen
       continue;
     if(hdr!=NULL)
-      ksprintf(&kstr,"%s\t%d",hdr->target_name[it->first],it->second.nreads);
-    ksprintf(&kstr,"%d",it->second.nreads);
+      ksprintf(&kstr,"%s\t%lu",hdr->target_name[it->first],it->second.nreads);
+    else
+      ksprintf(&kstr,"%lu",it->second.nreads);
     for(int l=0;l<5;l++){
       for(int i=0;i<16;i++)
 	ksprintf(&kstr,"\t%d",it->second.mm5p[l][i]);
