@@ -39,9 +39,9 @@ damage *init_damage(int MAXLENGTH){
   return dmg;
 }
 void destroy_damage(damage *dmg){
-  for(std::map<int,std::pair<size_t**,size_t**> >::iterator it=dmg->assoc.begin();it!=dmg->assoc.end();it++){
-    destroymatrix(it->second.first,dmg->MAXLENGTH);
-    destroymatrix(it->second.second,dmg->MAXLENGTH);
+  for(std::map<int,triple >::iterator it=dmg->assoc.begin();it!=dmg->assoc.end();it++){
+    destroymatrix(it->second.mm5p,dmg->MAXLENGTH);
+    destroymatrix(it->second.mm3p,dmg->MAXLENGTH);
   }
   free(dmg->reconstructedReference.first->s);
   
@@ -300,14 +300,15 @@ inline void increaseCounters(const bam1_t *b,const char * reconstructedReference
 
 int damage::damage_analysis(const bam1_t *b,int which){
   if(assoc.find(which)==assoc.end()){
-    std::pair<size_t**,size_t**> val = std::pair<size_t**,size_t**>(getmatrix(MAXLENGTH,16),getmatrix(MAXLENGTH,16));    
+    triple val={0,getmatrix(MAXLENGTH,16),getmatrix(MAXLENGTH,16)};
     assoc[which] = val;
-    mm5p = val.first;
-    mm3p = val.second;
+    mm5p = val.mm5p;
+    mm3p = val.mm3p;
   }
-  std::map<int,std::pair<size_t**,size_t**> >::iterator it=assoc.find(which);
+  std::map<int,triple >::iterator it=assoc.find(which);
+  it->second.nreads++;
   reconstructRefWithPosHTS(b,reconstructedReference);
-  increaseCounters(b,reconstructedReference.first->s, reconstructedReference.second,minQualBase,MAXLENGTH,it->second.first,it->second.second);
+  increaseCounters(b,reconstructedReference.first->s, reconstructedReference.second,minQualBase,MAXLENGTH,it->second.mm5p,it->second.mm3p);
   return 0;
 }
 
@@ -346,8 +347,6 @@ int main(int argc, char *argv[]) {
   int lengthMaxToPrint = 5;
   int minQualBase      = 0;
   int minLength        = 35;
-  
-  int paired=0;
   int quiet=0;
   
   if(argc == 1 ||(argc == 2 && (strcasecmp(argv[1],"--help")==0) )){
@@ -355,88 +354,82 @@ int main(int argc, char *argv[]) {
     return 0;       
   }
 
+  for(int i=1;i<(argc-1);i++){ //all but the last 3 args
+    if(strcasecmp(argv[i],"-q")==0){
+      quiet=1;
+      continue;
+    }
+    if(strcasecmp(argv[i],"-minq")==0){
+      minQualBase=atoi(argv[i+1]);
+      i++;
+      continue;
+    }
+    if(strcasecmp(argv[i],"-minl")==0){
+      minLength=atoi(argv[i+1]);
+      i++;
+      continue;
+    }
+    if(strcasecmp(argv[i],"-length")==0){
+      lengthMaxToPrint=atoi(argv[i+1]);
+      i++;
+      continue;
+    }
+    fprintf(stderr,"Error: unknown option: %s\n",argv[i]);
+    return 1;
+  }
+   
+  damage *dmg = init_damage(MAXLENGTH);
+  char *bamfiletopen =  argv[ argc-1 ];
+
+  samFile  *fp;
+  bam1_t    *b;
+  bam_hdr_t *h;
+  
+  if(((  fp = sam_open_format(bamfiletopen, "r", NULL) ))== NULL){
+    fprintf(stderr,"Could not open input BAM file: %s\n",bamfiletopen);
+    return 1;
+  }
+  
+  if(((h= sam_hdr_read(fp))) == NULL){
+    fprintf(stderr,"Could not read header for: %s\n",bamfiletopen);
+    return 1;
+  }
+  b = bam_init1();
+  
+  while(sam_read1(fp, h, b) >= 0){
+    if(bam_is_unmapped(b) ){
+      if(!quiet)
+	fprintf(stderr,"skipping: %s unmapped \n");
+      continue;
+    }
+    if(bam_is_failed(b) ){
+      if(!quiet)
+	fprintf(stderr,"skipping: %s failed \n");
+      continue;
+    }
+    if(b->core.l_qseq < minLength){
+      if(!quiet)
+	fprintf(stderr,"skipping: %s too short \n");
+      continue;
+    }
+    if(bam_is_paired(b)){
+      if(!quiet)
+	fprintf(stderr,"skipping: %s  is paired (can be considered using the -paired flag\n",bam_get_qname(b));
+      continue;
+    }
     
-    for(int i=1;i<(argc-1);i++){ //all but the last 3 args
-      if(strcasecmp(argv[i],"-paired")==0){
-	paired=1;
-	continue;
-      }
-      if(strcasecmp(argv[i],"-q")==0){
-	quiet=1;
-	continue;
-      }
-      if(strcasecmp(argv[i],"-minq")==0){
-	minQualBase=atoi(argv[i+1]);
-	i++;
-	continue;
-      }
-      if(strcasecmp(argv[i],"-minl")==0){
-	minLength=atoi(argv[i+1]);
-	i++;
-	continue;
-      }
-      if(strcasecmp(argv[i],"-length")==0){
-	lengthMaxToPrint=atoi(argv[i+1]);
-	i++;
-	continue;
-      }
-      fprintf(stderr,"Error: unknown option: %s\n",argv[i]);
-      return 1;
-    }
-   
-    damage *dmg = init_damage(MAXLENGTH);
-    char *bamfiletopen =  argv[ argc-1 ];
-
-    samFile  *fp;
-    bam1_t    *b;
-    bam_hdr_t *h;
-
-    fp = sam_open_format(bamfiletopen, "r", NULL); 
-    if(fp == NULL){
-      fprintf(stderr,"Could not open input BAM file: %s\n",bamfiletopen);
-      return 1;
-    }
-
-    h = sam_hdr_read(fp);
-    if(h == NULL){
-      fprintf(stderr,"Could not read header for: %s\n",bamfiletopen);
-      return 1;
-    }
-    b = bam_init1();
-   
-    while(sam_read1(fp, h, b) >= 0){
-      bool ispaired    = bam_is_paired(b);
-      bool isfirstpair = bam_is_read1(b);
-      //      fprintf(stderr,"%d %d\n",ispaired,isfirstpair);
-      if(bam_is_unmapped(b) ){
-	if(!quiet)
-	  fprintf(stderr,"skipping: %s unmapped \n");
-	continue;
-      }
-	if(bam_is_failed(b) ){
-	    if(!quiet)
-	      fprintf(stderr,"skipping: %s failed \n");
-	    continue;
-	}
-	if(b->core.l_qseq < minLength){
-	    if(!quiet)
-	      fprintf(stderr,"skipping: %s too short \n");
-	    continue;
-	}
-	if(bam_is_paired(b)){
-	  if(!quiet)
-	    fprintf(stderr,"skipping: %s  is paired (can be considered using the -paired flag\n",bam_get_qname(b));
-	  continue;
-	}
-	
-	dmg->damage_analysis(b,0);
-
-    }
-    sam_hdr_destroy(h);
-    bam_destroy1(b);
-    sam_close(fp);
-    printresults_grenaud2(stdout,dmg->mm5p,lengthMaxToPrint);
-    printresults_grenaud2(stdout,dmg->mm3p,lengthMaxToPrint);
-    destroy_damage(dmg);
-    return 0;
+    dmg->damage_analysis(b,0);
+    
+  }
+  
+  sam_hdr_destroy(h);
+  bam_destroy1(b);
+  sam_close(fp);
+  fprintf(stderr,"nreads: %lu\n",dmg->assoc.begin()->second.nreads);
+  printresults_grenaud2(stdout,dmg->mm5p,lengthMaxToPrint);
+  printresults_grenaud2(stdout,dmg->mm3p,lengthMaxToPrint);
+  for(int i=0;0&i<16;i++)
+    fprintf(stdout,"%lu\t",dmg->mm5p[0][i]);
+  destroy_damage(dmg);
+  return 0;
 }
