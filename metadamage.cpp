@@ -36,11 +36,11 @@ int main(int argc, char **argv){
   damage *dmg = init_damage(MAXLENGTH);
   while(((ret=sam_read1(fp,hdr,b)))>0){
       if(bam_is_unmapped(b) ){
-      	fprintf(stderr,"skipping: %s unmapped \n");
+      	fprintf(stderr,"skipping: %s unmapped \n",bam_get_qname(b));
       continue;
     }
     if(bam_is_failed(b) ){
-      fprintf(stderr,"skipping: %s failed \n");
+      fprintf(stderr,"skipping: %s failed: flags=%d \n",bam_get_qname(b),b->core.flag);
       continue;
     }
     if(b->core.l_qseq < minLength){
@@ -53,7 +53,15 @@ int main(int argc, char **argv){
     }
     dmg->damage_analysis(b,0);
   }
+
+
   dmg->printit(stdout,5);
+  dmg->write(NULL,NULL);
+    
+  sam_hdr_destroy(hdr);
+  bam_destroy1(b);
+  sam_close(fp);
+  destroy_damage(dmg);
   return 0;
 }
 

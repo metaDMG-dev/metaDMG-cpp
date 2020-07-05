@@ -4,23 +4,25 @@
 #include <utility>
 #include <htslib/sam.h>
 #include <htslib/hts.h>
+#include <htslib/bgzf.h>
 #include <htslib/kstring.h>
 #include <cstdlib>
 #include <cmath>
 
 #include "profile.h"
 
-size_t **getmatrix(size_t x,size_t y){
-  size_t **ret = new size_t*[x];
+
+unsigned **getmatrix(size_t x,size_t y){
+  unsigned **ret = new unsigned*[x];
   for(int i=0;i<x;i++){
-    ret[i] = new size_t[y];
+    ret[i] = new unsigned[y];
     for(int j=0;j<16;j++)
       ret[i][j] = 0;
   }
   return ret;
 }
 
-void destroymatrix(size_t**d,size_t x){
+void destroymatrix(unsigned**d,size_t x){
   for(int i=0;i<x;i++)
     delete [] d[i];
   delete [] d;
@@ -223,7 +225,7 @@ void  reconstructRefWithPosHTS(const bam1_t   * b,std::pair< kstring_t *, std::v
     }
 }
 
-inline void increaseCounters(const bam1_t *b,const char * reconstructedReference,const std::vector<int> &  reconstructedReferencePos,const int & minQualBase, int MAXLENGTH,size_t **mm5p,size_t **mm3p){
+inline void increaseCounters(const bam1_t *b,const char * reconstructedReference,const std::vector<int> &  reconstructedReferencePos,const int & minQualBase, int MAXLENGTH,unsigned **mm5p,unsigned **mm3p){
   const char *alphabetHTSLIB = "NACNGNNNTNNNNNNN";
   char refeBase;
   char readBase;
@@ -295,6 +297,7 @@ int damage::damage_analysis(bam1_t *b,int which){
     assoc[which] = val;
     mm5p = val.mm5p;
     mm3p = val.mm3p;
+    //    fprintf(stderr,"has added which: %d\n",which);
   }
   std::map<int,triple >::iterator it=assoc.find(which);
   it->second.nreads++;
@@ -302,7 +305,40 @@ int damage::damage_analysis(bam1_t *b,int which){
   increaseCounters(b,reconstructedReference.first->s, reconstructedReference.second,minQualBase,MAXLENGTH,it->second.mm5p,it->second.mm3p);
   return 0;
 }
+void damage::write(char *fname,bam_hdr_t *hdr){
+  fprintf(stderr,"Dumping asso.size(): %lu\n",assoc.size());
+  char *outname="metaout";
+  if(fname)
+    outname = fname;
+  kstring_t kstr;
+  kstr.l=kstr.m=0;
+  kstr.s=NULL;
+  char onam[1024];
+  snprintf(onam,1024,"%s.res.gz",outname);
+  fprintf(stderr,"Will dump: \'%s\'\n",onam);
+  BGZF *fp= bgzf_open(onam,"wb");
 
+  for(std::map<int,triple>::iterator it=assoc.begin();it!=assoc.end();it++ ){
+    if(it->second.nreads==0)//should never happen
+      continue;
+    if(hdr!=NULL)
+      ksprintf(&kstr,"%s\t%d",hdr->target_name[it->first],it->second.nreads);
+    ksprintf(&kstr,"%d",it->second.nreads);
+    for(int l=0;l<5;l++){
+      for(int i=0;i<16;i++)
+	ksprintf(&kstr,"\t%d",it->second.mm5p[l][i]);
+    }
+    for(int l=0;l<5;l++){
+      for(int i=0;i<16;i++)
+	ksprintf(&kstr,"\t%d",it->second.mm3p[l][i]);
+    }
+    ksprintf(&kstr,"\n");
+    bgzf_write(fp,kstr.s,kstr.l);
+    kstr.l=0;
+  }
+  bgzf_close(fp);
+  free(kstr.s);
+}
 
 
 int printinfo(FILE *fp){
@@ -311,7 +347,7 @@ int printinfo(FILE *fp){
 }
 
 
-int printresults_grenaud2(FILE *fp,size_t **mm5p,int lengthMaxToPrint){
+int printresults_grenaud2(FILE *fp,unsigned **mm5p,int lengthMaxToPrint){
   fprintf(fp,"pos\tA>C\tA>G\tA>T\tC>A\tC>G\tC>T\tG>A\tG>C\tG>T\tT>A\tT>C\tT>G\n");
   for(int l=0;l<lengthMaxToPrint;l++){
     fprintf(fp,"%*d\t",int(log10(lengthMaxToPrint))+1,l);
