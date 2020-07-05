@@ -20,23 +20,33 @@ size_t **getmatrix(size_t x,size_t y){
   return ret;
 }
 
-damage *init_damage(int MAXLENGTH,int nclass){
+void destroymatrix(size_t**d,size_t x){
+  for(int i=0;i<x;i++)
+    delete [] d[i];
+  delete [] d;
+}
+
+damage *init_damage(int MAXLENGTH){
   damage *dmg = new damage;
   dmg->minQualBase = 0;
   dmg->MAXLENGTH = MAXLENGTH;
-  dmg->nclass = nclass;
-  dmg->mm5p = new size_t**[nclass];
-  dmg->mm3p = new size_t**[nclass];
-  for(int i=0;i<nclass;i++){
-    dmg->mm5p[i] = getmatrix(MAXLENGTH,16);
-    dmg->mm3p[i] = getmatrix(MAXLENGTH,16);
-  }
-  kstring_t *kstr =(kstring_t *) malloc(sizeof(kstr));
+
+  kstring_t *kstr =new kstring_t;
   kstr->l=kstr->m=0;
   kstr->s=NULL;
   dmg->reconstructedReference.first = kstr;
   
   return dmg;
+}
+void destroy_damage(damage *dmg){
+  for(std::map<int,std::pair<size_t**,size_t**> >::iterator it=dmg->assoc.begin();it!=dmg->assoc.end();it++){
+    destroymatrix(it->second.first,dmg->MAXLENGTH);
+    destroymatrix(it->second.second,dmg->MAXLENGTH);
+  }
+  free(dmg->reconstructedReference.first->s);
+  
+  delete dmg->reconstructedReference.first;
+  delete dmg;
 }
 
 //A=0,C=1,G=2,T=3
@@ -130,9 +140,9 @@ void mdString2Vector2(const uint8_t *md,std::vector<mdField> &toReturn){
     }
 }
 
-
+static char *reconstructedTemp=(char*)calloc(256,1);
 void  reconstructRefWithPosHTS(const bam1_t   * b,std::pair< kstring_t *, std::vector<int> > &pp){
-  static char *reconstructedTemp=(char*)calloc(256,1);
+ 
   pp.first->l = 0;
   pp.second.clear();
   memset(reconstructedTemp,0,256);
@@ -289,9 +299,15 @@ inline void increaseCounters(const bam1_t *b,const char * reconstructedReference
 }
 
 int damage::damage_analysis(const bam1_t *b,int which){
-  
+  if(assoc.find(which)==assoc.end()){
+    std::pair<size_t**,size_t**> val = std::pair<size_t**,size_t**>(getmatrix(MAXLENGTH,16),getmatrix(MAXLENGTH,16));    
+    assoc[which] = val;
+    mm5p = val.first;
+    mm3p = val.second;
+  }
+  std::map<int,std::pair<size_t**,size_t**> >::iterator it=assoc.find(which);
   reconstructRefWithPosHTS(b,reconstructedReference);
-  increaseCounters(b,reconstructedReference.first->s, reconstructedReference.second,minQualBase,MAXLENGTH,mm5p[which],mm3p[which]);
+  increaseCounters(b,reconstructedReference.first->s, reconstructedReference.second,minQualBase,MAXLENGTH,it->second.first,it->second.second);
   return 0;
 }
 
@@ -367,8 +383,8 @@ int main(int argc, char *argv[]) {
       fprintf(stderr,"Error: unknown option: %s\n",argv[i]);
       return 1;
     }
-
-    damage *dmg = init_damage(MAXLENGTH,1);
+   
+    damage *dmg = init_damage(MAXLENGTH);
     char *bamfiletopen =  argv[ argc-1 ];
 
     samFile  *fp;
@@ -416,10 +432,11 @@ int main(int argc, char *argv[]) {
 	dmg->damage_analysis(b,0);
 
     }
-    
+    sam_hdr_destroy(h);
     bam_destroy1(b);
     sam_close(fp);
-    printresults_grenaud2(stdout,dmg->mm5p[0],lengthMaxToPrint);
-    printresults_grenaud2(stdout,dmg->mm3p[0],lengthMaxToPrint);
+    printresults_grenaud2(stdout,dmg->mm5p,lengthMaxToPrint);
+    printresults_grenaud2(stdout,dmg->mm3p,lengthMaxToPrint);
+    destroy_damage(dmg);
     return 0;
 }
