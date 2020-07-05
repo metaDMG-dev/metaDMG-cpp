@@ -1,20 +1,43 @@
-#include <iostream>
 #include <vector>
 #include <cstring>
 #include <ctype.h>
-#include <string>
 #include <utility>
 #include <htslib/sam.h>
 #include <htslib/hts.h>
 #include <htslib/kstring.h>
 #include <cstdlib>
-#include <zlib.h>
 #include <cmath>
 
-#define MAXLENGTH 1000
+#include "profile.h"
 
-size_t **mm3p = NULL;//[MAXLENGTH][16];
-size_t **mm5p = NULL;//[MAXLENGTH][16];
+size_t **getmatrix(size_t x,size_t y){
+  size_t **ret = new size_t*[x];
+  for(int i=0;i<x;i++){
+    ret[i] = new size_t[y];
+    for(int j=0;j<16;j++)
+      ret[i][j] = 0;
+  }
+  return ret;
+}
+
+damage *init_damage(int MAXLENGTH,int nclass){
+  damage *dmg = new damage;
+  dmg->minQualBase = 0;
+  dmg->MAXLENGTH = MAXLENGTH;
+  dmg->nclass = nclass;
+  dmg->mm5p = new size_t**[nclass];
+  dmg->mm3p = new size_t**[nclass];
+  for(int i=0;i<nclass;i++){
+    dmg->mm5p[i] = getmatrix(MAXLENGTH,16);
+    dmg->mm3p[i] = getmatrix(MAXLENGTH,16);
+  }
+  kstring_t *kstr =(kstring_t *) malloc(sizeof(kstr));
+  kstr->l=kstr->m=0;
+  kstr->s=NULL;
+  dmg->reconstructedReference.first = kstr;
+  
+  return dmg;
+}
 
 //A=0,C=1,G=2,T=3
 char refToChar[256] = {
@@ -52,7 +75,6 @@ typedef struct{
 
 static char DUMMYCHAR='#';
 
-using namespace std;
 #define bam_is_sec(b)         (((b)->core.flag&BAM_FSECONDARY)        != 0)
 #define bam_is_supp(b)        (((b)->core.flag&BAM_FSUPPLEMENTARY)    != 0)
 #define bam_is_paired(b)      (((b)->core.flag&BAM_FPAIRED)     != 0)
@@ -190,38 +212,23 @@ void  reconstructRefWithPosHTS(const bam1_t   * b,std::pair< kstring_t *, std::v
     }
 
     if(strlen(pp.first->s) != b->core.l_qseq){
-	cerr << "Could not recreate the sequence for read "<<bam_get_qname(b)  << endl;
-	exit(1);
+      fprintf(stderr,"Could not recreate the sequence for read: %s \n",bam_get_qname(b));
+      exit(1);
     }
 
     if(pp.second.size() != strlen(pp.first->s)){
-	cerr << "Could not determine the positions for the read "<<bam_get_qname(b) << endl;
+      fprintf(stderr,"Could not determine the positions for the read: %s\n",bam_get_qname(b));
 	exit(1);
     }
 }
 
-
-using namespace std;
-
-const int offset=0;
-int numberOfCycles;
-string alphabetHTSLIB = "NACNGNNNTNNNNNNN";
-
-#define MAXLENGTH 1000
-
-//increases the counters mismatches and typesOfMismatches of a given BamAlignment object
-inline void increaseCounters(const   bam1_t  * b,const char * reconstructedReference,const vector<int> &  reconstructedReferencePos,const int & minQualBase, const bam_hdr_t *h,bool ispaired,bool isfirstpair){ // ,int firstCycleRead,int increment
-
-    char refeBase;
-    char readBase;
-    int  qualBase;
- 
-    //Checking if the 5' is deaminated
-
+inline void increaseCounters(const bam1_t *b,const char * reconstructedReference,const std::vector<int> &  reconstructedReferencePos,const int & minQualBase, int MAXLENGTH,size_t **mm5p,size_t **mm3p){
+  const char *alphabetHTSLIB = "NACNGNNNTNNNNNNN";
+  char refeBase;
+  char readBase;
+  int  qualBase;
+  
     int i;
-    if(ispaired){ //since we cannot evaluate the 5' ends or 3' ends
-      //	goto iterateLoop;
-    }
 
     int j=0;
     for(i=0;i<int(b->core.l_qseq);i++,j++){
@@ -229,7 +236,7 @@ inline void increaseCounters(const   bam1_t  * b,const char * reconstructedRefer
 	refeBase=toupper(reconstructedReference[j]);
 	readBase=toupper( alphabetHTSLIB[ bam_seqi(bam_get_seq(b),i) ] ); //b->core.l_qseq[i]);
 
-	qualBase=int(bam_get_qual(b)[i])-offset;  
+	qualBase=int(bam_get_qual(b)[i]);  
   
 	if( refeBase == 'S'){ //don't care about soft clipped or indels	    
 	    j--;
@@ -269,24 +276,26 @@ inline void increaseCounters(const   bam1_t  * b,const char * reconstructedRefer
 		dist3p=i;
 	    }
 
-	    if(dist5p > MAXLENGTH ||
-	       dist3p > MAXLENGTH ){
-		cerr<<"Molecule found "<<bam_get_qname(b)<<" with length greater than limit"<<endl;
-		exit(1);
+	    if(dist5p > MAXLENGTH || dist3p > MAXLENGTH ){
+	      fprintf(stderr,"Molecule found: %s  with length greater than limit \n");
+	      exit(1);
 	    }
-
-	    if( !ispaired ||  isfirstpair){
-	      //     fprintf(stderr,"increase5p: %d\n",dist5p);
-	      mm5p[dist5p][toIndex[refeBase][readBase]]++;
-	    }
-
-	    if( !ispaired || !isfirstpair){
-	      //fprintf(stderr,"increase3p: %d\n",dist3p);
-	      mm3p[dist3p][toIndex[refeBase][readBase]]++;
-	    }
+	  
+	    mm5p[dist5p][toIndex[refeBase][readBase]]++;
+	    mm3p[dist3p][toIndex[refeBase][readBase]]++;
+	    
 	}
     }
 }
+
+int damage::damage_analysis(const bam1_t *b,int which){
+  
+  reconstructRefWithPosHTS(b,reconstructedReference);
+  increaseCounters(b,reconstructedReference.first->s, reconstructedReference.second,minQualBase,MAXLENGTH,mm5p[which],mm3p[which]);
+  return 0;
+}
+
+
 
 int printinfo(FILE *fp){
   fprintf(fp,"./profile <options>  [in BAM file]\nThis program reads a BAM file and produces a deamination profile for the 5' and 3' ends\n");
@@ -317,16 +326,7 @@ int printresults_grenaud2(FILE *fp,size_t **mm5p,int lengthMaxToPrint){
 
 
 int main(int argc, char *argv[]) {
-  mm3p = new size_t*[MAXLENGTH];
-  mm5p = new size_t*[MAXLENGTH];
-  for(int i=0;i<MAXLENGTH;i++){
-    mm3p[i] = new size_t[16];
-    mm5p[i] = new size_t[16];
-    for(int j=0;j<16;j++){
-      mm3p[i][j] = 0;
-      mm5p[i][j] = 0;
-    }
-  }
+  int MAXLENGTH = 1000;
   int lengthMaxToPrint = 5;
   int minQualBase      = 0;
   int minLength        = 35;
@@ -334,12 +334,10 @@ int main(int argc, char *argv[]) {
   int paired=0;
   int quiet=0;
   
-    if(argc == 1 ||
-       (argc == 2 && (string(argv[0]) == "--help") )
-    ){
-      printinfo(stderr);
-      return 1;       
-    }
+  if(argc == 1 ||(argc == 2 && (strcasecmp(argv[1],"--help")==0) )){
+    printinfo(stderr);
+    return 0;       
+  }
 
     
     for(int i=1;i<(argc-1);i++){ //all but the last 3 args
@@ -366,67 +364,62 @@ int main(int argc, char *argv[]) {
 	i++;
 	continue;
       }
-      cerr<<"Error: unknown option "<<string(argv[i])<<endl;
+      fprintf(stderr,"Error: unknown option: %s\n",argv[i]);
       return 1;
     }
 
-    string bamfiletopen = string( argv[ argc-1 ] );
+    damage *dmg = init_damage(MAXLENGTH,1);
+    char *bamfiletopen =  argv[ argc-1 ];
 
     samFile  *fp;
     bam1_t    *b;
     bam_hdr_t *h;
 
-    fp = sam_open_format(bamfiletopen.c_str(), "r", NULL); 
+    fp = sam_open_format(bamfiletopen, "r", NULL); 
     if(fp == NULL){
-	cerr << "Could not open input BAM file"<< bamfiletopen << endl;
-	return 1;
+      fprintf(stderr,"Could not open input BAM file: %s\n",bamfiletopen);
+      return 1;
     }
 
     h = sam_hdr_read(fp);
     if(h == NULL){
-        cerr<<"Could not read header for "<<bamfiletopen<<endl;
-        return 1;
+      fprintf(stderr,"Could not read header for: %s\n",bamfiletopen);
+      return 1;
     }
     b = bam_init1();
-    kstring_t *kstr =(kstring_t *) malloc(sizeof(kstr));
-    kstr->l=kstr->m=0;
-    kstr->s=NULL;
-    pair< kstring_t*, vector<int> >  reconstructedReference;
-    reconstructedReference.first = kstr;
+   
     while(sam_read1(fp, h, b) >= 0){
-	if(bam_is_unmapped(b) ){
-	    if(!quiet)
-		cerr<<"skipping "<<bam_get_qname(b)<<" unmapped"<<endl;
-	    continue;
-	}
+      bool ispaired    = bam_is_paired(b);
+      bool isfirstpair = bam_is_read1(b);
+      //      fprintf(stderr,"%d %d\n",ispaired,isfirstpair);
+      if(bam_is_unmapped(b) ){
+	if(!quiet)
+	  fprintf(stderr,"skipping: %s unmapped \n");
+	continue;
+      }
 	if(bam_is_failed(b) ){
 	    if(!quiet)
-		cerr<<"skipping "<<bam_get_qname(b)<<" failed"<<endl;
+	      fprintf(stderr,"skipping: %s failed \n");
 	    continue;
 	}
 	if(b->core.l_qseq < minLength){
 	    if(!quiet)
-		cerr<<"skipping "<<bam_get_qname(b)<<" too short"<<endl;
+	      fprintf(stderr,"skipping: %s too short \n");
 	    continue;
 	}
-	bool ispaired    = bam_is_paired(b);
-	bool isfirstpair = bam_is_read1(b);
-	if(!paired){    
-	    if( ispaired   ){
-		if(!quiet)
-		    cerr<<"skipping "<<bam_get_qname(b)<<" is paired (can be considered using the -paired flag"<<endl;
-		continue;
-	    }
+	if(bam_is_paired(b)){
+	  if(!quiet)
+	    fprintf(stderr,"skipping: %s  is paired (can be considered using the -paired flag\n",bam_get_qname(b));
+	  continue;
 	}
 	
-	reconstructRefWithPosHTS(b,reconstructedReference);
-	increaseCounters(b,reconstructedReference.first->s, reconstructedReference.second,minQualBase,h,ispaired,isfirstpair); //start cycle numberOfCycles-1
+	dmg->damage_analysis(b,0);
+
     }
     
     bam_destroy1(b);
     sam_close(fp);
-    //    printresults_grenaud(mm5p,mm3p,lengthMaxToPrint);
-    printresults_grenaud2(stdout,mm5p,lengthMaxToPrint);
-    printresults_grenaud2(stdout,mm3p,lengthMaxToPrint);
+    printresults_grenaud2(stdout,dmg->mm5p[0],lengthMaxToPrint);
+    printresults_grenaud2(stdout,dmg->mm3p[0],lengthMaxToPrint);
     return 0;
 }
