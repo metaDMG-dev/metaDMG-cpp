@@ -15,7 +15,7 @@ int usage(FILE *fp,int a){
 }
 
 int main(int argc, char **argv){
-  int MAXLENGTH = 1000;
+  int MAXLENGTH = 256;
   int minLength = 30;
   int printLength = 5;
   char *refName = NULL;
@@ -85,7 +85,7 @@ int main(int argc, char **argv){
   bam1_t *b = bam_init1();
   bam_hdr_t  *hdr = sam_hdr_read(fp);
   int ret;
-  damage *dmg = init_damage(MAXLENGTH);
+  damage *dmg = init_damage(printLength);
   while(((ret=sam_read1(fp,hdr,b)))>0){
       if(bam_is_unmapped(b) ){
       	fprintf(stderr,"skipping: %s unmapped \n",bam_get_qname(b));
