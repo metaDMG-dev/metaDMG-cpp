@@ -1,11 +1,13 @@
  //gpl thorfinn@binf.ku.dk
 #include <htslib/hts.h>
 #include <htslib/sam.h>
+#include <htslib/bgzf.h>
 #include <cstdlib>
 #include <cstring>
 #include <cstdio>
 #include <ctype.h>
 #include <getopt.h>
+#include <cassert>
 #include "profile.h"
 
 htsFormat *dingding2 =(htsFormat*) calloc(1,sizeof(htsFormat));
@@ -133,6 +135,64 @@ int main_index(int argc,char **argv){
   
   fclose(fp);
 }
+int main_print(int argc,char **argv){
+  fprintf(stderr,"./metadamage print file.bdamage.gz file.bam\n");
+  char *infile = argv[1];
+  char *inbam = argv[2];
+  fprintf(stderr,"infile: %s inbam: %s\n",infile,inbam);
+
+  BGZF *bgfp = NULL;
+  samFile *samfp = NULL;
+  bam_hdr_t *hdr =NULL;
+
+  if(((bgfp = bgzf_open(infile, "r")))== NULL){
+    fprintf(stderr,"Could not open input BAM file: %s\n",infile);
+    return 1;
+  }
+  
+  if(((  samfp = sam_open_format(inbam, "r", NULL) ))== NULL){
+    fprintf(stderr,"Could not open input BAM file: %s\n",inbam);
+    return 1;
+  }
+  if(((hdr= sam_hdr_read(samfp))) == NULL){
+    fprintf(stderr,"Could not read header for: %s\n",inbam);
+    return 1;
+  }
+
+  
+  int printlength;
+  assert(sizeof(int)==bgzf_read(bgfp,&printlength,sizeof(int)));
+  fprintf(stderr,"printlength: %d\n",printlength);
+
+  int ref_nreads[2];
+  
+  int data[16];
+  while(1){
+    int nread=bgzf_read(bgfp,ref_nreads,2*sizeof(int));
+    if(nread==0)
+      break;
+    assert(nread==2*sizeof(int));
+    for(int i=0;i<printlength;i++){
+      assert(16*sizeof(int)==bgzf_read(bgfp,data,sizeof(int)*16));
+      fprintf(stdout,"%s\t%d\t5\'\t%d",hdr->target_name[ref_nreads[0]],ref_nreads[1],i);
+      for(int j=0;j<16;j++)
+	fprintf(stdout,"\t%d",data[j]);
+      fprintf(stdout,"\n");
+    }
+    for(int i=0;i<printlength;i++){
+      assert(16*sizeof(int)==bgzf_read(bgfp,data,sizeof(int)*16));
+      fprintf(stdout,"%s\t%d\td3\'\t%d",hdr->target_name[ref_nreads[0]],ref_nreads[1],i);
+      for(int j=0;j<16;j++)
+	fprintf(stdout,"\t%d",data[j]);
+      fprintf(stdout,"\n");
+    }
+  }
+
+  
+  bgzf_close(bgfp);
+  bam_hdr_destroy(hdr);
+  sam_close(samfp);
+}
 
 int main(int argc, char **argv){
   if(argc==1){
@@ -147,6 +207,8 @@ int main(int argc, char **argv){
     return main_getdamage(argc,argv);
   if(!strcmp(argv[0],"index"))
     return main_index(argc,argv);
+  if(!strcmp(argv[0],"print"))
+    return main_print(argc,argv);
   return 0;
 }
 

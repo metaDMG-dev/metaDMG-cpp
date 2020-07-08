@@ -348,10 +348,12 @@ void damage::bwrite(char *fname,bam_hdr_t *hdr){
   fprintf(stderr,"Will dump: \'%s\'\n",onam);
   BGZF *fp= bgzf_open(onam,"wb");
   bgzf_write(fp,&MAXLENGTH,sizeof(int));
+ 
   for(std::map<int,triple>::iterator it=assoc.begin();it!=assoc.end();it++ ){
     if(it->second.nreads==0)//should never happen
       continue;
     bgzf_write(fp,&it->first,sizeof(int));
+    bgzf_write(fp,&it->second.nreads,sizeof(int));
     for(int l=0;l<MAXLENGTH;l++)
       bgzf_write(fp,it->second.mm5p[l],sizeof(int)*16);
 
@@ -434,7 +436,7 @@ int main(int argc, char *argv[]) {
   damage *dmg = init_damage(MAXLENGTH);
   char *bamfiletopen =  argv[ argc-1 ];
 
-  samFile  *fp;
+  ;
   bam1_t    *b;
   bam_hdr_t *h;
   
