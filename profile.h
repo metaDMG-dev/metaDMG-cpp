@@ -20,6 +20,7 @@ typedef struct{
 
 
 class damage{
+  char *reconstructedTemp;
 public:
   int MAXLENGTH;
   int minQualBase;//currently not set; should be set in init_damage
@@ -31,6 +32,9 @@ public:
   void write(char *prefix,bam_hdr_t *hdr);
   int damage_analysis( bam1_t *b,int whichclass);
   void printit(FILE *fp,int l);
+  damage(){
+    reconstructedTemp=(char*)calloc(256,1);
+  }
 };
 
 damage *init_damage(int MAXLENGTH);

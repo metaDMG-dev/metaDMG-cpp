@@ -133,8 +133,7 @@ void mdString2Vector2(const uint8_t *md,std::vector<mdField> &toReturn){
     }
 }
 
-static char *reconstructedTemp=(char*)calloc(256,1);
-void  reconstructRefWithPosHTS(const bam1_t   * b,std::pair< kstring_t *, std::vector<int> > &pp){
+void  reconstructRefWithPosHTS(const bam1_t   * b,std::pair< kstring_t *, std::vector<int> > &pp,char *reconstructedTemp){
  
   pp.first->l = 0;
   pp.second.clear();
@@ -302,7 +301,7 @@ int damage::damage_analysis(bam1_t *b,int which){
   }
   std::map<int,triple >::iterator it=assoc.find(which);
   it->second.nreads++;
-  reconstructRefWithPosHTS(b,reconstructedReference);
+  reconstructRefWithPosHTS(b,reconstructedReference,reconstructedTemp);
   increaseCounters(b,reconstructedReference.first->s, reconstructedReference.second,minQualBase,MAXLENGTH,it->second.mm5p,it->second.mm3p);
   return 0;
 }
