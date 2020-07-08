@@ -17,7 +17,7 @@ int usage(FILE *fp,int a){
 }
 
 int main_getdamage(int argc,char **argv){
-  fprintf(stderr,"argv: %s\n",*argv);
+  fprintf(stderr,"%s\n",__FUNCTION__);
   
   //  int MAXLENGTH = 256;
   int minLength = 30;
@@ -27,6 +27,7 @@ int main_getdamage(int argc,char **argv){
   int runmode =0;//this means one species, runmode=1 means multi species
   htsFile *fp = NULL;
   char *onam = "meta";
+  int nthreads = 4;
   //fix these
   static struct option lopts[] = {
     {"add", 1, 0, 0},
@@ -39,11 +40,12 @@ int main_getdamage(int argc,char **argv){
   };
   int c;
   while ((c = getopt_long(argc, argv,
-			  "f:l:p:r:o:",
+			  "f:l:p:r:o:@:",
 			  lopts, NULL)) >= 0) {
     switch (c) {
     case 'f': refName = strdup(optarg); break;
     case 'l': minLength = atoi(optarg); break;
+    case '@': nthreads = atoi(optarg); break;
     case 'p': printLength = atoi(optarg); break;
     case 'o': onam = strdup(optarg); break;
     case 'r': runmode = atoi(optarg); break;
@@ -70,7 +72,7 @@ int main_getdamage(int argc,char **argv){
   }
   if(optind<argc)
     fname = strdup(argv[optind]);
-  fprintf(stderr,"./metadamage refName: %s minLength: %d printLength: %d runmode: %d outname: %s\n",refName,minLength,printLength,runmode,onam);
+  fprintf(stderr,"./metadamage refName: %s minLength: %d printLength: %d runmode: %d outname: %s nthreads: %d\n",refName,minLength,printLength,runmode,onam,nthreads);
   if(refName){
     char *ref =(char*) malloc(10 + strlen(refName) + 1);
     sprintf(ref, "reference=%s", refName);
@@ -87,7 +89,7 @@ int main_getdamage(int argc,char **argv){
   bam1_t *b = bam_init1();
   bam_hdr_t  *hdr = sam_hdr_read(fp);
   int ret;
-  damage *dmg = init_damage(printLength);
+  damage *dmg = new damage(printLength,nthreads,0);
   while(((ret=sam_read1(fp,hdr,b)))>0){
       if(bam_is_unmapped(b) ){
       	fprintf(stderr,"skipping: %s unmapped \n",bam_get_qname(b));
@@ -195,6 +197,9 @@ int main_print(int argc,char **argv){
 }
 
 int main(int argc, char **argv){
+  clock_t t=clock();
+  time_t t2=time(NULL);
+ 
   if(argc==1){
     fprintf(stderr,"./metadamage getdamage file.bam\n");
     fprintf(stderr,"./metadamage mergedamage files.damage.*.gz\n");
@@ -204,11 +209,13 @@ int main(int argc, char **argv){
   }
   argc--;++argv;
   if(!strcmp(argv[0],"getdamage"))
-    return main_getdamage(argc,argv);
+    main_getdamage(argc,argv);
   if(!strcmp(argv[0],"index"))
-    return main_index(argc,argv);
+    main_index(argc,argv);
   if(!strcmp(argv[0],"print"))
-    return main_print(argc,argv);
+    main_print(argc,argv);
+
+  fprintf(stderr, "\t[ALL done] cpu-time used =  %.2f sec\n", (float)(clock() - t) / CLOCKS_PER_SEC);
+  fprintf(stderr, "\t[ALL done] walltime used =  %.2f sec\n", (float)(time(NULL) - t2)); 
   return 0;
 }
-

@@ -8,9 +8,8 @@
 #include <htslib/kstring.h>
 #include <cstdlib>
 #include <cmath>
-
+#include <cassert>
 #include "profile.h"
-
 
 unsigned **getmatrix(size_t x,size_t y){
   unsigned **ret = new unsigned*[x];
@@ -28,18 +27,6 @@ void destroymatrix(unsigned**d,size_t x){
   delete [] d;
 }
 
-damage *init_damage(int MAXLENGTH){
-  damage *dmg = new damage;
-  dmg->minQualBase = 0;
-  dmg->MAXLENGTH = MAXLENGTH;
-
-  kstring_t *kstr =new kstring_t;
-  kstr->l=kstr->m=0;
-  kstr->s=NULL;
-  dmg->reconstructedReference.first = kstr;
-  
-  return dmg;
-}
 void destroy_damage(damage *dmg){
   for(std::map<int,triple >::iterator it=dmg->assoc.begin();it!=dmg->assoc.end();it++){
     destroymatrix(it->second.mm5p,dmg->MAXLENGTH);
@@ -50,6 +37,19 @@ void destroy_damage(damage *dmg){
   delete dmg->reconstructedReference.first;
   delete dmg;
 }
+
+BGZF *my_bgzf_open(const char *name,int nthreads){
+  BGZF *ret = NULL;
+  ret = bgzf_open(name,"wb");
+  assert(ret != NULL);
+  if(nthreads>1){
+    fprintf(stderr,"\t-> Setting threads to: %d \n",nthreads);
+    bgzf_mt(ret,nthreads,64);
+  }
+  
+  return ret;
+}
+
 
 //A=0,C=1,G=2,T=3
 char refToChar[256] = {
@@ -316,7 +316,7 @@ void damage::write(char *fname,bam_hdr_t *hdr){
   char onam[1024];
   snprintf(onam,1024,"%s.res.gz",outname);
   fprintf(stderr,"Will dump: \'%s\'\n",onam);
-  BGZF *fp= bgzf_open(onam,"wb");
+  BGZF *fp= my_bgzf_open(onam,nthreads);
 
   for(std::map<int,triple>::iterator it=assoc.begin();it!=assoc.end();it++ ){
     if(it->second.nreads==0)//should never happen
@@ -346,7 +346,7 @@ void damage::bwrite(char *fname,bam_hdr_t *hdr){
   char onam[1024];
   snprintf(onam,1024,"%s.bdamage.gz",fname);
   fprintf(stderr,"Will dump: \'%s\'\n",onam);
-  BGZF *fp= bgzf_open(onam,"wb");
+  BGZF *fp= my_bgzf_open(onam,nthreads);
   bgzf_write(fp,&MAXLENGTH,sizeof(int));
  
   for(std::map<int,triple>::iterator it=assoc.begin();it!=assoc.end();it++ ){
