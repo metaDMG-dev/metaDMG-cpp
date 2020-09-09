@@ -21,7 +21,7 @@ int main_getdamage(int argc,char **argv){
   fprintf(stderr,"%s\n",__FUNCTION__);
   
   //  int MAXLENGTH = 256;
-  int minLength = 30;
+  int minLength = 35;
   int printLength = 5;
   char *refName = NULL;
   char *fname = NULL;
@@ -101,7 +101,7 @@ int main_getdamage(int argc,char **argv){
       continue;
     }
     if(b->core.l_qseq < minLength){
-      fprintf(stderr,"skipping: %s too short \n");
+      fprintf(stderr,"skipping: %s too short \n",bam_get_qname(b));
       continue;
     }
     if(bam_is_paired(b)){
@@ -173,9 +173,9 @@ int main_print(int argc,char **argv){
   int ref_nreads[2];
 
   if(hdr!=NULL)
-    fprintf(stdout,"#Reference\tNreads\tAA\tAC\tAG\tAT\tCA\tCC\tCG\tCT\tGA\tGC\tGG\tGT\tTA\tTC\tTG\tTT\n");
+    fprintf(stdout,"#Reference\tNreads\tDirection\tPos\tAA\tAC\tAG\tAT\tCA\tCC\tCG\tCT\tGA\tGC\tGG\tGT\tTA\tTC\tTG\tTT\n");
   else
-    fprintf(stdout,"#taxid\tNreads\tAA\tAC\tAG\tAT\tCA\tCC\tCG\tCT\tGA\tGC\tGG\tGT\tTA\tTC\tTG\tTT\n");
+    fprintf(stdout,"#taxid\tNreads\tDirection\tPos\tAA\tAC\tAG\tAT\tCA\tCC\tCG\tCT\tGA\tGC\tGG\tGT\tTA\tTC\tTG\tTT\n");
   
   int data[16];
   while(1){
@@ -190,14 +190,19 @@ int main_print(int argc,char **argv){
       else
 	fprintf(stdout,"%d\t%d\t5\'\t%d",ref_nreads[0],ref_nreads[1],i);
       float flt[16];
-      double tsum =0;
-      for(int j=0;j<16;j++){
-	tsum += data[j];
-	flt[j] = data[j];
+      
+      for(int i=0;i<4;i++){
+	double tsum =0;
+	for(int j=0;j<4;j++){
+	  tsum += data[i*4+j];
+	  flt[i*4+j] = data[i*4+j];
+	}
+	if(tsum==0) tsum = 1;
+	for(int j=0;j<4;j++)
+	  flt[i*4+j] /=tsum;
       }
-      if(tsum==0) tsum = 1;
       for(int j=0;j<16;j++)
-	fprintf(stdout,"\t%f",flt[j]/tsum);
+	fprintf(stdout,"\t%f",flt[j]);
       fprintf(stdout,"\n");
     }
     for(int i=0;i<printlength;i++){
