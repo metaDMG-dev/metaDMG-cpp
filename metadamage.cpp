@@ -8,6 +8,7 @@
 #include <ctype.h>
 #include <getopt.h>
 #include <cassert>
+#include <time.h>
 #include "profile.h"
 
 htsFormat *dingding2 =(htsFormat*) calloc(1,sizeof(htsFormat));
@@ -138,9 +139,11 @@ int main_index(int argc,char **argv){
   fclose(fp);
 }
 int main_print(int argc,char **argv){
-  fprintf(stderr,"./metadamage print file.bdamage.gz file.bam\n");
+  fprintf(stderr,"./metadamage print file.bdamage.gz [file.bam]\n");
   char *infile = argv[1];
-  char *inbam = argv[2];
+  char *inbam = NULL;
+  if(argc>2)
+    inbam = argv[2];
   fprintf(stderr,"infile: %s inbam: %s\n",infile,inbam);
 
   BGZF *bgfp = NULL;
@@ -152,21 +155,27 @@ int main_print(int argc,char **argv){
     return 1;
   }
   
-  if(((  samfp = sam_open_format(inbam, "r", NULL) ))== NULL){
-    fprintf(stderr,"Could not open input BAM file: %s\n",inbam);
+  if(inbam!=NULL){
+    if(((  samfp = sam_open_format(inbam, "r", NULL) ))== NULL){
+      fprintf(stderr,"Could not open input BAM file: %s\n",inbam);
+      return 1;
+    }
+    if(((hdr= sam_hdr_read(samfp))) == NULL){
+      fprintf(stderr,"Could not read header for: %s\n",inbam);
     return 1;
+    }
   }
-  if(((hdr= sam_hdr_read(samfp))) == NULL){
-    fprintf(stderr,"Could not read header for: %s\n",inbam);
-    return 1;
-  }
-
   
   int printlength;
   assert(sizeof(int)==bgzf_read(bgfp,&printlength,sizeof(int)));
   fprintf(stderr,"printlength: %d\n",printlength);
 
   int ref_nreads[2];
+
+  if(hdr!=NULL)
+    fprintf(stdout,"#Reference\tNreads\tAA\tAC\tAG\tAT\tCA\tCC\tCG\tCT\tGA\tGC\tGG\tGT\tTA\tTC\tTG\tTT\n");
+  else
+    fprintf(stdout,"#taxid\tNreads\tAA\tAC\tAG\tAT\tCA\tCC\tCG\tCT\tGA\tGC\tGG\tGT\tTA\tTC\tTG\tTT\n");
   
   int data[16];
   while(1){
@@ -176,24 +185,46 @@ int main_print(int argc,char **argv){
     assert(nread==2*sizeof(int));
     for(int i=0;i<printlength;i++){
       assert(16*sizeof(int)==bgzf_read(bgfp,data,sizeof(int)*16));
-      fprintf(stdout,"%s\t%d\t5\'\t%d",hdr->target_name[ref_nreads[0]],ref_nreads[1],i);
+      if(hdr!=NULL)
+	fprintf(stdout,"%s\t%d\t5\'\t%d",hdr->target_name[ref_nreads[0]],ref_nreads[1],i);
+      else
+	fprintf(stdout,"%d\t%d\t5\'\t%d",ref_nreads[0],ref_nreads[1],i);
+      float flt[16];
+      double tsum =0;
+      for(int j=0;j<16;j++){
+	tsum += data[j];
+	flt[j] = data[j];
+      }
+      if(tsum==0) tsum = 1;
       for(int j=0;j<16;j++)
-	fprintf(stdout,"\t%d",data[j]);
+	fprintf(stdout,"\t%f",flt[j]/tsum);
       fprintf(stdout,"\n");
     }
     for(int i=0;i<printlength;i++){
       assert(16*sizeof(int)==bgzf_read(bgfp,data,sizeof(int)*16));
-      fprintf(stdout,"%s\t%d\td3\'\t%d",hdr->target_name[ref_nreads[0]],ref_nreads[1],i);
+      if(hdr!=NULL)
+	fprintf(stdout,"%s\t%d\t3\'\t%d",hdr->target_name[ref_nreads[0]],ref_nreads[1],i);
+      else
+	fprintf(stdout,"%d\t%d\t3\'\t%d",ref_nreads[0],ref_nreads[1],i);
+      float flt[16];
+      double tsum =0;
+      for(int j=0;j<16;j++){
+	tsum += data[j];
+	flt[j] = data[j];
+      }
+      if(tsum==0) tsum = 1;
       for(int j=0;j<16;j++)
-	fprintf(stdout,"\t%d",data[j]);
+	fprintf(stdout,"\t%f",flt[j]/tsum);
       fprintf(stdout,"\n");
     }
   }
 
-  
-  bgzf_close(bgfp);
-  bam_hdr_destroy(hdr);
-  sam_close(samfp);
+  if(bgfp)
+    bgzf_close(bgfp);
+  if(hdr)
+    bam_hdr_destroy(hdr);
+  if(samfp)
+    sam_close(samfp);
 }
 
 int main(int argc, char **argv){
