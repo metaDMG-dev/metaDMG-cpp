@@ -1,4 +1,4 @@
- //gpl thorfinn@binf.ku.dk
+//gpl thorfinn@binf.ku.dk
 #include <htslib/hts.h>
 #include <htslib/sam.h>
 #include <htslib/bgzf.h>
@@ -13,13 +13,18 @@
 
 htsFormat *dingding2 =(htsFormat*) calloc(1,sizeof(htsFormat));
 
-int usage(FILE *fp,int a){
+int usage_getdamage(FILE *fp){
+  fprintf(fp,"-f ref.fa -l minreadlength -@ nthreads -p printlength -r runmode \n");
+  fprintf(fp,"-f is required with cram\n");
+  fprintf(fp,"reads shorter than minreadlength will be discarded\n");
+  fprintf(fp,"runmode 0 means one global estimate runmod 1 means that damage patterns will be calculated for each chr/scaffold contig\n");
   return 0;
 }
 
 int main_getdamage(int argc,char **argv){
   fprintf(stderr,"%s\n",__FUNCTION__);
-  
+  if(argc==1)
+    return usage_getdamage(stderr);
   //  int MAXLENGTH = 256;
   int minLength = 35;
   int printLength = 5;
@@ -52,7 +57,7 @@ int main_getdamage(int argc,char **argv){
     case 'r': runmode = atoi(optarg); break;
     case '?':
 	  if (optopt == '?') {  // '-?' appeared on command line
-	    return usage(stdout,0);
+	    return usage_getdamage(stdout);
 	  } else {
 	    if (optopt) { // Bad short option
 	      fprintf(stdout,"./metadamage invalid option -- '%c'\n", optopt);
@@ -91,8 +96,8 @@ int main_getdamage(int argc,char **argv){
   bam_hdr_t  *hdr = sam_hdr_read(fp);
   int ret;
   damage *dmg = new damage(printLength,nthreads,0);
-  while(((ret=sam_read1(fp,hdr,b)))>0){
-      if(bam_is_unmapped(b) ){
+  while(((ret=sam_read1(fp,hdr,b)))>=0){
+    if(bam_is_unmapped(b) ){
       	fprintf(stderr,"skipping: %s unmapped \n",bam_get_qname(b));
       continue;
     }
@@ -121,7 +126,7 @@ int main_getdamage(int argc,char **argv){
   bam_destroy1(b);
   sam_close(fp);
   destroy_damage(dmg);
-
+  free(fname);
 }
 
 int main_index(int argc,char **argv){
@@ -135,7 +140,7 @@ int main_index(int argc,char **argv){
     fprintf(stderr,"Problem opening file\n");
     return 0;
   }
-  
+
   fclose(fp);
 }
 int main_print(int argc,char **argv){

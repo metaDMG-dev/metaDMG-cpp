@@ -43,7 +43,9 @@ public:
     kstr->l=kstr->m=0;
     kstr->s=NULL;
     reconstructedReference.first = kstr;
+    mm5p=mm3p=NULL;
   }
+  ~damage(){free(reconstructedTemp);}
 };
 
 void destroy_damage(damage *dmg);

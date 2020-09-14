@@ -392,8 +392,10 @@ int printresults_grenaud2(FILE *fp,unsigned **mm5p,int lengthMaxToPrint){
 }
 
 void damage::printit(FILE *fp,int l){
-  printresults_grenaud2(fp,mm5p,l);
-  printresults_grenaud2(fp,mm3p,l);
+  if(mm5p)
+    printresults_grenaud2(fp,mm5p,l);
+  if(mm3p)
+    printresults_grenaud2(fp,mm3p,l);
 }
 
 #ifdef __WITH_MAIN__
