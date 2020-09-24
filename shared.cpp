@@ -1,3 +1,5 @@
+#include <cstdio>
+#include <cstdlib>
 #include "shared.h"
 
 
@@ -74,7 +76,7 @@ int2char parse_names(const char *fname){
 
 
 void parse_nodes(const char *fname,int2char &rank,int2int &parent){
-
+  fprintf(stderr,"Parsing: %s\n",fname);
   gzFile gz= Z_NULL;
   gz=gzopen(fname,"rb");
   if(gz==Z_NULL){
@@ -104,15 +106,18 @@ void parse_nodes(const char *fname,int2char &rank,int2int &parent){
       rank[key]=strdup(toks[2]);
     }
   }
-  fprintf(stderr,"\t-> Number of unique names (column1): %lu from file: %s\n",rank.size(),fname);
-
+  fprintf(stderr,"\t-> Number of unique names (column1): %lu from file: %s parent.size():%lu\n",rank.size(),fname,parent.size());
+  // int2int::iterator it=parent.find(9532);
+  //fprintf(stderr,"%d->%d\n",it->first,it->second);
 }
 
 //this generates a downtree, parent to childs taxid->vector<taxids>
 void parse_nodes2(int2int &parent,int2intvec &child){
+  fprintf(stderr,"\t-> Generating reverse node table\n");
   for(int2int::iterator it=parent.begin();it!=parent.end();it++){
     int down=it->first;
     int up = it->second;
+    //    fprintf(stdout,"%d\t%d\n",down,up);
     int2intvec::iterator it2=child.find(up);
     if(it2==child.end()){
       std::vector<int> tmp;
@@ -122,5 +127,6 @@ void parse_nodes2(int2int &parent,int2intvec &child){
       it2->second.push_back(down);
 
   }
-
+  fprintf(stderr,"\t-> Done generating reverse node table: contains: %lu\n",child.size());
+  //    exit(0);
 }

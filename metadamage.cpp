@@ -274,26 +274,28 @@ int main_print(int argc,char **argv){
 }
 
 double *getval(std::map<int, double *> &retmap,int2intvec &child,int taxid,int howmany){
+  //  fprintf(stderr,"getval(taxid):%d howmany: %d\n",taxid,howmany);
   std::map<int,double *>::iterator it = retmap.find(taxid);
-  if(it!=retmap.end())
+  if(it!=retmap.end()){
+    //fprintf(stderr,"has found: %d in retmap\n",it->first);
     return it->second;
-
+  }
   double *ret = new double [2*howmany];
   for(int i=0;i<2*howmany;i++)
     ret[i] = 0.0;
-
-  if(child.size()>0){
+  if(child.size()>0){// if we have supplied -nodes
     int2intvec::iterator it2 = child.find(taxid);
-    assert(it2!=child.end());
-    
-    std::vector<int> &avec = it2->second;
-    for(int i=0;i<avec.size();i++){
-      double *tmp = getval(retmap,child,it->second[i],howmany);
+    if (it2!=child.end()){
+      std::vector<int> &avec = it2->second;
+      for(int i=0;i<avec.size();i++){
+	//	fprintf(stderr,"%d/%d\n",i,avec.size());
+	double *tmp = getval(retmap,child,avec[i],howmany);
+	for(int i=0;i<2*howmany;i++)
+	  ret[i] += tmp[i];
+      }
       for(int i=0;i<2*howmany;i++)
-	ret[i] += tmp[i];
+	ret[i] /= (1.0*avec.size());
     }
-    for(int i=0;i<2*howmany;i++)
-      ret[i] /= (1.0*avec.size());
   }
   
   retmap[taxid] = ret;
@@ -375,12 +377,16 @@ int main_merge(int argc,char **argv){
   assert(fp!=Z_NULL);
   char buf[4096];
   char orig[4096];
+  gzgets(fp,buf,4096);//skipheader
   while(gzgets(fp,buf,4096)){
     strncpy(orig,buf,4096);
     //    fprintf(stderr,"buf: %s\n",buf);
     char *tok=strtok(buf,"\t\n ");
     int taxid=atoi(strtok(NULL,":"));
-    //    fprintf(stderr,"taxid: %d\n",taxid);
+    fprintf(stderr,"taxid: %d\n",taxid);
+    if(taxid==1){
+      fprintf(stderr,"orig: %s",orig);
+    }
     double *dbl = getval(retmap,child,taxid,howmany);
     orig[strlen(orig)-1] = '\0';
     fprintf(stdout,"%s\t%d",orig,taxid);

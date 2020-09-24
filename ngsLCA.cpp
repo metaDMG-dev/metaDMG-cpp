@@ -653,7 +653,7 @@ int2node makeNodes(int2int &parent){
 
 int main_lca(int argc, char **argv){
   if(argc==1){
-    fprintf(stderr,"\t-> ./ngsLCA -names -nodes -acc2tax [-editdist[min/max] -simscore[low/high] -minmapq -discard] -bam \n");
+    fprintf(stderr,"\t-> ./ngsLCA -names -nodes -acc2tax [-editdist[min/max] -simscore[low/high] -minmapq -discard] -bam -lca_rank \n");
     return 0;
   }
   catchkill();
