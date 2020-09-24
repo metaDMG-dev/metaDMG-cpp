@@ -9,20 +9,23 @@
 #include <getopt.h>
 #include <cassert>
 #include <time.h>
+#include <zlib.h>
+#include <map>
 #include "profile.h"
 
 htsFormat *dingding2 =(htsFormat*) calloc(1,sizeof(htsFormat));
-
+typedef std::map<int,char *> int2char;
 int usage_getdamage(FILE *fp){
-  fprintf(fp,"-f ref.fa -l minreadlength -@ nthreads -p printlength -r runmode \n");
-  fprintf(fp,"-f is required with cram\n");
-  fprintf(fp,"reads shorter than minreadlength will be discarded\n");
-  fprintf(fp,"runmode 0 means one global estimate runmod 1 means that damage patterns will be calculated for each chr/scaffold contig\n");
+  fprintf(fp,"\nUsage: metadamage getdamage [options] <in.bam>|<in.sam>|<in.cram>\n");
+  fprintf(fp,"\nExample: ./metadamage getdamage -l 10 -p 5 --threads 8 ../data/subs.sam\nOptions:\n");
+  fprintf(fp,"  -f/--fasta\t is required with CRAM\n");
+  fprintf(fp,"  -l/--minlength\t reads shorter than minlength will be discarded\n");
+  fprintf(fp,"  -r/--runmode\trunmode 1 means that damage patterns will be calculated for each chr/scaffold contig.\n\t\trunmode 0 means one global estimate.\n");
+  fprintf(fp,"  -@/--threads\t Number of threads used for reading/writing\n");
   return 0;
 }
 
 int main_getdamage(int argc,char **argv){
-  fprintf(stderr,"%s\n",__FUNCTION__);
   if(argc==1)
     return usage_getdamage(stderr);
   //  int MAXLENGTH = 256;
@@ -36,14 +39,16 @@ int main_getdamage(int argc,char **argv){
   int nthreads = 4;
   //fix these
   static struct option lopts[] = {
-    {"add", 1, 0, 0},
-    {"append", 0, 0, 0},
-    {"delete", 1, 0, 0},
-    {"verbose", 0, 0, 0},
-    {"create", 1, 0, 'c'},
-    {"file", 1, 0, 0},
+    {"fasta", 1, 0, 'f'},
+    {"minlength", 1, 0, 'l'},
+    {"threads", 1, 0, '@'},
+    {"length", 1, 0, 'p'},
+    {"outname", 1, 0, 'o'},
+    {"help", 0, 0, '?'},
+    {"runmode", 1, 0, 'r'},
     {NULL, 0, NULL, 0}
   };
+  
   int c;
   while ((c = getopt_long(argc, argv,
 			  "f:l:p:r:o:@:",
@@ -56,21 +61,8 @@ int main_getdamage(int argc,char **argv){
     case 'o': onam = strdup(optarg); break;
     case 'r': runmode = atoi(optarg); break;
     case '?':
-	  if (optopt == '?') {  // '-?' appeared on command line
-	    return usage_getdamage(stdout);
-	  } else {
-	    if (optopt) { // Bad short option
-	      fprintf(stdout,"./metadamage invalid option -- '%c'\n", optopt);
-	    } else { // Bad long option
-	      // Do our best.  There is no good solution to finding
-	      // out what the bad option was.
-	      // See, e.g. https://stackoverflow.com/questions/2723888/where-does-getopt-long-store-an-unrecognized-option
-	      if (optind > 0 && strncmp(argv[optind - 1], "--", 2) == 0) {
-		fprintf(stdout,"./metadamage unrecognised option '%s'\n",argv[optind - 1]);
-	      }
-	    }
-	    return 0;//usage(stderr, 0);
-	  }
+      return usage_getdamage(stdout);
+
     default:
       fprintf(stderr,"Never here\n",optarg,fname);
       break;
@@ -79,6 +71,10 @@ int main_getdamage(int argc,char **argv){
   if(optind<argc)
     fname = strdup(argv[optind]);
   fprintf(stderr,"./metadamage refName: %s minLength: %d printLength: %d runmode: %d outname: %s nthreads: %d\n",refName,minLength,printLength,runmode,onam,nthreads);
+  if(fname==NULL){
+    usage_getdamage(stderr);
+    return 0;
+  }
   if(refName){
     char *ref =(char*) malloc(10 + strlen(refName) + 1);
     sprintf(ref, "reference=%s", refName);
@@ -113,6 +109,7 @@ int main_getdamage(int argc,char **argv){
       fprintf(stderr,"skipping: %s  is paired (can be considered using the -paired flag\n",bam_get_qname(b));
       continue;
     }
+    //    fprintf(stderr,"Analyzing\n");
     dmg->damage_analysis(b,runmode!=0?b->core.tid:0);
   }
 
@@ -143,14 +140,101 @@ int main_index(int argc,char **argv){
 
   fclose(fp);
 }
+
+//usefull little function to split
+char *strpop(char **str,char split){
+  char *tok=*str;
+  while(**str){
+    if(**str!=split)
+      (*str)++;
+    else{
+      **str='\0'; (*str)++;
+      break;
+    }
+  }
+  return tok;
+}
+//usefull little function to remove tab and newlines
+void strip(char *line){
+  int at=0;
+  //  fprintf(stderr,"%s\n",line);
+  for(int i=0;i<strlen(line);i++)
+    if(line[i]=='\t'||line[i]=='\n')
+      continue;
+    else
+      line[at++]=line[i];
+  //  fprintf(stderr,"at:%d line:%p\n",at,line);
+  line[at]='\0';
+  //fprintf(stderr,"%s\n",line);
+}
+
+
+ 
+
+int2char parse_names(const char *fname){
+
+  gzFile gz= Z_NULL;
+  gz=gzopen(fname,"rb");
+  if(gz==Z_NULL){
+    fprintf(stderr,"\t-> Problems opening file: \'%s\'\n",fname);
+    exit(0);
+  }
+  int2char name_map;
+  char buf[4096];
+  int at=0;
+  char **toks = new char*[5];
+  
+  while(gzgets(gz,buf,4096)){
+    strip(buf);//fprintf(stderr,"buf:%s\n",buf);
+    char *saveptr = buf;
+    toks[0]=strpop(&saveptr,'|');
+    toks[1]= strpop(&saveptr,'|');
+    toks[2]= strpop(&saveptr,'|');
+    toks[3]= strpop(&saveptr,'|');
+    for(int i=0;0&&i<4;i++)
+      fprintf(stderr,"%d):\'%s\'\n",i,toks[i]);
+
+    int key=atoi(toks[0]);
+    //    fprintf(stderr,"key:%d\n",key);
+    if(toks[3]&&strcmp(toks[3],"scientific name")==0){
+      int2char::iterator it=name_map.find(key);
+      
+      if(it!=name_map.end())
+	fprintf(stderr,"\t->[%s] duplicate name(column1): %s\n",fname,toks[0]);
+      else
+	name_map[key]=strdup(toks[1]);
+
+    }
+    if(0&&at++>10)
+      break;
+  }
+  //  int2char::iterator it = name_map.find(61564);  assert(it!=name_map.end());
+  fprintf(stderr,"\t-> [%s] Number of unique names (column1): %lu with third column 'scientific name'\n",fname,name_map.size());
+  return name_map;
+}
+
+
 int main_print(int argc,char **argv){
-  fprintf(stderr,"./metadamage print file.bdamage.gz [file.bam]\n");
+  fprintf(stderr,"./metadamage print file.bdamage.gz [-names file.gz -bam file.bam]\n");
   char *infile = argv[1];
   char *inbam = NULL;
-  if(argc>2)
-    inbam = argv[2];
-  fprintf(stderr,"infile: %s inbam: %s\n",infile,inbam);
+  char *acc2tax = NULL;
+  ++argv;
+  while(*(++argv)){
+    if(strcasecmp("-names",*argv)==0)
+      acc2tax = strdup(*(++argv));
+    if(strcasecmp("-bam",*argv)==0)
+      inbam = strdup(*(++argv));
+  }
 
+
+  fprintf(stderr,"infile: %s inbam: %s names: %s\n",infile,inbam,acc2tax);
+
+  int2char name_map;
+  if(acc2tax!=NULL)
+    name_map = parse_names(acc2tax);
+
+  
   BGZF *bgfp = NULL;
   samFile *samfp = NULL;
   bam_hdr_t *hdr =NULL;
@@ -179,6 +263,8 @@ int main_print(int argc,char **argv){
 
   if(hdr!=NULL)
     fprintf(stdout,"#Reference\tNreads\tDirection\tPos\tAA\tAC\tAG\tAT\tCA\tCC\tCG\tCT\tGA\tGC\tGG\tGT\tTA\tTC\tTG\tTT\n");
+  else if(acc2tax!=NULL)
+    fprintf(stdout,"#FunkyName\tNreads\tDirection\tPos\tAA\tAC\tAG\tAT\tCA\tCC\tCG\tCT\tGA\tGC\tGG\tGT\tTA\tTC\tTG\tTT\n");
   else
     fprintf(stdout,"#taxid\tNreads\tDirection\tPos\tAA\tAC\tAG\tAT\tCA\tCC\tCG\tCT\tGA\tGC\tGG\tGT\tTA\tTC\tTG\tTT\n");
   
@@ -192,7 +278,14 @@ int main_print(int argc,char **argv){
       assert(16*sizeof(int)==bgzf_read(bgfp,data,sizeof(int)*16));
       if(hdr!=NULL)
 	fprintf(stdout,"%s\t%d\t5\'\t%d",hdr->target_name[ref_nreads[0]],ref_nreads[1],i);
-      else
+      else if(acc2tax!=NULL){
+	int2char::iterator itt = name_map.find(ref_nreads[0]);
+	if(itt==name_map.end()){
+	  fprintf(stderr,"\t-> Problem finding taxid: \'%d' in namedatabase: \'%s\'\n",ref_nreads[0],acc2tax);
+	  exit(0);
+	}
+	fprintf(stdout,"%s\t%d\t5\'\t%d",itt->second,ref_nreads[1],i);
+      }else
 	fprintf(stdout,"%d\t%d\t5\'\t%d",ref_nreads[0],ref_nreads[1],i);
       float flt[16];
       
@@ -214,18 +307,32 @@ int main_print(int argc,char **argv){
       assert(16*sizeof(int)==bgzf_read(bgfp,data,sizeof(int)*16));
       if(hdr!=NULL)
 	fprintf(stdout,"%s\t%d\t3\'\t%d",hdr->target_name[ref_nreads[0]],ref_nreads[1],i);
+      else if(acc2tax!=NULL){
+	int2char::iterator itt = name_map.find(ref_nreads[0]);
+	if(itt==name_map.end()){
+	  fprintf(stderr,"\t-> Problem finding taxid: \'%d' in namedatabase: \'%s\'\n",ref_nreads[0],acc2tax);
+	  exit(0);
+	}
+	fprintf(stdout,"%s\t%d\t3\'\t%d",itt->second,ref_nreads[1],i);
+      }
       else
 	fprintf(stdout,"%d\t%d\t3\'\t%d",ref_nreads[0],ref_nreads[1],i);
       float flt[16];
-      double tsum =0;
-      for(int j=0;j<16;j++){
-	tsum += data[j];
-	flt[j] = data[j];
+
+      for(int i=0;i<4;i++){
+	double tsum =0;
+	for(int j=0;j<4;j++){
+	  tsum += data[i*4+j];
+	  flt[i*4+j] = data[i*4+j];
+	}
+	if(tsum==0) tsum = 1;
+	for(int j=0;j<4;j++)
+	  flt[i*4+j] /=tsum;
       }
-      if(tsum==0) tsum = 1;
       for(int j=0;j<16;j++)
-	fprintf(stdout,"\t%f",flt[j]/tsum);
+	fprintf(stdout,"\t%f",flt[j]);
       fprintf(stdout,"\n");
+     
     }
   }
 
@@ -237,6 +344,92 @@ int main_print(int argc,char **argv){
     sam_close(samfp);
 }
 
+
+int main_merge(int argc,char **argv){
+  fprintf(stderr,"./metadamage merge file.lca file.bdamage.gz [-names file.gz -bam file.bam -howmany 5]\n");
+  if(argc<=0)
+    return 0;
+  char *infile_lca = argv[1];
+  char *infile_bdamage = argv[2];
+  char *inbam = NULL;
+  char *acc2tax = NULL;
+  int howmany = 5;
+  ++argv;
+  while(*(++argv)){
+    if(strcasecmp("-names",*argv)==0)
+      acc2tax = strdup(*(++argv));
+    if(strcasecmp("-bam",*argv)==0)
+      inbam = strdup(*(++argv));
+    if(strcasecmp("-howmany",*argv)==0)
+      howmany = atoi(*(++argv));
+  }
+
+
+  fprintf(stderr,"infile_lca: %s infile_bdamage: %s\n",infile_lca,infile_bdamage);
+  std::map<int, double *> retmap = load_bdamage(infile_bdamage,5);
+  fprintf(stderr,"retmap.size():%lu\n",retmap.size());
+  int2char name_map;
+  if(acc2tax!=NULL)
+    name_map = parse_names(acc2tax);
+  
+  BGZF *bgfp = NULL;
+  samFile *samfp = NULL;
+  bam_hdr_t *hdr =NULL;
+
+  if(inbam!=NULL){
+    if(((bgfp = bgzf_open(inbam, "r")))== NULL){
+      fprintf(stderr,"Could not open input BAM file: %s\n",inbam);
+      return 1;
+    }
+  }
+  
+  if(inbam!=NULL){
+    if(((  samfp = sam_open_format(inbam, "r", NULL) ))== NULL){
+      fprintf(stderr,"Could not open input BAM file: %s\n",inbam);
+      return 1;
+    }
+    if(((hdr= sam_hdr_read(samfp))) == NULL){
+      fprintf(stderr,"Could not read header for: %s\n",inbam);
+    return 1;
+    }
+  }
+
+  gzFile fp = Z_NULL;
+  fp = gzopen(infile_lca,"rb");
+  assert(fp!=Z_NULL);
+  char buf[4096];
+  char orig[4096];
+  while(gzgets(fp,buf,4096)){
+    strncpy(orig,buf,4096);
+    //    fprintf(stderr,"buf: %s\n",buf);
+    char *tok=strtok(buf,"\t\n ");
+    int taxid=atoi(strtok(NULL,":"));
+    //    fprintf(stderr,"taxid: %d\n",taxid);
+    std::map<int,double *>::iterator it = retmap.find(taxid);
+    orig[strlen(orig)-1] = '\0';
+    fprintf(stdout,"%s\t%d",orig,it->first);
+    if(it==retmap.end()){
+      //      fprintf(stderr,"problem finding taxid: %d in damage analysis\n",taxid);
+      for(int i=0;i<2*howmany;i++)
+	fprintf(stdout,"\t0.0");
+    }else{
+      double *dbl=it->second;
+      for(int i=0;i<2*howmany;i++)
+	fprintf(stdout,"\t%f",dbl[i]);
+    }
+    fprintf(stdout,"\n");
+  }
+  
+  if(bgfp)
+    bgzf_close(bgfp);
+  if(hdr)
+    bam_hdr_destroy(hdr);
+  if(samfp)
+    sam_close(samfp);
+  if(fp!=Z_NULL)
+    gzclose(fp);
+}
+
 int main(int argc, char **argv){
   clock_t t=clock();
   time_t t2=time(NULL);
@@ -245,7 +438,7 @@ int main(int argc, char **argv){
     fprintf(stderr,"./metadamage getdamage file.bam\n");
     fprintf(stderr,"./metadamage mergedamage files.damage.*.gz\n");
     fprintf(stderr,"./metadamage index files.damage.gz\n");
-    fprintf(stderr,"./metadamage print files.damage.gz\n");
+    fprintf(stderr,"./metadamage merge files.lca files.bdamage.gz\n");
     return 0;
   }
   argc--;++argv;
@@ -255,8 +448,10 @@ int main(int argc, char **argv){
     main_index(argc,argv);
   if(!strcmp(argv[0],"print"))
     main_print(argc,argv);
+  if(!strcmp(argv[0],"merge"))
+    main_merge(argc,argv);
 
-  fprintf(stderr, "\t[ALL done] cpu-time used =  %.2f sec\n", (float)(clock() - t) / CLOCKS_PER_SEC);
-  fprintf(stderr, "\t[ALL done] walltime used =  %.2f sec\n", (float)(time(NULL) - t2)); 
+  //  fprintf(stderr, "\t[ALL done] cpu-time used =  %.2f sec\n", (float)(clock() - t) / CLOCKS_PER_SEC);
+  //fprintf(stderr, "\t[ALL done] walltime used =  %.2f sec\n", (float)(time(NULL) - t2)); 
   return 0;
 }

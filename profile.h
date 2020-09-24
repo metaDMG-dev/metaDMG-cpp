@@ -49,3 +49,5 @@ public:
 };
 
 void destroy_damage(damage *dmg);
+
+std::map<int,double *> load_bdamage(const char *fname,int howmany);
