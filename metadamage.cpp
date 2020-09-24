@@ -273,13 +273,42 @@ int main_print(int argc,char **argv){
     sam_close(samfp);
 }
 
+double *getval(std::map<int, double *> &retmap,int2intvec &child,int taxid,int howmany){
+  std::map<int,double *>::iterator it = retmap.find(taxid);
+  if(it!=retmap.end())
+    return it->second;
+
+  double *ret = new double [2*howmany];
+  for(int i=0;i<2*howmany;i++)
+    ret[i] = 0.0;
+
+  if(child.size()>0){
+    int2intvec::iterator it2 = child.find(taxid);
+    assert(it2!=child.end());
+    
+    std::vector<int> &avec = it2->second;
+    for(int i=0;i<avec.size();i++){
+      double *tmp = getval(retmap,child,it->second[i],howmany);
+      for(int i=0;i<2*howmany;i++)
+	ret[i] += tmp[i];
+    }
+    for(int i=0;i<2*howmany;i++)
+      ret[i] /= (1.0*avec.size());
+  }
+  
+  retmap[taxid] = ret;
+
+  return ret;
+}
 
 int main_merge(int argc,char **argv){
-  fprintf(stderr,"./metadamage merge file.lca file.bdamage.gz [-names file.gz -bam file.bam -howmany 5]\n");
-  if(argc<=0)
+  fprintf(stderr,"./metadamage merge file.lca file.bdamage.gz [-names file.gz -bam file.bam -howmany 5 -nodes trestructure.gz]\n");
+  if(argc<=2)
     return 0;
   char *infile_lca = argv[1];
   char *infile_bdamage = argv[2];
+  char *infile_nodes = NULL;
+  
   char *inbam = NULL;
   char *acc2tax = NULL;
   int howmany = 5;
@@ -291,10 +320,28 @@ int main_merge(int argc,char **argv){
       inbam = strdup(*(++argv));
     if(strcasecmp("-howmany",*argv)==0)
       howmany = atoi(*(++argv));
+    if(strcasecmp("-nodes",*argv)==0)
+      infile_nodes = strdup(*(++argv));
   }
 
 
-  fprintf(stderr,"infile_lca: %s infile_bdamage: %s\n",infile_lca,infile_bdamage);
+  fprintf(stderr,"infile_lca: %s infile_bdamage: %s nodes: %s\n",infile_lca,infile_bdamage,infile_nodes);
+
+  //map of taxid -> taxid
+  int2int parent;
+  //map of taxid -> rank
+  int2char rank;
+  if(infile_nodes!=NULL)
+    parse_nodes(infile_nodes,rank,parent);
+
+  //map of parent -> child taxids
+  int2intvec child;
+  parse_nodes2(parent,child);
+
+
+
+
+
   std::map<int, double *> retmap = load_bdamage(infile_bdamage,5);
   fprintf(stderr,"retmap.size():%lu\n",retmap.size());
   int2char name_map;
@@ -334,18 +381,11 @@ int main_merge(int argc,char **argv){
     char *tok=strtok(buf,"\t\n ");
     int taxid=atoi(strtok(NULL,":"));
     //    fprintf(stderr,"taxid: %d\n",taxid);
-    std::map<int,double *>::iterator it = retmap.find(taxid);
+    double *dbl = getval(retmap,child,taxid,howmany);
     orig[strlen(orig)-1] = '\0';
-    fprintf(stdout,"%s\t%d",orig,it->first);
-    if(it==retmap.end()){
-      //      fprintf(stderr,"problem finding taxid: %d in damage analysis\n",taxid);
-      for(int i=0;i<2*howmany;i++)
-	fprintf(stdout,"\t0.0");
-    }else{
-      double *dbl=it->second;
-      for(int i=0;i<2*howmany;i++)
-	fprintf(stdout,"\t%f",dbl[i]);
-    }
+    fprintf(stdout,"%s\t%d",orig,taxid);
+    for(int i=0;i<2*howmany;i++)
+      fprintf(stdout,"\t%f",dbl[i]);
     fprintf(stdout,"\n");
   }
   

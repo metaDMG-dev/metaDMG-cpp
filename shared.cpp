@@ -107,3 +107,20 @@ void parse_nodes(const char *fname,int2char &rank,int2int &parent){
   fprintf(stderr,"\t-> Number of unique names (column1): %lu from file: %s\n",rank.size(),fname);
 
 }
+
+//this generates a downtree, parent to childs taxid->vector<taxids>
+void parse_nodes2(int2int &parent,int2intvec &child){
+  for(int2int::iterator it=parent.begin();it!=parent.end();it++){
+    int down=it->first;
+    int up = it->second;
+    int2intvec::iterator it2=child.find(up);
+    if(it2==child.end()){
+      std::vector<int> tmp;
+      tmp.push_back(down);
+      child[up] = tmp;
+    }else
+      it2->second.push_back(down);
+
+  }
+
+}

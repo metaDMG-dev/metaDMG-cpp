@@ -683,6 +683,7 @@ fprintf(stderr,"p->header: %p\n",p->header);
   //map of taxid -> name
   int2char name_map = parse_names(p->namesfile);
   parse_nodes(p->nodesfile,rank,parent);
+
   //  calc_valens(i2i,parent);
   if(0){
     print_ref_rank_species(p->header,*i2i,name_map,rank);

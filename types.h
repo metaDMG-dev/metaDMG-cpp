@@ -18,6 +18,7 @@ typedef struct{
 
 typedef std::map<int,char *> int2char;
 typedef std::map<int,int> int2int;
+typedef std::map<int,std::vector<int> > int2intvec;
 typedef std::map<int,node> int2node;
 typedef std::map<char *,int,cmp_str> char2int;
 
