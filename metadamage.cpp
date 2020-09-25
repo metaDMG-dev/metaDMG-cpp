@@ -287,14 +287,24 @@ double *getval(std::map<int, double *> &retmap,int2intvec &child,int taxid,int h
     int2intvec::iterator it2 = child.find(taxid);
     if (it2!=child.end()){
       std::vector<int> &avec = it2->second;
+      int efsize =0;
       for(int i=0;i<avec.size();i++){
 	//	fprintf(stderr,"%d/%d %d\n",i,avec.size(),avec[i]);
 	double *tmp = getval(retmap,child,avec[i],howmany);
-	for(int i=0;i<2*howmany;i++)
+	int hasdata =0;
+	for(int i=1;i<2*howmany;i++)
+	  if(tmp[0]!=tmp[i]){
+	    hasdata++;
+	    break;
+	  }
+	for(int i=0;hasdata&&i<2*howmany;i++)
 	  ret[i] += tmp[i];
+	if(hasdata)
+	  efsize++;
       }
-      for(int i=0;i<2*howmany;i++)
-	ret[i] /= (1.0*avec.size());
+      //  fprintf(stderr,"efsize: %d aveclsize:%lu\n",efsize,avec.size());
+      for(int i=0;(efsize>0)&&i<2*howmany;i++)
+	ret[i] /= (1.0*efsize);
     }
   }
   
