@@ -288,7 +288,7 @@ double *getval(std::map<int, double *> &retmap,int2intvec &child,int taxid,int h
     if (it2!=child.end()){
       std::vector<int> &avec = it2->second;
       for(int i=0;i<avec.size();i++){
-	//	fprintf(stderr,"%d/%d\n",i,avec.size());
+	//	fprintf(stderr,"%d/%d %d\n",i,avec.size(),avec[i]);
 	double *tmp = getval(retmap,child,avec[i],howmany);
 	for(int i=0;i<2*howmany;i++)
 	  ret[i] += tmp[i];
@@ -333,12 +333,12 @@ int main_merge(int argc,char **argv){
   int2int parent;
   //map of taxid -> rank
   int2char rank;
-  if(infile_nodes!=NULL)
-    parse_nodes(infile_nodes,rank,parent);
-
   //map of parent -> child taxids
   int2intvec child;
-  parse_nodes2(parent,child);
+
+  if(infile_nodes!=NULL)
+    parse_nodes(infile_nodes,rank,parent,child,1);
+
 
 
 
@@ -378,15 +378,13 @@ int main_merge(int argc,char **argv){
   char buf[4096];
   char orig[4096];
   gzgets(fp,buf,4096);//skipheader
+  float presize = retmap.size();
   while(gzgets(fp,buf,4096)){
     strncpy(orig,buf,4096);
     //    fprintf(stderr,"buf: %s\n",buf);
     char *tok=strtok(buf,"\t\n ");
     int taxid=atoi(strtok(NULL,":"));
-    fprintf(stderr,"taxid: %d\n",taxid);
-    if(taxid==1){
-      fprintf(stderr,"orig: %s",orig);
-    }
+    //    fprintf(stderr,"taxid: %d\n",taxid);
     double *dbl = getval(retmap,child,taxid,howmany);
     orig[strlen(orig)-1] = '\0';
     fprintf(stdout,"%s\t%d",orig,taxid);
@@ -394,7 +392,8 @@ int main_merge(int argc,char **argv){
       fprintf(stdout,"\t%f",dbl[i]);
     fprintf(stdout,"\n");
   }
-  
+  float postsize=retmap.size();
+  fprintf(stderr,"pre: %f post:%f grownbyfactor: %f\n",presize,postsize,postsize/presize);
   if(bgfp)
     bgzf_close(bgfp);
   if(hdr)

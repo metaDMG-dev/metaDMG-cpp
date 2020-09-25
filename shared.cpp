@@ -75,7 +75,7 @@ int2char parse_names(const char *fname){
 
 
 
-void parse_nodes(const char *fname,int2char &rank,int2int &parent){
+void parse_nodes(const char *fname,int2char &rank,int2int &parent,int2intvec &child,int dochild){
   fprintf(stderr,"Parsing: %s\n",fname);
   gzFile gz= Z_NULL;
   gz=gzopen(fname,"rb");
@@ -104,11 +104,25 @@ void parse_nodes(const char *fname,int2char &rank,int2int &parent){
       int val= atoi(toks[1]);
       parent[key]=val;
       rank[key]=strdup(toks[2]);
+      if(dochild){
+	if(key==val)//catch 1 <-> 1
+	  continue;
+	int2intvec::iterator it2 = child.find(val);
+	if(it2==child.end()){
+	  std::vector<int> tmp;
+	  tmp.push_back(key);
+	  child[val] = tmp;
+	}else
+	  it2->second.push_back(key);
+      }
     }
   }
-  fprintf(stderr,"\t-> Number of unique names (column1): %lu from file: %s parent.size():%lu\n",rank.size(),fname,parent.size());
-  // int2int::iterator it=parent.find(9532);
+  fprintf(stderr,"\t-> Number of unique names (column1): %lu from file: %s parent.size():%lu child.size():%lu\n",rank.size(),fname,parent.size(),child.size());
+  //int2int::iterator it=parent.find(9532);
   //fprintf(stderr,"%d->%d\n",it->first,it->second);
+  int2intvec::iterator it=child.find(1);
+  fprintf(stderr,"%d->%lu\n",it->first,it->second.size());
+  //exit(0);
 }
 
 //this generates a downtree, parent to childs taxid->vector<taxids>

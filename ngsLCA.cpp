@@ -681,8 +681,12 @@ fprintf(stderr,"p->header: %p\n",p->header);
   //map of taxid -> rank
   int2char rank;
   //map of taxid -> name
+  //map of parent -> child taxids
+  int2intvec child;
+  
   int2char name_map = parse_names(p->namesfile);
-  parse_nodes(p->nodesfile,rank,parent);
+  
+  parse_nodes(p->nodesfile,rank,parent,child,0);
 
   //  calc_valens(i2i,parent);
   if(0){
