@@ -120,8 +120,8 @@ void parse_nodes(const char *fname,int2char &rank,int2int &parent,int2intvec &ch
   fprintf(stderr,"\t-> Number of unique names (column1): %lu from file: %s parent.size():%lu child.size():%lu\n",rank.size(),fname,parent.size(),child.size());
   //int2int::iterator it=parent.find(9532);
   //fprintf(stderr,"%d->%d\n",it->first,it->second);
-  int2intvec::iterator it=child.find(1);
-  fprintf(stderr,"%d->%lu\n",it->first,it->second.size());
+  //int2intvec::iterator it=child.find(1);
+  //fprintf(stderr,"%d->%lu\n",it->first,it->second.size());
   //exit(0);
 }
 

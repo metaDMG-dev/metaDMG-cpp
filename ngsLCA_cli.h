@@ -32,6 +32,7 @@ typedef struct{
   char2int *charref2taxid;
   char *lca_rank;
   int norank2species;
+  int howmany;
 }pars;
 
 pars *get_pars(int argc,char **argv);

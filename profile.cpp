@@ -495,9 +495,9 @@ int main(int argc, char *argv[]) {
 
 
 std::map<int,double *> load_bdamage(const char* fname,int howmany ){
-  fprintf(stderr,"./metadamage print file.bdamage.gz [-names file.gz -bam file.bam]\n");
+  //  fprintf(stderr,"./metadamage print file.bdamage.gz [-names file.gz -bam file.bam]\n");
   const char *infile = fname;
-  fprintf(stderr,"infile: %s howmany: %d \n",infile,howmany);
+  //  fprintf(stderr,"infile: %s howmany: %d \n",infile,howmany);
   
   BGZF *bgfp = NULL;
 
@@ -510,7 +510,7 @@ std::map<int,double *> load_bdamage(const char* fname,int howmany ){
   
   int printlength;
   assert(sizeof(int)==bgzf_read(bgfp,&printlength,sizeof(int)));
-  fprintf(stderr,"printlength: %d\n",printlength);
+  //fprintf(stderr,"printlength: %d\n",printlength);
   assert(printlength<=howmany);
   int ref_nreads[2];
  

@@ -345,7 +345,7 @@ int main_merge(int argc,char **argv){
 
 
   std::map<int, double *> retmap = load_bdamage(infile_bdamage,5);
-  fprintf(stderr,"retmap.size():%lu\n",retmap.size());
+  //  fprintf(stderr,"retmap.size():%lu\n",retmap.size());
   int2char name_map;
   if(acc2tax!=NULL)
     name_map = parse_names(acc2tax);
@@ -393,7 +393,7 @@ int main_merge(int argc,char **argv){
     fprintf(stdout,"\n");
   }
   float postsize=retmap.size();
-  fprintf(stderr,"pre: %f post:%f grownbyfactor: %f\n",presize,postsize,postsize/presize);
+  fprintf(stderr,"\t-> pre: %f post:%f grownbyfactor: %f\n",presize,postsize,postsize/presize);
   if(bgfp)
     bgzf_close(bgfp);
   if(hdr)

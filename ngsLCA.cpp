@@ -388,10 +388,10 @@ void expand_queue(queue *ret){
 }
 
 
-void hts(FILE *fp,samFile *fp_in,int2int &i2i,int2int& parent,bam_hdr_t *hdr,int2char &rank, int2char &name_map,FILE *log,int minmapq,int discard,int editMin, int editMax, double scoreLow,double scoreHigh,int minlength,char *lca_rank,char *prefix,int norank2species){
-  fprintf(stderr,"[%s] \t-> editMin:%d editmMax:%d scoreLow:%f scoreHigh:%f minlength:%d discard: %d prefix: %s\n",__FUNCTION__,editMin,editMax,scoreLow,scoreHigh,minlength,discard,prefix);
+void hts(FILE *fp,samFile *fp_in,int2int &i2i,int2int& parent,bam_hdr_t *hdr,int2char &rank, int2char &name_map,FILE *log,int minmapq,int discard,int editMin, int editMax, double scoreLow,double scoreHigh,int minlength,char *lca_rank,char *prefix,int norank2species,int howmany){
+  fprintf(stderr,"[%s] \t-> editMin:%d editmMax:%d scoreLow:%f scoreHigh:%f minlength:%d discard: %d prefix: %s howmany: %d\n",__FUNCTION__,editMin,editMax,scoreLow,scoreHigh,minlength,discard,prefix,howmany);
   assert(fp_in!=NULL);
-  damage *dmg = new damage(5,8,13);
+  damage *dmg = new damage(howmany,8,13);
   bam1_t *aln = bam_init1(); //initialize an alignment
   int comp ;
 
@@ -702,7 +702,7 @@ fprintf(stderr,"p->header: %p\n",p->header);
   fprintf(stderr,"\t-> Will add some fixes of the ncbi database due to merged names\n");
   mod_db(mod_in,mod_out,parent,rank,name_map);
 
-  hts(p->fp1,p->hts,*i2i,parent,p->header,rank,name_map,p->fp3,p->minmapq,p->discard,p->editdistMin,p->editdistMax,p->simscoreLow,p->simscoreHigh,p->minlength,p->lca_rank,p->outnames,p->norank2species);
+  hts(p->fp1,p->hts,*i2i,parent,p->header,rank,name_map,p->fp3,p->minmapq,p->discard,p->editdistMin,p->editdistMax,p->simscoreLow,p->simscoreHigh,p->minlength,p->lca_rank,p->outnames,p->norank2species,p->howmany);
 
   fprintf(stderr,"\t-> Number of species with reads that map uniquely: %lu\n",specWeight.size());
   

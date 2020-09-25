@@ -27,6 +27,7 @@ pars *pars_init(){
   p->charref2taxid = NULL;
   p->lca_rank = NULL;
   p->norank2species = 1;
+  p->howmany = 5;
   return p;
 }
 
@@ -175,6 +176,7 @@ pars *get_pars(int argc,char **argv){
     else if(!strcasecmp("-outnames",key)) p->outnames=strdup(val);
     else if(!strcasecmp("-out",key)) p->outnames=strdup(val);
     else if(!strcasecmp("-discard",key)) p->discard=atoi(val);
+    else if(!strcasecmp("-howmany",key)) p->howmany=atoi(val);
     else if(!strcasecmp("-norank2species",key)) p->norank2species=atoi(val);
     else{
       fprintf(stderr,"\t Unknown parameter key:%s val:%s\n",key,val);
@@ -221,6 +223,7 @@ void print_pars(FILE *fp,pars *p){
   fprintf(fp,"\t-> -minmapq\t%d\n",p->minmapq);
   fprintf(fp,"\t-> -lca_rank\t%s\n",p->lca_rank);
   fprintf(fp,"\t-> -norank2species\t%d\n",p->norank2species);
+  fprintf(fp,"\t-> -howmany\t%d\n",p->howmany);
 }
 
 BGZF *getbgzf(const char*str1,const char *mode,int nthreads){
