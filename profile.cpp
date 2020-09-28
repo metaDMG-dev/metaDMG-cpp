@@ -538,7 +538,7 @@ std::map<int,double *> load_bdamage(const char* fname,int howmany ){
 	  flt[i*4+j] /=tsum;
       }
       if(i<howmany) //carefull satan
-	formap[incer++] =flt[7];
+	formap[incer++] =flt[7]*ref_nreads[1];
     }
     for(int i=0;i<printlength;i++){
       assert(16*sizeof(int)==bgzf_read(bgfp,data,sizeof(int)*16));
@@ -555,7 +555,7 @@ std::map<int,double *> load_bdamage(const char* fname,int howmany ){
 	  flt[i*4+j] /=tsum;
       }
       if(i<howmany) //carefull satan
-	formap[incer++] =flt[8];
+	formap[incer++] =flt[8]*ref_nreads[1];
     }
     for(int i=0;0&&i<2*howmany;i++)
       fprintf(stdout,"[%d] %f\n",i,formap[i]);

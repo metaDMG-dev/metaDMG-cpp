@@ -289,28 +289,16 @@ double *getval(std::map<int, double *> &retmap,int2intvec &child,int taxid,int h
   double *ret = new double [2*howmany];
   for(int i=0;i<2*howmany;i++)
     ret[i] = 0.0;
-  if(child.size()>0){// if we have supplied -nodes
+  if(child.size()>0) {// if we have supplied -nodes
     int2intvec::iterator it2 = child.find(taxid);
     if (it2!=child.end()){
       std::vector<int> &avec = it2->second;
-      int efsize =0;
       for(int i=0;i<avec.size();i++){
 	//	fprintf(stderr,"%d/%d %d\n",i,avec.size(),avec[i]);
 	double *tmp = getval(retmap,child,avec[i],howmany);
-	int hasdata =0;
-	for(int i=1;i<2*howmany;i++)
-	  if(tmp[0]!=tmp[i]){
-	    hasdata++;
-	    break;
-	  }
-	for(int i=0;hasdata&&i<2*howmany;i++)
+	for(int i=0;i<2*howmany;i++)
 	  ret[i] += tmp[i];
-	if(hasdata)
-	  efsize++;
       }
-      // fprintf(stderr,"efsize: %d aveclsize:%lu\n",efsize,avec.size());
-      for(int i=0;(efsize>0)&&i<2*howmany;i++)
-	ret[i] /= (1.0*efsize);
     }
   }
   
@@ -402,6 +390,15 @@ int main_merge(int argc,char **argv){
     int taxid=atoi(strtok(NULL,":"));
     //    fprintf(stderr,"taxid: %d\n",taxid);
     double *dbl = getval(retmap,child,taxid,howmany);
+    double tsum[2] = {0.0,0.0};
+    for(int i=0;i<howmany;i++){
+      tsum[0] += dbl[i];
+      tsum[1] += dbl[howmany+i];
+    }
+    for(int i=0;i<howmany;i++){
+      dbl[i] /= tsum[0];
+      dbl[howmany+i] /= tsum[1];
+    }
     orig[strlen(orig)-1] = '\0';
     fprintf(stdout,"%s\t%d",orig,taxid);
     for(int i=0;i<2*howmany;i++)
