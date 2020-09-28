@@ -148,12 +148,15 @@ int main_print(int argc,char **argv){
   char *infile = argv[1];
   char *inbam = NULL;
   char *acc2tax = NULL;
+  int search = -1;
   ++argv;
   while(*(++argv)){
     if(strcasecmp("-names",*argv)==0)
       acc2tax = strdup(*(++argv));
     if(strcasecmp("-bam",*argv)==0)
       inbam = strdup(*(++argv));
+    if(strcasecmp("-r",*argv)==0)
+      search = atoi(*(++argv));
   }
 
 
@@ -205,63 +208,66 @@ int main_print(int argc,char **argv){
     assert(nread==2*sizeof(int));
     for(int i=0;i<printlength;i++){
       assert(16*sizeof(int)==bgzf_read(bgfp,data,sizeof(int)*16));
-      if(hdr!=NULL)
-	fprintf(stdout,"%s\t%d\t5\'\t%d",hdr->target_name[ref_nreads[0]],ref_nreads[1],i);
-      else if(acc2tax!=NULL){
-	int2char::iterator itt = name_map.find(ref_nreads[0]);
-	if(itt==name_map.end()){
-	  fprintf(stderr,"\t-> Problem finding taxid: \'%d' in namedatabase: \'%s\'\n",ref_nreads[0],acc2tax);
-	  exit(0);
+      if(search==-1||search==ref_nreads[0]){
+	if(hdr!=NULL)
+	  fprintf(stdout,"%s\t%d\t5\'\t%d",hdr->target_name[ref_nreads[0]],ref_nreads[1],i);
+	else if(acc2tax!=NULL){
+	  int2char::iterator itt = name_map.find(ref_nreads[0]);
+	  if(itt==name_map.end()){
+	    fprintf(stderr,"\t-> Problem finding taxid: \'%d' in namedatabase: \'%s\'\n",ref_nreads[0],acc2tax);
+	    exit(0);
+	  }
+	  fprintf(stdout,"%s\t%d\t5\'\t%d",itt->second,ref_nreads[1],i);
+	}else
+	  fprintf(stdout,"%d\t%d\t5\'\t%d",ref_nreads[0],ref_nreads[1],i);
+	float flt[16];
+	
+	for(int i=0;i<4;i++){
+	  double tsum =0;
+	  for(int j=0;j<4;j++){
+	    tsum += data[i*4+j];
+	    flt[i*4+j] = data[i*4+j];
+	  }
+	  if(tsum==0) tsum = 1;
+	  for(int j=0;j<4;j++)
+	    flt[i*4+j] /=tsum;
 	}
-	fprintf(stdout,"%s\t%d\t5\'\t%d",itt->second,ref_nreads[1],i);
-      }else
-	fprintf(stdout,"%d\t%d\t5\'\t%d",ref_nreads[0],ref_nreads[1],i);
-      float flt[16];
-      
-      for(int i=0;i<4;i++){
-	double tsum =0;
-	for(int j=0;j<4;j++){
-	  tsum += data[i*4+j];
-	  flt[i*4+j] = data[i*4+j];
-	}
-	if(tsum==0) tsum = 1;
-	for(int j=0;j<4;j++)
-	  flt[i*4+j] /=tsum;
+	for(int j=0;j<16;j++)
+	  fprintf(stdout,"\t%f",flt[j]);
+	fprintf(stdout,"\n");
       }
-      for(int j=0;j<16;j++)
-	fprintf(stdout,"\t%f",flt[j]);
-      fprintf(stdout,"\n");
     }
     for(int i=0;i<printlength;i++){
       assert(16*sizeof(int)==bgzf_read(bgfp,data,sizeof(int)*16));
-      if(hdr!=NULL)
-	fprintf(stdout,"%s\t%d\t3\'\t%d",hdr->target_name[ref_nreads[0]],ref_nreads[1],i);
-      else if(acc2tax!=NULL){
-	int2char::iterator itt = name_map.find(ref_nreads[0]);
-	if(itt==name_map.end()){
-	  fprintf(stderr,"\t-> Problem finding taxid: \'%d' in namedatabase: \'%s\'\n",ref_nreads[0],acc2tax);
-	  exit(0);
+      if(search==-1||search==ref_nreads[0]){
+	if(hdr!=NULL)
+	  fprintf(stdout,"%s\t%d\t3\'\t%d",hdr->target_name[ref_nreads[0]],ref_nreads[1],i);
+	else if(acc2tax!=NULL){
+	  int2char::iterator itt = name_map.find(ref_nreads[0]);
+	  if(itt==name_map.end()){
+	    fprintf(stderr,"\t-> Problem finding taxid: \'%d' in namedatabase: \'%s\'\n",ref_nreads[0],acc2tax);
+	    exit(0);
+	  }
+	  fprintf(stdout,"%s\t%d\t3\'\t%d",itt->second,ref_nreads[1],i);
 	}
-	fprintf(stdout,"%s\t%d\t3\'\t%d",itt->second,ref_nreads[1],i);
-      }
-      else
-	fprintf(stdout,"%d\t%d\t3\'\t%d",ref_nreads[0],ref_nreads[1],i);
-      float flt[16];
-
-      for(int i=0;i<4;i++){
-	double tsum =0;
-	for(int j=0;j<4;j++){
-	  tsum += data[i*4+j];
-	  flt[i*4+j] = data[i*4+j];
+	else
+	  fprintf(stdout,"%d\t%d\t3\'\t%d",ref_nreads[0],ref_nreads[1],i);
+	float flt[16];
+	
+	for(int i=0;i<4;i++){
+	  double tsum =0;
+	  for(int j=0;j<4;j++){
+	    tsum += data[i*4+j];
+	    flt[i*4+j] = data[i*4+j];
+	  }
+	  if(tsum==0) tsum = 1;
+	  for(int j=0;j<4;j++)
+	    flt[i*4+j] /=tsum;
 	}
-	if(tsum==0) tsum = 1;
-	for(int j=0;j<4;j++)
-	  flt[i*4+j] /=tsum;
+	for(int j=0;j<16;j++)
+	  fprintf(stdout,"\t%f",flt[j]);
+	fprintf(stdout,"\n");
       }
-      for(int j=0;j<16;j++)
-	fprintf(stdout,"\t%f",flt[j]);
-      fprintf(stdout,"\n");
-     
     }
   }
 
@@ -302,7 +308,7 @@ double *getval(std::map<int, double *> &retmap,int2intvec &child,int taxid,int h
 	if(hasdata)
 	  efsize++;
       }
-      //  fprintf(stderr,"efsize: %d aveclsize:%lu\n",efsize,avec.size());
+      // fprintf(stderr,"efsize: %d aveclsize:%lu\n",efsize,avec.size());
       for(int i=0;(efsize>0)&&i<2*howmany;i++)
 	ret[i] /= (1.0*efsize);
     }
