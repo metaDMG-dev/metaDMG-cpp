@@ -193,7 +193,7 @@ int main_print(int argc,char **argv){
   
   int printlength;
   assert(sizeof(int)==bgzf_read(bgfp,&printlength,sizeof(int)));
-  fprintf(stderr,"printlength: %d\n",printlength);
+  //  fprintf(stderr,"printlength: %d\n",printlength);
 
   int ref_nreads[2];
 
@@ -328,14 +328,14 @@ double *getval(std::map<int, double *> &retmap,int2intvec &child,int taxid,int h
     //fprintf(stderr,"has found: %d in retmap\n",it->first);
 #if 0
     fprintf(stderr,"%d",taxid);
-    for(int i=0;i<2*howmany;i++)
+    for(int i=0;i<2*howmany+1;i++)
       fprintf(stderr,"\t%f",it->second[i]);
     fprintf(stderr,"\n");
 #endif
     return it->second;
   }
-  double *ret = new double [2*howmany];
-  for(int i=0;i<2*howmany;i++)
+  double *ret = new double [2*howmany+1];
+  for(int i=0;i<2*howmany+1;i++)
     ret[i] = 0.0;
   if(child.size()>0) {// if we have supplied -nodes
     int2intvec::iterator it2 = child.find(taxid);
@@ -344,8 +344,9 @@ double *getval(std::map<int, double *> &retmap,int2intvec &child,int taxid,int h
       for(int i=0;i<avec.size();i++){
 	//	fprintf(stderr,"%d/%d %d\n",i,avec.size(),avec[i]);
 	double *tmp = getval(retmap,child,avec[i],howmany);
+	ret[0] += tmp[0];
 	for(int i=0;i<2*howmany;i++)
-	  ret[i] += tmp[i];
+	  ret[1+i] += tmp[1+i]*tmp[0];
       }
     }
   }
@@ -391,11 +392,6 @@ int main_merge(int argc,char **argv){
   if(infile_nodes!=NULL)
     parse_nodes(infile_nodes,rank,parent,child,1);
 
-
-
-
-
-
   std::map<int, double *> retmap = load_bdamage(infile_bdamage,5);
   //  fprintf(stderr,"retmap.size():%lu\n",retmap.size());
   int2char name_map;
@@ -438,19 +434,13 @@ int main_merge(int argc,char **argv){
     int taxid=atoi(strtok(NULL,":"));
     //    fprintf(stderr,"taxid: %d\n",taxid);
     double *dbl = getval(retmap,child,taxid,howmany);
-    double tsum[2] = {0.0,0.0};
-    for(int i=0;i<howmany;i++){
-      tsum[0] += dbl[i];
-      tsum[1] += dbl[howmany+i];
-    }
-    for(int i=0;i<howmany;i++){
-      dbl[i] /= tsum[0];
-      dbl[howmany+i] /= tsum[1];
-    }
-    orig[strlen(orig)-1] = '\0';
-    fprintf(stdout,"%s\t%d",orig,taxid);
     for(int i=0;i<2*howmany;i++)
-      fprintf(stdout,"\t%f",dbl[i]);
+      dbl[1+i] /= dbl[0];
+
+    orig[strlen(orig)-1] = '\0';
+    fprintf(stdout,"%s\t%d:%.0f",orig,taxid,dbl[0]);
+    for(int i=0;i<2*howmany;i++)
+      fprintf(stdout,"\t%f",dbl[1+i]);
     fprintf(stdout,"\n");
   }
   float postsize=retmap.size();
