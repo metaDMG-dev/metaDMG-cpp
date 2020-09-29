@@ -228,7 +228,7 @@ void print_chain1(FILE *fp,int taxa,int2char &rank,int2char &name_map){
     fprintf(stderr,"taxa: %d %s doesnt exists will exit\n",taxa,it1->second);
     exit(0);
   }
-  fprintf(fp,"\t%d:%s:%s",taxa,it1->second,it2->second);
+  fprintf(fp,"\t%d:%s:\"%s\"",taxa,it1->second,it2->second);
   
 }
 
