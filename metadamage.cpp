@@ -326,6 +326,12 @@ double *getval(std::map<int, double *> &retmap,int2intvec &child,int taxid,int h
   std::map<int,double *>::iterator it = retmap.find(taxid);
   if(it!=retmap.end()){
     //fprintf(stderr,"has found: %d in retmap\n",it->first);
+#if 0
+    fprintf(stderr,"%d",taxid);
+    for(int i=0;i<2*howmany;i++)
+      fprintf(stderr,"\t%f",it->second[i]);
+    fprintf(stderr,"\n");
+#endif
     return it->second;
   }
   double *ret = new double [2*howmany];
