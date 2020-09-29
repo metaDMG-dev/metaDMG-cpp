@@ -145,22 +145,23 @@ int main_index(int argc,char **argv){
 
 int main_print(int argc,char **argv){
   fprintf(stderr,"./metadamage print file.bdamage.gz [-names file.gz -bam file.bam]\n");
-  char *infile = argv[1];
+  char *infile = NULL;
   char *inbam = NULL;
   char *acc2tax = NULL;
   int search = -1;
-  ++argv;
   while(*(++argv)){
     if(strcasecmp("-names",*argv)==0)
       acc2tax = strdup(*(++argv));
-    if(strcasecmp("-bam",*argv)==0)
+    else if(strcasecmp("-bam",*argv)==0)
       inbam = strdup(*(++argv));
-    if(strcasecmp("-r",*argv)==0)
+    else if(strcasecmp("-r",*argv)==0)
       search = atoi(*(++argv));
+    else
+      infile = strdup(*argv);
   }
 
 
-  fprintf(stderr,"infile: %s inbam: %s names: %s\n",infile,inbam,acc2tax);
+  fprintf(stderr,"infile: %s inbam: %s names: %s search: %d\n",infile,inbam,acc2tax,search);
 
   int2char name_map;
   if(acc2tax!=NULL)
@@ -280,7 +281,7 @@ int main_print(int argc,char **argv){
 }
 
 double *getval(std::map<int, double *> &retmap,int2intvec &child,int taxid,int howmany){
-  //  fprintf(stderr,"getval(taxid):%d howmany: %d\n",taxid,howmany);
+  //  fprintf(stderr,"getval\t%d\t%d\n",taxid,howmany);
   std::map<int,double *>::iterator it = retmap.find(taxid);
   if(it!=retmap.end()){
     //fprintf(stderr,"has found: %d in retmap\n",it->first);
