@@ -148,6 +148,7 @@ int main_print(int argc,char **argv){
   char *infile = NULL;
   char *inbam = NULL;
   char *acc2tax = NULL;
+  int ctga =0;//only print ctga errors
   int search = -1;
   while(*(++argv)){
     if(strcasecmp("-names",*argv)==0)
@@ -156,12 +157,14 @@ int main_print(int argc,char **argv){
       inbam = strdup(*(++argv));
     else if(strcasecmp("-r",*argv)==0)
       search = atoi(*(++argv));
+    else if(strcasecmp("-ctga",*argv)==0)
+      ctga =1;
     else
       infile = strdup(*argv);
   }
 
 
-  fprintf(stderr,"infile: %s inbam: %s names: %s search: %d\n",infile,inbam,acc2tax,search);
+  fprintf(stderr,"infile: %s inbam: %s names: %s search: %d ctga: %d\n",infile,inbam,acc2tax,search,ctga);
 
   int2char name_map;
   if(acc2tax!=NULL)
@@ -194,33 +197,46 @@ int main_print(int argc,char **argv){
 
   int ref_nreads[2];
 
-  if(hdr!=NULL)
-    fprintf(stdout,"#Reference\tNalignments\tDirection\tPos\tAA\tAC\tAG\tAT\tCA\tCC\tCG\tCT\tGA\tGC\tGG\tGT\tTA\tTC\tTG\tTT\n");
-  else if(acc2tax!=NULL)
-    fprintf(stdout,"#FunkyName\tNalignments\tDirection\tPos\tAA\tAC\tAG\tAT\tCA\tCC\tCG\tCT\tGA\tGC\tGG\tGT\tTA\tTC\tTG\tTT\n");
-  else
-    fprintf(stdout,"#taxid\tNalignments\tDirection\tPos\tAA\tAC\tAG\tAT\tCA\tCC\tCG\tCT\tGA\tGC\tGG\tGT\tTA\tTC\tTG\tTT\n");
-  
+  if(ctga==0){
+    if(hdr!=NULL)
+      fprintf(stdout,"#Reference\tNalignments\tDirection\tPos\tAA\tAC\tAG\tAT\tCA\tCC\tCG\tCT\tGA\tGC\tGG\tGT\tTA\tTC\tTG\tTT\n");
+    else if(acc2tax!=NULL)
+      fprintf(stdout,"#FunkyName\tNalignments\tDirection\tPos\tAA\tAC\tAG\tAT\tCA\tCC\tCG\tCT\tGA\tGC\tGG\tGT\tTA\tTC\tTG\tTT\n");
+    else
+      fprintf(stdout,"#taxid\tNalignments\tDirection\tPos\tAA\tAC\tAG\tAT\tCA\tCC\tCG\tCT\tGA\tGC\tGG\tGT\tTA\tTC\tTG\tTT\n");
+  }else{
+    
+
+  }
+    
   int data[16];
+
   while(1){
     int nread=bgzf_read(bgfp,ref_nreads,2*sizeof(int));
+    double ctgas[2*printlength];
     if(nread==0)
       break;
     assert(nread==2*sizeof(int));
     for(int i=0;i<printlength;i++){
       assert(16*sizeof(int)==bgzf_read(bgfp,data,sizeof(int)*16));
       if(search==-1||search==ref_nreads[0]){
-	if(hdr!=NULL)
-	  fprintf(stdout,"%s\t%d\t5\'\t%d",hdr->target_name[ref_nreads[0]],ref_nreads[1],i);
-	else if(acc2tax!=NULL){
-	  int2char::iterator itt = name_map.find(ref_nreads[0]);
-	  if(itt==name_map.end()){
-	    fprintf(stderr,"\t-> Problem finding taxid: \'%d' in namedatabase: \'%s\'\n",ref_nreads[0],acc2tax);
-	    exit(0);
-	  }
-	  fprintf(stdout,"%s\t%d\t5\'\t%d",itt->second,ref_nreads[1],i);
-	}else
-	  fprintf(stdout,"%d\t%d\t5\'\t%d",ref_nreads[0],ref_nreads[1],i);
+	if(ctga==0) {
+	  if(hdr!=NULL)
+	    fprintf(stdout,"%s\t%d\t5\'\t%d",hdr->target_name[ref_nreads[0]],ref_nreads[1],i);
+	  else if(acc2tax!=NULL){
+	    int2char::iterator itt = name_map.find(ref_nreads[0]);
+	    if(itt==name_map.end()){
+	      fprintf(stderr,"\t-> Problem finding taxid: \'%d' in namedatabase: \'%s\'\n",ref_nreads[0],acc2tax);
+	      exit(0);
+	    }
+	    fprintf(stdout,"%s\t%d\t5\'\t%d",itt->second,ref_nreads[1],i);
+	  }else
+	    fprintf(stdout,"%d\t%d\t5\'\t%d",ref_nreads[0],ref_nreads[1],i);
+	}else{
+	  if(i==0)
+	    fprintf(stdout,"%d\t%d",ref_nreads[0],ref_nreads[1]);
+	}
+
 	float flt[16];
 	
 	for(int i=0;i<4;i++){
@@ -233,26 +249,41 @@ int main_print(int argc,char **argv){
 	  for(int j=0;j<4;j++)
 	    flt[i*4+j] /=tsum;
 	}
-	for(int j=0;j<16;j++)
-	  fprintf(stdout,"\t%f",flt[j]);
-	fprintf(stdout,"\n");
+
+	if(ctga==0){
+	  for(int j=0;j<16;j++)
+	    fprintf(stdout,"\t%f",flt[j]);
+	  fprintf(stdout,"\n");
+	}else
+	  ctgas[i] = flt[7];
+
       }
     }
+
+    if(search==-1||search==ref_nreads[0]){
+      if(ctga==1){
+	for(int i=0;i<printlength;i++)
+	  fprintf(stdout,"\t%f",ctgas[i]);
+      }
+    }
+
     for(int i=0;i<printlength;i++){
       assert(16*sizeof(int)==bgzf_read(bgfp,data,sizeof(int)*16));
       if(search==-1||search==ref_nreads[0]){
-	if(hdr!=NULL)
-	  fprintf(stdout,"%s\t%d\t3\'\t%d",hdr->target_name[ref_nreads[0]],ref_nreads[1],i);
-	else if(acc2tax!=NULL){
-	  int2char::iterator itt = name_map.find(ref_nreads[0]);
-	  if(itt==name_map.end()){
-	    fprintf(stderr,"\t-> Problem finding taxid: \'%d' in namedatabase: \'%s\'\n",ref_nreads[0],acc2tax);
-	    exit(0);
+	if(ctga==0) {
+	  if(hdr!=NULL)
+	    fprintf(stdout,"%s\t%d\t3\'\t%d",hdr->target_name[ref_nreads[0]],ref_nreads[1],i);
+	  else if(acc2tax!=NULL){
+	    int2char::iterator itt = name_map.find(ref_nreads[0]);
+	    if(itt==name_map.end()){
+	      fprintf(stderr,"\t-> Problem finding taxid: \'%d' in namedatabase: \'%s\'\n",ref_nreads[0],acc2tax);
+	      exit(0);
+	    }
+	    fprintf(stdout,"%s\t%d\t3\'\t%d",itt->second,ref_nreads[1],i);
 	  }
-	  fprintf(stdout,"%s\t%d\t3\'\t%d",itt->second,ref_nreads[1],i);
+	  else
+	    fprintf(stdout,"%d\t%d\t3\'\t%d",ref_nreads[0],ref_nreads[1],i);
 	}
-	else
-	  fprintf(stdout,"%d\t%d\t3\'\t%d",ref_nreads[0],ref_nreads[1],i);
 	float flt[16];
 	
 	for(int i=0;i<4;i++){
@@ -265,8 +296,18 @@ int main_print(int argc,char **argv){
 	  for(int j=0;j<4;j++)
 	    flt[i*4+j] /=tsum;
 	}
-	for(int j=0;j<16;j++)
-	  fprintf(stdout,"\t%f",flt[j]);
+	if(ctga==0){
+	  for(int j=0;j<16;j++)
+	    fprintf(stdout,"\t%f",flt[j]);
+	  fprintf(stdout,"\n");
+	}else
+	  ctgas[i+printlength] = flt[8];
+      }
+    }
+    if(search==-1||search==ref_nreads[0]){
+      if(ctga==1){
+	for(int i=0;i<printlength;i++)
+	  fprintf(stdout,"\t%f",ctgas[printlength+i]);
 	fprintf(stdout,"\n");
       }
     }
