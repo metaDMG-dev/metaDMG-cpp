@@ -25,6 +25,8 @@
 
 
 ./metadamage getdamage file.bam
+
 ./metadamage mergedamage files.damage.*.gz
+
 ./metadamage index files.damage.gz
 
