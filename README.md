@@ -24,8 +24,7 @@
 -names #NCBI names.dmp file - option that prints taxonomic names to output  
 
 
-?????????
 ./metadamage getdamage file.bam
 ./metadamage mergedamage files.damage.*.gz
 ./metadamage index files.damage.gz
-?????????
+
