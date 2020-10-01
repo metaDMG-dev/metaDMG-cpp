@@ -571,3 +571,82 @@ std::map<int,double *> load_bdamage(const char* fname,int howmany ){
 
   return retmap;
 }
+
+
+std::map<int,double *> load_bdamage2(const char* fname,int howmany ){
+  //  fprintf(stderr,"./metadamage print file.bdamage.gz [-names file.gz -bam file.bam]\n");
+  const char *infile = fname;
+  //  fprintf(stderr,"infile: %s howmany: %d \n",infile,howmany);
+  
+  BGZF *bgfp = NULL;
+
+  if(((bgfp = bgzf_open(infile, "r")))== NULL){
+    fprintf(stderr,"Could not open input BAM file: %s\n",infile);
+    exit(0);
+  }
+
+  std::map<int,double*> retmap;
+  
+  int printlength;
+  assert(sizeof(int)==bgzf_read(bgfp,&printlength,sizeof(int)));
+  //fprintf(stderr,"printlength: %d\n",printlength);
+  assert(printlength<=howmany);
+  int ref_nreads[2];
+ 
+  int data[16];
+  while(1){
+    int nread=bgzf_read(bgfp,ref_nreads,2*sizeof(int));
+    if(nread==0)
+      break;
+    assert(nread==2*sizeof(int));
+    
+    double *formap = new double [1+2*howmany];
+    //    fprintf(stderr,"formap: %p\n",formap);
+    int incer =0;
+    formap[incer++] = ref_nreads[1];
+    for(int i=0;i<printlength;i++){
+      assert(16*sizeof(int)==bgzf_read(bgfp,data,sizeof(int)*16));
+      float flt[16];
+      for(int i=0;i<4;i++) {
+	double tsum =0;
+	for(int j=0;j<4;j++){
+	  tsum += data[i*4+j];
+	  flt[i*4+j] = data[i*4+j];
+	}
+	if(tsum==0) tsum = 1;
+	for(int j=0;j<4;j++)
+	  flt[i*4+j] /=tsum;
+      }
+      if(i<howmany) //carefull satan
+	formap[incer++] =flt[7]*formap[0];
+    }
+    for(int i=0;i<printlength;i++){
+      assert(16*sizeof(int)==bgzf_read(bgfp,data,sizeof(int)*16));
+      
+      float flt[16];
+      for(int i=0;i<4;i++){
+	double tsum =0;
+	for(int j=0;j<4;j++){
+	  tsum += data[i*4+j];
+	  flt[i*4+j] = data[i*4+j];
+	}
+	if(tsum==0) tsum = 1;
+	for(int j=0;j<4;j++)
+	  flt[i*4+j] /=tsum;
+      }
+      if(i<howmany) //carefull satan
+	formap[incer++] =flt[8]*formap[0];
+    }
+    for(int i=0;0&&i<2*howmany;i++)
+      fprintf(stdout,"[%d] %f\n",i,formap[i]);
+    retmap[ref_nreads[0]] = formap;
+  }
+  //  exit(0);
+  if(bgfp)
+    bgzf_close(bgfp);
+  fprintf(stderr,"\t-> Done loading binary bdamage.gz file. It contains: %lu\n",retmap.size());
+  for(std::map<int,double *>::iterator it = retmap.begin();0&&it!=retmap.end();it++)
+    fprintf(stderr,"it->second:%p\n",it->second);
+
+  return retmap;
+}

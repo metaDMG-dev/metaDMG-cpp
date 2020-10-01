@@ -10,6 +10,16 @@ OBJ = $(CSRC:.c=.o) $(CXXSRC:.cpp=.o)
 
 all: metadamage
 
+PACKAGE_VERSION  = 0.1
+
+ifneq "$(wildcard .git)" ""
+PACKAGE_VERSION := $(shell git describe --always --dirty)
+version.h: $(if $(wildcard version.h),$(if $(findstring "$(PACKAGE_VERSION)",$(shell cat version.h)),,force))
+endif
+
+version.h:
+	echo '#define METADAMAGE_VERSION "$(PACKAGE_VERSION)"' > $@
+
 
 # Adjust $(HTSSRC) to point to your top-level htslib directory
 ifdef HTSSRC
@@ -32,8 +42,8 @@ ifdef HTSSRC
 	$(CXX) -c  $(CXXFLAGS)  -I$(HTS_INCDIR) $*.cpp
 	$(CXX) -MM $(CXXFLAGS)  -I$(HTS_INCDIR) $*.cpp >$*.d
 
-metadamage: $(OBJ)
-	$(CXX) $(FLAGS)  -o superduper *.o $(HTS_LIBDIR) -lz -llzma -lbz2 -lpthread -lcurl -lgsl 
+metadamage: version.h $(OBJ)
+	$(CXX) $(FLAGS)  -o metadamage *.o $(HTS_LIBDIR) -lz -llzma -lbz2 -lpthread -lcurl -lgsl 
 else
 %.o: %.c
 	$(CC) -c  $(CFLAGS)  $*.c
@@ -43,10 +53,10 @@ else
 	$(CXX) -c  $(CXXFLAGS)  $*.cpp
 	$(CXX) -MM $(CXXFLAGS)  $*.cpp >$*.d
 
-metadamage: $(OBJ)
+metadamage: version.h $(OBJ)
 	$(CXX) $(FLAGS)  -o metadamage *.o -lz -llzma -lbz2 -lpthread -lcurl -lhts -lgsl
 endif
 
 clean:	
-	rm  -f superduper *.o *.d
+	rm  -f metadamage *.o *.d
 

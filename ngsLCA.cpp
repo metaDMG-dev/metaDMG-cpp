@@ -21,7 +21,7 @@ int mod_out[]=  {1333996 , 1333996 ,1582270,1914213,1917265,1915309 ,263865,2801
 #include "ngsLCA_cli.h"
 #include "profile.h"
 #include "shared.h"
-
+#include "version.h"
 
 int SIG_COND =1;//if we catch signal then quit program nicely
 int VERBOSE =1;
@@ -653,7 +653,7 @@ int2node makeNodes(int2int &parent){
 
 int main_lca(int argc, char **argv){
   if(argc==1){
-    fprintf(stderr,"\t-> ./ngsLCA -names -nodes -acc2tax [-editdist[min/max] -simscore[low/high] -minmapq -discard] -bam -lca_rank \n");
+    fprintf(stderr,"\t-> ./ngsLCA -names -nodes -acc2tax [-editdist[min/max] -simscore[low/high] -minmapq -discard] -bam -lca_rank version: %s\n",METADAMAGE_VERSION);
     return 0;
   }
   catchkill();
@@ -668,7 +668,7 @@ int main_lca(int argc, char **argv){
   fprintf(p->fp1,"# ./ngsLCA ");
   for(int i=0;i<argc;i++)
     fprintf(p->fp1," %s",argv[i]);
-  fprintf(p->fp1,"\n");
+  fprintf(p->fp1," version: %s\n",METADAMAGE_VERSION);
   //map of bamref ->taxid
 
   int2int *i2i=NULL;

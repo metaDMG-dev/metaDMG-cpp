@@ -13,6 +13,7 @@
 #include <map>
 #include "profile.h"
 #include "shared.h"
+#include "version.h"
 
 htsFormat *dingding2 =(htsFormat*) calloc(1,sizeof(htsFormat));
 typedef std::map<int,char *> int2char;
@@ -144,12 +145,13 @@ int main_index(int argc,char **argv){
 
 
 int main_print(int argc,char **argv){
-  fprintf(stderr,"./metadamage print file.bdamage.gz [-names file.gz -bam file.bam]\n");
+  fprintf(stderr,"./metadamage print file.bdamage.gz [-names file.gz -bam file.bam -ctga -countout]\n");
   char *infile = NULL;
   char *inbam = NULL;
   char *acc2tax = NULL;
   int ctga =0;//only print ctga errors
   int search = -1;
+  int countout = 0;
   while(*(++argv)){
     if(strcasecmp("-names",*argv)==0)
       acc2tax = strdup(*(++argv));
@@ -159,6 +161,8 @@ int main_print(int argc,char **argv){
       search = atoi(*(++argv));
     else if(strcasecmp("-ctga",*argv)==0)
       ctga =1;
+    else if(strcasecmp("-countout",*argv)==0)
+      countout =1;
     else
       infile = strdup(*argv);
   }
@@ -219,8 +223,8 @@ int main_print(int argc,char **argv){
     assert(nread==2*sizeof(int));
     for(int i=0;i<printlength;i++){
       assert(16*sizeof(int)==bgzf_read(bgfp,data,sizeof(int)*16));
-      if(search==-1||search==ref_nreads[0]){
-	if(ctga==0) {
+      if(search==-1||search==ref_nreads[0]) {
+	if(ctga==0)  {
 	  if(hdr!=NULL)
 	    fprintf(stdout,"%s\t%d\t5\'\t%d",hdr->target_name[ref_nreads[0]],ref_nreads[1],i);
 	  else if(acc2tax!=NULL){
@@ -236,38 +240,41 @@ int main_print(int argc,char **argv){
 	  if(i==0)
 	    fprintf(stdout,"%d\t%d",ref_nreads[0],ref_nreads[1]);
 	}
-
-	float flt[16];
-	
-	for(int i=0;i<4;i++){
-	  double tsum =0;
-	  for(int j=0;j<4;j++){
-	    tsum += data[i*4+j];
-	    flt[i*4+j] = data[i*4+j];
-	  }
-	  if(tsum==0) tsum = 1;
-	  for(int j=0;j<4;j++)
-	    flt[i*4+j] /=tsum;
-	}
-
-	if(ctga==0){
-	  for(int j=0;j<16;j++)
-	    fprintf(stdout,"\t%f",flt[j]);
+	if(countout==1){
+	  for(int i=0;i<16;i++)
+	    fprintf(stdout,"\t%lu",data[i]);
 	  fprintf(stdout,"\n");
-	}else
-	  ctgas[i] = flt[7];
-
+	}else{
+	  float flt[16];
+	  
+	  for(int i=0;i<4;i++){
+	    double tsum =0;
+	    for(int j=0;j<4;j++){
+	      tsum += data[i*4+j];
+	      flt[i*4+j] = data[i*4+j];
+	    }
+	    if(tsum==0) tsum = 1;
+	    for(int j=0;j<4;j++)
+	      flt[i*4+j] /=tsum;
+	  }
+	  
+	  if(ctga==0){
+	    for(int j=0;j<16;j++)
+	      fprintf(stdout,"\t%f",flt[j]);
+	    fprintf(stdout,"\n");
+	  }else
+	    ctgas[i] = flt[7];
+	}
       }
     }
-
     if(search==-1||search==ref_nreads[0]){
       if(ctga==1){
 	for(int i=0;i<printlength;i++)
 	  fprintf(stdout,"\t%f",ctgas[i]);
       }
     }
-
-    for(int i=0;i<printlength;i++){
+  
+    for(int i=0;i<printlength;i++) {
       assert(16*sizeof(int)==bgzf_read(bgfp,data,sizeof(int)*16));
       if(search==-1||search==ref_nreads[0]){
 	if(ctga==0) {
@@ -284,24 +291,30 @@ int main_print(int argc,char **argv){
 	  else
 	    fprintf(stdout,"%d\t%d\t3\'\t%d",ref_nreads[0],ref_nreads[1],i);
 	}
-	float flt[16];
-	
-	for(int i=0;i<4;i++){
-	  double tsum =0;
-	  for(int j=0;j<4;j++){
-	    tsum += data[i*4+j];
-	    flt[i*4+j] = data[i*4+j];
-	  }
-	  if(tsum==0) tsum = 1;
-	  for(int j=0;j<4;j++)
-	    flt[i*4+j] /=tsum;
-	}
-	if(ctga==0){
-	  for(int j=0;j<16;j++)
-	    fprintf(stdout,"\t%f",flt[j]);
+	if(countout==1){
+	  for(int i=0;i<16;i++)
+	    fprintf(stdout,"\t%lu",data[i]);
 	  fprintf(stdout,"\n");
-	}else
+	}else{	
+	  float flt[16];
+	  
+	  for(int i=0;i<4;i++){
+	    double tsum =0;
+	    for(int j=0;j<4;j++){
+	      tsum += data[i*4+j];
+	      flt[i*4+j] = data[i*4+j];
+	    }
+	    if(tsum==0) tsum = 1;
+	    for(int j=0;j<4;j++)
+	      flt[i*4+j] /=tsum;
+	  }
+	  if(ctga==0){
+	    for(int j=0;j<16;j++)
+	      fprintf(stdout,"\t%f",flt[j]);
+	    fprintf(stdout,"\n");
+	  }else
 	  ctgas[i+printlength] = flt[8];
+	}
       }
     }
     if(search==-1||search==ref_nreads[0]){
@@ -321,13 +334,14 @@ int main_print(int argc,char **argv){
     sam_close(samfp);
 }
 
+
 double *getval(std::map<int, double *> &retmap,int2intvec &child,int taxid,int howmany){
-  //  fprintf(stderr,"getval\t%d\t%d\n",taxid,howmany);
+  // fprintf(stderr,"getval\t%d\t%d\n",taxid,howmany);
   std::map<int,double *>::iterator it = retmap.find(taxid);
   if(it!=retmap.end()){
     //fprintf(stderr,"has found: %d in retmap\n",it->first);
 #if 0
-    fprintf(stderr,"%d",taxid);
+    fprintf(stderr,"val\t%d",taxid);
     for(int i=0;i<2*howmany+1;i++)
       fprintf(stderr,"\t%f",it->second[i]);
     fprintf(stderr,"\n");
@@ -344,9 +358,9 @@ double *getval(std::map<int, double *> &retmap,int2intvec &child,int taxid,int h
       for(int i=0;i<avec.size();i++){
 	//	fprintf(stderr,"%d/%d %d\n",i,avec.size(),avec[i]);
 	double *tmp = getval(retmap,child,avec[i],howmany);
-	ret[0] += tmp[0];
-	for(int i=0;i<2*howmany;i++)
-	  ret[1+i] += tmp[1+i]*tmp[0];
+	for(int i=0;i<2*howmany+1;i++)
+	  ret[i] += tmp[i];
+
       }
     }
   }
@@ -392,7 +406,7 @@ int main_merge(int argc,char **argv){
   if(infile_nodes!=NULL)
     parse_nodes(infile_nodes,rank,parent,child,1);
 
-  std::map<int, double *> retmap = load_bdamage(infile_bdamage,5);
+  std::map<int, double *> retmap = load_bdamage2(infile_bdamage,5);
   //  fprintf(stderr,"retmap.size():%lu\n",retmap.size());
   int2char name_map;
   if(acc2tax!=NULL)
@@ -426,6 +440,8 @@ int main_merge(int argc,char **argv){
   char buf[4096];
   char orig[4096];
   gzgets(fp,buf,4096);//skipheader
+  buf[strlen(buf)-1] = '\0';
+  fprintf(stderr,"%s: VERSION:%s\n",buf,METADAMAGE_VERSION);
   float presize = retmap.size();
   while(gzgets(fp,buf,4096)){
     strncpy(orig,buf,4096);
@@ -467,6 +483,7 @@ int main(int argc, char **argv){
     fprintf(stderr,"./metadamage index files.damage.gz\n");
     fprintf(stderr,"./metadamage merge files.lca files.bdamage.gz\n");
     fprintf(stderr,"./metadamage lca [many options]\n");
+    fprintf(stderr,"./metadamage print bdamage.gz\n");
     return 0;
   }
   argc--;++argv;
