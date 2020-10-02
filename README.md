@@ -1,4 +1,20 @@
 # metadamage
+Fast and efficient method for error and damage rate analysis. Possible modes for running. Program is utilizing mdz field of the aux part of reads and is therefore reference free.
+
+1. Basic single genome analysis with one overall global estimate. Similar to mapdamage1.0 and mapdamage2.0.
+
+2. Basic eDNA or metagenomic analyses. Output is a damage estimate for each referenceID.
+
+3. Lowest common ancestor is used for determining specificity of alignments for the analyses.
+
+# Single genome analysis
+
+
+# Basic eDNA analysis
+
+# LCA analyses
+
+
 
 ./metadamage lca
  -names
