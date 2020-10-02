@@ -49,23 +49,28 @@ Options:
 ```
 
 # LCA analyses
+`./metadamage  lca  -simscorelow 0.95 -simscorehigh 1.0 -names /willerslev/users-shared/science-snm-willerslev-npl206/ngsLCA/ngsLCA/ncbi_tax_dump_files/names.dmp.gz -nodes /willerslev/users-shared/science-snm-willerslev-npl206/ngsLCA/ngsLCA/ncbi_tax_dump_files/nodes.dmp.gz -acc2tax /willerslev/users-shared/science-snm-willerslev-zsb202/soft/ngslca/accession2taxid/combined_taxid_accssionNO_20200425.gz -bam UE1210-Mex-59-Lib-7.col.file.sort.bam -outnames UE1210-Mex-59-Lib-7.col.file.sort.bam.species.TEST9 -lca_rank species`
 
+`./metadamage lca -names -nodes -acc2tax [-editdist[min/max] -simscore[low/high] -minmapq -discard] -bam `
 
+# ./metadamage print
 
-./metadamage lca
- -names
- -nodes
- -acc2tax
- [-editdist[min/max] -simscore[low/high] -minmapq -discard]
- -bam
- -lca_rank #for damage estimate
+`./metadamage print UE1210-Mex-59-Lib-7.col.file.sort.bam.genus.TEST7.bdamage.gz `
 
+```
+./metadamage print 
+./metadamage print file.bdamage.gz [-names file.gz -bam file.bam -ctga -countout]
+infile: (null) inbam: (null) names: (null) search: -1 ctga: 0
+```
 
-./metadamage print file.bdamage.gz -bam /-names
--ctga #printer kun relevante mutationer
--r taxid #printer kun bestemte taxid
--names #NCBI names.dmp file - option that prints taxonomic names to output /willerslev/users-shared/science-snm-willerslev-npl206/ngsLCA/ngsLCA/ncbi_tax_dump_files/names.dmp.gz
--bam file.bam #optional give it bamfile after 
+ - -ctga ONLY print CT+ and GA- (the damage ones)
+ - -countout print mismatch as counts and not as transition
+ probabilites
+ - -r taxid Only print for specific taxid
+ - -names NCBI names.dmp file - option that prints taxonomic names to
+ output
+ - -bam print referencenames from bamfile, otherwise it prints integeroffset.
+
 #### Header in print: taxid nralign orientation position AA,AC,AG,AT,CA,CC,CG,CT,GA,GC,GG,GT,TA,TC,TG,TT 
 
 
