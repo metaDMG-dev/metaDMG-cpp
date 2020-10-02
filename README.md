@@ -7,10 +7,46 @@ Fast and efficient method for error and damage rate analysis. Possible modes for
 
 3. Lowest common ancestor is used for determining specificity of alignments for the analyses.
 
-# Single genome analysis
+For all analyses output is a binary '.bdamage.gz' file, that can be accessed with the 'metadamage print' functionality.
 
+
+# Single genome analysis
+`./metadamage getdamage -l 10 -p 5 --threads 8 ../data/subs.bam`
+
+All options found below:
+
+```
+./metadamage getdamage
+
+Usage: metadamage getdamage [options] <in.bam>|<in.sam>|<in.cram>
+
+Example: ./metadamage getdamage -l 10 -p 5 --threads 8 ../data/subs.sam
+Options:
+  -f/--fasta	 is required with CRAM
+  -l/--minlength	 reads shorter than minlength will be discarded
+  -r/--runmode	runmode 1 means that damage patterns will be calculated for each chr/scaffold contig.
+		runmode 0 means one global estimate.
+  -@/--threads	 Number of threads used for reading/writing
+```
 
 # Basic eDNA analysis
+`./metadamage getdamage -l 10 -p 5 --threads 8 ../data/subs.bam -r 1`
+
+All options found below:
+
+```
+./metadamage getdamage
+
+Usage: metadamage getdamage [options] <in.bam>|<in.sam>|<in.cram>
+
+Example: ./metadamage getdamage -l 10 -p 5 --threads 8 ../data/subs.sam
+Options:
+  -f/--fasta	 is required with CRAM
+  -l/--minlength	 reads shorter than minlength will be discarded
+  -r/--runmode	runmode 1 means that damage patterns will be calculated for each chr/scaffold contig.
+		runmode 0 means one global estimate.
+  -@/--threads	 Number of threads used for reading/writing
+```
 
 # LCA analyses
 
