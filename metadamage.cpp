@@ -406,7 +406,7 @@ int main_merge(int argc,char **argv){
   if(infile_nodes!=NULL)
     parse_nodes(infile_nodes,rank,parent,child,1);
 
-  std::map<int, double *> retmap = load_bdamage2(infile_bdamage,5);
+  std::map<int, double *> retmap = load_bdamage3(infile_bdamage,5);
   //  fprintf(stderr,"retmap.size():%lu\n",retmap.size());
   int2char name_map;
   if(acc2tax!=NULL)
@@ -450,14 +450,14 @@ int main_merge(int argc,char **argv){
     int taxid=atoi(strtok(NULL,":"));
     //    fprintf(stderr,"taxid: %d\n",taxid);
     double *dbl = getval(retmap,child,taxid,howmany);
-    double dbldbl[2*howmany+1];
+    double dbldbl[3*howmany+1];
     dbldbl[0] = dbl[0];
-    for(int i=0;i<2*howmany;i++)
+    for(int i=0;i<3*howmany;i++)
       dbldbl[i+1] = dbl[1+i]/dbl[0];
 
     orig[strlen(orig)-1] = '\0';
     fprintf(stdout,"%s\t%d:%.0f",orig,taxid,dbldbl[0]);
-    for(int i=0;i<2*howmany;i++)
+    for(int i=0;i<3*howmany;i++)
       fprintf(stdout,"\t%f",dbldbl[1+i]);
     fprintf(stdout,"\n");
   }
