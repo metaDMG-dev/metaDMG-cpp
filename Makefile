@@ -58,5 +58,5 @@ metadamage: version.h $(OBJ)
 endif
 
 clean:	
-	rm  -f metadamage *.o *.d
+	rm  -f metadamage *.o *.d version.h
 
