@@ -450,13 +450,15 @@ int main_merge(int argc,char **argv){
     int taxid=atoi(strtok(NULL,":"));
     //    fprintf(stderr,"taxid: %d\n",taxid);
     double *dbl = getval(retmap,child,taxid,howmany);
+    double dbldbl[2*howmany+1];
+    dbldbl[0] = dbl[0];
     for(int i=0;i<2*howmany;i++)
-      dbl[1+i] /= dbl[0];
+      dbldbl[i+1] = dbl[1+i]/dbl[0];
 
     orig[strlen(orig)-1] = '\0';
-    fprintf(stdout,"%s\t%d:%.0f",orig,taxid,dbl[0]);
+    fprintf(stdout,"%s\t%d:%.0f",orig,taxid,dbldbl[0]);
     for(int i=0;i<2*howmany;i++)
-      fprintf(stdout,"\t%f",dbl[1+i]);
+      fprintf(stdout,"\t%f",dbldbl[1+i]);
     fprintf(stdout,"\n");
   }
   float postsize=retmap.size();
