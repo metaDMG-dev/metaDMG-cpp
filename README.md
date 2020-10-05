@@ -49,9 +49,10 @@ Options:
 ```
 
 # LCA analyses
-`./metadamage lca -names names.dmp.gz -nodes nodes.dmp.gz -acc2tax taxid_accssionNO.gz -simscorelow 0.95 -simscorehigh 1.0 -minmapq 30  -bam input.bam´
+` ./metadamage lca -names names.dmp.gz -nodes nodes.dmp.gz -acc2tax taxid_accssionNO.gz -simscorelow 0.95 -simscorehigh 1.0 -minmapq 30  -bam input.bam ´
 
 All options found below:
+
 ```
 ./metadamage lca 
 
