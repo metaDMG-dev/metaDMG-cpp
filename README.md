@@ -30,7 +30,7 @@ Options:
 ```
 
 # Multiple genome analysis
-`./metadamage getdamage -l 10 -p 5 --threads 8 input.bam -r 1`
+` ./metadamage getdamage -l 10 -p 5 --threads 8 input.bam -r 1 `
 
 All options found below:
 
