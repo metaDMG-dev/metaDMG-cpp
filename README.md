@@ -68,7 +68,8 @@ Options:
 -outnames output_prefix
 -lca_rank family/genus/species
 -discard
--minmapq`
+-minmapq #integer for minimum mapping quality
+-howmany #integer for many positions
 ```
 
 
