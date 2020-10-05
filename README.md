@@ -1,4 +1,4 @@
-# metadamage
+# metaDamage2.0
 Fast and efficient method for error and damage rate estimates. Possible modes for running. Program is utilizing mdz field of the aux part of reads and is therefore reference free.
 
 1. Basic single genome analysis with one overall global estimate. Similar to mapdamage1.0 and mapdamage2.0.
@@ -29,7 +29,7 @@ Options:
   -@/--threads	 Number of threads used for reading/writing
 ```
 
-# Basic multiple genome analysis
+# Multiple genome analysis
 `./metadamage getdamage -l 10 -p 5 --threads 8 ../data/subs.bam -r 1`
 
 All options found below:
