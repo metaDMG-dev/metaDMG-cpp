@@ -77,8 +77,7 @@ Options:
 # ./metadamage print
 
 ` ./metadamage print 
-./metadamage print file.bdamage.gz [-names file.gz -bam file.bam -ctga -countout]
-infile: (null) inbam: (null) names: (null) search: -1 ctga: 0 `
+./metadamage print file.bdamage.gz [-names file.gz -bam file.bam -ctga -countout] infile: (null) inbam: (null) names: (null) search: -1 ctga: 0 `
 
 ```
  - -ctga ONLY print CT+ and GA- (the damage ones)
