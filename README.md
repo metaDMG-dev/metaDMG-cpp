@@ -76,29 +76,32 @@ Options:
 
 # ./metadamage print
 
-```
-./metadamage print 
+` ./metadamage print 
 ./metadamage print file.bdamage.gz [-names file.gz -bam file.bam -ctga -countout]
-infile: (null) inbam: (null) names: (null) search: -1 ctga: 0
-```
+infile: (null) inbam: (null) names: (null) search: -1 ctga: 0 `
 
+```
  - -ctga ONLY print CT+ and GA- (the damage ones)
  - -countout print mismatch as counts and not as transition
  probabilites
  - -r taxid Only print for specific taxid
  - -names NCBI names.dmp file - option that prints taxonomic names to
  output
- - -bam print referencenames from bamfile, otherwise it prints integeroffset.
+ - -bam print referencenames from bamfile, otherwise it prints integeroffset. 
+ ```
 
 #### Header in print: taxid,nralign,orientation,position,AA,AC,AG,AT,CA,CC,CG,CT,GA,GC,GG,GT,TA,TC,TG,TT 
 
 # ./metadamage merge 
 
-
+```
+./metadamage merge 
 ./metadamage merge file.lca file.bdamage.gz [-names file.gz -bam file.bam -howmany 5 -nodes trestructure.gz]
--howmany #integer for many positions
--nodes #needs taxonomic paths to calculate damage higher than species level /willerslev/users-shared/science-snm-willerslev-npl206/ngsLCA/ngsLCA/ncbi_tax_dump_files/nodes.dmp.gz
--names #NCBI names.dmp file - option that prints taxonomic names to output  
+```
+
+- -howmany #integer for many positions
+- -nodes #needs taxonomic paths to calculate damage higher than species level /willerslev/users-shared/science-snm-willerslev-npl206/ngsLCA/ngsLCA/ncbi_tax_dump_files/nodes.dmp.gz
+- -names #NCBI names.dmp file - option that prints taxonomic names to output  
 
 
 ./metadamage getdamage file.bam
