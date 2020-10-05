@@ -1,5 +1,5 @@
 # metadamage
-Fast and efficient method for error and damage rate analysis. Possible modes for running. Program is utilizing mdz field of the aux part of reads and is therefore reference free.
+Fast and efficient method for error and damage rate estimates. Possible modes for running. Program is utilizing mdz field of the aux part of reads and is therefore reference free.
 
 1. Basic single genome analysis with one overall global estimate. Similar to mapdamage1.0 and mapdamage2.0.
 
@@ -29,7 +29,7 @@ Options:
   -@/--threads	 Number of threads used for reading/writing
 ```
 
-# Basic eDNA analysis
+# Basic multiple genome analysis
 `./metadamage getdamage -l 10 -p 5 --threads 8 ../data/subs.bam -r 1`
 
 All options found below:
@@ -71,8 +71,9 @@ infile: (null) inbam: (null) names: (null) search: -1 ctga: 0
  output
  - -bam print referencenames from bamfile, otherwise it prints integeroffset.
 
-#### Header in print: taxid nralign orientation position AA,AC,AG,AT,CA,CC,CG,CT,GA,GC,GG,GT,TA,TC,TG,TT 
+#### Header in print: taxid,nralign,orientation,position,AA,AC,AG,AT,CA,CC,CG,CT,GA,GC,GG,GT,TA,TC,TG,TT 
 
+# ./metadamage merge 
 
 
 ./metadamage merge file.lca file.bdamage.gz [-names file.gz -bam file.bam -howmany 5 -nodes trestructure.gz]
