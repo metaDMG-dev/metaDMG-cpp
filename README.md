@@ -11,7 +11,7 @@ For all analyses output is a binary '.bdamage.gz' file, that can be accessed wit
 
 
 # Single genome analysis
-`./metadamage getdamage -l 10 -p 5 --threads 8 ../data/subs.bam`
+`./metadamage getdamage -l 10 -p 5 --threads 8 input.bam`
 
 All options found below:
 
@@ -39,7 +39,7 @@ All options found below:
 
 Usage: metadamage getdamage [options] <in.bam>|<in.sam>|<in.cram>
 
-Example: ./metadamage getdamage -l 10 -p 5 --threads 8 ../data/subs.sam
+Example: ./metadamage getdamage -l 10 -p 5 --threads 8 input.bam
 Options:
   -f/--fasta	 is required with CRAM
   -l/--minlength	 reads shorter than minlength will be discarded
@@ -49,13 +49,26 @@ Options:
 ```
 
 # LCA analyses
-`./metadamage  lca  -simscorelow 0.95 -simscorehigh 1.0 -names /willerslev/users-shared/science-snm-willerslev-npl206/ngsLCA/ngsLCA/ncbi_tax_dump_files/names.dmp.gz -nodes /willerslev/users-shared/science-snm-willerslev-npl206/ngsLCA/ngsLCA/ncbi_tax_dump_files/nodes.dmp.gz -acc2tax /willerslev/users-shared/science-snm-willerslev-zsb202/soft/ngslca/accession2taxid/combined_taxid_accssionNO_20200425.gz -bam UE1210-Mex-59-Lib-7.col.file.sort.bam -outnames UE1210-Mex-59-Lib-7.col.file.sort.bam.species.TEST9 -lca_rank species`
+`./metadamage lca 
 
-`./metadamage lca -names -nodes -acc2tax [-editdist[min/max] -simscore[low/high] -minmapq -discard] -bam `
+Usage: metadamage lca -names -nodes -acc2tax [-editdist[min/max] -simscore[low/high] -minmapq -discard] -bam
+
+Example ./metadamage lca -names names.dmp.gz -nodes nodes.dmp.gz -acc2tax taxid_accssionNO.gz -simscorelow 0.95 -simscorehigh 1.0 -minmapq 30  -bam input.bam
+Options:
+-simscorelow 0.95 
+-simscorehigh 1.0 
+-names /willerslev/users-shared/science-snm-willerslev-npl206/ngsLCA/ngsLCA/ncbi_tax_dump_files/names.dmp.gz 
+-nodes /willerslev/users-shared/science-snm-willerslev-npl206/ngsLCA/ngsLCA/ncbi_tax_dump_files/nodes.dmp.gz 
+-acc2tax /willerslev/users-shared/science-snm-willerslev-zsb202/soft/ngslca/accession2taxid/combined_taxid_accssionNO_20200425.gz 
+-bam UE1210-Mex-59-Lib-7.col.file.sort.bam 
+-outnames output_prefix
+-lca_rank family/genus/species
+-discard
+-minmapq`
+
+
 
 # ./metadamage print
-
-`./metadamage print UE1210-Mex-59-Lib-7.col.file.sort.bam.genus.TEST7.bdamage.gz `
 
 ```
 ./metadamage print 
