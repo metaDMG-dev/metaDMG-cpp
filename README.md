@@ -30,7 +30,7 @@ Options:
 ```
 
 # Multiple genome analysis
-`./metadamage getdamage -l 10 -p 5 --threads 8 ../data/subs.bam -r 1`
+`./metadamage getdamage -l 10 -p 5 --threads 8 input.bam -r 1`
 
 All options found below:
 
@@ -49,7 +49,11 @@ Options:
 ```
 
 # LCA analyses
-`./metadamage lca 
+`./metadamage lca -names names.dmp.gz -nodes nodes.dmp.gz -acc2tax taxid_accssionNO.gz -simscorelow 0.95 -simscorehigh 1.0 -minmapq 30  -bam input.bam´
+
+All options found below:
+```
+./metadamage lca 
 
 Usage: metadamage lca -names -nodes -acc2tax [-editdist[min/max] -simscore[low/high] -minmapq -discard] -bam
 
@@ -65,7 +69,7 @@ Options:
 -lca_rank family/genus/species
 -discard
 -minmapq`
-
+```
 
 
 # ./metadamage print
