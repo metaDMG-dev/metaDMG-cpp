@@ -168,7 +168,7 @@ int main_print(int argc,char **argv){
   }
 
 
-  fprintf(stderr,"infile: %s inbam: %s names: %s search: %d ctga: %d\n",infile,inbam,acc2tax,search,ctga);
+  fprintf(stderr,"infile: %s inbam: %s names: %s search: %d ctga: %d countout: %d\n",infile,inbam,acc2tax,search,ctga,countout);
 
   int2char name_map;
   if(acc2tax!=NULL)
@@ -197,7 +197,7 @@ int main_print(int argc,char **argv){
   
   int printlength;
   assert(sizeof(int)==bgzf_read(bgfp,&printlength,sizeof(int)));
-  //  fprintf(stderr,"printlength: %d\n",printlength);
+  fprintf(stderr,"\t-> printlength(howmany) from inputfile: %d\n",printlength);
 
   int ref_nreads[2];
 
