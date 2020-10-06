@@ -106,13 +106,16 @@ Options:
 `./metadamage merge file.lca file.bdamage.gz ` 
 
 
+All options found below:
+
 ```
 ./metadamage merge 
-Usage: ./metadamage merge file.lca file.bdamage.gz [-names file.gz -bam file.bam -howmany 5 -nodes trestructure.gz]
+
+Usage: ./metadamage merge file.lca file.bdamage.gz [-names names.dmp.gz -bam <in.bam>|<in.sam>|<in.sam.gz> -howmany 5 -nodes nodes.dmp.gz]
 
 Example
 Options:
--howmany #integer for many positions
+-howmany #integer for many positions ?? Thorfinn is this also working for the merge module? Or only at the LCA module? 
 -nodes #needs taxonomic paths to calculate damage higher than species level /willerslev/users-shared/science-snm-willerslev-npl206/ngsLCA/ngsLCA/ncbi_tax_dump_files/nodes.dmp.gz
 -names #NCBI names.dmp file - option that prints taxonomic names to output  
 ```
