@@ -6,9 +6,9 @@ Possible modes for running. Program is utilizing mdz field of the aux part of re
 
 1. Basic single genome analysis with one overall global estimate. Similar to mapdamage1.0 and mapdamage2.0.
 
-2. Basic eDNA or metagenomic analyses. Output is a damage estimate for each referenceID.
+2. Basic eDNA or metagenomic (e.g. multiple genome) analyses. Output is a damage estimate per reference, taxonomic name or accession no.
 
-3. Lowest common ancestor is used for determining specificity of alignments for the analyses.
+3. Intergreting a Least Common Ancestor algorithm gives the opportunity to retrieve    specificity of alignments for the analyses.
 
 For all analyses output is a binary '.bdamage.gz' file, that can be accessed with the 'metadamage print' functionality.
 
