@@ -62,17 +62,17 @@ Usage: metadamage lca [options] -names -nodes -acc2tax [-editdist[min/max] -sims
 Example ./metadamage lca -names names.dmp.gz -nodes nodes.dmp.gz -acc2tax taxid_accssionNO.gz -simscorelow 0.95 -simscorehigh 1.0 -minmapq 30 -howmany 15 -bam input.bam
 
 Options:
-  -simscorelow 0.95 
-  -simscorehigh 1.0 
-  -names /willerslev/users-shared/science-snm-willerslev-npl206/ngsLCA/ngsLCA/ncbi_tax_dump_files/names.dmp.gz 
-  -nodes /willerslev/users-shared/science-snm-willerslev-npl206/ngsLCA/ngsLCA/ncbi_tax_dump_files/nodes.dmp.gz 
-  -acc2tax /willerslev/users-shared/science-snm-willerslev-zsb202/soft/ngslca/accession2taxid/combined_taxid_accssionNO_20200425.gz 
-  -bam #input alignment file in bam, sam or sam.gz format
-  -outnames #output_prefix
-  -lca_rank #family/genus/species 
+  -simscorelow	integer between 0-1
+  -simscorehigh	integer between 0-1
+  -names 	/willerslev/users-shared/science-snm-willerslev-npl206/ngsLCA/ngsLCA/ncbi_tax_dump_files/names.dmp.gz 
+  -nodes 	/willerslev/users-shared/science-snm-willerslev-npl206/ngsLCA/ngsLCA/ncbi_tax_dump_files/nodes.dmp.gz 
+  -acc2tax 	/willerslev/users-shared/science-snm-willerslev-zsb202/soft/ngslca/accession2taxid/combined_taxid_accssionNO_20200425.gz 
+  -bam		input alignment file in bam, sam or sam.gz format
+  -outnames	output_prefix
+  -lca_rank	family/genus/species 
   -discard 
-  -minmapq #integer for minimum mapping quality
-  -howmany #integer for many positions
+  -minmapq	integer for minimum mapping quality
+  -howmany	integer for many positions
 ```
 
 
@@ -91,30 +91,33 @@ Example ./metadamage print file.bdamage.gz -names names.dmp.gz
 	./metadamage print file.bdamage.gz -r 9639 -ctga
 	./metadamage print file.bdamage.gz -countout 
 Options:
-  -ctga ONLY print CT+ and GA- (the damage ones)
-  -countout print mismatch as counts and not as transition probabilites
-  -r taxid Only print for specific taxid
-  -names NCBI names.dmp file - option that prints taxonomic names to output
-  -bam print referencenames from bamfile, otherwise it prints integeroffset. 
- ```
+  -ctga		ONLY print CT+ and GA- (the damage ones)
+  -countout	print mismatch as counts and not as transition probabilites
+  -r taxid	Only print for specific taxid
+  -names	NCBI names.dmp.gz file - option to print taxonomic names to output
+  -bam		print referencenames from bamfile, otherwise it prints integeroffset. 
+
 
 #### Header in print: taxid,nralign,orientation,position,AA,AC,AG,AT,CA,CC,CG,CT,GA,GC,GG,GT,TA,TC,TG,TT 
-
+ ```
+ 
 # ./metadamage merge 
+
+`./metadamage merge file.lca file.bdamage.gz ` 
+
 
 ```
 ./metadamage merge 
-./metadamage merge file.lca file.bdamage.gz [-names file.gz -bam file.bam -howmany 5 -nodes trestructure.gz]
+Usage: ./metadamage merge file.lca file.bdamage.gz [-names file.gz -bam file.bam -howmany 5 -nodes trestructure.gz]
+
+Example
+Options:
+-howmany #integer for many positions
+-nodes #needs taxonomic paths to calculate damage higher than species level /willerslev/users-shared/science-snm-willerslev-npl206/ngsLCA/ngsLCA/ncbi_tax_dump_files/nodes.dmp.gz
+-names #NCBI names.dmp file - option that prints taxonomic names to output  
 ```
 
-- -howmany #integer for many positions
-- -nodes #needs taxonomic paths to calculate damage higher than species level /willerslev/users-shared/science-snm-willerslev-npl206/ngsLCA/ngsLCA/ncbi_tax_dump_files/nodes.dmp.gz
-- -names #NCBI names.dmp file - option that prints taxonomic names to output  
+# ./metadamage mergedamage files.damage.*.gz
 
-
-./metadamage getdamage file.bam
-
-./metadamage mergedamage files.damage.*.gz
-
-./metadamage index files.damage.gz
+# ./metadamage index files.damage.gz
 
