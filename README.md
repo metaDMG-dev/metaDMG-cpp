@@ -1,5 +1,7 @@
-# metaDamage2.0
-Fast and efficient method for error and damage rate estimates. Possible modes for running. Program is utilizing mdz field of the aux part of reads and is therefore reference free.
+
+MetaDamage 2.0 is a fast and efficient method for estimating mutation and damage rates in ancient DNA data. It relies on a commonly used alignment files formats bam/sam/sam.gz and can calculate degree of damage from read data mapped against a single as well as multiple genomes. It is especially relevant for data where data have been mapped against multiple reference genomes or to speed up analysis for damage estimation for a single genome.
+
+Possible modes for running. Program is utilizing mdz field of the aux part of reads and is therefore reference free.
 
 1. Basic single genome analysis with one overall global estimate. Similar to mapdamage1.0 and mapdamage2.0.
 
@@ -94,8 +96,8 @@ Options:
   -ctga		ONLY print CT+ and GA- (the damage ones)
   -countout	print mismatch as counts and not as transition probabilites
   -r taxid	Only print for specific taxid
-  -names	NCBI names.dmp.gz file - option to print taxonomic names to output
-  -bam		print referencenames from bamfile, otherwise it prints integeroffset. 
+  -names	NCBI names.dmp.gz file - option to print taxonomic names instead of NCBI TaxID
+  -bam		print referencenames (Accession No.) from bamfile, otherwise it prints NCBI TaxId. 
 
 
 #### Header in print: taxid,nralign,orientation,position,AA,AC,AG,AT,CA,CC,CG,CT,GA,GC,GG,GT,TA,TC,TG,TT 
