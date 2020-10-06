@@ -49,7 +49,8 @@ Options:
 ```
 
 # LCA analyses
-` ./metadamage lca -names names.dmp.gz -nodes nodes.dmp.gz -acc2tax taxid_accssionNO.gz -simscorelow 0.95 -simscorehigh 1.0 -minmapq 30  -bam input.bam ´
+
+` ./metadamage lca -names names.dmp.gz -nodes nodes.dmp.gz -acc2tax taxid_accssionNO.gz -simscorelow 0.95 -simscorehigh 1.0 -minmapq 30  -bam input.bam`
 
 All options found below:
 
@@ -76,14 +77,17 @@ Options:
 
 # ./metadamage print
 
-` ./metadamage print 
-./metadamage print file.bdamage.gz [-names file.gz -bam file.bam -ctga -countout] infile: (null) inbam: (null) names: (null) search: -1 ctga: 0 `
+`./metadamage print file.bdamage.gz [-names file.gz -bam file.bam -ctga -countout] infile: (null) inbam: (null) names: (null) search: -1 ctga: 0 `
+
+All options found below:
 
 ```
- - -ctga ONLY print CT+ and GA- (the damage ones)
- - -countout print mismatch as counts and not as transition
- probabilites
- - -r taxid Only print for specific taxid
+ ./metadamage print 
+ Example
+ Options:
+-ctga ONLY print CT+ and GA- (the damage ones)
+-countout print mismatch as counts and not as transition probabilites
+-r taxid Only print for specific taxid
  - -names NCBI names.dmp file - option that prints taxonomic names to
  output
  - -bam print referencenames from bamfile, otherwise it prints integeroffset. 
