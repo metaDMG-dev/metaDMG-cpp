@@ -8,7 +8,7 @@ Possible modes for running. Program is utilizing mdz field of the aux part of re
 
 2. Basic eDNA or metagenomic (e.g. multiple genome) analyses. Output is a damage estimate per reference, taxonomic name or accession no.
 
-3. Intergreting a Least Common Ancestor algorithm gives the opportunity to retrieve    specificity of alignments for the analyses.
+3. Integrating a Least Common Ancestor algorithm gives the opportunity to retrieve    specificity of alignments for the analyses.
 
 For all analyses output is a binary '.bdamage.gz' file, that can be accessed with the 'metadamage print' functionality.
 
@@ -27,6 +27,8 @@ Example: ./metadamage getdamage -l 10 -p 5 --threads 8 ../data/subs.sam
 Options:
   -f/--fasta	 is required with CRAM
   -l/--minlength	 reads shorter than minlength will be discarded
+  -p/--printlength	number of base pairs from read termini to estimate damage (default: 5)
+  -o/--outname	output prefix
   -r/--runmode	runmode 1 means that damage patterns will be calculated for each chr/scaffold contig.
 		runmode 0 means one global estimate.
   -@/--threads	 Number of threads used for reading/writing
@@ -46,6 +48,8 @@ Example: ./metadamage getdamage -l 10 -p 5 --threads 8 input.bam
 Options:
   -f/--fasta	 is required with CRAM
   -l/--minlength	 reads shorter than minlength will be discarded
+  -p/--printlength	number of base pairs from read termini to estimate damage (default: 5)
+  -o/--outname	output prefix
   -r/--runmode	runmode 1 means that damage patterns will be calculated for each chr/scaffold contig.
 		runmode 0 means one global estimate.
   -@/--threads	 Number of threads used for reading/writing
@@ -65,13 +69,13 @@ Usage: metadamage lca [options] -names -nodes -acc2tax [-editdist[min/max] -sims
 Example ./metadamage lca -names names.dmp.gz -nodes nodes.dmp.gz -acc2tax taxid_accssionNO.gz -simscorelow 0.95 -simscorehigh 1.0 -minmapq 30 -howmany 15 -bam input.bam
 
 Options:
-  -simscorelow	integer between 0-1
-  -simscorehigh	integer between 0-1
+  -simscorelow	number between 0-1
+  -simscorehigh	number between 0-1
   -names 	/willerslev/users-shared/science-snm-willerslev-npl206/ngsLCA/ngsLCA/ncbi_tax_dump_files/names.dmp.gz 
   -nodes 	/willerslev/users-shared/science-snm-willerslev-npl206/ngsLCA/ngsLCA/ncbi_tax_dump_files/nodes.dmp.gz 
   -acc2tax 	/willerslev/users-shared/science-snm-willerslev-zsb202/soft/ngslca/accession2taxid/combined_taxid_accssionNO_20200425.gz 
   -bam		input alignment file in bam, sam or sam.gz format
-  -outnames	output_prefix
+  -outnames	output prefix
   -lca_rank	family/genus/species 
   -discard 
   -minmapq	integer for minimum mapping quality
