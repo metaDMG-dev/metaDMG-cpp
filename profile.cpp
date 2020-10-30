@@ -668,8 +668,13 @@ std::map<int,double *> load_bdamage3(const char* fname,int howmany ){
   
   int printlength;
   assert(sizeof(int)==bgzf_read(bgfp,&printlength,sizeof(int)));
-  //fprintf(stderr,"printlength: %d\n",printlength);
-  assert(printlength<=howmany);
+  
+  if(howmany>printlength){
+    fprintf(stderr,"\t-> Problem binary file has data for: %d positions, but you are requesting merge with: %d positions \n",printlength,howmany);
+    fprintf(stderr,"\t-> Solutions set -howmany to lower value\n");
+    exit(0);
+  }
+  
   int ref_nreads[2];
  
   int data[16];

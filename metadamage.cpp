@@ -406,7 +406,7 @@ int main_merge(int argc,char **argv){
   if(infile_nodes!=NULL)
     parse_nodes(infile_nodes,rank,parent,child,1);
 
-  std::map<int, double *> retmap = load_bdamage3(infile_bdamage,5);
+  std::map<int, double *> retmap = load_bdamage3(infile_bdamage,howmany);
   //  fprintf(stderr,"retmap.size():%lu\n",retmap.size());
   int2char name_map;
   if(acc2tax!=NULL)
