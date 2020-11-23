@@ -28,6 +28,7 @@ pars *pars_init(){
   p->lca_rank = NULL;
   p->norank2species = 1;
   p->howmany = 5;
+  p->usedreads_sam = NULL;
   return p;
 }
 
@@ -158,6 +159,9 @@ pars *get_pars(int argc,char **argv){
     free(p);
     return NULL;
   }
+
+  int make_used_reads = 0;
+  
   while(*argv){
     char *key=*argv;
     char *val=*(++argv);
@@ -177,6 +181,7 @@ pars *get_pars(int argc,char **argv){
     else if(!strcasecmp("-out",key)) p->outnames=strdup(val);
     else if(!strcasecmp("-discard",key)) p->discard=atoi(val);
     else if(!strcasecmp("-howmany",key)) p->howmany=atoi(val);
+    else if(!strcasecmp("-usedreads",key)) make_used_reads = atoi(val);
     else if(!strcasecmp("-norank2species",key)) p->norank2species=atoi(val);
     else{
       fprintf(stderr,"\t Unknown parameter key:%s val:%s\n",key,val);
@@ -186,6 +191,7 @@ pars *get_pars(int argc,char **argv){
     
     ++argv;
   }
+
   pthread_t thread1, thread2;
   pthread_mutex_lock(&mutex1);
   //  pthread_mutex_lock(&mutex2);
@@ -204,6 +210,14 @@ pars *get_pars(int argc,char **argv){
   snprintf(buf,1024,"%s.log",p->outnames);
   fprintf(stderr,"\t-> Will output log info (problems) in file:\t\'%s\'\n",buf);
   p->fp3 = fopen(buf,"wb");
+
+  if(make_used_reads){
+    snprintf(buf,1024,"%s.usedreads.sam",p->outnames);
+    fprintf(stderr,"\t-> Will output the reads that are used for damage file:\t\'%s\'\n",buf);
+    p->usedreads_sam = strdup(buf);
+  }
+  
+  
 
   pthread_mutex_lock(&mutex1);
   pthread_mutex_lock(&mutex2);

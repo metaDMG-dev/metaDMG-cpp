@@ -388,7 +388,7 @@ void expand_queue(queue *ret){
 }
 
 
-void hts(FILE *fp,samFile *fp_in,int2int &i2i,int2int& parent,bam_hdr_t *hdr,int2char &rank, int2char &name_map,FILE *log,int minmapq,int discard,int editMin, int editMax, double scoreLow,double scoreHigh,int minlength,char *lca_rank,char *prefix,int norank2species,int howmany){
+void hts(FILE *fp,samFile *fp_in,int2int &i2i,int2int& parent,bam_hdr_t *hdr,int2char &rank, int2char &name_map,FILE *log,int minmapq,int discard,int editMin, int editMax, double scoreLow,double scoreHigh,int minlength,char *lca_rank,char *prefix,int norank2species,int howmany,samFile *fp_usedreads){
   fprintf(stderr,"[%s] \t-> editMin:%d editmMax:%d scoreLow:%f scoreHigh:%f minlength:%d discard: %d prefix: %s howmany: %d\n",__FUNCTION__,editMin,editMax,scoreLow,scoreHigh,minlength,discard,prefix,howmany);
   assert(fp_in!=NULL);
   damage *dmg = new damage(howmany,8,13);
@@ -445,32 +445,24 @@ void hts(FILE *fp,samFile *fp_in,int2int &i2i,int2int& parent,bam_hdr_t *hdr,int
 	  taxids = purge(taxids,editdist);
 
 	lca=do_lca(taxids,parent);
-	if(0&&lca!=-1){
-	  print_rank(stderr,lca,rank);
-	  exit(0);
-	}
-
 	if(lca!=-1){
-	  fprintf(fp,"%s:%s:%lu:%d",last,seq,strlen(seq),size);//fprintf(stderr,"size:%d\n");
-	  //	  fprintf(stderr,"adfsadfsafafdad: %d size\n",size);
+	  fprintf(fp,"%s:%s:%lu:%d",last,seq,strlen(seq),size);
 	  print_chain(fp,lca,parent,rank,name_map);
 	  int varisunique = isuniq(specs);
-	  //fprintf(stderr,"varisunquieu:%d spec.size():%lu\n",varisunique,specs.size());
 	  if(varisunique){
 	    int2int::iterator it=specWeight.find(specs[0]);
-	    //fprintf(stderr,"specs: %d specs.size:%lu wiehg.szei():%lu\n",specs[0],specs.size(),specWeight.size());
 	    if(it==specWeight.end())
-	      specWeight[specs[0]] = 1;//specs.size();
+	      specWeight[specs[0]] = 1;
 	    else
 	      it->second = it->second +1;
-	    
-	    //fprintf(stderr,"specs.size:%lu wiehg.szei():%lu\n",specs.size(),specWeight.size());
 	  }
 	  if(correct_rank(lca_rank,lca,rank,norank2species)){
 	    for(int i=0;i<myq->l;i++){
 	      int2int::iterator it2k = i2i.find(myq->ary[i]->core.tid);
 	      assert(it2k!=i2i.end());
 	      dmg->damage_analysis(myq->ary[i],it2k->second);
+	      if(fp_usedreads)
+		assert(sam_write1(fp_usedreads, hdr,myq->ary[i])>=0);
 	    }
 	  }
 	}
@@ -572,6 +564,8 @@ void hts(FILE *fp,samFile *fp_in,int2int &i2i,int2int& parent,bam_hdr_t *hdr,int
 	  int2int::iterator ittt = i2i.find(myq->ary[i]->core.tid);
 	  assert(ittt!=i2i.end());
 	  dmg->damage_analysis(myq->ary[i],ittt->second);
+	  if(fp_usedreads)
+	    assert(sam_write1(fp_usedreads, hdr,myq->ary[i])>=0);
 	}
       }
     }
@@ -652,8 +646,9 @@ int2node makeNodes(int2int &parent){
 #endif
 
 int main_lca(int argc, char **argv){
+  htsFormat *dingding2 =(htsFormat*) calloc(1,sizeof(htsFormat));
   if(argc==1){
-    fprintf(stderr,"\t-> ./ngsLCA -names -nodes -acc2tax [-editdist[min/max] -simscore[low/high] -minmapq -discard] -bam -lca_rank version: %s\n",METADAMAGE_VERSION);
+    fprintf(stderr,"\t-> ./ngsLCA -names -nodes -acc2tax [-editdist[min/max] -simscore[low/high] -minmapq -discard] -bam -lca_rank version: %s -usedreads [0,1]\n",METADAMAGE_VERSION);
     return 0;
   }
   catchkill();
@@ -672,7 +667,7 @@ int main_lca(int argc, char **argv){
   //map of bamref ->taxid
 
   int2int *i2i=NULL;
-fprintf(stderr,"p->header: %p\n",p->header);
+  fprintf(stderr,"p->header: %p\n",p->header);
   if(p->header)
     i2i=(int2int*) bamRefId2tax(p->header,p->acc2taxfile,p->htsfile);
 
@@ -701,8 +696,19 @@ fprintf(stderr,"p->header: %p\n",p->header);
   
   fprintf(stderr,"\t-> Will add some fixes of the ncbi database due to merged names\n");
   mod_db(mod_in,mod_out,parent,rank,name_map);
+  samFile *usedreads_sam = NULL;
+  if(p->usedreads_sam!=NULL){//p->usedreads sam is const *, sorry this is confusing
+    char out_mode[5]="ws";
+    if ((usedreads_sam = sam_open_format(p->usedreads_sam, out_mode, dingding2)) == 0) {
+      fprintf(stderr,"Error opening file for writing\n");
+      exit(0);
+    }
+    if (sam_hdr_write(usedreads_sam, p->header) < 0)
+      fprintf(stderr,"writing headers to %s", p->usedreads_sam);
+  }
 
-  hts(p->fp1,p->hts,*i2i,parent,p->header,rank,name_map,p->fp3,p->minmapq,p->discard,p->editdistMin,p->editdistMax,p->simscoreLow,p->simscoreHigh,p->minlength,p->lca_rank,p->outnames,p->norank2species,p->howmany);
+  
+  hts(p->fp1,p->hts,*i2i,parent,p->header,rank,name_map,p->fp3,p->minmapq,p->discard,p->editdistMin,p->editdistMax,p->simscoreLow,p->simscoreHigh,p->minlength,p->lca_rank,p->outnames,p->norank2species,p->howmany,usedreads_sam);
 
   fprintf(stderr,"\t-> Number of species with reads that map uniquely: %lu\n",specWeight.size());
   
@@ -716,6 +722,9 @@ fprintf(stderr,"p->header: %p\n",p->header);
   for(int2int::iterator it=specWeight.begin();0&&it!=specWeight.end();it++)
     fprintf(p->fp2,"%d\t%s\t%d\n",it->first,name_map[it->first],it->second);
   pars_free(p);
-  fprintf(stderr, "\t-> [ALL done] walltime used =  %.2f sec\n", (float)(time(NULL) - t2));  
+  fprintf(stderr, "\t-> [ALL done] walltime used =  %.2f sec\n", (float)(time(NULL) - t2));
+  
+  if(usedreads_sam!=NULL)
+    sam_close(usedreads_sam);
   return 0;
 }
