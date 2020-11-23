@@ -242,13 +242,14 @@ int get_level(const char *name,int norank2species){
   if(strcmp(name,"subspecies")==0) return 1;
   else  if(strcmp(name,"species")==0) return 2;
   else  if(strcmp(name,"genus")==0) return 3;
-  else  if(strcmp(name,"family")==0) return 4;
+  else  if(strcmp(name,"subfamily")==0) return 4;
+  else  if(strcmp(name,"family")==0) return 5;
   else  if(strcmp(name,"no rank")==0){
     //    fprintf(stderr,"is norank: \n");
     if(norank2species==1)
       return 2;
     else
-      return 5;
+      return 6;
   }
   else{
     //fprintf(stderr,"Unknown level: \'%s\'\n",name);
@@ -257,7 +258,7 @@ int get_level(const char *name,int norank2species){
   }
 }
 
-
+//filt here is argument used with lca_rank
 int correct_rank(char *filt, int taxa, int2char &rank,int norank2species){
   int2char::iterator it2=rank.find(taxa);
   assert(it2!=rank.end());
@@ -265,7 +266,7 @@ int correct_rank(char *filt, int taxa, int2char &rank,int norank2species){
   int en = get_level(filt,norank2species);
   int to = get_level(it2->second,norank2species);
 
-  if(en==-1||to==-1)
+  if(en==-1||to==-1)//if either -lca_rank or the tax was not defined properly
     return 0;
   
   if(to<=en)
