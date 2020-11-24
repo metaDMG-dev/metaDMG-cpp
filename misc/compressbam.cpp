@@ -4,6 +4,7 @@
 #include <cstring>
 #include <cstdlib>
 #include <htslib/sam.h>
+#include <htslib/thread_pool.h>
 #include <cassert>
 #include <ctype.h>
 #include "../shared.h"
@@ -81,7 +82,7 @@ int main(int argc,char**argv){
   char *outfile = "tmp.sam";
 
   char out_mode[5]="ws";
-  
+  int nthreads = 4;
   while(*argv){
     char *key=*argv;
     char *val=*(++argv);
@@ -89,6 +90,7 @@ int main(int argc,char**argv){
     if(!strcasecmp("-hts",key)) hts=strdup(val);
     else if(!strcasecmp("-out",key)) outfile=strdup(val);
     else if(!strcasecmp("-ref",key)) ref=strdup(val);
+    else if(!strcasecmp("-@",key)) nthreads=atoi(val);
     else if(!strcasecmp("-type",key)){
       char c = tolower(val[0]);
       if(c!='b'&&c!='s'&&c!='c'){
@@ -104,10 +106,20 @@ int main(int argc,char**argv){
     ++argv;
   }
   
-  fprintf(stderr,"\t-> hts: %s out: %s type: %s ref: %s\n",hts,outfile,out_mode,ref);
+  fprintf(stderr,"\t-> hts: %s out: %s type: %s ref: %s nthreads: %d\n",hts,outfile,out_mode,ref,nthreads);
 
+  htsThreadPool p = {NULL, 0};
+  
   //open inputfile and parse header
   samFile *htsfp = hts_open(hts,"r");
+  if(nthreads>1){
+    if (!(p.pool = hts_tpool_init(nthreads))) {
+      fprintf(stderr, "Error creating thread pool\n");
+      return 0;
+    }
+    hts_set_opt(htsfp,  HTS_OPT_THREAD_POOL, &p);
+  }
+  
   bam_hdr_t *hdr = sam_hdr_read(htsfp); 
 
   htsFormat *dingding2 =(htsFormat*) calloc(1,sizeof(htsFormat));
@@ -120,6 +132,15 @@ int main(int argc,char**argv){
   int2int usedref = getrefused(htsfp,hdr);
   sam_close(htsfp);sam_hdr_destroy(hdr);
   htsfp=hts_open(hts,"r" );
+  if(nthreads>1){
+    if (!(p.pool = hts_tpool_init(nthreads))) {
+      fprintf(stderr, "Error creating thread pool\n");
+      return 0;
+    }
+    hts_set_opt(htsfp,  HTS_OPT_THREAD_POOL, &p);
+    hts_set_opt(outhts,  HTS_OPT_THREAD_POOL, &p);
+  }
+  
   hdr = sam_hdr_read(htsfp); 
   writemod(htsfp,hdr,usedref,outhts);
   sam_close(htsfp);
