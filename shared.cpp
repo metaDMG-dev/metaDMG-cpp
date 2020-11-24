@@ -1,6 +1,62 @@
 #include <cstdio>
 #include <cstdlib>
+#include <sys/stat.h>
+#include <htslib/bgzf.h>
+#include <cassert>
 #include "shared.h"
+
+
+BGZF *getbgzf(const char*str1,const char *mode,int nthreads){
+  BGZF *fp = NULL;
+  fp = bgzf_open(str1,mode);
+  fprintf(stderr,"\t-> opening file: \'%s\' mode: \'%s\'\n",str1,mode);
+  assert(fp!=NULL);
+  if(nthreads>1){
+    fprintf(stderr,"\t-> Setting threads to: %d \n",nthreads);
+    bgzf_mt(fp,nthreads,64);
+  }
+  return fp;
+}
+
+BGZF *getbgzf2(const char*str1,const char *str2,const char *mode,int nthreads){
+  unsigned tmp_l = strlen(str1)+strlen(str2)+5;
+  char tmp[tmp_l];
+  snprintf(tmp,tmp_l,"%s%s",str1,str2);
+  return  getbgzf(tmp,mode,nthreads);
+}
+
+BGZF *getbgzf3(const char*str1,const char *str2,const char *str3,const char *mode,int nthreads){
+  unsigned tmp_l = strlen(str1)+strlen(str2)+strlen(str3)+5;
+  char tmp[tmp_l];
+  snprintf(tmp,tmp_l,"%s%s%s",str1,str2,str3);
+  return  getbgzf(tmp,mode,nthreads);
+}
+
+
+
+int fexists(const char* str){///@param str Filename given as a string.
+  fprintf(stderr,"\t-> Checking if exits: \'%s\'\n",str);
+  struct stat buffer ;
+  return (stat(str, &buffer )==0 ); /// @return Function returns 1 if file exists.
+}
+
+int fexists2(const char*str1,const char* str2){
+  unsigned tmp_l = strlen(str1)+strlen(str2)+5;
+  char tmp[tmp_l];
+  snprintf(tmp,tmp_l,"%s%s",str1,str2);
+  return fexists(tmp);
+}
+
+
+
+
+int fexists3(const char*str1,const char* str2,const char *str3){
+  unsigned tmp_l = strlen(str1)+strlen(str2)+strlen(str3)+5;
+  char tmp[tmp_l];
+  snprintf(tmp,tmp_l,"%s%s%s",str1,str2,str3);
+  return fexists(tmp);
+}
+
 
 
 //usefull little function to split
@@ -144,3 +200,96 @@ void parse_nodes2(int2int &parent,int2intvec &child){
   fprintf(stderr,"\t-> Done generating reverse node table: contains: %lu\n",child.size());
   //    exit(0);
 }
+
+//bamfile is only used for making smaller filedump (using the filename)
+ 
+int2int *bamRefId2tax(bam_hdr_t *hdr,char *acc2taxfile,char *bamfile,int2int &errmap) { 
+  fprintf(stderr,"\t-> Starting to extract (acc->taxid) from binary file: \'%s\'\n",acc2taxfile);
+  fflush(stderr);
+  int dodump = !fexists3(basename(acc2taxfile),basename(bamfile),".bin");
+  
+  fprintf(stderr,"\t-> Checking if bimnary file exists. dodump=%d \n", dodump);
+  
+  time_t t=time(NULL);
+  BGZF *fp= NULL;
+  if(dodump)
+    fp = getbgzf3(basename(acc2taxfile),basename(bamfile),".bin","wb",4);
+  else
+    fp =  getbgzf3(basename(acc2taxfile),basename(bamfile),".bin","rb",4);
+  //this contains refname(as int) -> taxid
+  int2int *am= new int2int;
+  
+  
+  if(dodump){
+    
+    char buf[4096];
+    int at=0;
+    char buf2[4096];
+    extern int SIG_COND;
+    kstring_t *kstr =(kstring_t *)malloc(sizeof(kstring_t));
+    kstr->l=kstr->m = 0;
+    kstr->s = NULL;
+    BGZF *fp2 = getbgzf(acc2taxfile,"rb",2);
+    bgzf_getline(fp2,'\n',kstr);//skip header
+    kstr->l =0;
+    while(SIG_COND&&bgzf_getline(fp2,'\n',kstr)){
+      if(kstr->l==0)
+	break;
+      //fprintf(stderr,"at: %d = '%s\'\n",at,kstr->s);
+      if(!((at++ %100000 ) ))
+	if(isatty(fileno(stderr)))
+	  fprintf(stderr,"\r\t-> At linenr: %d in \'%s\'      ",at,acc2taxfile);
+      char *tok = strtok(kstr->s,"\t\n ");
+      char *key =strtok(NULL,"\t\n ");
+      tok = strtok(NULL,"\t\n ");
+      int val = atoi(tok);
+      //fprintf(stderr,"key: %d val: %d\n",key,val);exit(0);
+      int valinbam = bam_name2id(hdr,key);
+      if(valinbam==-1)
+	continue;
+      bgzf_write(fp,&valinbam,sizeof(int));
+      bgzf_write(fp,&val,sizeof(int));
+      //fprintf(stderr,"key: %s val: %d valinbam:%d\n",key,val,valinbam);
+      
+      if(am->find(valinbam)!=am->end())
+	fprintf(stderr,"\t-> Duplicate entries found \'%s\'\n",key);
+      (*am)[valinbam] = val;
+      kstr->l =0;
+    }
+    bgzf_close(fp2);
+  }else{
+    int valinbam,val;
+    while(bgzf_read(fp,&valinbam,sizeof(int))){
+      bgzf_read(fp,&val,sizeof(int));
+      (*am)[valinbam] = val;
+    }
+  }
+
+  bgzf_close(fp);
+  fprintf(stderr,"\t-> Number of entries to use from accesion to taxid: %lu, time taken: %.2f sec\n",am->size(),(float)(time(NULL) - t));
+  return am;
+}
+
+
+queue *init_queue(size_t maxsize){
+  queue *ret = new queue;
+  ret->l =0;
+  ret->m =maxsize;
+  ret->ary = new bam1_t*[ret->m];
+  for(int i=0;i<ret->m;i++)
+    ret->ary[i] = bam_init1();
+  return ret;
+}
+
+//expand queue with 500 elements
+void expand_queue(queue *ret){
+  bam1_t **newary = new bam1_t*[ret->m+500];
+  for(int i=0;i<ret->l;i++)
+    newary[i] = ret->ary[i];
+  for(int i=ret->l;i<ret->m+500;i++)
+    newary[i] = bam_init1();
+  delete [] ret->ary;
+  ret->ary = newary;
+  ret->m += 500;
+}
+

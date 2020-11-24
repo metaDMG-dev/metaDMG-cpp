@@ -39,30 +39,6 @@ void pars_free(pars *p){
   free(p);
 }
 
-
-int fexists(const char* str){///@param str Filename given as a string.
-  fprintf(stderr,"\t-> Checking if exits: \'%s\'\n",str);
-  struct stat buffer ;
-  return (stat(str, &buffer )==0 ); /// @return Function returns 1 if file exists.
-}
-
-int fexists2(const char*str1,const char* str2){
-  unsigned tmp_l = strlen(str1)+strlen(str2)+5;
-  char tmp[tmp_l];
-  snprintf(tmp,tmp_l,"%s%s",str1,str2);
-  return fexists(tmp);
-}
-
-
-int fexists3(const char*str1,const char* str2,const char *str3){
-  unsigned tmp_l = strlen(str1)+strlen(str2)+strlen(str3)+5;
-  char tmp[tmp_l];
-  snprintf(tmp,tmp_l,"%s%s%s",str1,str2,str3);
-  return fexists(tmp);
-}
-
-
-
 void *read_header_thread(void *ptr){
   time_t t=time(NULL);
   pars *p = (pars *) ptr;
@@ -238,32 +214,6 @@ void print_pars(FILE *fp,pars *p){
   fprintf(fp,"\t-> -lca_rank\t%s\n",p->lca_rank);
   fprintf(fp,"\t-> -norank2species\t%d\n",p->norank2species);
   fprintf(fp,"\t-> -howmany\t%d\n",p->howmany);
-}
-
-BGZF *getbgzf(const char*str1,const char *mode,int nthreads){
-  BGZF *fp = NULL;
-  fp = bgzf_open(str1,mode);
-  fprintf(stderr,"\t-> opening file: \'%s\' mode: \'%s\'\n",str1,mode);
-  assert(fp!=NULL);
-  if(nthreads>1){
-    fprintf(stderr,"\t-> Setting threads to: %d \n",nthreads);
-    bgzf_mt(fp,nthreads,64);
-  }
-  return fp;
-}
-
-BGZF *getbgzf2(const char*str1,const char *str2,const char *mode,int nthreads){
-  unsigned tmp_l = strlen(str1)+strlen(str2)+5;
-  char tmp[tmp_l];
-  snprintf(tmp,tmp_l,"%s%s",str1,str2);
-  return  getbgzf(tmp,mode,nthreads);
-}
-
-BGZF *getbgzf3(const char*str1,const char *str2,const char *str3,const char *mode,int nthreads){
-  unsigned tmp_l = strlen(str1)+strlen(str2)+strlen(str3)+5;
-  char tmp[tmp_l];
-  snprintf(tmp,tmp_l,"%s%s%s",str1,str2,str3);
-  return  getbgzf(tmp,mode,nthreads);
 }
 
 #ifdef __WITH_MAIN__
