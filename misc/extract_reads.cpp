@@ -164,8 +164,8 @@ void gettaxids_to_use(int taxid,int2intvec &child,int2int &i2i){
 
 int main(int argc,char**argv){
   
-  if(argc==3){
-    fprintf(stderr,"./extract_reads -hts -key -names -nodes -acc2txt -outnames -strict -type\n");
+  if(argc==1){
+    fprintf(stderr,"./extract_reads -hts -key -taxid -nodes -acc2txt -outnames -strict -type\n");
     return 0;
   }
   argv++;
@@ -183,7 +183,7 @@ int main(int argc,char**argv){
     //X    fprintf(stderr,"key: %s val: %s\n",key,val);
     if(!strcasecmp("-hts",key)) hts=strdup(val);
     else if(!strcasecmp("-key",key)) keyfile=strdup(val);
-    else if(!strcasecmp("-names",key)) names=strdup(val);
+    else if(!strcasecmp("-taxid",key)) names=strdup(val);
     else if(!strcasecmp("-nodes",key)) nodefile=strdup(val);
     else if(!strcasecmp("-acc2tax",key)) acc2tax=strdup(val);
     else if(!strcasecmp("-strict",key)) strict=atoi(val);
@@ -202,10 +202,16 @@ int main(int argc,char**argv){
   samFile *htsfp = hts_open(hts,"r");
   bam_hdr_t *hdr = sam_hdr_read(htsfp); 
 
-
-  
   char2int cmap = getkeys(keyfile);
   
+  char2int taxids;
+  if(!fexists(names))
+    taxids[names] = 1;
+  else
+    taxids = getkeys(names);
+
+  for(char2int::iterator it=taxids.begin();it!=taxids.end();it++)
+    fprintf(stderr,"\t-> looping up taxid: %s\n",it->first);
   
   //map of taxid -> taxid
   int2int parent;
@@ -228,10 +234,11 @@ int main(int argc,char**argv){
 
   //make a list of taxids to use
   int2int taxlist;
-  if(names!=NULL){
-    gettaxids_to_use(atoi(names),child,taxlist);
-    fprintf(stderr,"\t-> Number of taxids spanned by taxid: %s from nodesfile: %s is: %lu\n",names,nodefile,taxlist.size());
+  for(char2int::iterator it=taxids.begin();it!=taxids.end();it++){
+    gettaxids_to_use(atoi(it->first),child,taxlist);
+    fprintf(stderr,"\t-> Number of taxids spanned by taxid: %d from nodesfile: %s is: %lu\n",atoi(it->first),nodefile,taxlist.size());
   }
+  fprintf(stderr,"\t-> Total number of taxids to filter from: %lu\n",taxlist.size());
   int2int keeplist;
   for(char2int::iterator it=cmap.begin();it!=cmap.end();it++){
     int tokeep = sam_hdr_name2tid(hdr,it->first);

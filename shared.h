@@ -17,3 +17,4 @@ void parse_nodes(const char *fname,int2char &rank,int2int &parent);
 void strip(char *line);
 void parse_nodes(const char *fname,int2char &rank,int2int &parent,int2intvec &child,int dochild);
 int2int *bamRefId2tax(bam_hdr_t *hdr,char *acc2taxfile,char *bamfile,int2int &errmap);
+int fexists(const char* str);
