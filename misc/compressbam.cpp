@@ -17,14 +17,14 @@ int nthreads = 4;
 char out_mode[5]="ws";
 
 //get ref used not get refused
-int getrefused(samFile *htsfp,bam_hdr_t *hdr,int *keeplist,int &nkeep){
+size_t getrefused(samFile *htsfp,bam_hdr_t *hdr,int *keeplist,int &nkeep){
    //now mainloop
   bam1_t *aln = bam_init1();
 
-  int at =0;
+  size_t at =0;
   while(sam_read1(htsfp,hdr,aln) >= 0) {
     if((at++ %100000)==0  )
-      fprintf(stderr,"\r now at read:     %d ",at);
+      fprintf(stderr,"\r\t->  Now at read:     %lu ",at);
     int chr = aln->core.tid ; //contig name (chromosome)
     assert(chr!=-1);
     keeplist[chr] = keeplist[chr]+1;
@@ -131,8 +131,10 @@ void writemod(const char *outfile ,bam_hdr_t *hdr,int *keeplist,samFile *htsfp){
 
   //now mainloop
   bam1_t *aln = bam_init1();
-  int at =1;
+  size_t at =1;
   while(sam_read1(htsfp,hdr,aln) >= 0) {
+    if((at++ %100000)==0  )
+      fprintf(stderr,"\r\t->  Now at read:     %lu ",at);
     int oldchr = aln->core.tid ; //contig name (chromosome)
     aln->core.tid = keeplist[oldchr];
     if(aln->core.mtid!=-1)
@@ -195,8 +197,8 @@ int main(int argc,char**argv){
   int *keeplist = new int[sam_hdr_nref(hdr)];
   for(int i=0;i<sam_hdr_nref(hdr);i++)
     keeplist[i] = -1;
-  int nalign = getrefused(htsfp,hdr,keeplist,nkeep);
-  fprintf(stderr,"\t-> Number of alignments parsed: %d\n",nalign);
+  size_t nalign = getrefused(htsfp,hdr,keeplist,nkeep);
+  fprintf(stderr,"\t-> Number of alignments parsed: %lu\n",nalign);
   sam_close(htsfp);
 
   sam_hdr_destroy(hdr);
