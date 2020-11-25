@@ -9,6 +9,7 @@
 #include <cassert>
 #include <ctype.h>
 #include <htslib/kstring.h>
+#include <htslib/hfile.h>
 #include "../shared.h"
 
 htsFormat *dingding2 =(htsFormat*) calloc(1,sizeof(htsFormat));
@@ -190,7 +191,7 @@ int main(int argc,char**argv){
   //open inputfile and parse header
   samFile *htsfp = hts_open(hts,"r");
   bam_hdr_t *hdr = sam_hdr_read(htsfp);
-
+  //  int64_t record_begin = htell(htsfp);
   //  int64_t ret = hts_tell_func(htsfp->fp); //this should work at some piont
   fprintf(stderr,"\t-> Header has now been read. Will now start list of refIDs to use\n");fflush(stderr);
   int nkeep = 0;

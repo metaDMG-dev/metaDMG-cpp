@@ -27,6 +27,41 @@ int usage_getdamage(FILE *fp){
   return 0;
 }
 
+double *getval(std::map<int, double *> &retmap,int2intvec &child,int taxid,int howmany){
+  // fprintf(stderr,"getval\t%d\t%d\n",taxid,howmany);
+  std::map<int,double *>::iterator it = retmap.find(taxid);
+  if(it!=retmap.end()){
+    //fprintf(stderr,"has found: %d in retmap\n",it->first);
+#if 0
+    fprintf(stderr,"val\t%d",taxid);
+    for(int i=0;i<3*howmany+1;i++)
+      fprintf(stderr,"\t%f",it->second[i]);
+    fprintf(stderr,"\n");
+#endif
+    return it->second;
+  }
+  double *ret = new double [3*howmany+1];
+  for(int i=0;i<3*howmany+1;i++)
+    ret[i] = 0.0;
+  if(child.size()>0) {// if we have supplied -nodes
+    int2intvec::iterator it2 = child.find(taxid);
+    if (it2!=child.end()){
+      std::vector<int> &avec = it2->second;
+      for(int i=0;i<avec.size();i++){
+	//	fprintf(stderr,"%d/%d %d\n",i,avec.size(),avec[i]);
+	double *tmp = getval(retmap,child,avec[i],howmany);
+	for(int i=0;i<3*howmany+1;i++)
+	  ret[i] += tmp[i];
+
+      }
+    }
+  }
+  
+  retmap[taxid] = ret;
+
+  return ret;
+}
+
 int main_getdamage(int argc,char **argv){
   if(argc==1)
     return usage_getdamage(stderr);
@@ -145,13 +180,16 @@ int main_index(int argc,char **argv){
 
 
 int main_print(int argc,char **argv){
-  fprintf(stderr,"./metadamage print file.bdamage.gz [-names file.gz -bam file.bam -ctga -countout]\n");
+  fprintf(stderr,"./metadamage print file.bdamage.gz [-names file.gz -bam file.bam -ctga -countout -nodes -howmany -r -doOld]\n");
   char *infile = NULL;
   char *inbam = NULL;
   char *acc2tax = NULL;
   int ctga =0;//only print ctga errors
   int search = -1;
   int countout = 0;
+  char *infile_nodes = NULL;
+  int howmany = 15;
+  int doold = 0;
   while(*(++argv)){
     if(strcasecmp("-names",*argv)==0)
       acc2tax = strdup(*(++argv));
@@ -159,21 +197,50 @@ int main_print(int argc,char **argv){
       inbam = strdup(*(++argv));
     else if(strcasecmp("-r",*argv)==0)
       search = atoi(*(++argv));
+    else if(strcasecmp("-howmany",*argv)==0)
+      howmany = atoi(*(++argv));
     else if(strcasecmp("-ctga",*argv)==0)
       ctga =1;
+    else if(strcasecmp("-doOld",*argv)==0)
+      doold = 1;
     else if(strcasecmp("-countout",*argv)==0)
       countout =1;
+    else if(strcasecmp("-nodes",*argv)==0)
+      infile_nodes = strdup(*(++argv));
     else
       infile = strdup(*argv);
   }
 
 
-  fprintf(stderr,"infile: %s inbam: %s names: %s search: %d ctga: %d countout: %d\n",infile,inbam,acc2tax,search,ctga,countout);
+  fprintf(stderr,"infile: %s inbam: %s names: %s search: %d ctga: %d countout: %d nodes: %s\n",infile,inbam,acc2tax,search,ctga,countout,infile_nodes);
 
   int2char name_map;
   if(acc2tax!=NULL)
     name_map = parse_names(acc2tax);
 
+  //map of taxid -> taxid
+  int2int parent;
+  //map of taxid -> rank
+  int2char rank;
+  //map of parent -> child taxids
+  int2intvec child;
+
+  if(infile_nodes!=NULL)
+    parse_nodes(infile_nodes,rank,parent,child,1);
+  if(search!=-1&& doold==0){
+    std::map<int, double *> retmap = load_bdamage3(infile,howmany);
+    double *dbl = getval(retmap,child,search,howmany);
+    double dbldbl[3*howmany+1];//3 because ct,ga,other
+    dbldbl[0] = dbl[0];
+    for(int i=0;i<3*howmany;i++)
+      dbldbl[i+1] = dbl[1+i]/dbl[0];
+    
+    fprintf(stdout,"%d\t%.0f",search,dbldbl[0]);
+    for(int i=0;i<3*howmany;i++)
+      fprintf(stdout,"\t%f",dbldbl[1+i]);
+    fprintf(stdout,"\n");
+    return 0;
+  }
   
   BGZF *bgfp = NULL;
   samFile *samfp = NULL;
@@ -335,41 +402,6 @@ int main_print(int argc,char **argv){
 }
 
 
-double *getval(std::map<int, double *> &retmap,int2intvec &child,int taxid,int howmany){
-  // fprintf(stderr,"getval\t%d\t%d\n",taxid,howmany);
-  std::map<int,double *>::iterator it = retmap.find(taxid);
-  if(it!=retmap.end()){
-    //fprintf(stderr,"has found: %d in retmap\n",it->first);
-#if 0
-    fprintf(stderr,"val\t%d",taxid);
-    for(int i=0;i<2*howmany+1;i++)
-      fprintf(stderr,"\t%f",it->second[i]);
-    fprintf(stderr,"\n");
-#endif
-    return it->second;
-  }
-  double *ret = new double [2*howmany+1];
-  for(int i=0;i<2*howmany+1;i++)
-    ret[i] = 0.0;
-  if(child.size()>0) {// if we have supplied -nodes
-    int2intvec::iterator it2 = child.find(taxid);
-    if (it2!=child.end()){
-      std::vector<int> &avec = it2->second;
-      for(int i=0;i<avec.size();i++){
-	//	fprintf(stderr,"%d/%d %d\n",i,avec.size(),avec[i]);
-	double *tmp = getval(retmap,child,avec[i],howmany);
-	for(int i=0;i<2*howmany+1;i++)
-	  ret[i] += tmp[i];
-
-      }
-    }
-  }
-  
-  retmap[taxid] = ret;
-
-  return ret;
-}
-
 int main_merge(int argc,char **argv){
   fprintf(stderr,"./metadamage merge file.lca file.bdamage.gz [-names file.gz -bam file.bam -howmany 5 -nodes trestructure.gz]\n");
   if(argc<=2)
@@ -450,7 +482,7 @@ int main_merge(int argc,char **argv){
     int taxid=atoi(strtok(NULL,":"));
     //    fprintf(stderr,"taxid: %d\n",taxid);
     double *dbl = getval(retmap,child,taxid,howmany);
-    double dbldbl[3*howmany+1];
+    double dbldbl[3*howmany+1];//3 because ct,ga,other
     dbldbl[0] = dbl[0];
     for(int i=0;i<3*howmany;i++)
       dbldbl[i+1] = dbl[1+i]/dbl[0];
