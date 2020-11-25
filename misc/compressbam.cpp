@@ -17,34 +17,30 @@ int nthreads = 4;
 char out_mode[5]="ws";
 
 //get ref used not get refused
-int2int getrefused(samFile *htsfp,bam_hdr_t *hdr){
+int getrefused(samFile *htsfp,bam_hdr_t *hdr,int *keeplist,int &nkeep){
    //now mainloop
   bam1_t *aln = bam_init1();
-  int2int hit;
+
+  int at =0;
   while(sam_read1(htsfp,hdr,aln) >= 0) {
+    if((at++ %100000)==0  )
+      fprintf(stderr,"\r now at read:     %d ",at);
     int chr = aln->core.tid ; //contig name (chromosome)
     assert(chr!=-1);
-    int2int::iterator it = hit.find(chr);
-    if(it==hit.end())
-      hit[chr] = 1;
-    else
-      it->second = it->second+1;
-    
+    keeplist[chr] = keeplist[chr]+1;
     chr =aln->core.mtid; 
-    if(chr!=-1){
-      int2int::iterator it = hit.find(chr);
-      if(it==hit.end())
-	hit[chr] = 1;
-      else
-	it->second = it->second+1;
-    }
+    if(chr!=-1)
+      keeplist[chr] = keeplist[chr]+1;
   }
-  fprintf(stderr,"\t-> Done reading list of refids to keep: %lu\n",hit.size());
+  for(int i=0;i<sam_hdr_nref(hdr);i++)
+    if(keeplist[i]!=-1)
+      nkeep++;
+  fprintf(stderr,"\n\t-> Done reading list of refids to keep %d\n",nkeep);
   bam_destroy1(aln);
-  return hit;
+  return at;
 }
 
-void writemod(const char *outfile ,bam_hdr_t *hdr,int2int &keep,samFile *htsfp){
+void writemod(const char *outfile ,bam_hdr_t *hdr,int *keeplist,samFile *htsfp){
   BGZF *fp = NULL;
   fp=bgzf_open(outfile,"wb");
   bgzf_mt(fp,nthreads,256);
@@ -57,10 +53,13 @@ void writemod(const char *outfile ,bam_hdr_t *hdr,int2int &keep,samFile *htsfp){
   sam_hdr_find_hd(hdr,&kstmp);
   kputs(kstmp.s,&newhdr_ks);
   kputc('\n',&newhdr_ks);
-  for(int2int::iterator it=keep.begin();it!=keep.end();it++){
+  //  for(int2int::iterator it=keep.begin();it!=keep.end();it++){
+  for(int i=0;i<sam_hdr_nref(hdr);i++){
+    if(keeplist[i]==-1)
+      continue;
     //    fprintf(stderr,"SQ: it->first: %d\n",it->first);
     kstmp.l =0;
-    assert(sam_hdr_find_line_pos(hdr,"SQ",it->first,&kstmp)==0);
+    assert(sam_hdr_find_line_pos(hdr,"SQ",i,&kstmp)==0);
     kputs(kstmp.s,&newhdr_ks);
     kputc('\n',&newhdr_ks);
   }
@@ -120,12 +119,12 @@ void writemod(const char *outfile ,bam_hdr_t *hdr,int2int &keep,samFile *htsfp){
     }
     hts_set_opt(outhts,  HTS_OPT_THREAD_POOL, &p);
   }
+  for(int i=0;i<sam_hdr_nref(hdr);i++){
+    if(keeplist[i]==-1)
+      continue;
 
-  for(int2int::iterator it=keep.begin();it!=keep.end();it++){
-    //    fprintf(stderr,"pre: %d ",it->first);
-    it->second = sam_hdr_name2tid(newhdr,sam_hdr_tid2name(hdr,it->first));
-    assert(it->second>=0);
-    //fprintf(stderr,"post: %d \n",it->second);
+    keeplist[i] = sam_hdr_name2tid(newhdr,sam_hdr_tid2name(hdr,i));
+    assert(keeplist[i]>=0);
   }
   
   int ret = sam_hdr_write(outhts,newhdr);
@@ -135,9 +134,9 @@ void writemod(const char *outfile ,bam_hdr_t *hdr,int2int &keep,samFile *htsfp){
   int at =1;
   while(sam_read1(htsfp,hdr,aln) >= 0) {
     int oldchr = aln->core.tid ; //contig name (chromosome)
-    aln->core.tid = keep[oldchr];
+    aln->core.tid = keeplist[oldchr];
     if(aln->core.mtid!=-1)
-      aln->core.mtid = keep[aln->core.mtid];
+      aln->core.mtid = keeplist[aln->core.mtid];
     assert(sam_write1(outhts, newhdr,aln)>=0);
   }
   
@@ -191,15 +190,20 @@ int main(int argc,char**argv){
   bam_hdr_t *hdr = sam_hdr_read(htsfp);
 
   //  int64_t ret = hts_tell_func(htsfp->fp); //this should work at some piont
-  fprintf(stderr,"\t-> Header has now been read\n");fflush(stderr);
-  int2int usedref = getrefused(htsfp,hdr);
+  fprintf(stderr,"\t-> Header has now been read. Will now start list of refIDs to use\n");fflush(stderr);
+  int nkeep = 0;
+  int *keeplist = new int[sam_hdr_nref(hdr)];
+  for(int i=0;i<sam_hdr_nref(hdr);i++)
+    keeplist[i] = -1;
+  int nalign = getrefused(htsfp,hdr,keeplist,nkeep);
+  fprintf(stderr,"\t-> Number of alignments parsed: %d\n",nalign);
   sam_close(htsfp);
 
   sam_hdr_destroy(hdr);
   htsfp=hts_open(hts,"r" );
   hdr = sam_hdr_read(htsfp);
   
-  writemod(outfile,hdr,usedref,htsfp);
+  writemod(outfile,hdr,keeplist,htsfp);
   sam_close(htsfp);
 
   if(hts) free(hts);
