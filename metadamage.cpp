@@ -180,7 +180,10 @@ int main_index(int argc,char **argv){
 
 
 int main_print(int argc,char **argv){
-  fprintf(stderr,"./metadamage print file.bdamage.gz [-names file.gz -bam file.bam -ctga -countout -nodes -howmany -r -doOld]\n");
+  if(argc==1){
+    fprintf(stderr,"./metadamage print file.bdamage.gz [-acc2tax file.gz -bam file.bam -ctga -countout -nodes -howmany -r -doOld -nodes]\n");
+    return 0;
+  }
   char *infile = NULL;
   char *inbam = NULL;
   char *acc2tax = NULL;
@@ -191,7 +194,7 @@ int main_print(int argc,char **argv){
   int howmany = 15;
   int doold = 0;
   while(*(++argv)){
-    if(strcasecmp("-names",*argv)==0)
+    if(strcasecmp("-acc2tax",*argv)==0)
       acc2tax = strdup(*(++argv));
     else if(strcasecmp("-bam",*argv)==0)
       inbam = strdup(*(++argv));
