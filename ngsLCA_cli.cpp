@@ -26,7 +26,7 @@ pars *pars_init(){
   p->minlength=-1;
   p->charref2taxid = NULL;
   p->lca_rank = NULL;
-  p->norank2species = 1;
+  p->norank2species = 0;
   p->howmany = 5;
   p->usedreads_sam = NULL;
   return p;
