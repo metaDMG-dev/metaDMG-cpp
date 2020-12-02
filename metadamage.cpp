@@ -192,7 +192,7 @@ int main_print(int argc,char **argv){
   int countout = 0;
   char *infile_nodes = NULL;
   int howmany = 15;
-  int doold = 0;
+  int doold = 1;
   while(*(++argv)){
     if(strcasecmp("-acc2tax",*argv)==0)
       acc2tax = strdup(*(++argv));
@@ -216,7 +216,7 @@ int main_print(int argc,char **argv){
 
 
   fprintf(stderr,"infile: %s inbam: %s names: %s search: %d ctga: %d countout: %d nodes: %s\n",infile,inbam,acc2tax,search,ctga,countout,infile_nodes);
-
+  assert(infile);
   int2char name_map;
   if(acc2tax!=NULL)
     name_map = parse_names(acc2tax);
@@ -404,6 +404,243 @@ int main_print(int argc,char **argv){
     sam_close(samfp);
 }
 
+int main_print2(int argc,char **argv){
+  if(argc==1){
+    fprintf(stderr,"./metadamage print2 file.bdamage.gz [-acc2tax file.gz -bam file.bam -ctga -countout -nodes -howmany -r -doOld -nodes]\n");
+    return 0;
+  }
+  char *infile = NULL;
+  char *inbam = NULL;
+  char *acc2tax = NULL;
+  int ctga =0;//only print ctga errors
+  int search = -1;
+  int countout = 0;
+  char *infile_nodes = NULL;
+  int howmany = 15;
+  int doold = 0;
+  while(*(++argv)){
+    if(strcasecmp("-acc2tax",*argv)==0)
+      acc2tax = strdup(*(++argv));
+    else if(strcasecmp("-bam",*argv)==0)
+      inbam = strdup(*(++argv));
+    else if(strcasecmp("-r",*argv)==0)
+      search = atoi(*(++argv));
+    else if(strcasecmp("-howmany",*argv)==0)
+      howmany = atoi(*(++argv));
+    else if(strcasecmp("-ctga",*argv)==0)
+      ctga =1;
+    else if(strcasecmp("-doOld",*argv)==0)
+      doold = 1;
+    else if(strcasecmp("-countout",*argv)==0)
+      countout =1;
+    else if(strcasecmp("-nodes",*argv)==0)
+      infile_nodes = strdup(*(++argv));
+    else
+      infile = strdup(*argv);
+  }
+
+
+  fprintf(stderr,"infile: %s inbam: %s names: %s search: %d ctga: %d countout: %d nodes: %s\n",infile,inbam,acc2tax,search,ctga,countout,infile_nodes);
+  assert(infile);
+  int2char name_map;
+  if(acc2tax!=NULL)
+    name_map = parse_names(acc2tax);
+
+  //map of taxid -> taxid
+  int2int parent;
+  //map of taxid -> rank
+  int2char rank;
+  //map of parent -> child taxids
+  int2intvec child;
+
+  if(infile_nodes!=NULL)
+    parse_nodes(infile_nodes,rank,parent,child,1);
+  if(search!=-1&& doold==0){
+    std::map<int, double *> retmap = load_bdamage3(infile,howmany);
+    double *dbl = getval(retmap,child,search,howmany);
+    double dbldbl[3*howmany+1];//3 because ct,ga,other
+    dbldbl[0] = dbl[0];
+    for(int i=0;i<3*howmany;i++)
+      dbldbl[i+1] = dbl[1+i]/dbl[0];
+    
+    fprintf(stdout,"%d\t%.0f",search,dbldbl[0]);
+    for(int i=0;i<3*howmany;i++)
+      fprintf(stdout,"\t%f",dbldbl[1+i]);
+    fprintf(stdout,"\n");
+    return 0;
+  }
+  
+  BGZF *bgfp = NULL;
+  samFile *samfp = NULL;
+  bam_hdr_t *hdr =NULL;
+
+  if(((bgfp = bgzf_open(infile, "r")))== NULL){
+    fprintf(stderr,"Could not open input BAM file: %s\n",infile);
+    return 1;
+  }
+  
+  if(inbam!=NULL){
+    if(((  samfp = sam_open_format(inbam, "r", NULL) ))== NULL){
+      fprintf(stderr,"Could not open input BAM file: %s\n",inbam);
+      return 1;
+    }
+    if(((hdr= sam_hdr_read(samfp))) == NULL){
+      fprintf(stderr,"Could not read header for: %s\n",inbam);
+    return 1;
+    }
+  }
+  
+  int printlength;
+  assert(sizeof(int)==bgzf_read(bgfp,&printlength,sizeof(int)));
+  fprintf(stderr,"\t-> printlength(howmany) from inputfile: %d\n",printlength);
+
+  int ref_nreads[2];
+  char *type_name = NULL;
+  if(hdr!=NULL)
+    type_name = strdup("#Reference");
+  else if(acc2tax!=NULL)
+    type_name = strdup("#FunkyName");
+  else
+    type_name = strdup("#taxid");
+  
+  if(ctga==0){
+    fprintf(stdout,"%s\tNalignments\tDirection\tPos\tAA\tAC\tAG\tAT\tCA\tCC\tCG\tCT\tGA\tGC\tGG\tGT\tTA\tTC\tTG\tTT\n",type_name);
+  }else{
+    fprintf(stdout,"%s\tNalignment",type_name);
+    for(int i=0;i<howmany;i++)
+      fprintf(stdout,"\tCT_%d",i);
+    for(int i=0;i<howmany;i++)
+      fprintf(stdout,"\tGA_%d",i);
+    fprintf(stdout,"\n");
+  }
+    
+  int data[16];
+
+  while(1){
+    int nread=bgzf_read(bgfp,ref_nreads,2*sizeof(int));
+    double ctgas[2*printlength];
+    if(nread==0)
+      break;
+    fprintf(stderr,"ref: %d nreads: %d\n",ref_nreads[0],ref_nreads[1]);
+    assert(nread==2*sizeof(int));
+    for(int i=0;i<printlength;i++){
+      assert(16*sizeof(int)==bgzf_read(bgfp,data,sizeof(int)*16));
+      if((i+1)>howmany)
+	continue;
+      if(search==-1||search==ref_nreads[0]) {
+	if(ctga==0)  {
+	  if(hdr!=NULL)
+	    fprintf(stdout,"%s\t%d\t5\'\t%d",hdr->target_name[ref_nreads[0]],ref_nreads[1],i);
+	  else if(acc2tax!=NULL){
+	    int2char::iterator itt = name_map.find(ref_nreads[0]);
+	    if(itt==name_map.end()){
+	      fprintf(stderr,"\t-> Problem finding taxid: \'%d' in namedatabase: \'%s\'\n",ref_nreads[0],acc2tax);
+	      exit(0);
+	    }
+	    fprintf(stdout,"%s\t%d\t5\'\t%d",itt->second,ref_nreads[1],i);
+	  }else
+	    fprintf(stdout,"%d\t%d\t5\'\t%d",ref_nreads[0],ref_nreads[1],i);
+	}else{
+	  if(i==0)
+	    fprintf(stdout,"%d\t%d",ref_nreads[0],ref_nreads[1]);
+	}
+	if(countout==1){
+	  for(int i=0;i<16;i++)
+	    fprintf(stdout,"\t%lu",data[i]);
+	  fprintf(stdout,"\n");
+	}else{
+	  float flt[16];
+	  
+	  for(int i=0;i<4;i++){
+	    double tsum =0;
+	    for(int j=0;j<4;j++){
+	      tsum += data[i*4+j];
+	      flt[i*4+j] = data[i*4+j];
+	    }
+	    if(tsum==0) tsum = 1;
+	    for(int j=0;j<4;j++)
+	      flt[i*4+j] /=tsum;
+	  }
+	  
+	  if(ctga==0){
+	    for(int j=0;j<16;j++)
+	      fprintf(stdout,"\t%f",flt[j]);
+	    fprintf(stdout,"\n");
+	  }else
+	    ctgas[i] = flt[7];
+	}
+      }
+    }
+    if(search==-1||search==ref_nreads[0]){
+      if(ctga==1){
+	for(int i=0;i<howmany;i++)
+	  fprintf(stdout,"\t%f",ctgas[i]);
+      }
+    }
+  
+    for(int i=0;i<printlength;i++) {
+      assert(16*sizeof(int)==bgzf_read(bgfp,data,sizeof(int)*16));
+      if(i+1>howmany)
+	continue;
+      if(search==-1||search==ref_nreads[0]){
+	if(ctga==0) {
+	  if(hdr!=NULL)
+	    fprintf(stdout,"%s\t%d\t3\'\t%d",hdr->target_name[ref_nreads[0]],ref_nreads[1],i);
+	  else if(acc2tax!=NULL){
+	    int2char::iterator itt = name_map.find(ref_nreads[0]);
+	    if(itt==name_map.end()){
+	      fprintf(stderr,"\t-> Problem finding taxid: \'%d' in namedatabase: \'%s\'\n",ref_nreads[0],acc2tax);
+	      exit(0);
+	    }
+	    fprintf(stdout,"%s\t%d\t3\'\t%d",itt->second,ref_nreads[1],i);
+	  }
+	  else
+	    fprintf(stdout,"%d\t%d\t3\'\t%d",ref_nreads[0],ref_nreads[1],i);
+	}
+	if(countout==1){
+	  for(int i=0;i<16;i++)
+	    fprintf(stdout,"\t%lu",data[i]);
+	  fprintf(stdout,"\n");
+	}else{	
+	  float flt[16];
+	  
+	  for(int i=0;i<4;i++){
+	    double tsum =0;
+	    for(int j=0;j<4;j++){
+	      tsum += data[i*4+j];
+	      flt[i*4+j] = data[i*4+j];
+	    }
+	    if(tsum==0) tsum = 1;
+	    for(int j=0;j<4;j++)
+	      flt[i*4+j] /=tsum;
+	  }
+	  if(ctga==0){
+	    for(int j=0;j<16;j++)
+	      fprintf(stdout,"\t%f",flt[j]);
+	    fprintf(stdout,"\n");
+	  }else
+	  ctgas[i+printlength] = flt[8];
+	}
+      }
+    }
+
+    if(search==-1||search==ref_nreads[0]){
+      if(ctga==1){
+	for(int i=0;i<howmany;i++)
+	  fprintf(stdout,"\t%f",ctgas[printlength+i]);
+	fprintf(stdout,"\n");
+      }
+    }
+  }
+
+  if(bgfp)
+    bgzf_close(bgfp);
+  if(hdr)
+    bam_hdr_destroy(hdr);
+  if(samfp)
+    sam_close(samfp);
+}
+
 
 int main_merge(int argc,char **argv){
   fprintf(stderr,"./metadamage merge file.lca file.bdamage.gz [-names file.gz -bam file.bam -howmany 5 -nodes trestructure.gz]\n");
@@ -521,6 +758,7 @@ int main(int argc, char **argv){
     fprintf(stderr,"./metadamage merge files.lca files.bdamage.gz\n");
     fprintf(stderr,"./metadamage lca [many options]\n");
     fprintf(stderr,"./metadamage print bdamage.gz\n");
+    fprintf(stderr,"./metadamage print2 [many options] bdamage.gz\n");
     return 0;
   }
   argc--;++argv;
@@ -530,6 +768,8 @@ int main(int argc, char **argv){
     main_index(argc,argv);
   if(!strcmp(argv[0],"print"))
     main_print(argc,argv);
+   if(!strcmp(argv[0],"print2"))
+    main_print2(argc,argv);
   if(!strcmp(argv[0],"merge"))
     main_merge(argc,argv);
   if(!strcmp(argv[0],"lca"))
