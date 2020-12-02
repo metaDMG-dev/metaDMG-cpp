@@ -5,9 +5,11 @@
 #include <cstdlib>
 #include <htslib/sam.h>
 #include <cassert>
+#include <ctype.h>
 #include "../shared.h"
+
 int SIG_COND=1;
-char2int getkeys(const char *key){
+char2int getkeys(const char *key,int value){
   char2int cmap;
   if(key==NULL)
     return cmap;
@@ -23,7 +25,7 @@ char2int getkeys(const char *key){
     if(cmap.find(tok)!=cmap.end()){
       fprintf(stderr,"\t-> key: %s already exist will skip\n",buf);
     }
-    cmap[strdup(tok)] = 1;
+    cmap[strdup(tok)] = value;
   }
   fprintf(stderr,"\t-> Done reading keys from: \'%s\' nitems: %lu\n",key,cmap.size());
   fclose(fp);
@@ -60,7 +62,7 @@ void runextract_sam(char2int &cmap,const char *fname,int strict){
 
 }
 
-void runextract(int2int &keeplist,samFile *htsfp,bam_hdr_t *hdr,int strict,const char *outname){
+void runextract_taxid(int2int &keeplist,samFile *htsfp,bam_hdr_t *hdr,int strict,const char *outname){
   htsFormat *dingding2 =(htsFormat*) calloc(1,sizeof(htsFormat));
 
   //open outputfile and write header
@@ -142,6 +144,50 @@ void runextract(int2int &keeplist,samFile *htsfp,bam_hdr_t *hdr,int strict,const
   sam_close(outhts);
 }
 
+
+void runextract_readid(char2int &keeplist,samFile *htsfp,bam_hdr_t *hdr,const char *outname,char out_mode[5],int complement){
+  htsFormat *dingding2 =(htsFormat*) calloc(1,sizeof(htsFormat));
+
+  //open outputfile and write header
+  samFile *outhts = NULL;
+  if ((outhts = sam_open_format(outname,out_mode, dingding2)) == 0) {
+    fprintf(stderr,"Error opening file for writing: %s\n",outname);
+    exit(0);
+  }
+
+  if (sam_hdr_write(outhts, hdr) < 0)
+      fprintf(stderr,"Problem writing headers to %s", outname);
+
+  //now mainloop
+  bam1_t *aln = bam_init1();
+  
+  while(sam_read1(htsfp,hdr,aln) >= 0) {
+    char *qname = bam_get_qname(aln);
+    char2int::iterator it = keeplist.find(qname);
+    int isthere;
+    if(it==keeplist.end())
+      isthere=0;
+    else{
+      isthere=1;
+      it->second = it->second + 1;
+    }
+    if(complement==0&&isthere==1)
+      assert(sam_write1(outhts, hdr,aln)>=0);
+    else if(complement==1&&isthere==0)
+      assert(sam_write1(outhts, hdr,aln)>=0);
+    
+  }
+  for(char2int::iterator it=keeplist.begin();it!=keeplist.end();it++){
+    if(it->second==0)
+      fprintf(stderr,"read: %s doesnt exists in screening file\n",it->first);
+
+  }
+  
+  sam_hdr_destroy(hdr);
+  sam_close(htsfp);
+  sam_close(outhts);
+}
+
 //taxid is the root the one where will find all lower noded(further from the root)
 //child are the childnode structure
 //i2i contains all the taxids that is spanned by the taxid. This could be a vector but we use hash to check internal structure that we have no loops
@@ -162,7 +208,7 @@ void gettaxids_to_use(int taxid,int2intvec &child,int2int &i2i){
 
 }
 
-int main(int argc,char**argv){
+int main_bytaxid(int argc,char**argv){
   
   if(argc==1){
     fprintf(stderr,"./extract_reads -hts -key -taxid -nodes -acc2txt -outnames -strict -type\n");
@@ -202,13 +248,13 @@ int main(int argc,char**argv){
   samFile *htsfp = hts_open(hts,"r");
   bam_hdr_t *hdr = sam_hdr_read(htsfp); 
 
-  char2int cmap = getkeys(keyfile);
+  char2int cmap = getkeys(keyfile,0);
   
   char2int taxids;
   if(!fexists(names))
     taxids[names] = 1;
   else
-    taxids = getkeys(names);
+    taxids = getkeys(names,0);
 
   for(char2int::iterator it=taxids.begin();it!=taxids.end();it++)
     fprintf(stderr,"\t-> looping up taxid: %s\n",it->first);
@@ -254,7 +300,71 @@ int main(int argc,char**argv){
   }
   fprintf(stderr,"\t-> number of refids to use: %lu\n",keeplist.size());
   
-  runextract(keeplist,htsfp,hdr,strict,outfile);
+  runextract_taxid(keeplist,htsfp,hdr,strict,outfile);
+  
+  return 0;
+}
+
+
+int main_byreadid(int argc,char**argv){
+  
+  if(argc==1){
+    fprintf(stderr,"./extract_reads -hts -key -out -type\n");
+    return 0;
+  }
+  argv++;
+  char *keyfile = NULL;
+  char *hts = NULL;
+  int type = 0;
+  char *outfile = "tmp.sam";
+  char out_mode[5] = "wb";
+  int docomplement = 0;
+  while(*argv){
+    char *key=*argv;
+    char *val=*(++argv);
+    //X    fprintf(stderr,"key: %s val: %s\n",key,val);
+    if(!strcasecmp("-hts",key)) hts=strdup(val);
+    else if(!strcasecmp("-key",key)) keyfile=strdup(val);
+    else if(!strcasecmp("-out",key)) outfile=strdup(val);
+    else if(!strcasecmp("-docomplement",key)) docomplement=atoi(val);
+    else if(!strcasecmp("-type",key)) out_mode[1]=tolower(val[0]);
+    else{
+      fprintf(stderr,"\t Unknown parameter key:%s val:%s\n",key,val);
+      return 0;
+    }
+    ++argv;
+  }
+  
+  fprintf(stderr,"\t-> key: %s \n\t-> hts: %s \n\t-> type: %d \n\t-> outfile: %s\n",keyfile,hts,type,outfile);
+
+  //open inputfile and parse header
+  samFile *htsfp = hts_open(hts,"r");
+  bam_hdr_t *hdr = sam_hdr_read(htsfp); 
+
+  char2int cmap = getkeys(keyfile,0);
+  
+  fprintf(stderr,"\t-> number of refids to use: %lu\n",cmap.size());
+  
+  runextract_readid(cmap,htsfp,hdr,outfile,out_mode,docomplement);
+  
+  
+  return 0;
+}
+
+
+int main(int argc,char**argv){
+  
+  if(argc==1){
+    fprintf(stderr,"./extract_reads bytaxid -hts -key -taxid -nodes -acc2txt -out -strict -type\n");
+    fprintf(stderr,"./extract_reads byreadid -hts -key -out -type\n");
+    return 0;
+  }
+  if(strcasecmp(argv[1],"bytaxid")==0)
+    return main_bytaxid(argc--,++argv);
+  if(strcasecmp(argv[1],"byreadid")==0)
+    return main_byreadid(argc--,++argv);
+
+  fprintf(stderr,"\t-> Unknown options please use bytaxid or byreadid\n");
   
   return 0;
 }
