@@ -19,8 +19,8 @@ cd metadamage
 make
 ```
 ## Updating to latest version
+For installing latest updates in the directory metadamage do:
 ```
-For installing update do
 make clean
 git pull https://github.com/ANGSD/metadamage
 make
