@@ -12,6 +12,20 @@ Possible modes for running. Program is utilizing mdz field of the aux part of re
 
 For all analyses output is a binary '.bdamage.gz' file, that can be accessed with the 'metadamage print' functionality.
 
+# Installation
+```
+git clone https://github.com/ANGSD/metadamage
+cd metadamage
+make
+```
+## Updating to latest version
+```
+For installing update do
+make clean
+git pull https://github.com/ANGSD/metadamage
+make
+```
+
 
 # Single genome analysis
 `./metadamage getdamage -l 10 -p 5 --threads 8 input.bam`
