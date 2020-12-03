@@ -23,16 +23,13 @@ git clone https://github.com/SAMtools/htslib
 cd htslib
 make
 ```
-### installing metaDamage2.0
+### Installing metaDamage2.0
 To install metaDamage2.0 do:
 ```
 git clone https://github.com/ANGSD/metadamage
 cd metadamage
 make
 ```
-
-
-
 
 ## Updating to latest version
 For installing latest updates in the directory metadamage do:
