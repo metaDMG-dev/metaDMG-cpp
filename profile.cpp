@@ -307,7 +307,7 @@ int damage::damage_analysis(bam1_t *b,int which){
 }
 void damage::write(char *fname,bam_hdr_t *hdr){
   fprintf(stderr,"Dumping asso.size(): %lu\n",assoc.size());
-  char *outname="metaout";
+  char *outname=strdup("metaout");
   if(fname)
     outname = fname;
   kstring_t kstr;
@@ -334,7 +334,7 @@ void damage::write(char *fname,bam_hdr_t *hdr){
 	ksprintf(&kstr,"\t%d",it->second.mm3p[l][i]);
     }
     ksprintf(&kstr,"\n");
-    bgzf_write(fp,kstr.s,kstr.l);
+    assert(bgzf_write(fp,kstr.s,kstr.l)==kstr.l);
     kstr.l=0;
   }
   bgzf_close(fp);
@@ -347,18 +347,18 @@ void damage::bwrite(char *fname,bam_hdr_t *hdr){
   snprintf(onam,1024,"%s.bdamage.gz",fname);
   fprintf(stderr,"Will dump: \'%s\'\n",onam);
   BGZF *fp= my_bgzf_open(onam,nthreads);
-  bgzf_write(fp,&MAXLENGTH,sizeof(int));
+  assert(bgzf_write(fp,&MAXLENGTH,sizeof(int))==sizeof(int));
  
   for(std::map<int,triple>::iterator it=assoc.begin();it!=assoc.end();it++ ){
     if(it->second.nreads==0)//should never happen
       continue;
-    bgzf_write(fp,&it->first,sizeof(int));
-    bgzf_write(fp,&it->second.nreads,sizeof(int));
+    assert(bgzf_write(fp,&it->first,sizeof(int))==sizeof(int));
+    assert(bgzf_write(fp,&it->second.nreads,sizeof(int))==sizeof(int));
     for(int l=0;l<MAXLENGTH;l++)
-      bgzf_write(fp,it->second.mm5p[l],sizeof(int)*16);
+      assert(bgzf_write(fp,it->second.mm5p[l],sizeof(int)*16)==sizeof(int)*16);
 
     for(int l=0;l<MAXLENGTH;l++)
-      bgzf_write(fp,it->second.mm3p[l],sizeof(int)*16);
+      assert(bgzf_write(fp,it->second.mm3p[l],sizeof(int)*16)==sizeof(int)*16);
   }
   bgzf_close(fp);
 }

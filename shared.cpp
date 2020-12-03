@@ -247,8 +247,8 @@ int2int *bamRefId2tax(bam_hdr_t *hdr,char *acc2taxfile,char *bamfile,int2int &er
       int valinbam = bam_name2id(hdr,key);
       if(valinbam==-1)
 	continue;
-      bgzf_write(fp,&valinbam,sizeof(int));
-      bgzf_write(fp,&val,sizeof(int));
+      assert(bgzf_write(fp,&valinbam,sizeof(int))==sizeof(int));
+      assert(bgzf_write(fp,&val,sizeof(int))==sizeof(int));
       //fprintf(stderr,"key: %s val: %d valinbam:%d\n",key,val,valinbam);
       
       if(am->find(valinbam)!=am->end())
@@ -260,7 +260,7 @@ int2int *bamRefId2tax(bam_hdr_t *hdr,char *acc2taxfile,char *bamfile,int2int &er
   }else{
     int valinbam,val;
     while(bgzf_read(fp,&valinbam,sizeof(int))){
-      bgzf_read(fp,&val,sizeof(int));
+      assert(bgzf_read(fp,&val,sizeof(int))==sizeof(int));
       (*am)[valinbam] = val;
     }
   }

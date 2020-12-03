@@ -9,10 +9,10 @@ pthread_mutex_t mutex1 = PTHREAD_MUTEX_INITIALIZER;
 pthread_mutex_t mutex2 = PTHREAD_MUTEX_INITIALIZER;
 pars *pars_init(){
   pars *p =(pars*) calloc(1,sizeof(pars));
-  p->htsfile = "CHL_155_12485.sort.bam";
-  p->acc2taxfile="nucl_gb.accession2taxid.gz";
-  p->namesfile = "names.dmp.gz";
-  p->nodesfile= "nodes.dmp.gz";
+  p->htsfile = strdup("CHL_155_12485.sort.bam");
+  p->acc2taxfile=strdup("nucl_gb.accession2taxid.gz");
+  p->namesfile = strdup("names.dmp.gz");
+  p->nodesfile= strdup("nodes.dmp.gz");
   p->hts=NULL;
   p->header=NULL;
   p->editdistMin=0;
@@ -20,7 +20,7 @@ pars *pars_init(){
   p->simscoreLow=0;
   p->simscoreHigh=1;
   p->fp1=p->fp2=p->fp3=NULL;
-  p->outnames="outnames";
+  p->outnames=strdup("outnames");
   p->minmapq=0;
   p->discard=516;//discard unmapped and read fail
   p->minlength=-1;
