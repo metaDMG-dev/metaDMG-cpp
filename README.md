@@ -1,6 +1,6 @@
 # Introduction
 
-MetaDamage 2.0 is a fast and efficient method for estimating mutation and damage rates in ancient DNA data. It relies on a commonly used alignment files formats bam/sam/sam.gz and can calculate degree of damage from read data mapped against a single as well as multiple genomes. It is especially relevant for data where data have been mapped against multiple reference genomes or to speed up analysis for damage estimation for a single genome.
+MetaDamage2.0 is a fast and efficient method for estimating mutation and damage rates in ancient DNA data. It relies on a commonly used alignment files formats bam/sam/sam.gz and can calculate degree of damage from read data mapped against a single as well as multiple genomes. It is especially relevant for data where data have been mapped against multiple reference genomes or to speed up analysis for damage estimation for a single genome.
 
 Possible modes for running. Program is utilizing mdz field of the aux part of reads and is therefore reference free.
 
@@ -13,11 +13,26 @@ Possible modes for running. Program is utilizing mdz field of the aux part of re
 For all analyses output is a binary '.bdamage.gz' file, that can be accessed with the 'metadamage print' functionality.
 
 # Installation
+
+### Dependencies
+metaDamage2.0 requires HTSlib - a common library used for handling high-throughput sequencing data. 
+
+To install HTSlib do:
+```
+git clone https://github.com/SAMtools/htslib
+cd htslib
+make
+```
+To install metaDamage2.0 do:
 ```
 git clone https://github.com/ANGSD/metadamage
 cd metadamage
 make
 ```
+
+
+
+
 ## Updating to latest version
 For installing latest updates in the directory metadamage do:
 ```
