@@ -39,7 +39,7 @@ git pull https://github.com/ANGSD/metadamage
 make
 ```
 
-# Downloading taxonomy resource files from NCBI
+# Taxonomic resource files
 metaDamage2.0 can preform a damage estimation on internal nodes within a taxonomy (e.g. species, genus and family level). In order to traverse up a taxonomic tree the program needs three files in NCBI taxonomy format. These can either be a custom taxonomy or simply rely on the NCBI taxonomy.
 ``` 
 # Downloading resource files for program from NCBI
