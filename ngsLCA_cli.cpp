@@ -48,6 +48,7 @@ void *read_header_thread(void *ptr){
   assert(p->header);
   fprintf(stderr,"\t-> [thread1] Done reading header: %.2f sec, header contains: %d \n",(float)(time(NULL) - t),p->header->n_targets);
   pthread_mutex_unlock(&mutex1);
+  return NULL;
 }
 
 
@@ -124,6 +125,7 @@ void *read_ass2taxid_thread(void *ptr){
   pars *p = (pars *) ptr;
   p->charref2taxid = ass2bin(p->acc2taxfile,0);
   pthread_mutex_unlock(&mutex2);
+  return NULL;
 }
 
 

@@ -279,7 +279,7 @@ inline void increaseCounters(const bam1_t *b,const char * reconstructedReference
 	    }
 
 	    if(0&&(dist5p > MAXLENGTH || dist3p > MAXLENGTH )){
-	      fprintf(stderr,"Molecule found: %s  with length greater than limit \n");
+	      fprintf(stderr,"Molecule found: %s  with length greater than limit \n",bam_get_qname(b));
 	      exit(1);
 	    }
 	    if(dist5p<MAXLENGTH)

@@ -1,6 +1,7 @@
 #include <cstdio>
 #include <cstdlib>
 #include <sys/stat.h>
+#include <libgen.h>
 #include <htslib/bgzf.h>
 #include <cassert>
 #include "shared.h"

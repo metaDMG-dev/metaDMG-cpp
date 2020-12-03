@@ -43,7 +43,7 @@ ifdef HTSSRC
 	$(CXX) -MM $(CXXFLAGS)  -I$(HTS_INCDIR) $*.cpp >$*.d
 
 metadamage: version.h $(OBJ)
-	$(CXX) $(FLAGS)  -o metadamage *.o $(HTS_LIBDIR) -lz -llzma -lbz2 -lpthread -lcurl -lgsl 
+	$(CXX) $(FLAGS)  -o metadamage *.o $(HTS_LIBDIR) -lz -llzma -lbz2 -lpthread -lcurl 
 else
 %.o: %.c
 	$(CC) -c  $(CFLAGS)  $*.c
@@ -54,7 +54,7 @@ else
 	$(CXX) -MM $(CXXFLAGS)  $*.cpp >$*.d
 
 metadamage: version.h $(OBJ)
-	$(CXX) $(FLAGS)  -o metadamage *.o -lz -llzma -lbz2 -lpthread -lcurl -lhts -lgsl
+	$(CXX) $(FLAGS)  -o metadamage *.o -lz -llzma -lbz2 -lpthread -lcurl -lhts
 endif
 
 clean:	

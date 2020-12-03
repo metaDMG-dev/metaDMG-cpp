@@ -72,7 +72,7 @@ int main_getdamage(int argc,char **argv){
   char *fname = NULL;
   int runmode =0;//this means one species, runmode=1 means multi species
   htsFile *fp = NULL;
-  char *onam = "meta";
+  char *onam = strdup("meta");
   int nthreads = 4;
   //fix these
   static struct option lopts[] = {
@@ -101,7 +101,7 @@ int main_getdamage(int argc,char **argv){
       return usage_getdamage(stdout);
 
     default:
-      fprintf(stderr,"Never here\n",optarg,fname);
+      fprintf(stderr,"Never here: %s %s\n",optarg,fname);
       break;
     }
   }
@@ -161,6 +161,7 @@ int main_getdamage(int argc,char **argv){
   sam_close(fp);
   destroy_damage(dmg);
   free(fname);
+  return 0;
 }
 
 int main_index(int argc,char **argv){
@@ -176,6 +177,7 @@ int main_index(int argc,char **argv){
   }
 
   fclose(fp);
+  return 0;
 }
 
 
@@ -312,7 +314,7 @@ int main_print(int argc,char **argv){
 	}
 	if(countout==1){
 	  for(int i=0;i<16;i++)
-	    fprintf(stdout,"\t%lu",data[i]);
+	    fprintf(stdout,"\t%d",data[i]);
 	  fprintf(stdout,"\n");
 	}else{
 	  float flt[16];
@@ -363,7 +365,7 @@ int main_print(int argc,char **argv){
 	}
 	if(countout==1){
 	  for(int i=0;i<16;i++)
-	    fprintf(stdout,"\t%lu",data[i]);
+	    fprintf(stdout,"\t%d",data[i]);
 	  fprintf(stdout,"\n");
 	}else{	
 	  float flt[16];
@@ -402,6 +404,7 @@ int main_print(int argc,char **argv){
     bam_hdr_destroy(hdr);
   if(samfp)
     sam_close(samfp);
+  return 0;
 }
 
 int main_print2(int argc,char **argv){
@@ -546,7 +549,7 @@ int main_print2(int argc,char **argv){
 	}
 	if(countout==1){
 	  for(int i=0;i<16;i++)
-	    fprintf(stdout,"\t%lu",data[i]);
+	    fprintf(stdout,"\t%d",data[i]);
 	  fprintf(stdout,"\n");
 	}else{
 	  float flt[16];
@@ -599,7 +602,7 @@ int main_print2(int argc,char **argv){
 	}
 	if(countout==1){
 	  for(int i=0;i<16;i++)
-	    fprintf(stdout,"\t%lu",data[i]);
+	    fprintf(stdout,"\t%d",data[i]);
 	  fprintf(stdout,"\n");
 	}else{	
 	  float flt[16];
@@ -639,6 +642,7 @@ int main_print2(int argc,char **argv){
     bam_hdr_destroy(hdr);
   if(samfp)
     sam_close(samfp);
+  return 0;
 }
 
 
@@ -743,6 +747,7 @@ int main_merge(int argc,char **argv){
     sam_close(samfp);
   if(fp!=Z_NULL)
     gzclose(fp);
+  return 0;
 }
 
 //from ngsLCA.cpp
