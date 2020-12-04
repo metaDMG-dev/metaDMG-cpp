@@ -27,6 +27,7 @@ pars *pars_init(){
   p->charref2taxid = NULL;
   p->lca_rank = NULL;
   p->norank2species = 0;
+  p->skipnorank = 1;
   p->howmany = 5;
   p->usedreads_sam = NULL;
   return p;
@@ -161,6 +162,7 @@ pars *get_pars(int argc,char **argv){
     else if(!strcasecmp("-howmany",key)) p->howmany=atoi(val);
     else if(!strcasecmp("-usedreads",key)) make_used_reads = atoi(val);
     else if(!strcasecmp("-norank2species",key)) p->norank2species=atoi(val);
+    else if(!strcasecmp("-skipnorank",key)) p->skipnorank=atoi(val);
     else{
       fprintf(stderr,"\t Unknown parameter key:%s val:%s\n",key,val);
       free(p);

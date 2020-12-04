@@ -295,8 +295,8 @@ std::vector<int> purge(std::vector<int> &taxids,std::vector<int> &editdist){
   return tmpnewvec;
 }
 
-void hts(FILE *fp,samFile *fp_in,int2int &i2i,int2int& parent,bam_hdr_t *hdr,int2char &rank, int2char &name_map,FILE *log,int minmapq,int discard,int editMin, int editMax, double scoreLow,double scoreHigh,int minlength,char *lca_rank,char *prefix,int norank2species,int howmany,samFile *fp_usedreads){
-  fprintf(stderr,"[%s] \t-> editMin:%d editmMax:%d scoreLow:%f scoreHigh:%f minlength:%d discard: %d prefix: %s howmany: %d\n",__FUNCTION__,editMin,editMax,scoreLow,scoreHigh,minlength,discard,prefix,howmany);
+void hts(FILE *fp,samFile *fp_in,int2int &i2i,int2int& parent,bam_hdr_t *hdr,int2char &rank, int2char &name_map,FILE *log,int minmapq,int discard,int editMin, int editMax, double scoreLow,double scoreHigh,int minlength,char *lca_rank,char *prefix,int norank2species,int howmany,samFile *fp_usedreads,int skipnorank){
+  fprintf(stderr,"[%s] \t-> editMin:%d editmMax:%d scoreLow:%f scoreHigh:%f minlength:%d discard: %d prefix: %s howmany: %d skipnorank: %d\n",__FUNCTION__,editMin,editMax,scoreLow,scoreHigh,minlength,discard,prefix,howmany,skipnorank);
   assert(fp_in!=NULL);
   damage *dmg = new damage(howmany,8,13);
   bam1_t *aln = bam_init1(); //initialize an alignment
@@ -352,6 +352,7 @@ void hts(FILE *fp,samFile *fp_in,int2int &i2i,int2int& parent,bam_hdr_t *hdr,int
 	  taxids = purge(taxids,editdist);
 
 	lca=do_lca(taxids,parent);
+	//	fprintf(stderr,"myq->l: %d\n",myq->l);
 	if(lca!=-1){
 	  fprintf(fp,"%s:%s:%lu:%d",last,seq,strlen(seq),size);
 	  print_chain(fp,lca,parent,rank,name_map);
@@ -367,6 +368,13 @@ void hts(FILE *fp,samFile *fp_in,int2int &i2i,int2int& parent,bam_hdr_t *hdr,int
 	    for(int i=0;i<myq->l;i++){
 	      int2int::iterator it2k = i2i.find(myq->ary[i]->core.tid);
 	      assert(it2k!=i2i.end());
+	      int2char::iterator ititit = rank.find(it2k->second);
+	      if(ititit==rank.end()){
+		fprintf(stderr,"\t-> Potential problem no rank for taxid: %d\n",it2k->second);
+		continue;
+	      }
+	      if(skipnorank==1 && strcasecmp(ititit->second,"no rank")==0)
+		continue;
 	      dmg->damage_analysis(myq->ary[i],it2k->second);
 	      if(fp_usedreads)
 		assert(sam_write1(fp_usedreads, hdr,myq->ary[i])>=0);
@@ -452,8 +460,10 @@ void hts(FILE *fp,samFile *fp_in,int2int &i2i,int2int& parent,bam_hdr_t *hdr,int
     assert(size==myq->l);
     if(editMin==-1&&editMax==-1)
       taxids = purge(taxids,editdist);
-    
+
+    //  fprintf(stderr,"ntaxids: %lu\n",taxids.size());
     lca=do_lca(taxids,parent);
+    //    fprintf(stderr,"myq->l: %d lca: %d \n",myq->l,lca);
     if(lca!=-1){
       fprintf(fp,"%s:%s:%lu:%d",last,seq,strlen(seq),size);
       print_chain(fp,lca,parent,rank,name_map);
@@ -466,10 +476,20 @@ void hts(FILE *fp,samFile *fp_in,int2int &i2i,int2int& parent,bam_hdr_t *hdr,int
 	
       }
       if(correct_rank(lca_rank,lca,rank,norank2species)){
+
 	for(int i=0;i<myq->l;i++){
 	  //dmg->damage_analysis(myq->ary[i],myq->ary[i]->core.tid);
 	  int2int::iterator ittt = i2i.find(myq->ary[i]->core.tid);
 	  assert(ittt!=i2i.end());
+	  int2char::iterator ititit = rank.find(ittt->second);
+	  if(ititit==rank.end()){
+	    fprintf(stderr,"\t-> Potential problem no rank for taxid: %d\n",ititit->second);
+	    continue;
+	  }
+	  //	  fprintf(stderr,"uaua: %s taxid: %d\n",ititit->second,ititit->first);
+	  if(skipnorank==1 && strcasecmp(ititit->second,"no rank")==0)
+	    continue;
+	  //	  fprintf(stderr,"uaua\n");
 	  dmg->damage_analysis(myq->ary[i],ittt->second);
 	  if(fp_usedreads)
 	    assert(sam_write1(fp_usedreads, hdr,myq->ary[i])>=0);
@@ -615,7 +635,7 @@ int main_lca(int argc, char **argv){
   }
 
   
-  hts(p->fp1,p->hts,*i2i,parent,p->header,rank,name_map,p->fp3,p->minmapq,p->discard,p->editdistMin,p->editdistMax,p->simscoreLow,p->simscoreHigh,p->minlength,p->lca_rank,p->outnames,p->norank2species,p->howmany,usedreads_sam);
+  hts(p->fp1,p->hts,*i2i,parent,p->header,rank,name_map,p->fp3,p->minmapq,p->discard,p->editdistMin,p->editdistMax,p->simscoreLow,p->simscoreHigh,p->minlength,p->lca_rank,p->outnames,p->norank2species,p->howmany,usedreads_sam,p->skipnorank);
 
   fprintf(stderr,"\t-> Number of species with reads that map uniquely: %lu\n",specWeight.size());
   
