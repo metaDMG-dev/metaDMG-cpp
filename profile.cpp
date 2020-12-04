@@ -306,7 +306,7 @@ int damage::damage_analysis(bam1_t *b,int which){
   return 0;
 }
 void damage::write(char *fname,bam_hdr_t *hdr){
-  fprintf(stderr,"Dumping asso.size(): %lu\n",assoc.size());
+  //fprintf(stderr,"Dumping asso.size(): %lu\n",assoc.size());
   char *outname=strdup("metaout");
   if(fname)
     outname = fname;
@@ -315,7 +315,7 @@ void damage::write(char *fname,bam_hdr_t *hdr){
   kstr.s=NULL;
   char onam[1024];
   snprintf(onam,1024,"%s.res.gz",outname);
-  fprintf(stderr,"Will dump: \'%s\'\n",onam);
+  fprintf(stderr,"\t-> Will dump: \'%s\' this contains damage patterns for: %lu items\n",onam,assoc.size());
   BGZF *fp= my_bgzf_open(onam,nthreads);
 
   for(std::map<int,triple>::iterator it=assoc.begin();it!=assoc.end();it++ ){
@@ -341,11 +341,11 @@ void damage::write(char *fname,bam_hdr_t *hdr){
   free(kstr.s);
 }
 void damage::bwrite(char *fname,bam_hdr_t *hdr){
-  fprintf(stderr,"Dumping asso.size(): %lu\n",assoc.size());
+  //fprintf(stderr,"Dumping asso.size(): %lu\n",assoc.size());
   
   char onam[1024];
   snprintf(onam,1024,"%s.bdamage.gz",fname);
-  fprintf(stderr,"Will dump: \'%s\'\n",onam);
+  fprintf(stderr,"\t-> Will dump: \'%s\' this contains damage patterns for: %lu items\n",onam,assoc.size());
   BGZF *fp= my_bgzf_open(onam,nthreads);
   assert(bgzf_write(fp,&MAXLENGTH,sizeof(int))==sizeof(int));
  
