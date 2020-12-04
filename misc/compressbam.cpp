@@ -71,7 +71,7 @@ void writemod(const char *outfile ,bam_hdr_t *hdr,int *keeplist,samFile *htsfp){
     kputs(kstmp.s,&newhdr_ks);
     kputc('\n',&newhdr_ks);
     if(newhdr_ks.l>10000000){
-      bgzf_write(fp,newhdr_ks.s,newhdr_ks.l);
+      assert(bgzf_write(fp,newhdr_ks.s,newhdr_ks.l)==newhdr_ks.l);
       newhdr_ks.l =0;
     }
   }
@@ -89,7 +89,7 @@ void writemod(const char *outfile ,bam_hdr_t *hdr,int *keeplist,samFile *htsfp){
   }
 
 
-  bgzf_write(fp,newhdr_ks.s,newhdr_ks.l);
+  assert(bgzf_write(fp,newhdr_ks.s,newhdr_ks.l)==newhdr_ks.l);
   free(newhdr_ks.s);
   free(kstmp.s);
   bgzf_close(fp);
@@ -159,7 +159,7 @@ int main(int argc,char**argv){
   char *hts = NULL;
   char *names = NULL;
   char *ref = NULL;
-  char *outfile = "tmp.sam";
+  char *outfile = strdup("tmp.sam");
 
   //  char out_mode[5]="ws";
   //  int nthreads = 4; //this is now global

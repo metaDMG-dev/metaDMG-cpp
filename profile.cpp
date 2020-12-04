@@ -367,6 +367,7 @@ void damage::bwrite(char *fname,bam_hdr_t *hdr){
 int printinfo(FILE *fp){
   fprintf(fp,"./profile <options>  [in BAM file]\nThis program reads a BAM file and produces a deamination profile for the 5' and 3' ends\n");
   fprintf(fp,"Other options:\n\t-minq INT\n\t-minl INT\n\t-length INT\n\t-paired\n");
+  return 0;
 }
 
 
@@ -389,6 +390,7 @@ int printresults_grenaud2(FILE *fp,unsigned **mm5p,int lengthMaxToPrint){
     }
     fprintf(fp,"\n");
   }
+  return 0;
 }
 
 void damage::printit(FILE *fp,int l){

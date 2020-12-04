@@ -203,7 +203,7 @@ void parse_nodes2(int2int &parent,int2intvec &child){
 }
 
 //bamfile is only used for making smaller filedump (using the filename)
- 
+int SIG_COND=1;
 int2int *bamRefId2tax(bam_hdr_t *hdr,char *acc2taxfile,char *bamfile,int2int &errmap) { 
   fprintf(stderr,"\t-> Starting to extract (acc->taxid) from binary file: \'%s\'\n",acc2taxfile);
   fflush(stderr);
@@ -226,7 +226,7 @@ int2int *bamRefId2tax(bam_hdr_t *hdr,char *acc2taxfile,char *bamfile,int2int &er
     char buf[4096];
     int at=0;
     char buf2[4096];
-    extern int SIG_COND;
+    
     kstring_t *kstr =(kstring_t *)malloc(sizeof(kstring_t));
     kstr->l=kstr->m = 0;
     kstr->s = NULL;

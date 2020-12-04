@@ -8,7 +8,7 @@
 #include <ctype.h>
 #include "../shared.h"
 
-int SIG_COND=1;
+extern int SIG_COND;
 char2int getkeys(const char *key,int value){
   char2int cmap;
   if(key==NULL)
@@ -222,7 +222,7 @@ int main_bytaxid(int argc,char**argv){
   char *acc2tax = NULL;
   int strict = 0;
   int type = 0;
-  char *outfile = "tmp.sam";
+  char *outfile = strdup("tmp.sam");
   while(*argv){
     char *key=*argv;
     char *val=*(++argv);
@@ -316,7 +316,7 @@ int main_byreadid(int argc,char**argv){
   char *keyfile = NULL;
   char *hts = NULL;
   int type = 0;
-  char *outfile = "tmp.sam";
+  char *outfile = strdup("tmp.sam");
   char out_mode[5] = "wb";
   int docomplement = 0;
   while(*argv){

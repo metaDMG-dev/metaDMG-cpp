@@ -23,7 +23,7 @@ int mod_out[]=  {1333996 , 1333996 ,1582270,1914213,1917265,1915309 ,263865,2801
 #include "shared.h"
 #include "version.h"
 
-int SIG_COND =1;//if we catch signal then quit program nicely
+extern int SIG_COND;//if we catch signal then quit program nicely
 int VERBOSE =1;
 int really_kill =3;
 int2int errmap;
