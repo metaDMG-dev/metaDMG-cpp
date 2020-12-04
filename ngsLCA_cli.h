@@ -22,6 +22,7 @@ typedef struct{
   double simscoreHigh;
   int editdistMin;
   int editdistMax;
+  int skipnorank;
   char *outnames;
   FILE *fp1;
   FILE *fp2;
