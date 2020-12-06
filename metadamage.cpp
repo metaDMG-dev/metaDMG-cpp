@@ -188,21 +188,22 @@ int main_index(int argc,char **argv){
 
 int main_print(int argc,char **argv){
   if(argc==1){
-    fprintf(stderr,"./metadamage print file.bdamage.gz [-acc2tax file.gz -bam file.bam -ctga -countout -nodes -howmany -r -doOld -nodes]\n");
+    fprintf(stderr,"./metadamage print file.bdamage.gz [-names names.gz -bam file.bam -ctga -countout -nodes -howmany -r -doOld -nodes]\n");
     return 0;
   }
   char *infile = NULL;
   char *inbam = NULL;
-  char *acc2tax = NULL;
+  char *infile_nodes = NULL;
+  char *infile_names = NULL;
   int ctga =0;//only print ctga errors
   int search = -1;
   int countout = 0;
-  char *infile_nodes = NULL;
+
   int howmany = 15;
   int doold = 1;
   while(*(++argv)){
-    if(strcasecmp("-acc2tax",*argv)==0)
-      acc2tax = strdup(*(++argv));
+    if(strcasecmp("-names",*argv)==0)
+      infile_names = strdup(*(++argv));
     else if(strcasecmp("-bam",*argv)==0)
       inbam = strdup(*(++argv));
     else if(strcasecmp("-r",*argv)==0)
@@ -222,11 +223,12 @@ int main_print(int argc,char **argv){
   }
 
 
-  fprintf(stderr,"infile: %s inbam: %s names: %s search: %d ctga: %d countout: %d nodes: %s\n",infile,inbam,acc2tax,search,ctga,countout,infile_nodes);
+  fprintf(stderr,"infile: %s inbam: %s search: %d ctga: %d countout: %d nodes: %s names: %s\n",infile,inbam,search,ctga,countout,infile_nodes,infile_names);
+
   assert(infile);
   int2char name_map;
-  if(acc2tax!=NULL)
-    name_map = parse_names(acc2tax);
+  if(infile_names!=NULL)
+    name_map = parse_names(infile_names);
 
   //map of taxid -> taxid
   int2int parent;
@@ -281,7 +283,7 @@ int main_print(int argc,char **argv){
   if(ctga==0){
     if(hdr!=NULL)
       fprintf(stdout,"#Reference\tNalignments\tDirection\tPos\tAA\tAC\tAG\tAT\tCA\tCC\tCG\tCT\tGA\tGC\tGG\tGT\tTA\tTC\tTG\tTT\n");
-    else if(acc2tax!=NULL)
+    else if(infile_names!=NULL)
       fprintf(stdout,"#FunkyName\tNalignments\tDirection\tPos\tAA\tAC\tAG\tAT\tCA\tCC\tCG\tCT\tGA\tGC\tGG\tGT\tTA\tTC\tTG\tTT\n");
     else
       fprintf(stdout,"#taxid\tNalignments\tDirection\tPos\tAA\tAC\tAG\tAT\tCA\tCC\tCG\tCT\tGA\tGC\tGG\tGT\tTA\tTC\tTG\tTT\n");
@@ -304,13 +306,13 @@ int main_print(int argc,char **argv){
 	if(ctga==0)  {
 	  if(hdr!=NULL)
 	    fprintf(stdout,"%s\t%d\t5\'\t%d",hdr->target_name[ref_nreads[0]],ref_nreads[1],i);
-	  else if(acc2tax!=NULL){
+	  else if(infile_names!=NULL){
 	    int2char::iterator itt = name_map.find(ref_nreads[0]);
 	    if(itt==name_map.end()){
-	      fprintf(stderr,"\t-> Problem finding taxid: \'%d' in namedatabase: \'%s\'\n",ref_nreads[0],acc2tax);
+	      fprintf(stderr,"\t-> Problem finding taxid: \'%d' in namedatabase: \'%s\'\n",ref_nreads[0],infile_names);
 	      exit(0);
 	    }
-	    fprintf(stdout,"%s\t%d\t5\'\t%d",itt->second,ref_nreads[1],i);
+	    fprintf(stdout,"\"%s\"\t%d\t5\'\t%d",itt->second,ref_nreads[1],i);
 	  }else
 	    fprintf(stdout,"%d\t%d\t5\'\t%d",ref_nreads[0],ref_nreads[1],i);
 	}else{
@@ -357,13 +359,13 @@ int main_print(int argc,char **argv){
 	if(ctga==0) {
 	  if(hdr!=NULL)
 	    fprintf(stdout,"%s\t%d\t3\'\t%d",hdr->target_name[ref_nreads[0]],ref_nreads[1],i);
-	  else if(acc2tax!=NULL){
+	  else if(infile_names!=NULL){
 	    int2char::iterator itt = name_map.find(ref_nreads[0]);
 	    if(itt==name_map.end()){
-	      fprintf(stderr,"\t-> Problem finding taxid: \'%d' in namedatabase: \'%s\'\n",ref_nreads[0],acc2tax);
+	      fprintf(stderr,"\t-> Problem finding taxid: \'%d' in namedatabase: \'%s\'\n",ref_nreads[0],infile_names);
 	      exit(0);
 	    }
-	    fprintf(stdout,"%s\t%d\t3\'\t%d",itt->second,ref_nreads[1],i);
+	    fprintf(stdout,"\"%s\"\t%d\t3\'\t%d",itt->second,ref_nreads[1],i);
 	  }
 	  else
 	    fprintf(stdout,"%d\t%d\t3\'\t%d",ref_nreads[0],ref_nreads[1],i);
@@ -545,7 +547,7 @@ int main_print2(int argc,char **argv){
 	      fprintf(stderr,"\t-> Problem finding taxid: \'%d' in namedatabase: \'%s\'\n",ref_nreads[0],acc2tax);
 	      exit(0);
 	    }
-	    fprintf(stdout,"%s\t%d\t5\'\t%d",itt->second,ref_nreads[1],i);
+	    fprintf(stdout,"\"%s\"\t%d\t5\'\t%d",itt->second,ref_nreads[1],i);
 	  }else
 	    fprintf(stdout,"%d\t%d\t5\'\t%d",ref_nreads[0],ref_nreads[1],i);
 	}else{
@@ -600,7 +602,7 @@ int main_print2(int argc,char **argv){
 	      fprintf(stderr,"\t-> Problem finding taxid: \'%d' in namedatabase: \'%s\'\n",ref_nreads[0],acc2tax);
 	      exit(0);
 	    }
-	    fprintf(stdout,"%s\t%d\t3\'\t%d",itt->second,ref_nreads[1],i);
+	    fprintf(stdout,"\"%s\"\t%d\t3\'\t%d",itt->second,ref_nreads[1],i);
 	  }
 	  else
 	    fprintf(stdout,"%d\t%d\t3\'\t%d",ref_nreads[0],ref_nreads[1],i);
