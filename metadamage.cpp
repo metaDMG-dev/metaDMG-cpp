@@ -750,6 +750,80 @@ int main_merge(int argc,char **argv){
   return 0;
 }
 
+int main_print_all(int argc,char **argv){
+  fprintf(stderr,"./metadamage print_all file.bdamage.gz -names file.gz [-howmany 5] -nodes trestructure.gz -names fil.gz\n");
+  if(argc<=2)
+    return 0;
+  char *infile_bdamage = NULL;
+  char *infile_nodes = NULL;
+  char *infile_names = NULL;
+  int howmany = 5;
+ 
+  while(*(++argv)){
+    if(strcasecmp("-names",*argv)==0)
+      infile_names = strdup(*(++argv));
+    else if(strcasecmp("-howmany",*argv)==0)
+      howmany = atoi(*(++argv));
+    else if(strcasecmp("-nodes",*argv)==0)
+      infile_nodes = strdup(*(++argv));
+    else
+      infile_bdamage = strdup(*argv);
+  }
+
+
+  fprintf(stderr,"infile_names: %s infile_bdamage: %s nodes: %s ",infile_names,infile_bdamage,infile_nodes);
+  fprintf(stderr,"#VERSION:%s\n",METADAMAGE_VERSION);
+  //map of taxid -> taxid
+  int2int parent;
+  //map of taxid -> rank
+  int2char rank;
+  //map of parent -> child taxids
+  int2intvec child;
+
+  if(infile_nodes!=NULL)
+    parse_nodes(infile_nodes,rank,parent,child,1);
+
+  std::map<int, double *> retmap = load_bdamage3(infile_bdamage,howmany);
+  fprintf(stderr,"\t-> number of entries in damage pattern file: %lu\n",retmap.size());
+  int2char name = parse_names(infile_names);
+  
+  BGZF *bgfp = NULL;
+  samFile *samfp = NULL;
+
+  float presize = retmap.size();
+  getval(retmap,child,1,howmany); //this will do everything
+  float postsize=retmap.size();
+  fprintf(stderr,"\t-> pre: %f post:%f grownbyfactor: %f\n",presize,postsize,postsize/presize);
+  for(std::map<int, double *>::iterator it=retmap.begin();it!=retmap.end();it++){
+    int taxid = it->first;
+    double *dbl = it->second;
+    char *myrank =NULL;
+    char *myname = NULL;
+    int2char::iterator itc=rank.find(taxid);
+    if(itc!=rank.end())
+      myrank=itc->second;
+    itc=name.find(taxid);
+    if(itc!=name.end())
+      myname = itc->second;
+    double dbldbl[3*howmany+1];//3 because ct,ga,other
+    dbldbl[0] = dbl[0];
+    for(int i=0;i<3*howmany;i++)
+      dbldbl[i+1] = dbl[1+i]/dbl[0];
+    if(dbldbl[0]>0){
+      fprintf(stdout,"%d:\"%s\":\"%s\":%.0f",taxid,myname,myrank,dbldbl[0]);
+      for(int i=0;i<3*howmany;i++)
+	fprintf(stdout,"\t%f",dbldbl[1+i]);
+      fprintf(stdout,"\n");
+    };
+  }
+ 
+  
+  if(bgfp)
+    bgzf_close(bgfp);
+
+  return 0;
+}
+
 //from ngsLCA.cpp
 int main_lca(int argc, char **argv);
 int main(int argc, char **argv){
@@ -764,6 +838,7 @@ int main(int argc, char **argv){
     fprintf(stderr,"./metadamage lca [many options]\n");
     fprintf(stderr,"./metadamage print bdamage.gz\n");
     fprintf(stderr,"./metadamage print2 [many options] bdamage.gz\n");
+    fprintf(stderr,"./metadamage print_all [many options] bdamage.gz\n");
     return 0;
   }
   argc--;++argv;
@@ -773,6 +848,8 @@ int main(int argc, char **argv){
     main_index(argc,argv);
   if(!strcmp(argv[0],"print"))
     main_print(argc,argv);
+   if(!strcmp(argv[0],"print_all"))
+    main_print_all(argc,argv);
    if(!strcmp(argv[0],"print2"))
     main_print2(argc,argv);
   if(!strcmp(argv[0],"merge"))
