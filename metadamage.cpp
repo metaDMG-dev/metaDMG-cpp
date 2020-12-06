@@ -129,21 +129,26 @@ int main_getdamage(int argc,char **argv){
   bam_hdr_t  *hdr = sam_hdr_read(fp);
   int ret;
   damage *dmg = new damage(printLength,nthreads,0);
+  int skipper[4] = {5,5,5,5};
   while(((ret=sam_read1(fp,hdr,b)))>=0){
     if(bam_is_unmapped(b) ){
-      	fprintf(stderr,"skipping: %s unmapped \n",bam_get_qname(b));
+      if(skipper[0])
+      	fprintf(stderr,"skipping: %s unmapped, this msg is printed: %d times more\n",bam_get_qname(b),--skipper[0]);
       continue;
     }
     if(bam_is_failed(b) ){
-      fprintf(stderr,"skipping: %s failed: flags=%d \n",bam_get_qname(b),b->core.flag);
+      if(skipper[1])
+	fprintf(stderr,"skipping: %s failed: flags=%d, this msg is printed: %d times more\n",bam_get_qname(b),b->core.flag,--skipper[1]);
       continue;
     }
     if(b->core.l_qseq < minLength){
-      fprintf(stderr,"skipping: %s too short \n",bam_get_qname(b));
+      if(skipper[2])
+	fprintf(stderr,"skipping: %s too short, this msg is printed %d times more \n",bam_get_qname(b),--skipper[2]);
       continue;
     }
     if(bam_is_paired(b)){
-      fprintf(stderr,"skipping: %s  is paired (can be considered using the -paired flag\n",bam_get_qname(b));
+      if(skipper[3])
+	fprintf(stderr,"skipping: %s  is paired (can be considered using the -paired flag, this msg is printed %d times more\n",bam_get_qname(b),--skipper[3]);
       continue;
     }
     //    fprintf(stderr,"Analyzing\n");
