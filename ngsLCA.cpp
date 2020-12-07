@@ -483,7 +483,7 @@ void hts(FILE *fp,samFile *fp_in,int2int &i2i,int2int& parent,bam_hdr_t *hdr,int
 	  assert(ittt!=i2i.end());
 	  int2char::iterator ititit = rank.find(ittt->second);
 	  if(ititit==rank.end()){
-	    fprintf(stderr,"\t-> Potential problem no rank for taxid: %d\n",ititit->second);
+	    fprintf(stderr,"\t-> Potential problem no rank for taxid: %d\n",ititit->first);
 	    continue;
 	  }
 	  //	  fprintf(stderr,"uaua: %s taxid: %d\n",ititit->second,ititit->first);
