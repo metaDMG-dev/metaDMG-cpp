@@ -22,6 +22,7 @@ int usage_getdamage(FILE *fp){
   fprintf(fp,"\nExample: ./metadamage getdamage -l 10 -p 5 --threads 8 ../data/subs.sam\nOptions:\n");
   fprintf(fp,"  -f/--fasta\t is required with CRAM\n");
   fprintf(fp,"  -l/--minlength\t reads shorter than minlength will be discarded\n");
+  fprintf(fp,"  -p/--printlength\t use this number of positions from 5' and 3'\n");
   fprintf(fp,"  -r/--runmode\trunmode 1 means that damage patterns will be calculated for each chr/scaffold contig.\n\t\trunmode 0 means one global estimate.\n");
   fprintf(fp,"  -@/--threads\t Number of threads used for reading/writing\n");
   return 0;
@@ -74,12 +75,12 @@ int main_getdamage(int argc,char **argv){
   htsFile *fp = NULL;
   char *onam = strdup("meta");
   int nthreads = 4;
-  //fix these
+  //fix thesepro
   static struct option lopts[] = {
     {"fasta", 1, 0, 'f'},
     {"minlength", 1, 0, 'l'},
     {"threads", 1, 0, '@'},
-    {"length", 1, 0, 'p'},
+    {"printlength", 1, 0, 'p'},
     {"outname", 1, 0, 'o'},
     {"help", 0, 0, '?'},
     {"runmode", 1, 0, 'r'},
@@ -129,7 +130,7 @@ int main_getdamage(int argc,char **argv){
   bam_hdr_t  *hdr = sam_hdr_read(fp);
   int ret;
   damage *dmg = new damage(printLength,nthreads,0);
-  int skipper[4] = {5,5,5,5};
+  int skipper[4] = {3,3,3,3};
   while(((ret=sam_read1(fp,hdr,b)))>=0){
     if(bam_is_unmapped(b) ){
       if(skipper[0])
