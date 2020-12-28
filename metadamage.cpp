@@ -224,7 +224,7 @@ int main_print(int argc,char **argv){
   }
 
 
-  fprintf(stderr,"infile: %s inbam: %s search: %d ctga: %d countout: %d nodes: %s names: %s\n",infile,inbam,search,ctga,countout,infile_nodes,infile_names);
+  fprintf(stderr,"infile: %s inbam: %s search: %d ctga: %d countout: %d nodes: %s names: %s howmany: %d\n",infile,inbam,search,ctga,countout,infile_nodes,infile_names,howmany);
 
   assert(infile);
   int2char name_map;
@@ -294,7 +294,6 @@ int main_print(int argc,char **argv){
   }
     
   int data[16];
-
   while(1){
     int nread=bgzf_read(bgfp,ref_nreads,2*sizeof(int));
     double ctgas[2*printlength];
@@ -303,6 +302,8 @@ int main_print(int argc,char **argv){
     assert(nread==2*sizeof(int));
     for(int i=0;i<printlength;i++){
       assert(16*sizeof(int)==bgzf_read(bgfp,data,sizeof(int)*16));
+      if(i>howmany)
+	continue;
       if(search==-1||search==ref_nreads[0]) {
 	if(ctga==0)  {
 	  if(hdr!=NULL)
@@ -356,6 +357,8 @@ int main_print(int argc,char **argv){
   
     for(int i=0;i<printlength;i++) {
       assert(16*sizeof(int)==bgzf_read(bgfp,data,sizeof(int)*16));
+      if(i>howmany)
+	continue;
       if(search==-1||search==ref_nreads[0]){
 	if(ctga==0) {
 	  if(hdr!=NULL)
