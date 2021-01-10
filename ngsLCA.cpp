@@ -11,7 +11,7 @@ int mod_out[]=  {1333996 , 1333996 ,1582270,1914213,1917265,1915309 ,263865,2801
 #include <htslib/sam.h>
 #include <vector>
 #include <pthread.h>
-#include <signal.h>//for catching ctrl+c, allow threads to finish
+#include <signal.h>
 #include <algorithm>
 #include <errno.h>
 #include <sys/stat.h>
@@ -28,16 +28,59 @@ int VERBOSE =1;
 int really_kill =3;
 int2int errmap;
 void handler(int s) {
-if(VERBOSE)
+  if(VERBOSE)
     fprintf(stderr,"\n\t-> Caught SIGNAL: Will try to exit nicely (no more threads are created.\n\t\t\t  We will wait for the current threads to finish)\n");
   
   if(--really_kill!=3)
-  fprintf(stderr,"\n\t-> If you really want ./ngsLCA to exit uncleanly ctrl+c: %d more times\n",really_kill+1);
+    fprintf(stderr,"\n\t-> If you really want ./ngsLCA to exit uncleanly ctrl+c: %d more times\n",really_kill+1);
   fflush(stderr);
   if(!really_kill)
     exit(0);
   VERBOSE=0;
   SIG_COND=0;
+}
+//bit of a hang and counter intuitive. value should contain the value for the key
+char2int setlevels(int norank2species,char *key,int &value){
+  const char*names[46] = {"superkingdom","kingdom","subkingdom","superphylum","phylum","subphylum","superclass","class","subclass","infraclass","clade","cohort","subcohort","superorder","order","suborder","infraorder","parvorder","superfamily","family","subfamily","tribe","subtribe","infratribe","genus","subgenus","section","series","subseries","subsection","species","species group","species subgroup","subspecies","varietas","morph","subvariety","forma","forma specialis","biotype","genotype","isolate","pathogroup","serogroup","serotype ","strain"};
+  int values[46] = {35,34,33,32,31,30,29,28,27,26,25,24,23,22,21,20,19,18,17,16,15,14,13,12,11,10,9,8,7,6,5,4,3,2,1,1,1,1,1,1,1,1,1,1,1,1};
+  char2int c2i;
+  value=-1;
+  for(int i=0;i<46;i++){
+    c2i[strdup(names[i])] = values[i];
+    if(strcmp(key,names[i])==0){
+      value=values[i];
+    }
+  }
+  if(value==-1){
+    fprintf(stderr,"\t-> Unknown level defined for -lca_rank: %s\n",key);
+    exit(0);
+  }
+  if(norank2species){
+    char2int::iterator it = c2i.find("species");
+    assert(it!=c2i.end());
+    c2i[strdup("no rank")] = it->second;
+
+  }
+  fprintf(stderr,"\t-> Number of entries with level information: %lu \n",c2i.size());
+  return c2i;
+}
+
+
+int2int rank2level(int2char &i2c,int norank2species,char *key,int &value){
+  char2int c2i = setlevels(norank2species,key,value);
+  int2int i2i;
+  for(int2char::iterator it = i2c.begin();it!=i2c.end();it++){
+    int key=-1;
+    char2int::iterator it2 = c2i.find(it->second);
+    if(it2!=c2i.end())
+      key=it2->second;
+    else{
+      if(strcmp(it->second,"no rank")!=0)
+	fprintf(stderr,"\t-> Problem finding level for rank: %s\n",it->second);
+    }
+    i2i[it->first] = key;
+  }
+  return i2i;
 }
 
  //we are threading so we want make a nice signal handler for ctrl+c
@@ -172,43 +215,6 @@ void print_rank(FILE *fp, int taxa, int2char &rank){
   fprintf(stderr,"taxa: %d rank %s\n",taxa,it2->second);
 }
 
-int get_level(const char *name,int norank2species){
-  if(strcmp(name,"subspecies")==0) return 1;
-  else  if(strcmp(name,"species")==0) return 2;
-  else  if(strcmp(name,"genus")==0) return 3;
-  else  if(strcmp(name,"subfamily")==0) return 4;
-  else  if(strcmp(name,"family")==0) return 5;
-  else  if(strcmp(name,"no rank")==0){
-    //    fprintf(stderr,"is norank: \n");
-    if(norank2species==1)
-      return 2;
-    else
-      return 6;
-  }
-  else{
-    //fprintf(stderr,"Unknown level: \'%s\'\n",name);
-    
-    return -1;
-  }
-}
-
-//filt here is argument used with lca_rank
-int correct_rank(char *filt, int taxa, int2char &rank,int norank2species){
-  int2char::iterator it2=rank.find(taxa);
-  assert(it2!=rank.end());
-
-  int en = get_level(filt,norank2species);
-  int to = get_level(it2->second,norank2species);
-
-  if(en==-1||to==-1)//if either -lca_rank or the tax was not defined properly
-    return 0;
-  
-  if(to<=en)
-    return 1;
-  else
-    return 0;
-}
-
 void print_chain(FILE *fp,int taxa,int2int &parent,int2char &rank,int2char &name_map){
 
     while(1){
@@ -295,7 +301,7 @@ std::vector<int> purge(std::vector<int> &taxids,std::vector<int> &editdist){
   return tmpnewvec;
 }
 
-void hts(FILE *fp,samFile *fp_in,int2int &i2i,int2int& parent,bam_hdr_t *hdr,int2char &rank, int2char &name_map,FILE *log,int minmapq,int discard,int editMin, int editMax, double scoreLow,double scoreHigh,int minlength,char *lca_rank,char *prefix,int norank2species,int howmany,samFile *fp_usedreads,int skipnorank){
+void hts(FILE *fp,samFile *fp_in,int2int &i2i,int2int& parent,bam_hdr_t *hdr,int2char &rank, int2char &name_map,FILE *log,int minmapq,int discard,int editMin, int editMax, double scoreLow,double scoreHigh,int minlength,int lca_rank,char *prefix,int howmany,samFile *fp_usedreads,int skipnorank,int2int &rank2level){
   fprintf(stderr,"[%s] \t-> editMin:%d editmMax:%d scoreLow:%f scoreHigh:%f minlength:%d discard: %d prefix: %s howmany: %d skipnorank: %d\n",__FUNCTION__,editMin,editMax,scoreLow,scoreHigh,minlength,discard,prefix,howmany,skipnorank);
   assert(fp_in!=NULL);
   damage *dmg = new damage(howmany,8,13);
@@ -364,7 +370,11 @@ void hts(FILE *fp,samFile *fp_in,int2int &i2i,int2int& parent,bam_hdr_t *hdr,int
 	    else
 	      it->second = it->second +1;
 	  }
-	  if(correct_rank(lca_rank,lca,rank,norank2species)){
+
+	  //lca_rank is integer and is different from minus one
+	  int2int::iterator myit = rank2level.find(lca);
+	  assert(myit!=rank2level.end());
+	  if(myit->second!=-1 && (myit->second <=lca_rank)){
 	    for(int i=0;i<myq->l;i++){
 	      int2int::iterator it2k = i2i.find(myq->ary[i]->core.tid);
 	      assert(it2k!=i2i.end());
@@ -475,7 +485,11 @@ void hts(FILE *fp,samFile *fp_in,int2int &i2i,int2int& parent,bam_hdr_t *hdr,int
 	  it->second = it->second +specs.size();
 	
       }
-      if(correct_rank(lca_rank,lca,rank,norank2species)){
+      //lca_rank is integer and is different from minus one
+      int2int::iterator myit = rank2level.find(lca);
+      assert(myit!=rank2level.end());
+      if(myit->second!=-1 && (myit->second <=lca_rank)){
+	//      if(correct_rank(lca_rank,lca,rank,norank2species)){
 
 	for(int i=0;i<myq->l;i++){
 	  //dmg->damage_analysis(myq->ary[i],myq->ary[i]->core.tid);
@@ -605,17 +619,18 @@ int main_lca(int argc, char **argv){
   //map of taxid -> name
   //map of parent -> child taxids
   int2intvec child;
-  
+
   int2char name_map = parse_names(p->namesfile);
   
   parse_nodes(p->nodesfile,rank,parent,child,0);
-
+  int lca_rank;
+  int2int tax2level=rank2level(rank,p->norank2species,p->lca_rank,lca_rank);
   //  calc_valens(i2i,parent);
   if(0){
     print_ref_rank_species(p->header,*i2i,name_map,rank);
     return 0;
   }
-
+  
   //closes species (direction of root) for a taxid
   //  int2int closest_species=get_species(i2i,parent,rank,name_map,p->fp3);
   //  fprintf(stderr,"\t-> Number of items in closest_species map:%lu\n",closest_species.size());
@@ -635,7 +650,7 @@ int main_lca(int argc, char **argv){
   }
 
   
-  hts(p->fp1,p->hts,*i2i,parent,p->header,rank,name_map,p->fp3,p->minmapq,p->discard,p->editdistMin,p->editdistMax,p->simscoreLow,p->simscoreHigh,p->minlength,p->lca_rank,p->outnames,p->norank2species,p->howmany,usedreads_sam,p->skipnorank);
+  hts(p->fp1,p->hts,*i2i,parent,p->header,rank,name_map,p->fp3,p->minmapq,p->discard,p->editdistMin,p->editdistMax,p->simscoreLow,p->simscoreHigh,p->minlength,lca_rank,p->outnames,p->howmany,usedreads_sam,p->skipnorank,tax2level);
 
   fprintf(stderr,"\t-> Number of species with reads that map uniquely: %lu\n",specWeight.size());
   

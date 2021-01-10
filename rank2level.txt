@@ -1,0 +1,46 @@
+superkingdom	35
+kingdom	34
+subkingdom	33
+superphylum	32
+phylum	31
+subphylum	30
+superclass	29
+class	28
+subclass	27
+infraclass	26
+clade	25
+cohort	24
+subcohort	23
+superorder	22
+order	21
+suborder	20
+infraorder	19
+parvorder	18
+superfamily	17
+family	16
+subfamily	15
+tribe	14
+subtribe	13
+infratribe	12
+genus	11
+subgenus	10
+section	9
+series	8
+subseries	7
+subsection	6
+species	5
+species group	4
+species subgroup	3
+subspecies	2
+varietas	1
+morph	1
+subvariety	1
+forma	1
+forma specialis	1
+biotype	1
+genotype	1
+isolate	1
+pathogroup	1
+serogroup	1
+serotype 	1
+strain	1
