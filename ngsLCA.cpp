@@ -130,7 +130,16 @@ int satan(int taxid,int2int &parant){
 }
 
 
+int2int lcadist;
+void adder(int taxid,int2int &lcadist){
+  int2int::iterator it = lcadist.find(taxid);
+  if(it==lcadist.end())
+    lcadist[taxid] = 1;
+  else
+    it->second = it->second +1;
 
+
+}
 int do_lca(std::vector<int> &taxids,int2int &parent){
   //  fprintf(stderr,"\t-> [%s] with number of taxids: %lu\n",__func__,taxids.size());
   assert(taxids.size()>0);
@@ -360,6 +369,7 @@ void hts(FILE *fp,samFile *fp_in,int2int &i2i,int2int& parent,bam_hdr_t *hdr,int
 	lca=do_lca(taxids,parent);
 	//	fprintf(stderr,"myq->l: %d\n",myq->l);
 	if(lca!=-1){
+	  adder(lca,lcadist);
 	  fprintf(fp,"%s:%s:%lu:%d",last,seq,strlen(seq),size);
 	  print_chain(fp,lca,parent,rank,name_map);
 	  int varisunique = isuniq(specs);
@@ -475,6 +485,7 @@ void hts(FILE *fp,samFile *fp_in,int2int &i2i,int2int& parent,bam_hdr_t *hdr,int
     lca=do_lca(taxids,parent);
     //    fprintf(stderr,"myq->l: %d lca: %d \n",myq->l,lca);
     if(lca!=-1){
+      adder(lca,lcadist);
       fprintf(fp,"%s:%s:%lu:%d",last,seq,strlen(seq),size);
       print_chain(fp,lca,parent,rank,name_map);
       if(isuniq(specs)){
@@ -668,5 +679,21 @@ int main_lca(int argc, char **argv){
   
   if(usedreads_sam!=NULL)
     sam_close(usedreads_sam);
+  if(p->fp_lcadist){
+    for(int2int::iterator it =lcadist.begin();it!=lcadist.end();it++){
+      fprintf(p->fp_lcadist,"%d\t%d",it->first,it->second);
+      int2char::iterator it1=name_map.find(it->first);
+      int2char::iterator it2=rank.find(it->first);
+      char *namnam,*rankrank;
+      namnam=rankrank=NULL;
+      if(it1!=name_map.end())
+	namnam=it1->second;
+      if(it2!=rank.end())
+	rankrank=it2->second;
+      fprintf(p->fp_lcadist,"\t%s\t%s\n",namnam,rankrank);
+    }
+
+  }
+  fclose(p->fp_lcadist);
   return 0;
 }

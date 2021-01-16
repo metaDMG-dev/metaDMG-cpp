@@ -19,7 +19,7 @@ pars *pars_init(){
   p->editdistMax=10;
   p->simscoreLow=0;
   p->simscoreHigh=1;
-  p->fp1=p->fp2=p->fp3=NULL;
+  p->fp1=p->fp2=p->fp3=p->fp_lcadist=NULL;
   p->outnames=strdup("outnames");
   p->minmapq=0;
   p->discard=516;//discard unmapped and read fail
@@ -183,6 +183,11 @@ pars *get_pars(int argc,char **argv){
   fprintf(stderr,"\t-> Will output lca results in file:\t\t\'%s\'\n",buf);
   p->fp1 = fopen(buf,"wb");
 
+  snprintf(buf,1024,"%s.lcadist",p->outnames);
+  fprintf(stderr,"\t-> Will output lca distribution in file:\t\t\'%s\'\n",buf);
+  p->fp_lcadist = fopen(buf,"wb");
+
+  
   snprintf(buf,1024,"%s.wlca",p->outnames);
   fprintf(stderr,"\t-> Will output lca weight in file:\t\t\'%s\'\n",buf);
   //  p->fp2 = fopen(buf,"wb");

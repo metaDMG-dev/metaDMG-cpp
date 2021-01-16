@@ -25,6 +25,7 @@ typedef struct{
   int skipnorank;
   char *outnames;
   FILE *fp1;
+  FILE *fp_lcadist;
   FILE *fp2;
   FILE *fp3;
   int minmapq;
