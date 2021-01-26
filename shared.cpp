@@ -4,6 +4,7 @@
 #include <libgen.h>
 #include <htslib/bgzf.h>
 #include <cassert>
+#include <ctime>
 #include "shared.h"
 
 

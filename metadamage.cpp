@@ -63,6 +63,49 @@ double *getval(std::map<int, double *> &retmap,int2intvec &child,int taxid,int h
   return ret;
 }
 
+mydata getval_full(std::map<int, mydata> &retmap,int2intvec &child,int taxid,int howmany){
+  // fprintf(stderr,"getval\t%d\t%d\n",taxid,howmany);
+  std::map<int,mydata>::iterator it = retmap.find(taxid);
+  if(it!=retmap.end()){
+    //fprintf(stderr,"has found: %d in retmap\n",it->first);
+#if 0
+    fprintf(stderr,"val\t%d",taxid);
+    for(int i=0;i<3*howmany+1;i++)
+      fprintf(stderr,"\t%f",it->second[i]);
+    fprintf(stderr,"\n");
+#endif
+    return it->second;
+  }
+  mydata ret;
+  ret.nreads = 0;
+  ret.fw = new size_t[16*howmany];
+  ret.bw = new size_t[16*howmany];
+  
+  for(int i=0;i<16*howmany;i++){
+    ret.fw[i] = 0;
+    ret.bw[i] = 0;
+  }
+  if(child.size()>0) {// if we have supplied -nodes
+    int2intvec::iterator it2 = child.find(taxid);
+    if (it2!=child.end()){
+      std::vector<int> &avec = it2->second;
+      for(int i=0;i<avec.size();i++){
+	//	fprintf(stderr,"%d/%d %d\n",i,avec.size(),avec[i]);
+	mydata tmp = getval_full(retmap,child,avec[i],howmany);
+	ret.nreads += tmp.nreads;
+	for(int i=0;i<16*howmany;i++){
+	  ret.fw[i] += tmp.fw[i];
+	  ret.bw[i] += tmp.bw[i];
+	}
+      }
+    }
+  }
+  
+  retmap[taxid] = ret;
+
+  return ret;
+}
+
 int main_getdamage(int argc,char **argv){
   if(argc==1)
     return usage_getdamage(stderr);
@@ -835,6 +878,83 @@ int main_print_all(int argc,char **argv){
   return 0;
 }
 
+
+int main_print_ugly(int argc,char **argv){
+  fprintf(stderr,"./metadamage print_ugly file.bdamage.gz -names file.gz -nodes trestructure.gz -names fil.gz\n");
+  if(argc<=2)
+    return 0;
+  char *infile_bdamage = NULL;
+  char *infile_nodes = NULL;
+  char *infile_names = NULL;
+  int howmany;
+ 
+  while(*(++argv)){
+    if(strcasecmp("-names",*argv)==0)
+      infile_names = strdup(*(++argv));
+    else if(strcasecmp("-nodes",*argv)==0)
+      infile_nodes = strdup(*(++argv));
+    else
+      infile_bdamage = strdup(*argv);
+  }
+
+
+  fprintf(stderr,"infile_names: %s infile_bdamage: %s nodes: %s ",infile_names,infile_bdamage,infile_nodes);
+  fprintf(stderr,"#VERSION:%s\n",METADAMAGE_VERSION);
+  //map of taxid -> taxid
+  int2int parent;
+  //map of taxid -> rank
+  int2char rank;
+  //map of parent -> child taxids
+  int2intvec child;
+
+  if(infile_nodes!=NULL)
+    parse_nodes(infile_nodes,rank,parent,child,1);
+
+  std::map<int, mydata> retmap = load_bdamage_full(infile_bdamage,howmany);
+  fprintf(stderr,"\t-> number of entries in damage pattern file: %lu printlength(howmany):%d\n",retmap.size(),howmany);
+  int2char name = parse_names(infile_names);
+  
+  BGZF *bgfp = NULL;
+  samFile *samfp = NULL;
+
+  float presize = retmap.size();
+  getval_full(retmap,child,1,howmany); //this will do everything
+  float postsize=retmap.size();
+  fprintf(stderr,"\t-> pre: %f post:%f grownbyfactor: %f\n",presize,postsize,postsize/presize);
+  for(std::map<int, mydata>::iterator it=retmap.begin();it!=retmap.end();it++){
+    int taxid = it->first;
+    mydata md = it->second;
+    char *myrank =NULL;
+    char *myname = NULL;
+    int2char::iterator itc=rank.find(taxid);
+    if(itc!=rank.end())
+      myrank=itc->second;
+    itc=name.find(taxid);
+    if(itc!=name.end())
+      myname = itc->second;
+
+    for(int i=0;i<howmany;i++){
+      fprintf(stdout,"%d:\"%s\":\"%s\":%d\t5'\t%d",taxid,myname,myrank,it->second.nreads,i);
+      for(int ii=0;ii<16;ii++)
+	fprintf(stdout,"\t%lu",it->second.fw[i*16+ii]);
+      fprintf(stdout,"\n");
+    }
+    for(int i=0;i<howmany;i++){
+      fprintf(stdout,"%d:\"%s\":\"%s\":%d\t3'\t%d",taxid,myname,myrank,it->second.nreads,i);
+      for(int ii=0;ii<16;ii++)
+	fprintf(stdout,"\t%lu",it->second.fw[i*16+ii]);
+      fprintf(stdout,"\n");
+    }
+
+  }
+ 
+  
+  if(bgfp)
+    bgzf_close(bgfp);
+
+  return 0;
+}
+
 //from ngsLCA.cpp
 int main_lca(int argc, char **argv);
 int main(int argc, char **argv){
@@ -850,6 +970,7 @@ int main(int argc, char **argv){
     fprintf(stderr,"./metadamage print bdamage.gz\n");
     fprintf(stderr,"./metadamage print2 [many options] bdamage.gz\n");
     fprintf(stderr,"./metadamage print_all [many options] bdamage.gz\n");
+    fprintf(stderr,"./metadamage print_ugly [many options] bdamage.gz\n");
     return 0;
   }
   argc--;++argv;
@@ -861,6 +982,8 @@ int main(int argc, char **argv){
     main_print(argc,argv);
    if(!strcmp(argv[0],"print_all"))
     main_print_all(argc,argv);
+   if(!strcmp(argv[0],"print_ugly"))
+     main_print_ugly(argc,argv);
    if(!strcmp(argv[0],"print2"))
     main_print2(argc,argv);
   if(!strcmp(argv[0],"merge"))

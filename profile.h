@@ -53,3 +53,12 @@ void destroy_damage(damage *dmg);
 std::map<int,double *> load_bdamage(const char *fname,int howmany);
 std::map<int,double *> load_bdamage2(const char *fname,int howmany);
 std::map<int,double *> load_bdamage3(const char *fname,int howmany);
+
+typedef struct{
+  int nreads;
+  size_t *fw;
+  size_t *bw;
+}mydata;
+
+
+std::map<int, mydata> load_bdamage_full(const char* fname,int &printlength);

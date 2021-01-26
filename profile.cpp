@@ -754,3 +754,56 @@ std::map<int,double *> load_bdamage3(const char* fname,int howmany ){
 
   return retmap;
 }
+
+std::map<int, mydata> load_bdamage_full(const char* fname,int &printlength){
+  //  fprintf(stderr,"./metadamage print file.bdamage.gz [-names file.gz -bam file.bam]\n");
+  const char *infile = fname;
+  //  fprintf(stderr,"infile: %s howmany: %d \n",infile,howmany);
+  
+  BGZF *bgfp = NULL;
+
+  if(((bgfp = bgzf_open(infile, "r")))== NULL){
+    fprintf(stderr,"Could not open input BAM file: %s\n",infile);
+    exit(0);
+  }
+
+  std::map<int,mydata> retmap;
+  printlength =0;
+  assert(sizeof(int)==bgzf_read(bgfp,&printlength,sizeof(int)));
+
+  int ref_nreads[2];
+ 
+  while(1){
+    int nread=bgzf_read(bgfp,ref_nreads,2*sizeof(int));
+    if(nread==0)
+      break;
+    assert(nread==2*sizeof(int));
+    mydata md;
+    
+    md.fw = new size_t[16*printlength];
+    md.bw = new size_t[16*printlength];
+    md.nreads = ref_nreads[1];
+
+    int tmp[16];
+    for(int i=0;i<printlength;i++){
+      assert(16*sizeof(int)==bgzf_read(bgfp,tmp,sizeof(int)*16));
+      for(int ii=0;ii<16;ii++)
+	md.fw[i*16+ii] = tmp[ii];
+    }
+  
+    for(int i=0;i<printlength;i++){
+      assert(16*sizeof(int)==bgzf_read(bgfp,tmp,sizeof(int)*16));
+      for(int ii=0;ii<16;ii++)
+	md.bw[i*16+ii] = tmp[ii];
+    }
+    retmap[ref_nreads[0]] = md;
+  }
+
+  if(bgfp)
+    bgzf_close(bgfp);
+  fprintf(stderr,"\t-> Done loading binary bdamage.gz file. It contains: %lu\n",retmap.size());
+  for(std::map<int,mydata>::iterator it = retmap.begin();0&&it!=retmap.end();it++)
+    fprintf(stderr,"it->second:%p\n",it->second);
+
+  return retmap;
+}
