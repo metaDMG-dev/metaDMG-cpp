@@ -294,6 +294,40 @@ char *make_seq(bam1_t *aln){
   return qseq;
 }
 
+// a,c,g,t,n
+// A,C,G,T,N
+// 0,1,2,3,4
+int refToInt[256] = {
+  0,1,2,3,4,4,4,4,4,4,4,4,4,4,4,4,//15
+  4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,//31
+  4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,//47
+  0,1,2,3,4,4,4,4,4,4,4,4,4,4,4,4,//63
+  4,0,4,1,4,4,4,2,4,4,4,4,4,4,4,4,//79
+  4,4,4,4,3,4,4,4,4,4,4,4,4,4,4,4,//95
+  4,0,4,1,4,4,4,2,4,4,4,4,4,4,4,4,//111
+  4,4,4,4,3,4,4,4,4,4,4,4,4,4,4,4,//127
+  4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,//143
+  4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,//159
+  4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,//175
+  4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,//191
+  4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,//207
+  4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,//223
+  4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,//239
+  4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4//255
+};
+
+
+float gccontent(char *seq){
+  int counts[5] ={0,0,0,0,0};
+  for(int i=0;i<strlen(seq);i++)
+    counts[refToInt[seq[i]]]++;
+      
+  float gcs = counts[1]+counts[2];
+  float tot = counts[0]+counts[1]+counts[2]+counts[3];
+  return gcs/tot;
+}
+
+
 int printonce=1;
 
 std::vector<int> purge(std::vector<int> &taxids,std::vector<int> &editdist){
@@ -370,7 +404,7 @@ void hts(FILE *fp,samFile *fp_in,int2int &i2i,int2int& parent,bam_hdr_t *hdr,int
 	//	fprintf(stderr,"myq->l: %d\n",myq->l);
 	if(lca!=-1){
 	  adder(lca,lcadist);
-	  fprintf(fp,"%s:%s:%lu:%d",last,seq,strlen(seq),size);
+	  fprintf(fp,"%s:%s:%lu:%d:%f",last,seq,strlen(seq),size,gccontent(seq));
 	  print_chain(fp,lca,parent,rank,name_map);
 	  int varisunique = isuniq(specs);
 	  if(varisunique){
@@ -486,7 +520,7 @@ void hts(FILE *fp,samFile *fp_in,int2int &i2i,int2int& parent,bam_hdr_t *hdr,int
     //    fprintf(stderr,"myq->l: %d lca: %d \n",myq->l,lca);
     if(lca!=-1){
       adder(lca,lcadist);
-      fprintf(fp,"%s:%s:%lu:%d",last,seq,strlen(seq),size);
+      fprintf(fp,"%s:%s:%lu:%d:%f",last,seq,strlen(seq),size,gccontent(seq));
       print_chain(fp,lca,parent,rank,name_map);
       if(isuniq(specs)){
 	int2int::iterator it=specWeight.find(specs[0]);
