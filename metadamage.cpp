@@ -942,7 +942,7 @@ int main_print_ugly(int argc,char **argv){
     for(int i=0;i<howmany;i++){
       fprintf(stdout,"%d:\"%s\":\"%s\":%d\t3'\t%d",taxid,myname,myrank,it->second.nreads,i);
       for(int ii=0;ii<16;ii++)
-	fprintf(stdout,"\t%lu",it->second.fw[i*16+ii]);
+	fprintf(stdout,"\t%lu",it->second.bw[i*16+ii]);
       fprintf(stdout,"\n");
     }
 
