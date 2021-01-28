@@ -273,7 +273,7 @@ int main_bytaxid(int argc,char**argv){
   //make bamrefids to taxids
   int2int *bam2tax;//pointer uhhhh
   int2int errmap;
-  if(hdr)
+  if(hdr||1)
     bam2tax=(int2int*) bamRefId2tax(hdr,acc2tax,hts,errmap);
   fprintf(stderr,"\t-> We have bam2tax.size(): %lu and errmap.size():%lu\n",bam2tax->size(),errmap.size());
   
@@ -292,13 +292,14 @@ int main_bytaxid(int argc,char**argv){
     keeplist[tokeep] =1;
 
   }
+  fprintf(stderr,"\t-> Number of refids to use: %lu from -key %s\n",keeplist.size(),keyfile);
   
   for(int2int::iterator it=bam2tax->begin();it!=bam2tax->end();it++){
     int2int::iterator it2=taxlist.find(it->second);
     if(it2!=taxlist.end())
       keeplist[it->first] = 1;
   }
-  fprintf(stderr,"\t-> number of refids to use: %lu\n",keeplist.size());
+  fprintf(stderr,"\t-> Number of refids to use: %lu\n",keeplist.size());
   
   runextract_taxid(keeplist,htsfp,hdr,strict,outfile);
   

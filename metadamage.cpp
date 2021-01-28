@@ -924,6 +924,8 @@ int main_print_ugly(int argc,char **argv){
   for(std::map<int, mydata>::iterator it=retmap.begin();it!=retmap.end();it++){
     int taxid = it->first;
     mydata md = it->second;
+    if(it->second.nreads==0)
+      continue;
     char *myrank =NULL;
     char *myname = NULL;
     int2char::iterator itc=rank.find(taxid);
@@ -934,13 +936,13 @@ int main_print_ugly(int argc,char **argv){
       myname = itc->second;
 
     for(int i=0;i<howmany;i++){
-      fprintf(stdout,"%d:\"%s\":\"%s\":%d\t5'\t%d",taxid,myname,myrank,it->second.nreads,i);
+      fprintf(stdout,"%d\t\"%s\"\t\"%s\"\t%d\t5'\t%d",taxid,myname,myrank,it->second.nreads,i);
       for(int ii=0;ii<16;ii++)
 	fprintf(stdout,"\t%lu",it->second.fw[i*16+ii]);
       fprintf(stdout,"\n");
     }
     for(int i=0;i<howmany;i++){
-      fprintf(stdout,"%d:\"%s\":\"%s\":%d\t3'\t%d",taxid,myname,myrank,it->second.nreads,i);
+      fprintf(stdout,"%d\t\"%s\"\t\"%s\"\t%d\t3'\t%d",taxid,myname,myrank,it->second.nreads,i);
       for(int ii=0;ii<16;ii++)
 	fprintf(stdout,"\t%lu",it->second.bw[i*16+ii]);
       fprintf(stdout,"\n");
