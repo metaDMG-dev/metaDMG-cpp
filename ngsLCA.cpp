@@ -650,6 +650,7 @@ int main_lca(int argc, char **argv){
   for(int i=0;i<argc;i++)
     fprintf(p->fp1," %s",argv[i]);
   fprintf(p->fp1," #version: %s\n",METADAMAGE_VERSION);
+  fflush(p->fp1);
   //map of bamref ->taxid
 
   int2int *i2i=NULL;

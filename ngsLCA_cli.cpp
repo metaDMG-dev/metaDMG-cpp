@@ -25,7 +25,7 @@ pars *pars_init(){
   p->discard=516;//discard unmapped and read fail
   p->minlength=-1;
   p->charref2taxid = NULL;
-  p->lca_rank = NULL;
+  p->lca_rank = strdup("species");
   p->norank2species = 0;
   p->skipnorank = 1;
   p->howmany = 5;
@@ -182,11 +182,11 @@ pars *get_pars(int argc,char **argv){
   snprintf(buf,1024,"%s.lca",p->outnames);
   fprintf(stderr,"\t-> Will output lca results in file:\t\t\'%s\'\n",buf);
   p->fp1 = fopen(buf,"wb");
-
+  assert(p->fp1);
   snprintf(buf,1024,"%s.lcadist",p->outnames);
   fprintf(stderr,"\t-> Will output lca distribution in file:\t\t\'%s\'\n",buf);
   p->fp_lcadist = fopen(buf,"wb");
-
+  assert(p->fp_lcadist);
   
   snprintf(buf,1024,"%s.wlca",p->outnames);
   fprintf(stderr,"\t-> Will output lca weight in file:\t\t\'%s\'\n",buf);
@@ -195,7 +195,7 @@ pars *get_pars(int argc,char **argv){
   snprintf(buf,1024,"%s.log",p->outnames);
   fprintf(stderr,"\t-> Will output log info (problems) in file:\t\'%s\'\n",buf);
   p->fp3 = fopen(buf,"wb");
-
+  assert(p->fp3);
   if(make_used_reads){
     snprintf(buf,1024,"%s.usedreads.sam",p->outnames);
     fprintf(stderr,"\t-> Will output the reads that are used for damage file:\t\'%s\'\n",buf);

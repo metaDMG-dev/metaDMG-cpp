@@ -49,14 +49,19 @@ int fexists2(const char*str1,const char* str2){
   return fexists(tmp);
 }
 
-
+size_t fsize(const char* fname){
+  struct stat st ;
+  stat(fname,&st);
+  return st.st_size;
+}
 
 
 int fexists3(const char*str1,const char* str2,const char *str3){
   unsigned tmp_l = strlen(str1)+strlen(str2)+strlen(str3)+5;
   char tmp[tmp_l];
   snprintf(tmp,tmp_l,"%s%s%s",str1,str2,str3);
-  return fexists(tmp);
+  size_t fs=fsize(tmp);
+  return fexists(tmp)&&fs>0;
 }
 
 

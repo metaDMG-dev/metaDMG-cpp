@@ -109,6 +109,7 @@ mydata getval_full(std::map<int, mydata> &retmap,int2intvec &child,int taxid,int
 int main_getdamage(int argc,char **argv){
   if(argc==1)
     return usage_getdamage(stderr);
+
   //  int MAXLENGTH = 256;
   int minLength = 35;
   int printLength = 5;
@@ -960,6 +961,7 @@ int main_print_ugly(int argc,char **argv){
 //from ngsLCA.cpp
 int main_lca(int argc, char **argv);
 int main(int argc, char **argv){
+  
   clock_t t=clock();
   time_t t2=time(NULL);
  
@@ -975,6 +977,11 @@ int main(int argc, char **argv){
     fprintf(stderr,"./metadamage print_ugly [many options] bdamage.gz\n");
     return 0;
   }
+  fprintf(stderr,"#");
+  for(int i=0;i<argc;i++)
+    fprintf(stderr,"%s ",argv[i]);
+  fprintf(stderr,"\n");
+  fflush(stderr);
   argc--;++argv;
   if(!strcmp(argv[0],"getdamage"))
     main_getdamage(argc,argv);
