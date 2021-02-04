@@ -23,8 +23,9 @@ int usage_getdamage(FILE *fp){
   fprintf(fp,"  -f/--fasta\t is required with CRAM\n");
   fprintf(fp,"  -l/--minlength\t reads shorter than minlength will be discarded\n");
   fprintf(fp,"  -p/--printlength\t use this number of positions from 5' and 3'\n");
-  fprintf(fp,"  -r/--runmode\trunmode 1 means that damage patterns will be calculated for each chr/scaffold contig.\n\t\trunmode 0 means one global estimate.\n");
+  fprintf(fp,"  -r/--runmode\t runmode 1 means that damage patterns will be calculated for each chr/scaffold contig.\n\t\t runmode 0 means one global estimate.\n");
   fprintf(fp,"  -@/--threads\t Number of threads used for reading/writing\n");
+  fprintf(fp,"  -o/--outname\t Number of threads used for reading/writing\n");
   return 0;
 }
 
