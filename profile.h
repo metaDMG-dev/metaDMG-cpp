@@ -38,7 +38,7 @@ public:
     MAXLENGTH = maxlen;
     minQualBase = minqb;
     nthreads = nthd;
-    reconstructedTemp=(char*)calloc(256,1);
+    reconstructedTemp=(char*)calloc(512,1);
     kstring_t *kstr =new kstring_t;
     kstr->l=kstr->m=0;
     kstr->s=NULL;

@@ -137,7 +137,7 @@ void  reconstructRefWithPosHTS(const bam1_t   * b,std::pair< kstring_t *, std::v
  
   pp.first->l = 0;
   pp.second.clear();
-  memset(reconstructedTemp,0,256);
+  memset(reconstructedTemp,0,512);
   std::vector<mdField> parsedMD;
     //skip unmapped
     if( ((b)->core.flag&BAM_FUNMAP) != 0 ){
@@ -495,165 +495,6 @@ int main(int argc, char *argv[]) {
 
 #endif
 
-
-std::map<int,double *> load_bdamage(const char* fname,int howmany ){
-  //  fprintf(stderr,"./metadamage print file.bdamage.gz [-names file.gz -bam file.bam]\n");
-  const char *infile = fname;
-  //  fprintf(stderr,"infile: %s howmany: %d \n",infile,howmany);
-  
-  BGZF *bgfp = NULL;
-
-  if(((bgfp = bgzf_open(infile, "r")))== NULL){
-    fprintf(stderr,"Could not open input BAM file: %s\n",infile);
-    exit(0);
-  }
-
-  std::map<int,double*> retmap;
-  
-  int printlength;
-  assert(sizeof(int)==bgzf_read(bgfp,&printlength,sizeof(int)));
-  //fprintf(stderr,"printlength: %d\n",printlength);
-  assert(printlength<=howmany);
-  int ref_nreads[2];
- 
-  int data[16];
-  while(1){
-    int nread=bgzf_read(bgfp,ref_nreads,2*sizeof(int));
-    if(nread==0)
-      break;
-    assert(nread==2*sizeof(int));
-    
-    double *formap = new double [1+2*howmany];
-    //    fprintf(stderr,"formap: %p\n",formap);
-    int incer =0;
-    formap[incer++] = ref_nreads[1];
-    for(int i=0;i<printlength;i++){
-      assert(16*sizeof(int)==bgzf_read(bgfp,data,sizeof(int)*16));
-      float flt[16];
-      for(int i=0;i<4;i++) {
-	double tsum =0;
-	for(int j=0;j<4;j++){
-	  tsum += data[i*4+j];
-	  flt[i*4+j] = data[i*4+j];
-	}
-	if(tsum==0) tsum = 1;
-	for(int j=0;j<4;j++)
-	  flt[i*4+j] /=tsum;
-      }
-      if(i<howmany) //carefull satan
-	formap[incer++] =flt[7];
-    }
-    for(int i=0;i<printlength;i++){
-      assert(16*sizeof(int)==bgzf_read(bgfp,data,sizeof(int)*16));
-      
-      float flt[16];
-      for(int i=0;i<4;i++){
-	double tsum =0;
-	for(int j=0;j<4;j++){
-	  tsum += data[i*4+j];
-	  flt[i*4+j] = data[i*4+j];
-	}
-	if(tsum==0) tsum = 1;
-	for(int j=0;j<4;j++)
-	  flt[i*4+j] /=tsum;
-      }
-      if(i<howmany) //carefull satan
-	formap[incer++] =flt[8];
-    }
-    for(int i=0;0&&i<2*howmany;i++)
-      fprintf(stdout,"[%d] %f\n",i,formap[i]);
-    retmap[ref_nreads[0]] = formap;
-  }
-  //  exit(0);
-  if(bgfp)
-    bgzf_close(bgfp);
-  fprintf(stderr,"\t-> Done loading binary bdamage.gz file. It contains: %lu\n",retmap.size());
-  for(std::map<int,double *>::iterator it = retmap.begin();0&&it!=retmap.end();it++)
-    fprintf(stderr,"it->second:%p\n",it->second);
-
-  return retmap;
-}
-
-
-std::map<int,double *> load_bdamage2(const char* fname,int howmany ){
-  //  fprintf(stderr,"./metadamage print file.bdamage.gz [-names file.gz -bam file.bam]\n");
-  const char *infile = fname;
-  //  fprintf(stderr,"infile: %s howmany: %d \n",infile,howmany);
-  
-  BGZF *bgfp = NULL;
-
-  if(((bgfp = bgzf_open(infile, "r")))== NULL){
-    fprintf(stderr,"Could not open input BAM file: %s\n",infile);
-    exit(0);
-  }
-
-  std::map<int,double*> retmap;
-  
-  int printlength;
-  assert(sizeof(int)==bgzf_read(bgfp,&printlength,sizeof(int)));
-  //fprintf(stderr,"printlength: %d\n",printlength);
-  assert(printlength<=howmany);
-  int ref_nreads[2];
- 
-  int data[16];
-  while(1){
-    int nread=bgzf_read(bgfp,ref_nreads,2*sizeof(int));
-    if(nread==0)
-      break;
-    assert(nread==2*sizeof(int));
-    
-    double *formap = new double [1+2*howmany];
-    //    fprintf(stderr,"formap: %p\n",formap);
-    int incer =0;
-    formap[incer++] = ref_nreads[1];
-    for(int i=0;i<printlength;i++){
-      assert(16*sizeof(int)==bgzf_read(bgfp,data,sizeof(int)*16));
-      float flt[16];
-      for(int i=0;i<4;i++) {
-	double tsum =0;
-	for(int j=0;j<4;j++){
-	  tsum += data[i*4+j];
-	  flt[i*4+j] = data[i*4+j];
-	}
-	if(tsum==0) tsum = 1;
-	for(int j=0;j<4;j++)
-	  flt[i*4+j] /=tsum;
-      }
-      if(i<howmany) //carefull satan
-	formap[incer++] =flt[7]*formap[0];
-    }
-    for(int i=0;i<printlength;i++){
-      assert(16*sizeof(int)==bgzf_read(bgfp,data,sizeof(int)*16));
-      
-      float flt[16];
-      for(int i=0;i<4;i++){
-	double tsum =0;
-	for(int j=0;j<4;j++){
-	  tsum += data[i*4+j];
-	  flt[i*4+j] = data[i*4+j];
-	}
-	if(tsum==0) tsum = 1;
-	for(int j=0;j<4;j++)
-	  flt[i*4+j] /=tsum;
-      }
-      if(i<howmany) //carefull satan
-	formap[incer++] =flt[8]*formap[0];
-    }
-    for(int i=0;0&&i<2*howmany;i++)
-      fprintf(stdout,"[%d] %f\n",i,formap[i]);
-    retmap[ref_nreads[0]] = formap;
-  }
-  //  exit(0);
-  if(bgfp)
-    bgzf_close(bgfp);
-  fprintf(stderr,"\t-> Done loading binary bdamage.gz file. It contains: %lu\n",retmap.size());
-  for(std::map<int,double *>::iterator it = retmap.begin();0&&it!=retmap.end();it++)
-    fprintf(stderr,"it->second:%p\n",it->second);
-
-  return retmap;
-}
-
-
 std::map<int,double *> load_bdamage3(const char* fname,int howmany ){
   //  fprintf(stderr,"./metadamage print file.bdamage.gz [-names file.gz -bam file.bam]\n");
   const char *infile = fname;
@@ -693,30 +534,31 @@ std::map<int,double *> load_bdamage3(const char* fname,int howmany ){
     int incer =0;
     formap[incer++] = ref_nreads[1];
 
-    for(int i=0;i<printlength;i++){
+    for(int at=0;at<printlength;at++) {
       assert(16*sizeof(int)==bgzf_read(bgfp,data,sizeof(int)*16));
-      float flt[16];
-      for(int i=0;i<4;i++) {
+      float flt[16];//this will contain the float representation of counts
+      for(int i=0;i<4;i++) {//loop over A*,C*,G*,T*
 	double tsum =0;
-	for(int j=0;j<4;j++){
+	for(int j=0;j<4;j++){//tsum is the sum of *A,*C,*G,*T
 	  tsum += data[i*4+j];
 	  flt[i*4+j] = data[i*4+j];
 	}
-	if(tsum==0) tsum = 1;
+	if(tsum==0)
+	  tsum = 1;
 	for(int j=0;j<4;j++)
-	  flt[i*4+j] /=tsum;
+	  flt[i*4+j] /=tsum; //now rescale such that *A+*C+*G+*T=1
       }
-      if(i<howmany) {//carefull satan
-	formap[incer++] =flt[7]*formap[0];
+      if(at<howmany) {//carefull satan
+	formap[incer++] =flt[7]*formap[0];//flt[7] := CT
 
 	for(int n=0;n<4;n++)
 	  for(int j=0;j<4;j++)
 	    if(n!=j)
-	      formap[1+2*howmany+i] += flt[n*4+j];
-	formap[1+2*howmany+i] -= flt[7];
+	      formap[1+2*howmany+at] += flt[n*4+j];//we add all mutations after format[1+ct+ga]
+	formap[1+2*howmany+at] -= flt[7];//we dont want to add the ct, so we subtract
       }
     }
-    for(int i=0;i<printlength;i++){
+    for(int at=0;at<printlength;at++){
       assert(16*sizeof(int)==bgzf_read(bgfp,data,sizeof(int)*16));
       
       float flt[16];
@@ -730,15 +572,15 @@ std::map<int,double *> load_bdamage3(const char* fname,int howmany ){
 	for(int j=0;j<4;j++)
 	  flt[i*4+j] /=tsum;
       }
-      if(i<howmany) {//carefull satan
+      if(at<howmany) {//carefull satan
 	formap[incer++] =flt[8]*formap[0];
 
 	for(int n=0;n<4;n++)
 	  for(int j=0;j<4;j++)
 	    if(n!=j)
-	      formap[1+2*howmany+i] += flt[n*4+j];
-	formap[1+2*howmany+i] -= flt[8];
-	formap[1+2*howmany+i] = formap[1+2*howmany+i]/22.0*formap[0];
+	      formap[1+2*howmany+at] += flt[n*4+j];//we add all mutations after format[1+ct+ga]
+	formap[1+2*howmany+at] -= flt[8];//we dont want to add the ga, so we subtract
+	formap[1+2*howmany+at] = formap[1+2*howmany+at]/10.0*formap[0];//previously we were dividing with 22?, I think it should be 10,
       }
     }
     for(int i=0;0&&i<2*howmany;i++)
