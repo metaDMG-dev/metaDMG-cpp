@@ -137,7 +137,7 @@ void  reconstructRefWithPosHTS(const bam1_t   * b,std::pair< kstring_t *, std::v
  
   pp.first->l = 0;
   pp.second.clear();
-  memset(reconstructedTemp,0,512);
+
   std::vector<mdField> parsedMD;
     //skip unmapped
     if( ((b)->core.flag&BAM_FUNMAP) != 0 ){
@@ -278,10 +278,6 @@ inline void increaseCounters(const bam1_t *b,const char * reconstructedReference
 		dist3p=i;
 	    }
 
-	    if(0&&(dist5p > MAXLENGTH || dist3p > MAXLENGTH )){
-	      fprintf(stderr,"Molecule found: %s  with length greater than limit \n",bam_get_qname(b));
-	      exit(1);
-	    }
 	    if(dist5p<MAXLENGTH)
 	      mm5p[dist5p][toIndex[refeBase][readBase]]++;
 	    if(dist3p<MAXLENGTH)
@@ -301,6 +297,11 @@ int damage::damage_analysis(bam1_t *b,int which){
   }
   std::map<int,triple >::iterator it=assoc.find(which);
   it->second.nreads++;
+  if(b->core.l_qseq-10>temp_len){
+    temp_len = b->core.l_qseq;
+    kroundup32(temp_len);
+    memset(reconstructedTemp,0,temp_len);
+  }
   reconstructRefWithPosHTS(b,reconstructedReference,reconstructedTemp);
   increaseCounters(b,reconstructedReference.first->s, reconstructedReference.second,minQualBase,MAXLENGTH,it->second.mm5p,it->second.mm3p);
   return 0;
@@ -308,8 +309,10 @@ int damage::damage_analysis(bam1_t *b,int which){
 void damage::write(char *fname,bam_hdr_t *hdr){
   //fprintf(stderr,"Dumping asso.size(): %lu\n",assoc.size());
   char *outname=strdup("metaout");
-  if(fname)
+  if(fname){
+    free(outname);
     outname = fname;
+  }
   kstring_t kstr;
   kstr.l=kstr.m=0;
   kstr.s=NULL;

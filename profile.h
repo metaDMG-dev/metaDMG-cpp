@@ -34,11 +34,13 @@ public:
   void bwrite(char *prefix,bam_hdr_t *hdr);
   int damage_analysis( bam1_t *b,int whichclass);
   void printit(FILE *fp,int l);
+  int temp_len;
   damage(int maxlen,int nthd,int minqb){
+    temp_len = 512;
     MAXLENGTH = maxlen;
     minQualBase = minqb;
     nthreads = nthd;
-    reconstructedTemp=(char*)calloc(512,1);
+    reconstructedTemp=(char*)calloc(temp_len,1);
     kstring_t *kstr =new kstring_t;
     kstr->l=kstr->m=0;
     kstr->s=NULL;
@@ -50,8 +52,6 @@ public:
 
 void destroy_damage(damage *dmg);
 
-std::map<int,double *> load_bdamage(const char *fname,int howmany);
-std::map<int,double *> load_bdamage2(const char *fname,int howmany);
 std::map<int,double *> load_bdamage3(const char *fname,int howmany);
 
 typedef struct{
