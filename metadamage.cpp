@@ -802,6 +802,147 @@ int main_merge(int argc,char **argv){
   return 0;
 }
 
+int2int getlcadist(char *fname){
+  int2int lcadist;
+  int tlen =strlen(fname)+10; 
+  char tmp[tlen];
+  snprintf(tmp,tlen,"%sdist",fname);
+  //  fprintf(stderr,"tmp: %s\n",tmp);
+  FILE *fp = NULL;
+  fp=fopen(tmp,"rb");
+  assert(fp!=NULL);
+  char buf[4096];
+  while(fgets(buf,4096,fp)){
+    int key = atoi(strtok(buf,"\t\n "));
+    int val = atoi(strtok(NULL,"\t\n "));
+    lcadist[key] = val;
+  }
+  fprintf(stderr,"\t-> Done reading: %lu entries from file: \'%s\'\n",lcadist.size(),tmp);
+  return lcadist;
+}
+
+
+
+std::map<int,double *> getcsv(char *fname){
+  std::map<int,double *> ret;
+  FILE *fp = NULL;
+  fp=fopen(fname,"rb");
+  assert(fp!=NULL);
+  char buf[4096];
+  fgets(buf,4096,fp);//skip header
+  while(fgets(buf,4096,fp)){
+    int key = atoi(strtok(buf,"\t\n, "));
+    double *valval = new double[2];
+    valval[0] = atof(strtok(NULL,"\t\n, "));
+    valval[1] = atof(strtok(NULL,"\t\n, "));
+    ret[key] = valval;
+  }
+  fprintf(stderr,"\t-> Done reading: %lu entries from file: \'%s\'\n",ret.size(),fname);
+  return ret;
+}
+
+
+int main_merge2(int argc,char **argv){
+  fprintf(stderr,"./metadamage merge2 file.lca file.bdamage.gz christian.csv [-names file.gz -bam file.bam -howmany 5 -nodes trestructure.gz]\n");
+  if(argc<=3)
+    return 0;
+  char *infile_lca = argv[1];
+  char *infile_bdamage = argv[2];
+  char *infile_christian = argv[3];
+  char *infile_nodes = NULL;
+  
+  char *acc2tax = NULL;
+  int howmany = 5;
+  fprintf(stdout,"#./metadamage "); 
+  for(int i=0;i<argc;i++)
+    fprintf(stdout,"%s ",argv[i]);
+  fprintf(stdout,"\n");
+  ++argv;
+  while(*(++argv)){
+    if(strcasecmp("-names",*argv)==0)
+      acc2tax = strdup(*(++argv));
+    if(strcasecmp("-howmany",*argv)==0)
+      howmany = atoi(*(++argv));
+    if(strcasecmp("-nodes",*argv)==0)
+      infile_nodes = strdup(*(++argv));
+  }
+ 
+  fprintf(stderr,"infile_lca: %s infile_bdamage: %s nodes: %s\n",infile_lca,infile_bdamage,infile_nodes);
+
+  int2int lcadist = getlcadist(infile_lca);
+  std::map<int,double *> chris = getcsv(infile_christian);
+  //map of taxid -> taxid
+  int2int parent;
+  //map of taxid -> rank
+  int2char rank;
+  //map of parent -> child taxids
+  int2intvec child;
+
+  if(infile_nodes!=NULL)
+    parse_nodes(infile_nodes,rank,parent,child,1);
+
+  std::map<int, double *> retmap = load_bdamage3(infile_bdamage,howmany);
+  fprintf(stderr,"\t-> Number of entries in damage pattern file: %lu\n",retmap.size());
+  
+  int2char name_map;
+  if(acc2tax!=NULL)
+    name_map = parse_names(acc2tax);
+  
+  BGZF *bgfp = NULL;
+
+  gzFile fp = Z_NULL;
+  fp = gzopen(infile_lca,"rb");
+  assert(fp!=Z_NULL);
+  char buf[4096];
+  char orig[4096];
+  gzgets(fp,buf,4096);//skipheader
+  buf[strlen(buf)-1] = '\0';
+  fprintf(stdout,"%s: VERSION:%s\n",buf,METADAMAGE_VERSION);
+  float presize = retmap.size();
+  double *rawval = new double[2];
+  rawval[0]=rawval[1]=-1.0;
+  while(gzgets(fp,buf,4096)){
+    strncpy(orig,buf,4096);
+    //    fprintf(stderr,"buf: %s\n",buf);
+    char *tok=strtok(buf,"\t\n ");
+    int taxid=atoi(strtok(NULL,":"));
+    //    fprintf(stderr,"taxid: %d\n",taxid);
+    int nclass = -1;
+    int2int::iterator itit = lcadist.find(taxid);
+    if(itit!=lcadist.end())
+      nclass = itit->second;
+    double *valval = rawval;
+    std::map<int,double *>::iterator ititit = chris.find(taxid);
+    if(ititit!=chris.end())
+      valval = rawval;
+    double *dbl = getval(retmap,child,taxid,howmany);
+    double dbldbl[3*howmany+1];//3 because ct,ga,other
+    dbldbl[0] = dbl[0];
+    for(int i=0;i<3*howmany;i++)
+      dbldbl[i+1] = dbl[1+i]/dbl[0];
+
+    //  orig[strlen(orig)-1] = '\0';
+    //rollout results
+    tok = strtok(orig,"\t\n ");
+    fprintf(stdout,"%s\t%d:%.0f:%d:%f%f\t",tok,taxid,dbldbl[0],nclass,valval[0],valval[1]);
+    for(int i=0;i<3*howmany-1;i++)
+      fprintf(stdout,"%f:",dbldbl[1+i]);
+    fprintf(stdout,"%f",dbldbl[3*howmany]);
+    while(((tok=strtok(NULL,"\t\n ")))){
+      fprintf(stdout,"\t%s",tok);
+    }
+    fprintf(stdout,"\n");
+    
+  }
+  float postsize=retmap.size();
+  fprintf(stderr,"\t-> pre: %f post:%f grownbyfactor: %f\n",presize,postsize,postsize/presize);
+  if(bgfp)
+    bgzf_close(bgfp);
+  if(fp!=Z_NULL)
+    gzclose(fp);
+  return 0;
+}
+
 int main_print_all(int argc,char **argv){
   fprintf(stderr,"./metadamage print_all file.bdamage.gz -names file.gz [-howmany 5] -nodes trestructure.gz -names fil.gz\n");
   if(argc<=2)
@@ -967,6 +1108,7 @@ int main(int argc, char **argv){
     fprintf(stderr,"./metadamage mergedamage files.damage.*.gz\n");
     fprintf(stderr,"./metadamage index files.damage.gz\n");
     fprintf(stderr,"./metadamage merge files.lca files.bdamage.gz\n");
+    fprintf(stderr,"./metadamage merge2 files.lca files.bdamage.gz christian.csv\n");
     fprintf(stderr,"./metadamage lca [many options]\n");
     fprintf(stderr,"./metadamage print bdamage.gz\n");
     fprintf(stderr,"./metadamage print2 [many options] bdamage.gz\n");
@@ -994,6 +1136,8 @@ int main(int argc, char **argv){
     main_print2(argc,argv);
   if(!strcmp(argv[0],"merge"))
     main_merge(argc,argv);
+  if(!strcmp(argv[0],"merge2"))
+    main_merge2(argc,argv);
   if(!strcmp(argv[0],"lca"))
     main_lca(argc,argv);
 
