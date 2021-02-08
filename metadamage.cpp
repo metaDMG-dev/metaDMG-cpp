@@ -914,7 +914,7 @@ int main_merge2(int argc,char **argv){
     double *valval = rawval;
     std::map<int,double *>::iterator ititit = chris.find(taxid);
     if(ititit!=chris.end())
-      valval = rawval;
+      valval = ititit->second;
     double *dbl = getval(retmap,child,taxid,howmany);
     double dbldbl[3*howmany+1];//3 because ct,ga,other
     dbldbl[0] = dbl[0];
