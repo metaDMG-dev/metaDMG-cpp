@@ -134,7 +134,7 @@ void mdString2Vector2(const uint8_t *md,std::vector<mdField> &toReturn){
 }
 
 void  reconstructRefWithPosHTS(const bam1_t   * b,std::pair< kstring_t *, std::vector<int> > &pp,char *reconstructedTemp){
- 
+  
   pp.first->l = 0;
   pp.second.clear();
 
@@ -162,7 +162,7 @@ void  reconstructRefWithPosHTS(const bam1_t   * b,std::pair< kstring_t *, std::v
 	memset(reconstructedTemp+at,opchr,oplen);
 	at += oplen;
     }
-
+    
     //get a vector representation of the MD field	
     mdString2Vector2(mdptr,parsedMD);
 #if 0
@@ -214,7 +214,7 @@ void  reconstructRefWithPosHTS(const bam1_t   * b,std::pair< kstring_t *, std::v
     }
 
     if(strlen(pp.first->s) != b->core.l_qseq){
-      fprintf(stderr,"Could not recreate the sequence for read: %s \n",bam_get_qname(b));
+      fprintf(stderr,"Could not recreate the sequence for read: %s pp.first->s: %s strlen():%lu\n",bam_get_qname(b),pp.first->s,strlen(pp.first->s));
       exit(1);
     }
 
@@ -300,8 +300,10 @@ int damage::damage_analysis(bam1_t *b,int which){
   if(b->core.l_qseq-10>temp_len){
     temp_len = b->core.l_qseq;
     kroundup32(temp_len);
-    memset(reconstructedTemp,0,temp_len);
+    free(reconstructedTemp);
+    reconstructedTemp =(char*) calloc(temp_len,1);
   }
+  memset(reconstructedTemp,0,temp_len);
   reconstructRefWithPosHTS(b,reconstructedReference,reconstructedTemp);
   increaseCounters(b,reconstructedReference.first->s, reconstructedReference.second,minQualBase,MAXLENGTH,it->second.mm5p,it->second.mm3p);
   return 0;
