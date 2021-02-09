@@ -924,7 +924,7 @@ int main_merge2(int argc,char **argv){
     //  orig[strlen(orig)-1] = '\0';
     //rollout results
     tok = strtok(orig,"\t\n ");
-    fprintf(stdout,"%s\t%d:%.0f:%d:%f%f\t",tok,taxid,dbldbl[0],nclass,valval[0],valval[1]);
+    fprintf(stdout,"%s\t%d:%.0f:%d:%f:%f\t",tok,taxid,dbldbl[0],nclass,valval[0],valval[1]);
     for(int i=0;i<3*howmany-1;i++)
       fprintf(stdout,"%f:",dbldbl[1+i]);
     fprintf(stdout,"%f",dbldbl[3*howmany]);
