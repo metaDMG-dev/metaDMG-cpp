@@ -1,3 +1,4 @@
+#include <stdio.h>
 #include <iostream>
 #include <cmath>
 #include <eigen3/Eigen/Core>
@@ -15,11 +16,11 @@
 #include <gsl/gsl_matrix.h>
 #include <gsl/gsl_min.h>
 #include <gsl/gsl_multimin.h>
-#include "matplotlibcpp.h"
+//#include "matplotlibcpp.h"
 #include "regression.h"
 using namespace std;
 using namespace Eigen;
-namespace plt = matplotlibcpp;
+//namespace plt = matplotlibcpp;
 
 //Get the table
 void readdata(const char* filename, string* ColumnName,size_t** Table){
@@ -57,7 +58,6 @@ void readdata(const char* filename, string* ColumnName,size_t** Table){
             }
             row = row + 1;
         }
-        
     }
     infile.close();
 }
@@ -65,7 +65,7 @@ void readdata(const char* filename, string* ColumnName,size_t** Table){
 void matrixselector(size_t** Table, int numppos, int numnpos, int str_pt, int end_pt, int dir, VectorXd &b, MatrixXd &Tab, double &scale){
     int k = end_pt - str_pt;
     scale = (double)Table[0][4];
-    cout << "Scale is "<<scale<<"\n";
+    //cout << "Scale is "<<scale<<"\n";
     if (dir > 0){
         for (int i = 0; i < numppos; i++){
             int nj = 0;
@@ -108,12 +108,12 @@ void matrixselector(size_t** Table, int numppos, int numnpos, int str_pt, int en
                 Tab(i,nj)=(double)Table[i][j]/scale;
                 sum += Tab(i,nj);
                 //                cout << b(nj+k*i) << "\n";
-                cout << Tab(i,nj) << "\t";
+                //cout << Tab(i,nj) << "\t";
                 nj = nj + 1;
             }
             Tab(i,k) = sum+(double)Table[i][end_pt]/scale;
             //cout<<"\n";
-            cout << Tab(i,k) << "\n";
+            //cout << Tab(i,k) << "\n";
         }
         for (int i = numppos; i < numppos+numnpos; i++){
             int nj = 0;
@@ -124,11 +124,11 @@ void matrixselector(size_t** Table, int numppos, int numnpos, int str_pt, int en
                 Tab(i,nj)=(double)Table[i][23-j]/scale;
                 sum += Tab(i,nj);
                 //cout << Table[i][j] << "\t";
-                cout << Tab(i,nj) << "\t";
+                //cout << Tab(i,nj) << "\t";
                 nj = nj + 1;
             }
             Tab(i,k) = sum+(double)Table[i][23-end_pt]/scale;
-            cout << Tab(i,k) << "\n";
+            //cout << Tab(i,k) << "\n";
         }
     }
 }
@@ -410,7 +410,7 @@ void modelcalculation(size_t** Table, int numppos, int numnpos, int model, int o
                 constructX(X, numppos, 3, order);
                 VectorXd LR_coeff_p = X.bdcSvd(ComputeThinU | ComputeThinV).solve(bp);
                 VectorXd MLR_coeff_p = VectorXd::Zero(3*(order+1));
-                cout<<Tabp<<"\n";
+                //                cout<<Tabp<<"\n";
                 gslminloglike(X, Tabp, order, str_pt, end_pt, numppos, LR_coeff_p, MLR_coeff_p);
                 res tmp;
                 tmp.dir = dir;
@@ -435,7 +435,7 @@ void modelcalculation(size_t** Table, int numppos, int numnpos, int model, int o
                 constructX(Y, numnpos, 3, order);
                 VectorXd LR_coeff_n = Y.bdcSvd(ComputeThinU | ComputeThinV).solve(bn);
                 VectorXd MLR_coeff_n = VectorXd::Zero(3*(order+1));
-                cout<<Tabn<<"\n";
+                //                cout<<Tabn<<"\n";
                 gslminloglike(X, Tabn, order, str_pt, end_pt, numnpos, LR_coeff_n, MLR_coeff_n);
                 tmp.dir = dir;
                 tmp.refnucid = i;
@@ -447,10 +447,7 @@ void modelcalculation(size_t** Table, int numppos, int numnpos, int model, int o
                 tmp.LR_like = scale*like;
                 like = calloglike(MLR_coeff_n,Y, Tabn, order, str_pt, end_pt, numnpos);
                 tmp.MLR_like = scale*like;
-                cout<<"Test likelihood is "<<scale<<"\n";
                 Results.push_back(tmp);
-                
-                cout<<"Results size "<<Results.size()<<"\n";
             }
         }else if(model == 2){
             cout << "Folded full regression is under conducted!\n";
@@ -523,8 +520,14 @@ void modelcalculation(size_t** Table, int numppos, int numnpos, int model, int o
         }
     }else if(model == 4){
         cout << "Briggs regression is under conducted! Under construction now!\n";
+        exit(-1);
     }else{
-        cout << "Please specify a model!\n";
+        cout << "The model index cannot exceed 4, please specify a model!\n";
+        fprintf(stderr,"\t-> -model 0 stands for Unfolded full regression,\n");
+        fprintf(stderr,"\t-> -model 1 stands for Unfolded conditional regression,\n");
+        fprintf(stderr,"\t-> -model 2 stands for Folded full regression,\n");
+        fprintf(stderr,"\t-> -model 3 stands for Folded condtional regression,\n");
+        fprintf(stderr,"\t-> -model 4 stands for Briggs regression, which is under construction!\n");
         exit(-1);
     }
 }
@@ -1132,7 +1135,7 @@ void Freqcalculator4uncon(vector<res> &Results, int numppos, int numnpos){
             Results[i].MLR_freq_p.push_back(freq13p);
             Results[i].MLR_freq_p.push_back(freq14p);
             Results[i].MLR_freq_p.push_back(freq15p);
-
+            
             for (int k=numppos; k<numnpos+numnpos; k++){
                 int k0 = k-numppos;
                 freq0n.at(k0) = exp(MLR_b(k*typenum));
@@ -1188,103 +1191,103 @@ void Freqcalculator4uncon(vector<res> &Results, int numppos, int numnpos){
     }
 }
 
-void freqplt(vector<res > &Results, size_t ** Table, int model, int numppos, int numnpos, int order, double like, string &figname){
-    plt::figure_size(1200, 780);
-    plt::suptitle(figname+", order is "+to_string(order)+", total log-likelihood is "+to_string(like));
-    for (int k=0;k<Results.size();k++){
-        int k0;
-        if (model < 2){
-            k0 = floor(k/2);
-        }else{
-            k0 = k;
-        }
-        int m;
-        if (Results[k].LR_freq_p.size()>0){
-            m = Results[k].LR_freq_p.size();
-        }else{
-            m = Results[k].LR_freq_n.size();
-        }
-        for (int j=0;j<m;j++){
-            plt::subplot(4, 4, j+1+4*k0);
-            //cout<<"Figure "<<j+1+4*k0<<"\n";
-            if (Results[k].dir==0){
-                int n = numppos+numnpos;
-                std::vector<double> x(n), freq(n), LR_freq(n), MLR_freq(n);
-                for (int i=0;i<numnpos;i++){
-                    x.at(i) = -numnpos+i;
-                    if (model%2==1){
-                        freq.at(i) = (double)Table[numppos+i][4+j+4*k0]/(double)(Table[numppos+i][4+4*k0]+Table[numppos+i][5+4*k0]+Table[numppos+i][6+4*k0]+Table[numppos+i][7+4*k0]);
-                    }else{
-                        freq.at(i) = (double)Table[numppos+i][4+j+4*k0]/(double)(Table[numppos+i][4]+Table[numppos+i][5]+Table[numppos+i][6]+Table[numppos+i][7]+Table[numppos+i][8]+Table[numppos+i][9]+Table[numppos+i][10]+Table[numppos+i][11]+Table[numppos+i][12]+Table[numppos+i][13]+Table[numppos+i][14]+Table[numppos+i][15]+Table[numppos+i][16]+Table[numppos+i][17]+Table[numppos+i][18]+Table[numppos+i][19]);
-                    }
-                    LR_freq.at(i) = Results[k].LR_freq_n[j][i];
-                    MLR_freq.at(i) = Results[k].MLR_freq_n[j][i];
-                }
-                for (int i=numnpos;i<numnpos+numppos;i++){
-                    x.at(i) = i-numnpos+1;
-                    if (model%2==1){
-                        freq.at(i) = (double)Table[numnpos+numppos-1-i][4+j+4*k0]/(double)(Table[numnpos+numppos-1-i][4+4*k0]+Table[numnpos+numppos-1-i][5+4*k0]+Table[numnpos+numppos-1-i][6+4*k0]+Table[numnpos+numppos-1-i][7+4*k0]);
-                    }else{
-                        freq.at(i) = (double)Table[numnpos+numppos-1-i][4+j+4*k0]/(double)(Table[numnpos+numppos-1-i][4]+Table[numnpos+numppos-1-i][5]+Table[numnpos+numppos-1-i][6]+Table[numnpos+numppos-1-i][7]+Table[numnpos+numppos-1-i][8]+Table[numnpos+numppos-1-i][9]+Table[numnpos+numppos-1-i][10]+Table[numnpos+numppos-1-i][11]+Table[numnpos+numppos-1-i][12]+Table[numnpos+numppos-1-i][13]+Table[numnpos+numppos-1-i][14]+Table[numnpos+numppos-1-i][15]+Table[numnpos+numppos-1-i][16]+Table[numnpos+numppos-1-i][17]+Table[numnpos+numppos-1-i][18]+Table[numnpos+numppos-1-i][19]);
-                    }
-                    LR_freq.at(i) = Results[k].LR_freq_p[j][i-numnpos];
-                    MLR_freq.at(i) = Results[k].MLR_freq_p[j][i-numnpos];
-                }
-                plt::plot(x,freq,"xr");
-                plt::plot(x,LR_freq,"-ob");
-                plt::plot(x,MLR_freq,"-om");
-            }else if(Results[k].dir<0){
-                //cout<<"Negative "<<k0<<"\n";
-                int n = numnpos;
-                std::vector<double> x(n), freq(n), LR_freq(n), MLR_freq(n);
-                for (int i=0;i<numnpos;i++){
-                    x.at(i) = -numnpos+i;
-                    if (model%2==1){
-                        freq.at(i) = (double)Table[numppos+i][4+j+4*k0]/(double)(Table[numppos+i][4+4*k0]+Table[numppos+i][5+4*k0]+Table[numppos+i][6+4*k0]+Table[numppos+i][7+4*k0]);
-                    }else{
-                        freq.at(i) = (double)Table[numppos+i][4+j+4*k0]/(double)(Table[numppos+i][4]+Table[numppos+i][5]+Table[numppos+i][6]+Table[numppos+i][7]+Table[numppos+i][8]+Table[numppos+i][9]+Table[numppos+i][10]+Table[numppos+i][11]+Table[numppos+i][12]+Table[numppos+i][13]+Table[numppos+i][14]+Table[numppos+i][15]+Table[numppos+i][16]+Table[numppos+i][17]+Table[numppos+i][18]+Table[numppos+i][19]);
-                    }
-                    LR_freq.at(i) = Results[k].LR_freq_n[j][i];
-                    MLR_freq.at(i) = Results[k].MLR_freq_n[j][i];
-                }
-                plt::plot(x,freq,"xr");
-                plt::plot(x,LR_freq,"-ob");
-                plt::plot(x,MLR_freq,"-om");
-            }else{
-                //cout<<"Positive "<<k0<<"\n";
-                int n = numnpos;
-                std::vector<double> x(n), freq(n), LR_freq(n), MLR_freq(n);
-                for (int i=0;i<numppos;i++){
-                    x.at(i) = i+1;
-                    if (model%2==1){
-                        freq.at(i) = (double)Table[numppos-1-i][4+j+4*k0]/(double)(Table[numppos-1-i][4+4*k0]+Table[numppos-1-i][5+4*k0]+Table[numppos-1-i][6+4*k0]+Table[numppos-1-i][7+4*k0]);
-                    }else{
-                        freq.at(i) = (double)Table[numppos-1-i][4+j+4*k0]/(double)(Table[numppos-1-i][4]+Table[numppos-1-i][5]+Table[numppos-1-i][6]+Table[numppos-1-i][7]+Table[numppos-1-i][8]+Table[numppos-1-i][9]+Table[numppos-1-i][10]+Table[numppos-1-i][11]+Table[numppos-1-i][12]+Table[numppos-1-i][13]+Table[numppos-1-i][14]+Table[numppos-1-i][15]+Table[numppos-1-i][16]+Table[numppos-1-i][17]+Table[numppos-1-i][18]+Table[numppos-1-i][19]);
-                    }
-                    LR_freq.at(i) = Results[k].LR_freq_p[j][i];
-                    MLR_freq.at(i) = Results[k].MLR_freq_p[j][i];
-                }
-                plt::plot(x,freq,"xr");
-                plt::plot(x,LR_freq,"-ob");
-                plt::plot(x,MLR_freq,"-om");
-            }
-        }
-    }
-    plt::savefig("regressionfig.png");
-    plt::show();
-    
-}
+//void freqplt(vector<res > &Results, size_t ** Table, int model, int numppos, int numnpos, int order, double like, string &figname, const char* outfigname){
+//    plt::figure_size(1200, 780);
+//    plt::suptitle(figname+", order is "+to_string(order)+", total log-likelihood is "+to_string(like));
+//    for (int k=0;k<Results.size();k++){
+//        int k0;
+//        if (model < 2){
+//            k0 = floor(k/2);
+//        }else{
+//            k0 = k;
+//        }
+//        int m;
+//        if (Results[k].LR_freq_p.size()>0){
+//            m = Results[k].LR_freq_p.size();
+//        }else{
+//            m = Results[k].LR_freq_n.size();
+//        }
+//        for (int j=0;j<m;j++){
+//            plt::subplot(4, 4, j+1+4*k0);
+//            //cout<<"Figure "<<j+1+4*k0<<"\n";
+//            if (Results[k].dir==0){
+//                int n = numppos+numnpos;
+//                std::vector<double> x(n), freq(n), LR_freq(n), MLR_freq(n);
+//                for (int i=0;i<numnpos;i++){
+//                    x.at(i) = -numnpos+i;
+//                    if (model%2==1){
+//                        freq.at(i) = (double)Table[numppos+i][4+j+4*k0]/(double)(Table[numppos+i][4+4*k0]+Table[numppos+i][5+4*k0]+Table[numppos+i][6+4*k0]+Table[numppos+i][7+4*k0]);
+//                    }else{
+//                        freq.at(i) = (double)Table[numppos+i][4+j+4*k0]/(double)(Table[numppos+i][4]+Table[numppos+i][5]+Table[numppos+i][6]+Table[numppos+i][7]+Table[numppos+i][8]+Table[numppos+i][9]+Table[numppos+i][10]+Table[numppos+i][11]+Table[numppos+i][12]+Table[numppos+i][13]+Table[numppos+i][14]+Table[numppos+i][15]+Table[numppos+i][16]+Table[numppos+i][17]+Table[numppos+i][18]+Table[numppos+i][19]);
+//                    }
+//                    LR_freq.at(i) = Results[k].LR_freq_n[j][i];
+//                    MLR_freq.at(i) = Results[k].MLR_freq_n[j][i];
+//                }
+//                for (int i=numnpos;i<numnpos+numppos;i++){
+//                    x.at(i) = i-numnpos+1;
+//                    if (model%2==1){
+//                        freq.at(i) = (double)Table[numnpos+numppos-1-i][4+j+4*k0]/(double)(Table[numnpos+numppos-1-i][4+4*k0]+Table[numnpos+numppos-1-i][5+4*k0]+Table[numnpos+numppos-1-i][6+4*k0]+Table[numnpos+numppos-1-i][7+4*k0]);
+//                    }else{
+//                        freq.at(i) = (double)Table[numnpos+numppos-1-i][4+j+4*k0]/(double)(Table[numnpos+numppos-1-i][4]+Table[numnpos+numppos-1-i][5]+Table[numnpos+numppos-1-i][6]+Table[numnpos+numppos-1-i][7]+Table[numnpos+numppos-1-i][8]+Table[numnpos+numppos-1-i][9]+Table[numnpos+numppos-1-i][10]+Table[numnpos+numppos-1-i][11]+Table[numnpos+numppos-1-i][12]+Table[numnpos+numppos-1-i][13]+Table[numnpos+numppos-1-i][14]+Table[numnpos+numppos-1-i][15]+Table[numnpos+numppos-1-i][16]+Table[numnpos+numppos-1-i][17]+Table[numnpos+numppos-1-i][18]+Table[numnpos+numppos-1-i][19]);
+//                    }
+//                    LR_freq.at(i) = Results[k].LR_freq_p[j][i-numnpos];
+//                    MLR_freq.at(i) = Results[k].MLR_freq_p[j][i-numnpos];
+//                }
+//                plt::plot(x,freq,"xr");
+//                plt::plot(x,LR_freq,"-ob");
+//                plt::plot(x,MLR_freq,"-om");
+//            }else if(Results[k].dir<0){
+//                //cout<<"Negative "<<k0<<"\n";
+//                int n = numnpos;
+//                std::vector<double> x(n), freq(n), LR_freq(n), MLR_freq(n);
+//                for (int i=0;i<numnpos;i++){
+//                    x.at(i) = -numnpos+i;
+//                    if (model%2==1){
+//                        freq.at(i) = (double)Table[numppos+i][4+j+4*k0]/(double)(Table[numppos+i][4+4*k0]+Table[numppos+i][5+4*k0]+Table[numppos+i][6+4*k0]+Table[numppos+i][7+4*k0]);
+//                    }else{
+//                        freq.at(i) = (double)Table[numppos+i][4+j+4*k0]/(double)(Table[numppos+i][4]+Table[numppos+i][5]+Table[numppos+i][6]+Table[numppos+i][7]+Table[numppos+i][8]+Table[numppos+i][9]+Table[numppos+i][10]+Table[numppos+i][11]+Table[numppos+i][12]+Table[numppos+i][13]+Table[numppos+i][14]+Table[numppos+i][15]+Table[numppos+i][16]+Table[numppos+i][17]+Table[numppos+i][18]+Table[numppos+i][19]);
+//                    }
+//                    LR_freq.at(i) = Results[k].LR_freq_n[j][i];
+//                    MLR_freq.at(i) = Results[k].MLR_freq_n[j][i];
+//                }
+//                plt::plot(x,freq,"xr");
+//                plt::plot(x,LR_freq,"-ob");
+//                plt::plot(x,MLR_freq,"-om");
+//            }else{
+//                //cout<<"Positive "<<k0<<"\n";
+//                int n = numnpos;
+//                std::vector<double> x(n), freq(n), LR_freq(n), MLR_freq(n);
+//                for (int i=0;i<numppos;i++){
+//                    x.at(i) = i+1;
+//                    if (model%2==1){
+//                        freq.at(i) = (double)Table[numppos-1-i][4+j+4*k0]/(double)(Table[numppos-1-i][4+4*k0]+Table[numppos-1-i][5+4*k0]+Table[numppos-1-i][6+4*k0]+Table[numppos-1-i][7+4*k0]);
+//                    }else{
+//                        freq.at(i) = (double)Table[numppos-1-i][4+j+4*k0]/(double)(Table[numppos-1-i][4]+Table[numppos-1-i][5]+Table[numppos-1-i][6]+Table[numppos-1-i][7]+Table[numppos-1-i][8]+Table[numppos-1-i][9]+Table[numppos-1-i][10]+Table[numppos-1-i][11]+Table[numppos-1-i][12]+Table[numppos-1-i][13]+Table[numppos-1-i][14]+Table[numppos-1-i][15]+Table[numppos-1-i][16]+Table[numppos-1-i][17]+Table[numppos-1-i][18]+Table[numppos-1-i][19]);
+//                    }
+//                    LR_freq.at(i) = Results[k].LR_freq_p[j][i];
+//                    MLR_freq.at(i) = Results[k].MLR_freq_p[j][i];
+//                }
+//                plt::plot(x,freq,"xr");
+//                plt::plot(x,LR_freq,"-ob");
+//                plt::plot(x,MLR_freq,"-om");
+//            }
+//        }
+//    }
+//    plt::savefig(outfigname);
+//    plt::show();
+//
+//}
 
 void output(const char* outputname, const char* filename, string figname, vector<res > &Results, int model, int order, double like){
-      string ss = "ACGT";
-      ofstream myfile;
-      myfile.open(outputname);
-      string s(filename);
-      myfile << "Output of the regression of "+s+"\n";
-      myfile <<"Method: "<< figname +"\n";
-      myfile <<"Regression order is "<< to_string(order) +"\n";
-      myfile <<"Total likelihood is "<< to_string(like) +"\n";
-      myfile <<"\n";
+    string ss = "ACGT";
+    ofstream myfile;
+    myfile.open(outputname);
+    string s(filename);
+    myfile << "Output of the regression of "+s+"\n";
+    myfile <<"Method: "<< figname +"\n";
+    myfile <<"Regression order is "<< to_string(order) +"\n";
+    myfile <<"Total likelihood is "<< to_string(like) +"\n";
+    myfile <<"\n";
     
     if (model<=1){
         for (int i=0; i<Results.size(); i++){
@@ -1311,28 +1314,260 @@ void output(const char* outputname, const char* filename, string figname, vector
             }
         }
     }
-      
-      myfile.close();
+    
+    myfile.close();
 }
 
-int main_regression(int argc,char**argv){
-    int numppos = 15;
-    int numnpos = 15;
-    int numcolumn = 16 + 4;
-    int numpos = numppos + numnpos;
-    int order = 6;
+void outputfreq(const char* outfreqname, const char* filename, string figname, vector<res > &Results, int model, int order, double like){
+    string ss = "ACGT";
+    ofstream myfile;
+    myfile.open(outfreqname);
+    string s(filename);
+    myfile << "Output freq of the regression of "+s+"\n";
+    myfile <<"Method: "<< figname +"\n";
+    myfile <<"Regression order is "<< to_string(order) +"\n";
+    myfile <<"Total likelihood is "<< to_string(like) +"\n";
+    myfile <<"\n";
     
+    if (model==1){
+        for (int i=0; i<Results.size(); i++){
+            if (Results[i].dir>0){
+                myfile << "Logit regression results:\n";
+                myfile << "Direction: Forward Fitted Frequnecy, from pos. "+to_string(Results[i].LR_freq_p[0].size())+"-1, reference nucleotide "+Results[i].refnuc+"\n";
+                myfile << "Read nucleotide: A\tC\tG\tT\n";
+                for(int k=0;k<Results[i].LR_freq_p[0].size();k++){
+                    for (int j=0; j<Results[i].LR_freq_p.size(); j++){
+                        myfile << to_string(Results[i].LR_freq_p[j][k])<<"\t";
+                    }
+                    myfile <<"\n";
+                }
+            }else{
+                myfile << "Direction: Backward Fitted Frequnecy, from pos. 1-"+to_string(Results[i].LR_freq_n[0].size())+", reference nucleotide "+Results[i].refnuc+"\n";
+                myfile << "Read nucleotide: A\tC\tG\tT\n";
+                for(int k=0;k<Results[i].LR_freq_n[0].size();k++){
+                    for (int j=0; j<Results[i].LR_freq_n.size(); j++){
+                        myfile << to_string(Results[i].LR_freq_n[j][k])<<"\t";
+                    }
+                    myfile <<"\n";
+                }
+            }
+            if (Results[i].dir>0){
+                myfile << "Multinomial logit regression results:\n";
+                myfile << "Direction: Forward Fitted Frequnecy, from pos. "+to_string(Results[i].MLR_freq_p[0].size())+"-1, reference nucleotide "+Results[i].refnuc+"\n";
+                myfile << "Read nucleotide: A\tC\tG\tT\n";
+                for(int k=0;k<Results[i].MLR_freq_p[0].size();k++){
+                    for (int j=0; j<Results[i].MLR_freq_p.size(); j++){
+                        myfile << to_string(Results[i].MLR_freq_p[j][k])<<"\t";
+                    }
+                    myfile <<"\n";
+                }
+            }else{
+                myfile << "Direction: Backward Fitted Frequnecy, from pos. 1-"+to_string(Results[i].MLR_freq_n[0].size())+", reference nucleotide "+Results[i].refnuc+"\n";
+                myfile << "Read nucleotide: A\tC\tG\tT\n";
+                for(int k=0;k<Results[i].MLR_freq_n[0].size();k++){
+                    for (int j=0; j<Results[i].MLR_freq_n.size(); j++){
+                        myfile << to_string(Results[i].MLR_freq_n[j][k])<<"\t";
+                    }
+                    myfile <<"\n";
+                }
+            }
+        }
+    }else if(model==3){
+        for (int i=0; i<Results.size(); i++){
+            myfile << "Logit regression results\n";
+            myfile << "Direction: Forward Fitted Frequnecy, from pos. "+to_string(Results[i].LR_freq_p[0].size())+"-1, reference nucleotide "+Results[i].refnuc+"\n";
+            myfile << "Read nucleotide: A\tC\tG\tT\n";
+            for(int k=0;k<Results[i].LR_freq_p[0].size();k++){
+                for (int j=0; j<Results[i].LR_freq_p.size(); j++){
+                    myfile << to_string(Results[i].LR_freq_p[j][k])<<"\t";
+                }
+                myfile <<"\n";
+            }
+            myfile << "Direction: Backward Fitted Frequnecy, from pos. 1-"+to_string(Results[i].LR_freq_n[0].size())+", reference nucleotide "+Results[i].refnuc+"\n";
+            myfile << "Read nucleotide: A\tC\tG\tT\n";
+            for(int k=0;k<Results[i].LR_freq_n[0].size();k++){
+                for (int j=0; j<Results[i].LR_freq_n.size(); j++){
+                    myfile << to_string(Results[i].LR_freq_n[j][k])<<"\t";
+                }
+                myfile <<"\n";
+            }
+            myfile << "Multinomial logit regression results\n";
+            myfile << "Direction: Forward Fitted Frequnecy, from pos. "+to_string(Results[i].MLR_freq_p[0].size())+"-1, reference nucleotide "+Results[i].refnuc+"\n";
+            myfile << "Read nucleotide: A\tC\tG\tT\n";
+            for(int k=0;k<Results[i].MLR_freq_p[0].size();k++){
+                for (int j=0; j<Results[i].MLR_freq_p.size(); j++){
+                    myfile << to_string(Results[i].MLR_freq_p[j][k])<<"\t";
+                }
+                myfile <<"\n";
+            }
+            myfile << "Direction: Backward Fitted Frequnecy, from pos. 1-"+to_string(Results[i].MLR_freq_n[0].size())+", reference nucleotide "+Results[i].refnuc+"\n";
+            myfile << "Read nucleotide: A\tC\tG\tT\n";
+            for(int k=0;k<Results[i].MLR_freq_n[0].size();k++){
+                for (int j=0; j<Results[i].MLR_freq_n.size(); j++){
+                    myfile << to_string(Results[i].MLR_freq_n[j][k])<<"\t";
+                }
+                myfile <<"\n";
+            }
+        }
+    }else if(model == 0){
+        for (int i=0; i<Results.size(); i++){
+            if (Results[i].dir>0){
+                myfile << "Logit regression results:\n";
+                myfile << "Direction: Forward Fitted Frequnecy, from pos. "+to_string(Results[i].LR_freq_p[0].size())+"-1\n";
+                myfile << "Reference/Read pair: AA\tAC\tAG\tAT\tCA\tCC\tCG\tCT\tGA\tGC\tGG\tGT\tTA\tTC\tTG\tTT\n";
+                for(int k=0;k<Results[i].LR_freq_p[0].size();k++){
+                    for (int j=0; j<Results[i].LR_freq_p.size(); j++){
+                        myfile << to_string(Results[i].LR_freq_p[j][k])<<"\t";
+                    }
+                    myfile <<"\n";
+                }
+            }else{
+                myfile << "Direction: Backward Fitted Frequnecy, from pos. 1-"+to_string(Results[i].LR_freq_n[0].size())+"\n";
+                myfile << "Reference/Read pair: AA\tAC\tAG\tAT\tCA\tCC\tCG\tCT\tGA\tGC\tGG\tGT\tTA\tTC\tTG\tTT\n";
+                for(int k=0;k<Results[i].LR_freq_n[0].size();k++){
+                    for (int j=0; j<Results[i].LR_freq_n.size(); j++){
+                        myfile << to_string(Results[i].LR_freq_n[j][k])<<"\t";
+                    }
+                    myfile <<"\n";
+                }
+            }
+            if (Results[i].dir>0){
+                myfile << "Multinomial logit regression results:\n";
+                myfile << "Direction: Forward Fitted Frequnecy, from pos. "+to_string(Results[i].MLR_freq_p[0].size())+"-1\n";
+                myfile << "Reference/Read pair: AA\tAC\tAG\tAT\tCA\tCC\tCG\tCT\tGA\tGC\tGG\tGT\tTA\tTC\tTG\tTT\n";
+                for(int k=0;k<Results[i].MLR_freq_p[0].size();k++){
+                    for (int j=0; j<Results[i].MLR_freq_p.size(); j++){
+                        myfile << to_string(Results[i].MLR_freq_p[j][k])<<"\t";
+                    }
+                    myfile <<"\n";
+                }
+            }else{
+                myfile << "Direction: Backward Fitted Frequnecy, from pos. 1-"+to_string(Results[i].MLR_freq_n[0].size())+"\n";
+                myfile << "Reference/Read pair: AA\tAC\tAG\tAT\tCA\tCC\tCG\tCT\tGA\tGC\tGG\tGT\tTA\tTC\tTG\tTT\n";
+                for(int k=0;k<Results[i].MLR_freq_n[0].size();k++){
+                    for (int j=0; j<Results[i].MLR_freq_n.size(); j++){
+                        myfile << to_string(Results[i].MLR_freq_n[j][k])<<"\t";
+                    }
+                    myfile <<"\n";
+                }
+            }
+        }
+    }else{
+        for (int i=0; i<Results.size(); i++){
+            myfile << "Logit regression results\n";
+            myfile << "Direction: Forward Fitted Frequnecy, from pos. "+to_string(Results[i].LR_freq_p[0].size())+"-1\n";
+            myfile << "Reference/Read pair: AA\tAC\tAG\tAT\tCA\tCC\tCG\tCT\tGA\tGC\tGG\tGT\tTA\tTC\tTG\tTT\n";
+            for(int k=0;k<Results[i].LR_freq_p[0].size();k++){
+                for (int j=0; j<Results[i].LR_freq_p.size(); j++){
+                    myfile << to_string(Results[i].LR_freq_p[j][k])<<"\t";
+                }
+                myfile <<"\n";
+            }
+            myfile << "Direction: Backward Fitted Frequnecy, from pos. 1-"+to_string(Results[i].LR_freq_n[0].size())+"\n";
+            myfile << "Reference/Read pair: AA\tAC\tAG\tAT\tCA\tCC\tCG\tCT\tGA\tGC\tGG\tGT\tTA\tTC\tTG\tTT\n";
+            for(int k=0;k<Results[i].LR_freq_n[0].size();k++){
+                for (int j=0; j<Results[i].LR_freq_n.size(); j++){
+                    myfile << to_string(Results[i].LR_freq_n[j][k])<<"\t";
+                }
+                myfile <<"\n";
+            }
+            myfile << "Multinomial logit regression results\n";
+            myfile << "Direction: Forward Fitted Frequnecy, from pos. "+to_string(Results[i].MLR_freq_p[0].size())+"-1\n";
+            myfile << "Reference/Read pair: AA\tAC\tAG\tAT\tCA\tCC\tCG\tCT\tGA\tGC\tGG\tGT\tTA\tTC\tTG\tTT\n";
+            for(int k=0;k<Results[i].MLR_freq_p[0].size();k++){
+                for (int j=0; j<Results[i].MLR_freq_p.size(); j++){
+                    myfile << to_string(Results[i].MLR_freq_p[j][k])<<"\t";
+                }
+                myfile <<"\n";
+            }
+            myfile << "Direction: Backward Fitted Frequnecy, from pos. 1-"+to_string(Results[i].MLR_freq_n[0].size())+"\n";
+            myfile << "Reference/Read pair: AA\tAC\tAG\tAT\tCA\tCC\tCG\tCT\tGA\tGC\tGG\tGT\tTA\tTC\tTG\tTT\n";
+            for(int k=0;k<Results[i].MLR_freq_n[0].size();k++){
+                for (int j=0; j<Results[i].MLR_freq_n.size(); j++){
+                    myfile << to_string(Results[i].MLR_freq_n[j][k])<<"\t";
+                }
+                myfile <<"\n";
+            }
+        }
+    }
+    
+    myfile.close();
+}
+
+pars *pars_init(){
+    pars *p =(pars*) calloc(1,sizeof(pars));
+    p->namedir = strdup("data_ancient_human.txt");
+    p->outname = strdup("test.out");
+    //p->outfigname = NULL;
+    p->outfreqname = NULL;
+    
+    p->model = 1;
+    p->numppos = 15;
+    p->numnpos = 15;
+    p->order = 6;
+    return p;
+}
+
+pars *get_pars(int argc,char **argv){
+    pars *p = pars_init();
+    if(argc % 2){
+        fprintf(stderr,"\t-> Must supply arguments in the form -pattern value\n");
+        free(p);
+        return NULL;
+    }
+    
+    while(*argv){
+        char *key=*argv;
+        char *val=*(++argv);
+        
+        if(!strcasecmp("-dir",key)) p->namedir=strdup(val);
+        else if(!strcasecmp("-o",key)) p->outname=strdup(val);
+        //else if(!strcasecmp("-outfig",key)) p->outfigname=strdup(val);
+        else if(!strcasecmp("-outfreq",key)) p->outfreqname=strdup(val);
+        else if(!strcasecmp("-model",key)) p->model=atoi(val);
+        else if(!strcasecmp("-ppos",key)) p->numppos=atoi(val);
+        else if(!strcasecmp("-npos",key)) p->numnpos=atoi(val);
+        else if(!strcasecmp("-order",key)) p->order=atoi(val);
+        else{
+            fprintf(stderr,"\t Unknown parameter key:%s val:%s\n",key,val);
+            free(p);
+            return NULL;
+        }
+        
+        ++argv;
+    }
+    return p;
+}
+
+
+int main_regression(int argc,char**argv){
+    if (argc == 1){
+//        fprintf(stderr,"\t-> ./metadamage regression -dir -model -order -ppos -npos -o -outfig -outfreq\n");
+        fprintf(stderr,"\t-> ./metadamage regression -dir -model -order -ppos -npos -o -outfreq\n");
+        fprintf(stderr,"\t-> -model 0 stands for Unfolded full regression,\n");
+        fprintf(stderr,"\t-> -model 1 stands for Unfolded conditional regression,\n");
+        fprintf(stderr,"\t-> -model 2 stands for Folded full regression,\n");
+        fprintf(stderr,"\t-> -model 3 stands for Folded condtional regression,\n");
+        fprintf(stderr,"\t-> -model 4 stands for Briggs regression, which is under construction!\n");
+        return 0;
+    }
+    pars *p = get_pars(--argc,++argv);
+    int model = p->model;
+    int numcolumn = 16 + 4;
+    int numppos = p->numppos;
+    int numnpos = p->numnpos;
+    int numpos = numppos + numnpos;
+    int order = p->order;
+    const char* filename = p->namedir;
+    const char* outfile = p->outname;
+//    const char* outfigname = p->outfigname;
+    const char* outfreqname = p->outfreqname;
     size_t ** Table = (size_t **) malloc(numpos*(sizeof(int *))); /*I allocate memory here.  If this function is called many times it may be better to move the memmory allocation out of this function*/
     for (int i=0; i<numpos; i++){
         Table[i]=(size_t *) malloc(numcolumn*(sizeof(size_t)));
     }
     string* ColumnName = (string *) malloc(numcolumn*(sizeof(string)));
-    const char* filename = "data_ancient_human.txt";
     readdata(filename, ColumnName,Table);
-    
-    int model = 1;
-    cout<< Table[0][0] <<"\n";
-    cout<< numppos <<"\n";
     
     vector<res > Results;
     double like = 0;
@@ -1341,22 +1576,32 @@ int main_regression(int argc,char**argv){
     for (int i = 0;i<Results.size(); i++){
         like = like + Results[i].MLR_like;
     }
-    cout<<"Likelihood is "<<like<<"\n";
+    
     if (model%2 == 0){
         Freqcalculator4uncon(Results, numppos, numnpos);
     }else{
         Freqcalculator4cond(Results, numppos, numnpos);
     }
-    //freqplt(Results, Table, model, numppos, numnpos, order, like, figname);
-    output("test.out", filename, figname, Results, model, order, like);
+//    if(outfigname!=NULL){
+//        freqplt(Results, Table, model, numppos, numnpos, order, like, figname, outfigname);
+//    }
+    if(outfreqname!=NULL){
+        outputfreq(outfreqname, filename, figname, Results, model, order, like);
+    }
+    output(outfile, filename, figname, Results, model, order, like);
     
     for (int i = 0; i < numpos; i++)
     free(Table[i]);
     free(Table);
+    free(p);
     
     return 0;
 }
 
 //int main(){
-//    main_regression();
+//    int argc;
+//    char **argv;
+//    main_regression(argc,argv);
+//
+//    return 0;
 //}
