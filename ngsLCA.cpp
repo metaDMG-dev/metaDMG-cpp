@@ -129,14 +129,50 @@ int satan(int taxid,int2int &parant){
   return 0;
 }
 
+float mean(std::vector<float> &vec){
+  float tmp=vec[0];
+  for(int i=1;i<vec.size();i++)
+    tmp += vec[i];
+  return tmp/vec.size();
+}
 
-int2int lcadist;
-void adder(int taxid,int2int &lcadist){
-  int2int::iterator it = lcadist.find(taxid);
-  if(it==lcadist.end())
-    lcadist[taxid] = 1;
-  else
-    it->second = it->second +1;
+
+float var(std::vector<float> &vec){
+  if(vec.size()<=1){
+    fprintf(stderr,"\t-> Calculation of variance is only defined for >1 datapoints\n");
+    exit(0);
+  }
+  float mea=mean(vec);
+  float tmp  =0;
+  for(int i=1;i<vec.size();i++)
+    tmp += pow(vec[i]-mea,2);
+
+  return tmp/(vec.size()-1);
+}
+
+
+//int2int lcadist;
+typedef struct{
+  int nalignments;
+  std::vector<float> readlengths;
+  std::vector<float> gccontents;
+}lcatriplet;
+
+std::map<int,lcatriplet> lcastat;
+
+void adder(int taxid,int readlengths,float gccontent){
+  std::map<int,lcatriplet>::iterator it = lcastat.find(taxid);
+  if(it==lcastat.end()){
+    lcatriplet tmp;
+    tmp.nalignments = 1;
+    tmp.readlengths.push_back(readlengths);
+    tmp.gccontents.push_back(gccontent);
+    lcastat[taxid] = tmp;
+  }else{
+   it->second.nalignments = it->second.nalignments +1;
+   it->second.readlengths.push_back(readlengths);
+   it->second.gccontents.push_back(gccontent);
+  }
 
 
 }
@@ -403,7 +439,7 @@ void hts(FILE *fp,samFile *fp_in,int2int &i2i,int2int& parent,bam_hdr_t *hdr,int
 	lca=do_lca(taxids,parent);
 	//	fprintf(stderr,"myq->l: %d\n",myq->l);
 	if(lca!=-1){
-	  adder(lca,lcadist);
+	  adder(lca,strlen(seq),gccontent(seq));
 	  fprintf(fp,"%s:%s:%lu:%d:%f",last,seq,strlen(seq),size,gccontent(seq));
 	  print_chain(fp,lca,parent,rank,name_map);
 	  int varisunique = isuniq(specs);
@@ -519,7 +555,7 @@ void hts(FILE *fp,samFile *fp_in,int2int &i2i,int2int& parent,bam_hdr_t *hdr,int
     lca=do_lca(taxids,parent);
     //    fprintf(stderr,"myq->l: %d lca: %d \n",myq->l,lca);
     if(lca!=-1){
-      adder(lca,lcadist);
+      adder(lca,strlen(seq),gccontent(seq));
       fprintf(fp,"%s:%s:%lu:%d:%f",last,seq,strlen(seq),size,gccontent(seq));
       print_chain(fp,lca,parent,rank,name_map);
       if(isuniq(specs)){
@@ -594,8 +630,6 @@ int calc_valens(int2int &i2i, int2int &parent){
     fprintf(stdout,"%d\t%d\n",it->first,it->second);
   return 0;
 }
-
-
 
 int calc_dist2root(int2int &i2i, int2int &parent){
   int2int ret;
@@ -715,8 +749,10 @@ int main_lca(int argc, char **argv){
   if(usedreads_sam!=NULL)
     sam_close(usedreads_sam);
   if(p->fp_lcadist){
-    for(int2int::iterator it =lcadist.begin();it!=lcadist.end();it++){
-      fprintf(p->fp_lcadist,"%d\t%d",it->first,it->second);
+    for(std::map<int,lcatriplet>::iterator it =lcastat.begin();it!=lcastat.end();it++){
+      lcatriplet tmp = it->second;
+      fprintf(p->fp_lcadist,"%d\t%d\t%f\t%f\t%f\t%f",it->first,tmp.nalignments,mean(tmp.readlengths),var(tmp.readlengths),mean(tmp.gccontents),var(tmp.gccontents));
+      
       int2char::iterator it1=name_map.find(it->first);
       int2char::iterator it2=rank.find(it->first);
       char *namnam,*rankrank;
@@ -725,7 +761,7 @@ int main_lca(int argc, char **argv){
 	namnam=it1->second;
       if(it2!=rank.end())
 	rankrank=it2->second;
-      fprintf(p->fp_lcadist,"\t%s\t%s\n",namnam,rankrank);
+      fprintf(p->fp_lcadist,"\t\"%s\"\t\"%s\"\n",namnam,rankrank);
     }
 
   }
