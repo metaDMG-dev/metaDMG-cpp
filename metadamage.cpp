@@ -107,6 +107,55 @@ mydata getval_full(std::map<int, mydata> &retmap,int2intvec &child,int taxid,int
   return ret;
 }
 
+
+mydata2 getval_stats(std::map<int, mydata2> &retmap,int2intvec &child,int taxid){
+  // fprintf(stderr,"getval\t%d\t%d\n",taxid,howmany);
+  std::map<int,mydata2>::iterator it = retmap.find(taxid);
+  if(it!=retmap.end()){
+    //fprintf(stderr,"has found: %d in retmap\n",it->first);
+#if 0
+    fprintf(stderr,"val\t%d",taxid);
+    for(int i=0;i<3*howmany+1;i++)
+      fprintf(stderr,"\t%f",it->second[i]);
+    fprintf(stderr,"\n");
+#endif
+    return it->second;
+  }
+  mydata2 ret;
+  ret.nreads = 0;
+  ret.data = new double[4];
+  ret.data[0]=  ret.data[1]=  ret.data[2]=  ret.data[3]=0;
+  
+  if(child.size()>0) {// if we have supplied -nodes
+    int2intvec::iterator it2 = child.find(taxid);
+    if (it2!=child.end()){
+      std::vector<int> &avec = it2->second;
+      for(int i=0;i<avec.size();i++){
+	mydata2 tmp = getval_stats(retmap,child,avec[i]);
+	ret.nreads += tmp.nreads;
+      }
+	
+      for(int i=0;i<avec.size();i++){
+	//	fprintf(stderr,"%d/%d %d\n",i,avec.size(),avec[i]);
+	mydata2 tmp = getval_stats(retmap,child,avec[i]);
+	if(tmp.nreads==0)
+	  continue;
+	double a = tmp.nreads;
+	double b = ret.nreads;
+	double scal = a/b;
+	//	fprintf(stderr,"a: %f b: %f scal: %f\n",a,b,scal);
+	for(int i=0;i<4;i++)
+	  ret.data[i] += tmp.data[i]*scal;
+	
+      }
+    }
+  }
+  
+  retmap[taxid] = ret;
+
+  return ret;
+}
+
 int main_getdamage(int argc,char **argv){
   if(argc==1)
     return usage_getdamage(stderr);
@@ -1018,13 +1067,14 @@ int main_print_all(int argc,char **argv){
 }
 
 
-int main_print_ugly(int argc,char **argv){
-  fprintf(stderr,"./metadamage print_ugly file.bdamage.gz -names file.gz -nodes trestructure.gz -names fil.gz\n");
+int main_print_ugly(int argc,char **argv) {
+  fprintf(stderr,"./metadamage print_ugly file.bdamage.gz -names file.gz -nodes trestructure.gz -lcastat fil.gz\n");
   if(argc<=2)
     return 0;
   char *infile_bdamage = NULL;
   char *infile_nodes = NULL;
   char *infile_names = NULL;
+  char *infile_lcastat = NULL;
   int howmany;
  
   while(*(++argv)){
@@ -1032,12 +1082,14 @@ int main_print_ugly(int argc,char **argv){
       infile_names = strdup(*(++argv));
     else if(strcasecmp("-nodes",*argv)==0)
       infile_nodes = strdup(*(++argv));
+    else if(strcasecmp("-lcastat",*argv)==0)
+      infile_lcastat = strdup(*(++argv));
     else
       infile_bdamage = strdup(*argv);
   }
 
 
-  fprintf(stderr,"infile_names: %s infile_bdamage: %s nodes: %s ",infile_names,infile_bdamage,infile_nodes);
+  fprintf(stderr,"infile_names: %s infile_bdamage: %s nodes: %s lca_stat: %s",infile_names,infile_bdamage,infile_nodes,infile_lcastat);
   fprintf(stderr,"#VERSION:%s\n",METADAMAGE_VERSION);
   //map of taxid -> taxid
   int2int parent;
@@ -1053,9 +1105,6 @@ int main_print_ugly(int argc,char **argv){
   fprintf(stderr,"\t-> number of entries in damage pattern file: %lu printlength(howmany):%d\n",retmap.size(),howmany);
   int2char name = parse_names(infile_names);
   
-  BGZF *bgfp = NULL;
-  samFile *samfp = NULL;
-
   float presize = retmap.size();
   getval_full(retmap,child,1,howmany); //this will do everything
   float postsize=retmap.size();
@@ -1086,13 +1135,16 @@ int main_print_ugly(int argc,char **argv){
 	fprintf(stdout,"\t%lu",it->second.bw[i*16+ii]);
       fprintf(stdout,"\n");
     }
-
   }
- 
-  
-  if(bgfp)
-    bgzf_close(bgfp);
 
+  std::map<int,mydata2> stats = load_lcasttat(infile_lcastat);
+  getval_stats(stats,child,1); //this will do everything
+  for(std::map<int,mydata2>::iterator it = stats.begin();1&&it!=stats.end();it++)
+    if(it->second.nreads>0)
+      fprintf(stdout,"STAT\t%d\t%d\t%f\t%f\t%f\t%f\n",it->first,it->second.nreads,it->second.data[0],it->second.data[1],it->second.data[2],it->second.data[3]);
+      //      fprintf(stderr,"%d->(%d,%f,%f,%f,%f)\n",it->first,it->second.nreads,it->second.data[0],it->second.data[1],it->second.data[2],it->second.data[3]);
+
+  
   return 0;
 }
 

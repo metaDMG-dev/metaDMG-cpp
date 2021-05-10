@@ -654,3 +654,39 @@ std::map<int, mydata> load_bdamage_full(const char* fname,int &printlength){
 
   return retmap;
 }
+
+std::map<int, mydata2> load_lcasttat(const char* fname){
+  //  fprintf(stderr,"./metadamage print file.bdamage.gz [-names file.gz -bam file.bam]\n");
+  const char *infile = fname;
+  //  fprintf(stderr,"infile: %s howmany: %d \n",infile,howmany);
+  
+  FILE *fp = NULL;
+
+  if(((fp = fopen(infile, "r")))== NULL){
+    fprintf(stderr,"Could not open input lcastat file: %s\n",infile);
+    exit(0);
+  }
+
+  std::map<int,mydata2> retmap;
+  char buffer[4096];
+  while(fgets(buffer,4096,fp)){
+    
+    int taxid = atoi(strtok(buffer,"\t\n "));
+    mydata2 md;
+    md.nreads = atoi(strtok(NULL,"\t\n "));
+    md.data = new double[4];
+    for(int i=0;i<4;i++)
+      md.data[i] = atof(strtok(NULL,"\t\n "));
+
+    retmap[taxid] = md;
+  }
+
+  if(fp)
+    fclose(fp);
+  
+  fprintf(stderr,"\t-> Done loading lcastat file It contains: %lu\n",retmap.size());
+  for(std::map<int,mydata2>::iterator it = retmap.begin();0&&it!=retmap.end();it++)
+    fprintf(stderr,"%d->(%d,%f,%f,%f,%f)\n",it->first,it->second.nreads,it->second.data[0],it->second.data[1],it->second.data[2],it->second.data[3]);
+
+  return retmap;
+}
