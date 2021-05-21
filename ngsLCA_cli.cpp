@@ -183,7 +183,7 @@ pars *get_pars(int argc,char **argv){
   fprintf(stderr,"\t-> Will output lca results in file:\t\t\'%s\'\n",buf);
   p->fp1 = fopen(buf,"wb");
   assert(p->fp1);
-  snprintf(buf,1024,"%s.lcastat",p->outnames);
+  snprintf(buf,1024,"%s.lca.stat",p->outnames);
   fprintf(stderr,"\t-> Will output lca distribution in file:\t\t\'%s\'\n",buf);
   p->fp_lcadist = fopen(buf,"wb");
   assert(p->fp_lcadist);

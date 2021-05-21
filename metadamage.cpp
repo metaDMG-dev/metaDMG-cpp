@@ -852,11 +852,12 @@ int main_merge(int argc,char **argv){
 }
 
 int2int getlcadist(char *fname){
+  fprintf(stderr,"fname: %f\n",fname);
   int2int lcadist;
   int tlen =strlen(fname)+10; 
   char tmp[tlen];
-  snprintf(tmp,tlen,"%sdist",fname);
-  //  fprintf(stderr,"tmp: %s\n",tmp);
+  snprintf(tmp,tlen,"%s.stat",fname);
+  fprintf(stderr,"tmp: %s\n",tmp);
   FILE *fp = NULL;
   fp=fopen(tmp,"rb");
   assert(fp!=NULL);
