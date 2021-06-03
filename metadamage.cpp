@@ -1092,6 +1092,11 @@ int main_print_ugly(int argc,char **argv) {
 
   fprintf(stderr,"infile_names: %s infile_bdamage: %s nodes: %s lca_stat: %s",infile_names,infile_bdamage,infile_nodes,infile_lcastat);
   fprintf(stderr,"#VERSION:%s\n",METADAMAGE_VERSION);
+  char buf[1024];
+  snprintf(buf,1024,"%s.uglyprint.mismatch.txt",infile_bdamage);
+  fprintf(stderr,"\t-> Dumping file: \'%s\'\n",buf);
+  FILE *fpfpfp = fopen(buf,"wb");
+  fprintf(fpfpfp,"#taxid\tnalign\tdirection\tposition\tAA\tAC\tAG\tAT\tCA\tCC\tCG\tCT\tGA\tGC\tGG\tGT\tTA\tTC\tTG\tTT\n");
   //map of taxid -> taxid
   int2int parent;
   //map of taxid -> rank
@@ -1103,7 +1108,7 @@ int main_print_ugly(int argc,char **argv) {
     parse_nodes(infile_nodes,rank,parent,child,1);
 
   std::map<int, mydata> retmap = load_bdamage_full(infile_bdamage,howmany);
-  fprintf(stderr,"\t-> number of entries in damage pattern file: %lu printlength(howmany):%d\n",retmap.size(),howmany);
+  fprintf(stderr,"\t-> Number of entries in damage pattern file: %lu printlength(howmany):%d\n",retmap.size(),howmany);
   int2char name = parse_names(infile_names);
   
   float presize = retmap.size();
@@ -1115,37 +1120,58 @@ int main_print_ugly(int argc,char **argv) {
     mydata md = it->second;
     if(it->second.nreads==0)
       continue;
+    /*
     char *myrank =NULL;
     char *myname = NULL;
     int2char::iterator itc=rank.find(taxid);
     if(itc!=rank.end())
       myrank=itc->second;
-    itc=name.find(taxid);
+      itc=name.find(taxid);
     if(itc!=name.end())
       myname = itc->second;
-
+    */
     for(int i=0;i<howmany;i++){
-      fprintf(stdout,"%d\t\"%s\"\t\"%s\"\t%d\t5'\t%d",taxid,myname,myrank,it->second.nreads,i);
+      //      fprintf(stdout,"%d\t\"%s\"\t\"%s\"\t%d\t5'\t%d",taxid,myname,myrank,it->second.nreads,i);
+      //      fprintf(fpfpfp,"%d\t%d\t5'\t%d",taxid,it->second.nreads,i);
+      fprintf(fpfpfp,"%d\t5'\t%d",taxid,i);
       for(int ii=0;ii<16;ii++)
-	fprintf(stdout,"\t%lu",it->second.fw[i*16+ii]);
-      fprintf(stdout,"\n");
+	fprintf(fpfpfp,"\t%lu",it->second.fw[i*16+ii]);
+      fprintf(fpfpfp,"\n");
     }
     for(int i=0;i<howmany;i++){
-      fprintf(stdout,"%d\t\"%s\"\t\"%s\"\t%d\t3'\t%d",taxid,myname,myrank,it->second.nreads,i);
+      //      fprintf(stdout,"%d\t\"%s\"\t\"%s\"\t%d\t3'\t%d",taxid,myname,myrank,it->second.nreads,i);
+      //fprintf(fpfpfp,"%d\t%d\t3'\t%d",taxid,it->second.nreads,i);
+      fprintf(fpfpfp,"%d\t%d",taxid,i);
       for(int ii=0;ii<16;ii++)
-	fprintf(stdout,"\t%lu",it->second.bw[i*16+ii]);
-      fprintf(stdout,"\n");
+	fprintf(fpfpfp,"\t%lu",it->second.bw[i*16+ii]);
+      fprintf(fpfpfp,"\n");
     }
   }
-
+  fclose(fpfpfp);
+  snprintf(buf,1024,"%s.uglyprint.stat.txt",infile_bdamage);
+  fprintf(stderr,"\t-> Dumping file: \'%s\'\n",buf);
+  fpfpfp = fopen(buf,"wb");
+  fprintf(fpfpfp,"#taxid\tname\trank\tnalign\tnreads\tmean_rlen\tvar_rlen\tmean_gc\tvar_gc\n");
   std::map<int,mydata2> stats = load_lcasttat(infile_lcastat);
   getval_stats(stats,child,1); //this will do everything
-  for(std::map<int,mydata2>::iterator it = stats.begin();1&&it!=stats.end();it++)
-    if(it->second.nreads>0)
-      fprintf(stdout,"STAT\t%d\t%d\t%f\t%f\t%f\t%f\n",it->first,it->second.nreads,it->second.data[0],it->second.data[1],it->second.data[2],it->second.data[3]);
+  for(std::map<int,mydata2>::iterator it = stats.begin();1&&it!=stats.end();it++){
+    std::map<int, mydata>::iterator itold=retmap.find(it->first);
+    assert(itold!=retmap.end());
+    int nalign = itold->second.nreads;
+    char *myrank=NULL;
+    char *myname=NULL;
+    if(it->second.nreads>0){
+      int2char::iterator itc=rank.find(it->first);
+      if(itc!=rank.end())
+	myrank=itc->second;
+      itc=name.find(it->first);
+      if(itc!=name.end())
+	myname = itc->second;
+      fprintf(fpfpfp,"%d\t\"%s\"\t\"%s\"\t%d\t%d\t%f\t%f\t%f\t%f\n",it->first,myname,myrank,nalign,it->second.nreads,it->second.data[0],it->second.data[1],it->second.data[2],it->second.data[3]);
       //      fprintf(stderr,"%d->(%d,%f,%f,%f,%f)\n",it->first,it->second.nreads,it->second.data[0],it->second.data[1],it->second.data[2],it->second.data[3]);
-
-  
+    }
+  }
+  fclose(fpfpfp);
   return 0;
 }
 
