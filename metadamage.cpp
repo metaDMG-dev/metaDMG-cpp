@@ -1096,7 +1096,7 @@ int main_print_ugly(int argc,char **argv) {
   snprintf(buf,1024,"%s.uglyprint.mismatch.txt",infile_bdamage);
   fprintf(stderr,"\t-> Dumping file: \'%s\'\n",buf);
   FILE *fpfpfp = fopen(buf,"wb");
-  fprintf(fpfpfp,"#taxid\tnalign\tdirection\tposition\tAA\tAC\tAG\tAT\tCA\tCC\tCG\tCT\tGA\tGC\tGG\tGT\tTA\tTC\tTG\tTT\n");
+  fprintf(fpfpfp,"#taxid\tdirection\tposition\tAA\tAC\tAG\tAT\tCA\tCC\tCG\tCT\tGA\tGC\tGG\tGT\tTA\tTC\tTG\tTT\n");
   //map of taxid -> taxid
   int2int parent;
   //map of taxid -> rank
