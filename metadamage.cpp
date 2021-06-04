@@ -1141,7 +1141,7 @@ int main_print_ugly(int argc,char **argv) {
     for(int i=0;i<howmany;i++){
       //      fprintf(stdout,"%d\t\"%s\"\t\"%s\"\t%d\t3'\t%d",taxid,myname,myrank,it->second.nreads,i);
       //fprintf(fpfpfp,"%d\t%d\t3'\t%d",taxid,it->second.nreads,i);
-      fprintf(fpfpfp,"%d3'\t%d",taxid,i);
+      fprintf(fpfpfp,"%d\t3'\t%d",taxid,i);
       for(int ii=0;ii<16;ii++)
 	fprintf(fpfpfp,"\t%lu",it->second.bw[i*16+ii]);
       fprintf(fpfpfp,"\n");
