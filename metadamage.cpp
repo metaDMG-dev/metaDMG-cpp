@@ -14,6 +14,7 @@
 #include "profile.h"
 #include "shared.h"
 #include "version.h"
+#include "ngsLCA.h"
 
 htsFormat *dingding2 =(htsFormat*) calloc(1,sizeof(htsFormat));
 typedef std::map<int,char *> int2char;
@@ -1167,7 +1168,8 @@ int main_print_ugly(int argc,char **argv) {
       itc=name.find(it->first);
       if(itc!=name.end())
 	myname = itc->second;
-      fprintf(fpfpfp,"%d\t\"%s\"\t\"%s\"\t%d\t%d\t%f\t%f\t%f\t%f\n",it->first,myname,myrank,nalign,it->second.nreads,it->second.data[0],it->second.data[1],it->second.data[2],it->second.data[3]);
+      fprintf(fpfpfp,"%d\t\"%s\"\t\"%s\"\t%d\t%d\t%f\t%f\t%f\t%f\t",it->first,myname,myrank,nalign,it->second.nreads,it->second.data[0],it->second.data[1],it->second.data[2],it->second.data[3]);
+      print_chain(fpfpfp,it->first,parent,rank,name);
       //      fprintf(stderr,"%d->(%d,%f,%f,%f,%f)\n",it->first,it->second.nreads,it->second.data[0],it->second.data[1],it->second.data[2],it->second.data[3]);
     }
   }
