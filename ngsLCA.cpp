@@ -17,7 +17,7 @@ int mod_out[]=  {1333996 , 1333996 ,1582270,1914213,1917265,1915309 ,263865,2801
 #include <sys/stat.h>
 #include <htslib/bgzf.h>
 #include <htslib/kstring.h>
-
+#include <cmath>
 #include "ngsLCA_cli.h"
 #include "profile.h"
 #include "shared.h"
