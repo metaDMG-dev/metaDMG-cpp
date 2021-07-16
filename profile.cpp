@@ -649,9 +649,10 @@ std::map<int, mydata> load_bdamage_full(const char* fname,int &printlength){
   if(bgfp)
     bgzf_close(bgfp);
   fprintf(stderr,"\t-> Done loading binary bdamage.gz file. It contains: %lu\n",retmap.size());
-  for(std::map<int,mydata>::iterator it = retmap.begin();0&&it!=retmap.end();it++)
+#if 0
+  for(std::map<int,mydata>::iterator it = retmap.begin();it!=retmap.end();it++)
     fprintf(stderr,"it->second:%p\n",it->second);
-
+#endif
   return retmap;
 }
 

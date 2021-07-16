@@ -853,7 +853,7 @@ int main_merge(int argc,char **argv){
 }
 
 int2int getlcadist(char *fname){
-  fprintf(stderr,"fname: %f\n",fname);
+  //  fprintf(stderr,"fname: %s\n",fname);
   int2int lcadist;
   int tlen =strlen(fname)+10; 
   char tmp[tlen];
@@ -880,7 +880,7 @@ std::map<int,double *> getcsv(char *fname){
   fp=fopen(fname,"rb");
   assert(fp!=NULL);
   char buf[4096];
-  fgets(buf,4096,fp);//skip header
+  assert(fgets(buf,4096,fp)!=NULL);//skip header
   while(fgets(buf,4096,fp)){
     int key = atoi(strtok(buf,"\t\n, "));
     double *valval = new double[2];

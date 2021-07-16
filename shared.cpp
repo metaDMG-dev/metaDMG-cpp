@@ -12,7 +12,10 @@ BGZF *getbgzf(const char*str1,const char *mode,int nthreads){
   BGZF *fp = NULL;
   fp = bgzf_open(str1,mode);
   fprintf(stderr,"\t-> opening file: \'%s\' mode: \'%s\'\n",str1,mode);
-  assert(fp!=NULL);
+  if(fp==NULL){
+    fprintf(stderr,"\t-> Problem opening file: \"%s\"\n",str1);
+    exit(0);
+  }
   if(nthreads>1){
     fprintf(stderr,"\t-> Setting threads to: %d \n",nthreads);
     bgzf_mt(fp,nthreads,64);

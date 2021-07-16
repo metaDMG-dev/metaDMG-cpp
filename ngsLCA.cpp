@@ -17,6 +17,7 @@ int mod_out[]=  {1333996 , 1333996 ,1582270,1914213,1917265,1915309 ,263865,2801
 #include <sys/stat.h>
 #include <htslib/bgzf.h>
 #include <htslib/kstring.h>
+#include <cmath>
 
 #include "ngsLCA_cli.h"
 #include "profile.h"
@@ -100,7 +101,10 @@ char2int c2i_missing;//contains counter of missing hits for each taxid that does
 
 void mod_db(int *in,int *out,int2int &parent, int2char &rank,int2char &name_map){
   for(int i=0;i<24;i++){
-    assert(parent.count(out[i])==1);
+    if(parent.count(out[i])!=1){
+      fprintf(stderr,"\t-> Problem \"fixing\" database entries with known issues, consider add -fix_ncbi 0 when running program\n");
+      exit(0);
+    }
     parent[in[i]] = parent[out[i]];
     rank[in[i]] = rank[out[i]];
     name_map[in[i]] = strdup("satan");
@@ -136,11 +140,15 @@ float mean(std::vector<float> &vec){
   return tmp/vec.size();
 }
 
-
+int varinfo = 1;
 float var(std::vector<float> &vec){
+
   if(vec.size()<=1){
-    fprintf(stderr,"\t-> Calculation of variance is only defined for >1 datapoints\n");
-    exit(0);
+    if(varinfo==1) {
+      fprintf(stderr,"\t-> Calculation of variance is only defined for >1 datapoints (this message is only printed once)\n");
+      varinfo = 0;
+    }
+    return 0.0;
   }
   float mea=mean(vec);
   float tmp  =0;
@@ -715,9 +723,10 @@ int main_lca(int argc, char **argv){
   //  int2int closest_species=get_species(i2i,parent,rank,name_map,p->fp3);
   //  fprintf(stderr,"\t-> Number of items in closest_species map:%lu\n",closest_species.size());
 
-  
-  fprintf(stderr,"\t-> Will add some fixes of the ncbi database due to merged names\n");
-  mod_db(mod_in,mod_out,parent,rank,name_map);
+  if(p->fixdb){
+    fprintf(stderr,"\t-> Will add some fixes of the ncbi database due to merged names\n");
+    mod_db(mod_in,mod_out,parent,rank,name_map);
+  }
   samFile *usedreads_sam = NULL;
   if(p->usedreads_sam!=NULL){//p->usedreads sam is const *, sorry this is confusing
     char out_mode[5]="ws";
@@ -749,7 +758,7 @@ int main_lca(int argc, char **argv){
   if(usedreads_sam!=NULL)
     sam_close(usedreads_sam);
   if(p->fp_lcadist){
-    for(std::map<int,lcatriplet>::iterator it =lcastat.begin();it!=lcastat.end();it++){
+      for(std::map<int,lcatriplet>::iterator it =lcastat.begin();it!=lcastat.end();it++){
       lcatriplet tmp = it->second;
       fprintf(p->fp_lcadist,"%d\t%d\t%f\t%f\t%f\t%f",it->first,tmp.nalignments,mean(tmp.readlengths),var(tmp.readlengths),mean(tmp.gccontents),var(tmp.gccontents));
       

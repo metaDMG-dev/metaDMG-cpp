@@ -30,6 +30,7 @@ pars *pars_init(){
   p->skipnorank = 1;
   p->howmany = 5;
   p->usedreads_sam = NULL;
+  p->fixdb = 1;
   return p;
 }
 
@@ -144,7 +145,7 @@ pars *get_pars(int argc,char **argv){
   while(*argv){
     char *key=*argv;
     char *val=*(++argv);
-    
+    //    fprintf(stderr,"key: %s val: %s\n",key,val);
     if(!strcasecmp("-bam",key)) p->htsfile=strdup(val);
     else if(!strcasecmp("-names",key)) p->namesfile=strdup(val);
     else if(!strcasecmp("-nodes",key)) p->nodesfile=strdup(val);
@@ -158,6 +159,8 @@ pars *get_pars(int argc,char **argv){
     else if(!strcasecmp("-simscoreHigh",key)) p->simscoreHigh=atof(val);
     else if(!strcasecmp("-outnames",key)) p->outnames=strdup(val);
     else if(!strcasecmp("-out",key)) p->outnames=strdup(val);
+    else if(!strcasecmp("-fix-ncbi",key)) p->fixdb=atoi(val);
+    else if(!strcasecmp("-fix_ncbi",key)) p->fixdb=atoi(val);
     else if(!strcasecmp("-discard",key)) p->discard=atoi(val);
     else if(!strcasecmp("-howmany",key)) p->howmany=atoi(val);
     else if(!strcasecmp("-usedreads",key)) make_used_reads = atoi(val);
