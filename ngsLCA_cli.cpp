@@ -31,6 +31,7 @@ pars *pars_init(){
   p->howmany = 5;
   p->usedreads_sam = NULL;
   p->fixdb = 1;
+  p->nthreads = 4;
   return p;
 }
 
@@ -38,6 +39,15 @@ void pars_free(pars *p){
   fclose(p->fp1);
   //fclose(p->fp2);
   fclose(p->fp3);
+
+  if(p->header)
+    sam_hdr_destroy(p->header);
+  free(p->outnames);
+  free(p->lca_rank);
+  free(p->htsfile);
+  free(p->acc2taxfile);
+  free(p->namesfile);
+  free(p->nodesfile);
   free(p);
 }
 
@@ -146,19 +156,19 @@ pars *get_pars(int argc,char **argv){
     char *key=*argv;
     char *val=*(++argv);
     //    fprintf(stderr,"key: %s val: %s\n",key,val);
-    if(!strcasecmp("-bam",key)) p->htsfile=strdup(val);
-    else if(!strcasecmp("-names",key)) p->namesfile=strdup(val);
-    else if(!strcasecmp("-nodes",key)) p->nodesfile=strdup(val);
-    else if(!strcasecmp("-acc2tax",key)) p->acc2taxfile=strdup(val);
+    if(!strcasecmp("-bam",key)){free(p->htsfile); p->htsfile=strdup(val);}
+    else if(!strcasecmp("-names",key)){free(p->namesfile); p->namesfile=strdup(val);}
+    else if(!strcasecmp("-nodes",key)){free(p->nodesfile); p->nodesfile=strdup(val);}
+    else if(!strcasecmp("-acc2tax",key)){free(p->acc2taxfile); p->acc2taxfile=strdup(val);}
     else if(!strcasecmp("-editdistMin",key)) p->editdistMin=atoi(val);
     else if(!strcasecmp("-editdistMax",key)) p->editdistMax=atoi(val);
     else if(!strcasecmp("-minmapq",key)) p->minmapq=atoi(val);
     else if(!strcasecmp("-minlength",key)) p->minlength=atoi(val);
     else if(!strcasecmp("-simscoreLow",key)) p->simscoreLow=atof(val);
-    else if(!strcasecmp("-lca_rank",key)) p->lca_rank=strdup(val);
+    else if(!strcasecmp("-lca_rank",key)){free(p->lca_rank); p->lca_rank=strdup(val);}
     else if(!strcasecmp("-simscoreHigh",key)) p->simscoreHigh=atof(val);
-    else if(!strcasecmp("-outnames",key)) p->outnames=strdup(val);
-    else if(!strcasecmp("-out",key)) p->outnames=strdup(val);
+    else if(!strcasecmp("-outnames",key)){free(p->outnames); p->outnames=strdup(val);}
+    else if(!strcasecmp("-out",key)){free(p->outnames); p->outnames=strdup(val);}
     else if(!strcasecmp("-fix-ncbi",key)) p->fixdb=atoi(val);
     else if(!strcasecmp("-fix_ncbi",key)) p->fixdb=atoi(val);
     else if(!strcasecmp("-discard",key)) p->discard=atoi(val);
@@ -166,6 +176,8 @@ pars *get_pars(int argc,char **argv){
     else if(!strcasecmp("-usedreads",key)) make_used_reads = atoi(val);
     else if(!strcasecmp("-norank2species",key)) p->norank2species=atoi(val);
     else if(!strcasecmp("-skipnorank",key)) p->skipnorank=atoi(val);
+    else if(!strcasecmp("-nthreads",key)) p->nthreads=atoi(val);
+    else if(!strcasecmp("-@",key)) p->nthreads=atoi(val);
     else{
       fprintf(stderr,"\t Unknown parameter key:%s val:%s\n",key,val);
       free(p);
@@ -188,9 +200,9 @@ pars *get_pars(int argc,char **argv){
   assert(p->fp1);
   snprintf(buf,1024,"%s.lca.stat",p->outnames);
   fprintf(stderr,"\t-> Will output lca distribution in file:\t\t\'%s\'\n",buf);
+  p->fp_lcadist = NULL;
   p->fp_lcadist = fopen(buf,"wb");
   assert(p->fp_lcadist);
-  
   snprintf(buf,1024,"%s.wlca",p->outnames);
   fprintf(stderr,"\t-> Will output lca weight in file:\t\t\'%s\'\n",buf);
   //  p->fp2 = fopen(buf,"wb");
@@ -226,6 +238,7 @@ void print_pars(FILE *fp,pars *p){
   fprintf(fp,"\t-> -lca_rank\t%s\n",p->lca_rank);
   fprintf(fp,"\t-> -norank2species\t%d\n",p->norank2species);
   fprintf(fp,"\t-> -howmany\t%d\n",p->howmany);
+  fprintf(fp,"\t-> -fix_ncbi\t%d\n",p->fixdb);
 }
 
 #ifdef __WITH_MAIN__

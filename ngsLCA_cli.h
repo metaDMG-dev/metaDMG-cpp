@@ -37,6 +37,7 @@ typedef struct{
   int howmany;
   char *usedreads_sam;
   int fixdb; //used for disabling mod_db function
+  int nthreads;
 }pars;
 
 pars *get_pars(int argc,char **argv);

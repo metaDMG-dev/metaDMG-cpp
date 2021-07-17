@@ -136,13 +136,15 @@ int2char parse_names(const char *fname){
   }
   //  int2char::iterator it = name_map.find(61564);  assert(it!=name_map.end());
   fprintf(stderr,"\t-> [%s] Number of unique names (column1): %lu with third column 'scientific name'\n",fname,name_map.size());
+  gzclose(gz);
+  delete [] toks;
   return name_map;
 }
 
 
 
 void parse_nodes(const char *fname,int2char &rank,int2int &parent,int2intvec &child,int dochild){
-  fprintf(stderr,"Parsing: %s\n",fname);
+  //  fprintf(stderr,"Parsing: %s\n",fname);
   gzFile gz= Z_NULL;
   gz=gzopen(fname,"rb");
   if(gz==Z_NULL){
@@ -189,6 +191,8 @@ void parse_nodes(const char *fname,int2char &rank,int2int &parent,int2intvec &ch
   //int2intvec::iterator it=child.find(1);
   //fprintf(stderr,"%d->%lu\n",it->first,it->second.size());
   //exit(0);
+  gzclose(gz);
+  delete [] toks;
 }
 
 //this generates a downtree, parent to childs taxid->vector<taxids>
@@ -303,3 +307,10 @@ void expand_queue(queue *ret){
   ret->m += 500;
 }
 
+void destroy_queue(queue *q){
+  for(int i=0;i<q->m;i++)
+    bam_destroy1(q->ary[i]);
+  delete [] q->ary;
+  delete q;
+  q = NULL;
+}

@@ -40,7 +40,10 @@ void handler(int s) {
   VERBOSE=0;
   SIG_COND=0;
 }
-//bit of a hang and counter intuitive. value should contain the value for the key
+//bit of a hang and counter intuitive
+/*
+  We associate a intrank to each char*rank, the value will be the intrank for the key which is the lcarank that we use of the classification.
+*/
 char2int setlevels(int norank2species,char *key,int &value){
   const char*names[46] = {"superkingdom","kingdom","subkingdom","superphylum","phylum","subphylum","superclass","class","subclass","infraclass","clade","cohort","subcohort","superorder","order","suborder","infraorder","parvorder","superfamily","family","subfamily","tribe","subtribe","infratribe","genus","subgenus","section","series","subseries","subsection","species","species group","species subgroup","subspecies","varietas","morph","subvariety","forma","forma specialis","biotype","genotype","isolate","pathogroup","serogroup","serotype ","strain"};
   int values[46] = {35,34,33,32,31,30,29,28,27,26,25,24,23,22,21,20,19,18,17,16,15,14,13,12,11,10,9,8,7,6,5,4,3,2,1,1,1,1,1,1,1,1,1,1,1,1};
@@ -81,6 +84,8 @@ int2int rank2level(int2char &i2c,int norank2species,char *key,int &value){
     }
     i2i[it->first] = key;
   }
+  for(char2int::iterator it = c2i.begin();it!=c2i.end();it++)
+    free(it->first);
   return i2i;
 }
 
@@ -388,10 +393,10 @@ std::vector<int> purge(std::vector<int> &taxids,std::vector<int> &editdist){
   return tmpnewvec;
 }
 
-void hts(FILE *fp,samFile *fp_in,int2int &i2i,int2int& parent,bam_hdr_t *hdr,int2char &rank, int2char &name_map,FILE *log,int minmapq,int discard,int editMin, int editMax, double scoreLow,double scoreHigh,int minlength,int lca_rank,char *prefix,int howmany,samFile *fp_usedreads,int skipnorank,int2int &rank2level){
+void hts(FILE *fp,samFile *fp_in,int2int &i2i,int2int& parent,bam_hdr_t *hdr,int2char &rank, int2char &name_map,FILE *log,int minmapq,int discard,int editMin, int editMax, double scoreLow,double scoreHigh,int minlength,int lca_rank,char *prefix,int howmany,samFile *fp_usedreads,int skipnorank,int2int &rank2level,int nthreads){
   fprintf(stderr,"[%s] \t-> editMin:%d editmMax:%d scoreLow:%f scoreHigh:%f minlength:%d discard: %d prefix: %s howmany: %d skipnorank: %d\n",__FUNCTION__,editMin,editMax,scoreLow,scoreHigh,minlength,discard,prefix,howmany,skipnorank);
   assert(fp_in!=NULL);
-  damage *dmg = new damage(howmany,8,13);
+  damage *dmg = new damage(howmany,nthreads,13);
   bam1_t *aln = bam_init1(); //initialize an alignment
   int comp ;
 
@@ -601,14 +606,18 @@ void hts(FILE *fp,samFile *fp_in,int2int &i2i,int2int& parent,bam_hdr_t *hdr,int
     }
   }
   dmg->bwrite(prefix,hdr);
-  myq->l = 0;
+
   specs.clear();
   editdist.clear();
   bam_destroy1(aln);
   sam_close(fp_in);
   
-  
-  
+  if(seq)
+    delete [] seq;
+  if(last)
+    free(last);
+  destroy_damage(dmg);
+  destroy_queue(myq);
   return ;//0;
 }
 
@@ -696,7 +705,7 @@ int main_lca(int argc, char **argv){
   //map of bamref ->taxid
 
   int2int *i2i=NULL;
-  fprintf(stderr,"p->header: %p\n",p->header);
+  //  fprintf(stderr,"p->header: %p\n",p->header);
   if(p->header)
     i2i=(int2int*) bamRefId2tax(p->header,p->acc2taxfile,p->htsfile,errmap);
 
@@ -712,6 +721,7 @@ int main_lca(int argc, char **argv){
   
   parse_nodes(p->nodesfile,rank,parent,child,0);
   int lca_rank;
+  //converts each taxid to a intrepresentation of the rank, we call this level
   int2int tax2level=rank2level(rank,p->norank2species,p->lca_rank,lca_rank);
   //  calc_valens(i2i,parent);
   if(0){
@@ -738,8 +748,7 @@ int main_lca(int argc, char **argv){
       fprintf(stderr,"writing headers to %s", p->usedreads_sam);
   }
 
-  
-  hts(p->fp1,p->hts,*i2i,parent,p->header,rank,name_map,p->fp3,p->minmapq,p->discard,p->editdistMin,p->editdistMax,p->simscoreLow,p->simscoreHigh,p->minlength,lca_rank,p->outnames,p->howmany,usedreads_sam,p->skipnorank,tax2level);
+  hts(p->fp1,p->hts,*i2i,parent,p->header,rank,name_map,p->fp3,p->minmapq,p->discard,p->editdistMin,p->editdistMax,p->simscoreLow,p->simscoreHigh,p->minlength,lca_rank,p->outnames,p->howmany,usedreads_sam,p->skipnorank,tax2level,p->nthreads);
 
   fprintf(stderr,"\t-> Number of species with reads that map uniquely: %lu\n",specWeight.size());
   
@@ -752,16 +761,15 @@ int main_lca(int argc, char **argv){
   //p->header points to bam_hdr_t what is expected here?
   for(int2int::iterator it=specWeight.begin();0&&it!=specWeight.end();it++)
     fprintf(p->fp2,"%d\t%s\t%d\n",it->first,name_map[it->first],it->second);
-  pars_free(p);
+  
   fprintf(stderr, "\t-> [ALL done] walltime used =  %.2f sec\n", (float)(time(NULL) - t2));
   
   if(usedreads_sam!=NULL)
     sam_close(usedreads_sam);
   if(p->fp_lcadist){
-      for(std::map<int,lcatriplet>::iterator it =lcastat.begin();it!=lcastat.end();it++){
+    for(std::map<int,lcatriplet>::iterator it =lcastat.begin();it!=lcastat.end();it++){
       lcatriplet tmp = it->second;
       fprintf(p->fp_lcadist,"%d\t%d\t%f\t%f\t%f\t%f",it->first,tmp.nalignments,mean(tmp.readlengths),var(tmp.readlengths),mean(tmp.gccontents),var(tmp.gccontents));
-      
       int2char::iterator it1=name_map.find(it->first);
       int2char::iterator it2=rank.find(it->first);
       char *namnam,*rankrank;
@@ -772,8 +780,16 @@ int main_lca(int argc, char **argv){
 	rankrank=it2->second;
       fprintf(p->fp_lcadist,"\t\"%s\"\t\"%s\"\n",namnam,rankrank);
     }
-
+    
   }
   fclose(p->fp_lcadist);
+  pars_free(p);
+  for(int2char::iterator it=name_map.begin();it!=name_map.end();it++)
+    free(it->second);
+  for(int2char::iterator it=rank.begin();it!=rank.end();it++)
+    free(it->second);
+  if(i2i)
+    delete i2i;
+  free(dingding2);
   return 0;
 }

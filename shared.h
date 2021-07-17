@@ -11,6 +11,7 @@ typedef struct{
 
 queue *init_queue(size_t maxsize);
 void expand_queue(queue *ret);
+void destroy_queue(queue *q);
 
 int2char parse_names(const char *fname);
 void parse_nodes(const char *fname,int2char &rank,int2int &parent);
