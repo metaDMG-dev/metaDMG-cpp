@@ -32,6 +32,7 @@ pars *pars_init(){
   p->usedreads_sam = NULL;
   p->fixdb = 1;
   p->nthreads = 4;
+  p->weighttype = 0;
   return p;
 }
 
@@ -177,6 +178,7 @@ pars *get_pars(int argc,char **argv){
     else if(!strcasecmp("-norank2species",key)) p->norank2species=atoi(val);
     else if(!strcasecmp("-skipnorank",key)) p->skipnorank=atoi(val);
     else if(!strcasecmp("-nthreads",key)) p->nthreads=atoi(val);
+    else if(!strcasecmp("-weighttype",key)) p->weighttype=atoi(val);
     else if(!strcasecmp("-@",key)) p->nthreads=atoi(val);
     else{
       fprintf(stderr,"\t Unknown parameter key:%s val:%s\n",key,val);
@@ -239,6 +241,7 @@ void print_pars(FILE *fp,pars *p){
   fprintf(fp,"\t-> -norank2species\t%d\n",p->norank2species);
   fprintf(fp,"\t-> -howmany\t%d\n",p->howmany);
   fprintf(fp,"\t-> -fix_ncbi\t%d\n",p->fixdb);
+  fprintf(fp,"\t-> -weighttype\t%d\n",p->weighttype);
 }
 
 #ifdef __WITH_MAIN__

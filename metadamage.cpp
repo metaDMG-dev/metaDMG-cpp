@@ -65,9 +65,9 @@ double *getval(std::map<int, double *> &retmap,int2intvec &child,int taxid,int h
   return ret;
 }
 
-mydata getval_full(std::map<int, mydata> &retmap,int2intvec &child,int taxid,int howmany){
+mydataD getval_full(std::map<int, mydataD> &retmap,int2intvec &child,int taxid,int howmany){
   // fprintf(stderr,"getval\t%d\t%d\n",taxid,howmany);
-  std::map<int,mydata>::iterator it = retmap.find(taxid);
+  std::map<int,mydataD>::iterator it = retmap.find(taxid);
   if(it!=retmap.end()){
     //fprintf(stderr,"has found: %d in retmap\n",it->first);
 #if 0
@@ -78,14 +78,14 @@ mydata getval_full(std::map<int, mydata> &retmap,int2intvec &child,int taxid,int
 #endif
     return it->second;
   }
-  mydata ret;
+  mydataD ret;
   ret.nreads = 0;
-  ret.fw = new size_t[16*howmany];
-  ret.bw = new size_t[16*howmany];
+  ret.fwD = new double[16*howmany];
+  ret.bwD = new double[16*howmany];
   
   for(int i=0;i<16*howmany;i++){
-    ret.fw[i] = 0;
-    ret.bw[i] = 0;
+    ret.fwD[i] = 0;
+    ret.bwD[i] = 0;
   }
   if(child.size()>0) {// if we have supplied -nodes
     int2intvec::iterator it2 = child.find(taxid);
@@ -93,11 +93,11 @@ mydata getval_full(std::map<int, mydata> &retmap,int2intvec &child,int taxid,int
       std::vector<int> &avec = it2->second;
       for(int i=0;i<avec.size();i++){
 	//	fprintf(stderr,"%d/%d %d\n",i,avec.size(),avec[i]);
-	mydata tmp = getval_full(retmap,child,avec[i],howmany);
+	mydataD tmp = getval_full(retmap,child,avec[i],howmany);
 	ret.nreads += tmp.nreads;
 	for(int i=0;i<16*howmany;i++){
-	  ret.fw[i] += tmp.fw[i];
-	  ret.bw[i] += tmp.bw[i];
+	  ret.fwD[i] += tmp.fwD[i];
+	  ret.bwD[i] += tmp.bwD[i];
 	}
       }
     }
@@ -243,7 +243,7 @@ int main_getdamage(int argc,char **argv){
       continue;
     }
 
-    dmg->damage_analysis(b,runmode!=0?b->core.tid:0);
+    dmg->damage_analysis(b,runmode!=0?b->core.tid:0,1);
   }
 
 
@@ -384,7 +384,7 @@ int main_print(int argc,char **argv){
 
   }
     
-  int data[16];
+  float data[16];
   while(1){
     int nread=bgzf_read(bgfp,ref_nreads,2*sizeof(int));
     double ctgas[2*printlength];
@@ -392,7 +392,7 @@ int main_print(int argc,char **argv){
       break;
     assert(nread==2*sizeof(int));
     for(int at=0;at<printlength;at++){
-      assert(16*sizeof(int)==bgzf_read(bgfp,data,sizeof(int)*16));
+      assert(16*sizeof(float)==bgzf_read(bgfp,data,sizeof(float)*16));
       if(at>howmany)
 	continue;
       if(search==-1||search==ref_nreads[0]) {
@@ -447,7 +447,7 @@ int main_print(int argc,char **argv){
     }
   
     for(int at=0;at<printlength;at++) {
-      assert(16*sizeof(int)==bgzf_read(bgfp,data,sizeof(int)*16));
+      assert(16*sizeof(int)==bgzf_read(bgfp,data,sizeof(float)*16));
       if(at>howmany)
 	continue;
       if(search==-1||search==ref_nreads[0]){
@@ -1108,7 +1108,7 @@ int main_print_ugly(int argc,char **argv) {
   if(infile_nodes!=NULL)
     parse_nodes(infile_nodes,rank,parent,child,1);
 
-  std::map<int, mydata> retmap = load_bdamage_full(infile_bdamage,howmany);
+  std::map<int, mydataD> retmap = load_bdamage_full(infile_bdamage,howmany);
   fprintf(stderr,"\t-> Number of entries in damage pattern file: %lu printlength(howmany):%d\n",retmap.size(),howmany);
   int2char name = parse_names(infile_names);
   
@@ -1116,9 +1116,9 @@ int main_print_ugly(int argc,char **argv) {
   getval_full(retmap,child,1,howmany); //this will do everything
   float postsize=retmap.size();
   fprintf(stderr,"\t-> pre: %f post:%f grownbyfactor: %f\n",presize,postsize,postsize/presize);
-  for(std::map<int, mydata>::iterator it=retmap.begin();it!=retmap.end();it++){
+  for(std::map<int, mydataD>::iterator it=retmap.begin();it!=retmap.end();it++){
     int taxid = it->first;
-    mydata md = it->second;
+    mydataD md = it->second;
     if(it->second.nreads==0)
       continue;
     /*
@@ -1136,7 +1136,7 @@ int main_print_ugly(int argc,char **argv) {
       //      fprintf(fpfpfp,"%d\t%d\t5'\t%d",taxid,it->second.nreads,i);
       fprintf(fpfpfp,"%d\t5'\t%d",taxid,i);
       for(int ii=0;ii<16;ii++)
-	fprintf(fpfpfp,"\t%lu",it->second.fw[i*16+ii]);
+	fprintf(fpfpfp,"\t%.0f",it->second.fwD[i*16+ii]);
       fprintf(fpfpfp,"\n");
     }
     for(int i=0;i<howmany;i++){
@@ -1144,7 +1144,7 @@ int main_print_ugly(int argc,char **argv) {
       //fprintf(fpfpfp,"%d\t%d\t3'\t%d",taxid,it->second.nreads,i);
       fprintf(fpfpfp,"%d\t3'\t%d",taxid,i);
       for(int ii=0;ii<16;ii++)
-	fprintf(fpfpfp,"\t%lu",it->second.bw[i*16+ii]);
+	fprintf(fpfpfp,"\t%.0f",it->second.bwD[i*16+ii]);
       fprintf(fpfpfp,"\n");
     }
   }
@@ -1156,9 +1156,13 @@ int main_print_ugly(int argc,char **argv) {
   std::map<int,mydata2> stats = load_lcasttat(infile_lcastat);
   getval_stats(stats,child,1); //this will do everything
   for(std::map<int,mydata2>::iterator it = stats.begin();1&&it!=stats.end();it++){
-    std::map<int, mydata>::iterator itold=retmap.find(it->first);
-    assert(itold!=retmap.end());
-    int nalign = itold->second.nreads;
+    std::map<int, mydataD>::iterator itold=retmap.find(it->first);
+    int nalign = -1;
+    if(itold==retmap.end()){
+      fprintf(stderr,"\t-> Problem finding taxid: %d\n",it->first);
+      //      exit(0);
+    }else
+      nalign = itold->second.nreads;
     char *myrank=NULL;
     char *myname=NULL;
     if(it->second.nreads>0){
