@@ -1110,7 +1110,11 @@ int main_print_ugly(int argc,char **argv) {
 
   std::map<int, mydataD> retmap = load_bdamage_full(infile_bdamage,howmany);
   fprintf(stderr,"\t-> Number of entries in damage pattern file: %lu printlength(howmany):%d\n",retmap.size(),howmany);
-  int2char name = parse_names(infile_names);
+  
+  int2char name;
+
+  if(infile_names)
+    name = parse_names(infile_names);
   
   float presize = retmap.size();
   getval_full(retmap,child,1,howmany); //this will do everything
@@ -1156,6 +1160,7 @@ int main_print_ugly(int argc,char **argv) {
   std::map<int,mydata2> stats = load_lcasttat(infile_lcastat);
   getval_stats(stats,child,1); //this will do everything
   for(std::map<int,mydata2>::iterator it = stats.begin();1&&it!=stats.end();it++){
+
     std::map<int, mydataD>::iterator itold=retmap.find(it->first);
     int nalign = -1;
     if(itold==retmap.end()){

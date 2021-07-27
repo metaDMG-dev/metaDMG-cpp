@@ -596,7 +596,7 @@ void hts(FILE *fp,samFile *fp_in,int2int &i2i,int2int& parent,bam_hdr_t *hdr,int
       if(myit->second!=-1 && (myit->second <=lca_rank)){
 	adder(lca,strlen(seq),gccontent(seq));
 	//      if(correct_rank(lca_rank,lca,rank,norank2species)){
-
+	adder(lca,strlen(seq),gccontent(seq));
 	for(int i=0;i<myq->l;i++){
 	  //dmg->damage_analysis(myq->ary[i],myq->ary[i]->core.tid);
 	  int2int::iterator ittt = i2i.find(myq->ary[i]->core.tid);
@@ -795,7 +795,6 @@ int main_lca(int argc, char **argv){
     
   }
   fclose(p->fp_lcadist);
-  pars_free(p);
   for(int2char::iterator it=name_map.begin();it!=name_map.end();it++)
     free(it->second);
   for(int2char::iterator it=rank.begin();it!=rank.end();it++)
@@ -803,5 +802,6 @@ int main_lca(int argc, char **argv){
   if(i2i)
     delete i2i;
   free(dingding2);
+  pars_free(p);
   return 0;
 }
