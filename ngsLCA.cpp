@@ -464,7 +464,6 @@ void hts(FILE *fp,samFile *fp_in,int2int &i2i,int2int& parent,bam_hdr_t *hdr,int
 	lca=do_lca(taxids,parent);
 	//	fprintf(stderr,"myq->l: %d\n",myq->l);
 	if(lca!=-1){
-	  adder(lca,strlen(seq),gccontent(seq));
 	  fprintf(fp,"%s:%s:%lu:%d:%f",last,seq,strlen(seq),size,gccontent(seq));
 	  print_chain(fp,lca,parent,rank,name_map);
 	  int varisunique = isuniq(specs);
@@ -480,6 +479,7 @@ void hts(FILE *fp,samFile *fp_in,int2int &i2i,int2int& parent,bam_hdr_t *hdr,int
 	  int2int::iterator myit = rank2level.find(lca);
 	  assert(myit!=rank2level.end());
 	  if(myit->second!=-1 && (myit->second <=lca_rank)){
+	    adder(lca,strlen(seq),gccontent(seq));
 	    for(int i=0;i<myq->l;i++){
 	      int2int::iterator it2k = i2i.find(myq->ary[i]->core.tid);
 	      assert(it2k!=i2i.end());
@@ -580,7 +580,6 @@ void hts(FILE *fp,samFile *fp_in,int2int &i2i,int2int& parent,bam_hdr_t *hdr,int
     lca=do_lca(taxids,parent);
     //    fprintf(stderr,"myq->l: %d lca: %d \n",myq->l,lca);
     if(lca!=-1){
-      adder(lca,strlen(seq),gccontent(seq));
       fprintf(fp,"%s:%s:%lu:%d:%f",last,seq,strlen(seq),size,gccontent(seq));
       print_chain(fp,lca,parent,rank,name_map);
       if(isuniq(specs)){
@@ -596,7 +595,7 @@ void hts(FILE *fp,samFile *fp_in,int2int &i2i,int2int& parent,bam_hdr_t *hdr,int
       assert(myit!=rank2level.end());
       if(myit->second!=-1 && (myit->second <=lca_rank)){
 	//      if(correct_rank(lca_rank,lca,rank,norank2species)){
-
+	adder(lca,strlen(seq),gccontent(seq));
 	for(int i=0;i<myq->l;i++){
 	  //dmg->damage_analysis(myq->ary[i],myq->ary[i]->core.tid);
 	  int2int::iterator ittt = i2i.find(myq->ary[i]->core.tid);

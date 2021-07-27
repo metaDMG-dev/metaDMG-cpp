@@ -1161,8 +1161,12 @@ int main_print_ugly(int argc,char **argv) {
   getval_stats(stats,child,1); //this will do everything
   for(std::map<int,mydata2>::iterator it = stats.begin();1&&it!=stats.end();it++){
     std::map<int, mydata>::iterator itold=retmap.find(it->first);
-    assert(itold!=retmap.end());
-    int nalign = itold->second.nreads;
+    int nalign = -1;
+    if(itold==retmap.end()){
+      fprintf(stderr,"\t-> Problem finding taxid: %d\n",it->first);
+      //      exit(0);
+    }else
+      nalign = itold->second.nreads;
     char *myrank=NULL;
     char *myname=NULL;
     if(it->second.nreads>0){
