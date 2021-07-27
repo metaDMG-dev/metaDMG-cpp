@@ -105,13 +105,25 @@ int2int i2i_missing;//contains counter of missing hits for each taxid that doesn
 char2int c2i_missing;//contains counter of missing hits for each taxid that doesnt exists in acc2taxid
 
 void mod_db(int *in,int *out,int2int &parent, int2char &rank,int2char &name_map){
+  int2int::iterator iti;
+  int2char::iterator itc;
   for(int i=0;i<24;i++){
     if(parent.count(out[i])!=1){
       fprintf(stderr,"\t-> Problem \"fixing\" database entries with known issues, consider add -fix_ncbi 0 when running program\n");
       exit(0);
     }
-    parent[in[i]] = parent[out[i]];
-    rank[in[i]] = rank[out[i]];
+    iti = parent.find(in[i]);
+    if(iti!=parent.end()){
+      int oldval_int = iti->second;
+      parent.erase(iti);
+      parent[out[i]] = oldval_int;
+    }
+    itc = rank.find(in[i]);
+    if(itc!=rank.end()){
+      char *oldval_char = itc->second;
+      rank.erase(itc);
+      rank[out[i]] = oldval_char;
+    }
     name_map[in[i]] = strdup("satan");
   }
 
@@ -783,7 +795,6 @@ int main_lca(int argc, char **argv){
     
   }
   fclose(p->fp_lcadist);
-  pars_free(p);
   for(int2char::iterator it=name_map.begin();it!=name_map.end();it++)
     free(it->second);
   for(int2char::iterator it=rank.begin();it!=rank.end();it++)
@@ -791,5 +802,6 @@ int main_lca(int argc, char **argv){
   if(i2i)
     delete i2i;
   free(dingding2);
+  pars_free(p);
   return 0;
 }

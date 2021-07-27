@@ -1110,7 +1110,11 @@ int main_print_ugly(int argc,char **argv) {
 
   std::map<int, mydata> retmap = load_bdamage_full(infile_bdamage,howmany);
   fprintf(stderr,"\t-> Number of entries in damage pattern file: %lu printlength(howmany):%d\n",retmap.size(),howmany);
-  int2char name = parse_names(infile_names);
+  
+  int2char name;
+
+  if(infile_names)
+    name = parse_names(infile_names);
   
   float presize = retmap.size();
   getval_full(retmap,child,1,howmany); //this will do everything
