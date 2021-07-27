@@ -596,7 +596,6 @@ void hts(FILE *fp,samFile *fp_in,int2int &i2i,int2int& parent,bam_hdr_t *hdr,int
       if(myit->second!=-1 && (myit->second <=lca_rank)){
 	adder(lca,strlen(seq),gccontent(seq));
 	//      if(correct_rank(lca_rank,lca,rank,norank2species)){
-	adder(lca,strlen(seq),gccontent(seq));
 	for(int i=0;i<myq->l;i++){
 	  //dmg->damage_analysis(myq->ary[i],myq->ary[i]->core.tid);
 	  int2int::iterator ittt = i2i.find(myq->ary[i]->core.tid);
