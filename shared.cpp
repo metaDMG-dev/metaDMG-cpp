@@ -37,6 +37,13 @@ BGZF *getbgzf3(const char*str1,const char *str2,const char *str3,const char *mod
   return  getbgzf(tmp,mode,nthreads);
 }
 
+BGZF *getbgzf4(const char*str1,const char *str2,const char *str3,const char *str4,const char *mode,int nthreads){
+  unsigned tmp_l = strlen(str1)+strlen(str2)+strlen(str3)+strlen(str4)+5;
+  char tmp[tmp_l];
+  snprintf(tmp,tmp_l,"%s%s%s%s",str1,str2,str3,str4);
+  return  getbgzf(tmp,mode,nthreads);
+}
+
 
 
 int fexists(const char* str){///@param str Filename given as a string.
@@ -63,6 +70,18 @@ int fexists3(const char*str1,const char* str2,const char *str3){
   unsigned tmp_l = strlen(str1)+strlen(str2)+strlen(str3)+5;
   char tmp[tmp_l];
   snprintf(tmp,tmp_l,"%s%s%s",str1,str2,str3);
+  size_t fs=fsize(tmp);
+  return fexists(tmp)&&fs>0;
+}
+
+
+
+
+int fexists4(const char*str1,const char* str2,const char *str3,const char *str4){
+  unsigned tmp_l = strlen(str1)+strlen(str2)+strlen(str3)+strlen(str4)+5;
+  char tmp[tmp_l];
+  snprintf(tmp,tmp_l,"%s%s%s%s",str1,str2,str3,str4);
+  //  fprintf(stderr,"\t-> checking if : %s exists\n",tmp );
   size_t fs=fsize(tmp);
   return fexists(tmp)&&fs>0;
 }
@@ -217,19 +236,19 @@ void parse_nodes2(int2int &parent,int2intvec &child){
 
 //bamfile is only used for making smaller filedump (using the filename)
 int SIG_COND=1;
-int2int *bamRefId2tax(bam_hdr_t *hdr,char *acc2taxfile,char *bamfile,int2int &errmap) { 
+int2int *bamRefId2tax(bam_hdr_t *hdr,char *acc2taxfile,char *bamfile,int2int &errmap,char *tempfolder) { 
   fprintf(stderr,"\t-> Starting to extract (acc->taxid) from binary file: \'%s\'\n",acc2taxfile);
   fflush(stderr);
-  int dodump = !fexists3(basename(acc2taxfile),basename(bamfile),".bin");
+  int dodump = !fexists4(tempfolder,basename(acc2taxfile),basename(bamfile),".bin");
   
   fprintf(stderr,"\t-> Checking if bimnary file exists. dodump=%d \n", dodump);
   
   time_t t=time(NULL);
   BGZF *fp= NULL;
   if(dodump)
-    fp = getbgzf3(basename(acc2taxfile),basename(bamfile),".bin","wb",4);
+    fp = getbgzf4(tempfolder,basename(acc2taxfile),basename(bamfile),".bin","wb",4);
   else
-    fp =  getbgzf3(basename(acc2taxfile),basename(bamfile),".bin","rb",4);
+    fp =  getbgzf4(tempfolder,basename(acc2taxfile),basename(bamfile),".bin","rb",4);
   //this contains refname(as int) -> taxid
   int2int *am= new int2int;
   

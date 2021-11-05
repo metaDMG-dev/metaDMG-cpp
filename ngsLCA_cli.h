@@ -39,6 +39,7 @@ typedef struct{
   int fixdb; //used for disabling mod_db function
   int nthreads;
   int weighttype;
+  char *tempfolder;
 }pars;
 
 pars *get_pars(int argc,char **argv);

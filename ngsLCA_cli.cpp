@@ -33,6 +33,7 @@ pars *pars_init(){
   p->fixdb = 1;
   p->nthreads = 4;
   p->weighttype = 0;
+  p->tempfolder = strdup("");
   return p;
 }
 
@@ -49,6 +50,7 @@ void pars_free(pars *p){
   free(p->acc2taxfile);
   free(p->namesfile);
   free(p->nodesfile);
+  free(p->tempfolder);
   free(p);
 }
 
@@ -180,6 +182,7 @@ pars *get_pars(int argc,char **argv){
     else if(!strcasecmp("-nthreads",key)) p->nthreads=atoi(val);
     else if(!strcasecmp("-weighttype",key)) p->weighttype=atoi(val);
     else if(!strcasecmp("-@",key)) p->nthreads=atoi(val);
+    else if(!strcasecmp("-tempfolder",key)){free(p->tempfolder); p->tempfolder=strdup(val);}
     else{
       fprintf(stderr,"\t Unknown parameter key:%s val:%s\n",key,val);
       free(p);
@@ -242,6 +245,7 @@ void print_pars(FILE *fp,pars *p){
   fprintf(fp,"\t-> -howmany\t%d\n",p->howmany);
   fprintf(fp,"\t-> -fix_ncbi\t%d\n",p->fixdb);
   fprintf(fp,"\t-> -weighttype\t%d\n",p->weighttype);
+  fprintf(fp,"\t-> -tempfolder\t%d\n",p->tempfolder);
 }
 
 #ifdef __WITH_MAIN__
