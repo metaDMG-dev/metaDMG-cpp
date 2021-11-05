@@ -3,6 +3,7 @@
 #include <map>
 
 
+
 #define bam_is_sec(b)         (((b)->core.flag&BAM_FSECONDARY)        != 0)
 #define bam_is_supp(b)        (((b)->core.flag&BAM_FSUPPLEMENTARY)    != 0)
 #define bam_is_paired(b)      (((b)->core.flag&BAM_FPAIRED)     != 0)

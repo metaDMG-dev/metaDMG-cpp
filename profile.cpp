@@ -167,7 +167,7 @@ void  reconstructRefWithPosHTS(const bam1_t   * b,std::pair< kstring_t *, std::v
     mdString2Vector2(mdptr,parsedMD);
 #if 0
     for(int i=0;i<parsedMD.size();i++)
-      fprintf(stderr,"%d) %c %d\n",i,parsedMD[i].bp,parsedMD[i].offset);
+      fprintf(stderr,"\t-> %d) %c %d\n",i,parsedMD[i].bp,parsedMD[i].offset);
 #endif
         
     //int initialPositionControl=al->Position;
@@ -309,6 +309,7 @@ int damage::damage_analysis(bam1_t *b,int which,float incval){
   increaseCounters(b,reconstructedReference.first->s, reconstructedReference.second,minQualBase,MAXLENGTH,it->second.mm5pF,it->second.mm3pF,incval);
   return 0;
 }
+
 void damage::write(char *fname,bam_hdr_t *hdr){
   //fprintf(stderr,"Dumping asso.size(): %lu\n",assoc.size());
   char *outname=strdup("metaout");

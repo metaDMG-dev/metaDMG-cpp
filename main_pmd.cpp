@@ -7,17 +7,90 @@
 #include <getopt.h>
 #include "profile.h"
 
+
 htsFormat *dingding3 =(htsFormat*) calloc(1,sizeof(htsFormat));
 
 int nproc = 0;//number of reads processed
 
+extern char refToChar[256];
+
+void wrapper(const bam1_t *b,const char * reconstructedReference,const std::vector<int> &  reconstructedReferencePos,const int & minQualBase, int MAXLENGTH,float **mm5p,float **mm3p,float incval,char myread[512],char myref[512]){
+  const char *alphabetHTSLIB = "NACNGNNNTNNNNNNN";
+  char refeBase;
+  char readBase;
+  int  qualBase;
+  
+    int i;
+
+    int j=0;
+    for(i=0;i<int(b->core.l_qseq);i++,j++){
+
+	refeBase=toupper(reconstructedReference[j]);
+	readBase=toupper( alphabetHTSLIB[ bam_seqi(bam_get_seq(b),i) ] ); //b->core.l_qseq[i]);
+
+	qualBase=int(bam_get_qual(b)[i]);  
+  
+	if( refeBase == 'S'){ //don't care about soft clipped or indels	    
+	    j--;
+	    continue;
+	}
+	
+	if( refeBase == 'I'){ //don't care about soft clipped or indels
+	  //i--;
+	  continue;
+	}
+
+	if(refeBase == 'D'){//deletion
+	    //j++;
+	    i--;
+	    continue;
+	}
+
+	if(qualBase < minQualBase)
+	    continue;
+	
+	if(refeBase == 'M'){//match
+	    refeBase =  readBase;
+	}
+
+	//	refeBase = refToChar[refeBase];
+	//readBase = refToChar[readBase];
+	//	fprintf(stderr,"en: %c to: %c\n",refeBase,readBase);
+	myread[i] = readBase;
+	myref[i] = refeBase;
+	/*
+	if( refeBase!=4  && readBase!=4 ){
+	    int dist5p=i;
+	    int dist3p=b->core.l_qseq-1-i;
+	    
+	    if( bam_is_rev(b) ){
+		refeBase=com[refeBase];
+		readBase=com[readBase];
+		//dist5p=int(al.QueryBases.size())-1-i;
+		dist5p=int(b->core.l_qseq)-1-i;
+		dist3p=i;
+	    }
+
+	    if(dist5p<MAXLENGTH)
+	      mm5p[dist5p][toIndex[refeBase][readBase]] += incval;
+	    if(dist3p<MAXLENGTH)
+	      mm3p[dist3p][toIndex[refeBase][readBase]] += incval;
+	    
+	}
+	*/
+    }
+}
+
+
 void parse_sequencingdata(char *refName,char *fname,int mapped_only,int se_only,int mapq){
   char reconstructedRef[512];
-  std::pair< kstring_t*, std::vector<int> >  reconstructedReference;
+  char myread[512];
+  char myrefe[512];
+  std::pair< kstring_t*, std::vector<int> >  mypair;
   kstring_t *kstr =new kstring_t;
   kstr->l=kstr->m=0;
   kstr->s=NULL;
-  reconstructedReference.first = kstr;
+  mypair.first = kstr;
   samFile *in=NULL;
   
   if(refName){
@@ -44,7 +117,7 @@ void parse_sequencingdata(char *refName,char *fname,int mapped_only,int se_only,
   
   int ret;
   int refId=-1;
-  while(((ret=sam_read1(in,hdr,b)))>0){
+  while(((ret=sam_read1(in,hdr,b)))>0) {
     nproc++;
 
   
@@ -79,11 +152,13 @@ void parse_sequencingdata(char *refName,char *fname,int mapped_only,int se_only,
       fprintf(stderr,"%c",33+bam_get_qual(b)[i]);
     
     //then we simply write it to the output
-    
     memset(reconstructedRef,0,512);
-    reconstructRefWithPosHTS( b,reconstructedReference,reconstructedRef);
-    fprintf(stderr,"\nReference:%s\n",reconstructedRef);
-
+    memset(myread,'N',512);
+    memset(myrefe,'N',512);
+    reconstructRefWithPosHTS(b,mypair,reconstructedRef);
+    wrapper(b,mypair.first->s,mypair.second,0,0,NULL,NULL,1,myread,myrefe);
+    fprintf(stderr,"\nmyread:\n%.*s\nmyReference:\n%.*s\n",b->core.l_qseq,myread,b->core.l_qseq,myrefe);
+    fprintf(stderr,"---read[%d]----\n",nproc);
   }
  
   bam_destroy1(b);
