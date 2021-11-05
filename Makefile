@@ -61,3 +61,6 @@ clean:
 	rm  -f metadamage *.o *.d version.h
 
 force:
+
+test:
+	
