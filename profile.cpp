@@ -11,17 +11,17 @@
 #include <cassert>
 #include "profile.h"
 
-unsigned **getmatrix(size_t x,size_t y){
-  unsigned **ret = new unsigned*[x];
+float **getmatrix(size_t x,size_t y){
+  float **ret = new float*[x];
   for(int i=0;i<x;i++){
-    ret[i] = new unsigned[y];
+    ret[i] = new float[y];
     for(int j=0;j<16;j++)
       ret[i][j] = 0;
   }
   return ret;
 }
 
-void destroymatrix(unsigned**d,size_t x){
+void destroymatrix(float**d,size_t x){
   for(int i=0;i<x;i++)
     delete [] d[i];
   delete [] d;
@@ -29,8 +29,8 @@ void destroymatrix(unsigned**d,size_t x){
 
 void destroy_damage(damage *dmg){
   for(std::map<int,triple >::iterator it=dmg->assoc.begin();it!=dmg->assoc.end();it++){
-    destroymatrix(it->second.mm5p,dmg->MAXLENGTH);
-    destroymatrix(it->second.mm3p,dmg->MAXLENGTH);
+    destroymatrix(it->second.mm5pF,dmg->MAXLENGTH);
+    destroymatrix(it->second.mm3pF,dmg->MAXLENGTH);
   }
   free(dmg->reconstructedReference.first->s);
   
@@ -224,7 +224,7 @@ void  reconstructRefWithPosHTS(const bam1_t   * b,std::pair< kstring_t *, std::v
     }
 }
 
-inline void increaseCounters(const bam1_t *b,const char * reconstructedReference,const std::vector<int> &  reconstructedReferencePos,const int & minQualBase, int MAXLENGTH,unsigned **mm5p,unsigned **mm3p){
+inline void increaseCounters(const bam1_t *b,const char * reconstructedReference,const std::vector<int> &  reconstructedReferencePos,const int & minQualBase, int MAXLENGTH,float **mm5p,float **mm3p,float incval){
   const char *alphabetHTSLIB = "NACNGNNNTNNNNNNN";
   char refeBase;
   char readBase;
@@ -279,20 +279,21 @@ inline void increaseCounters(const bam1_t *b,const char * reconstructedReference
 	    }
 
 	    if(dist5p<MAXLENGTH)
-	      mm5p[dist5p][toIndex[refeBase][readBase]]++;
+	      mm5p[dist5p][toIndex[refeBase][readBase]] += incval;
 	    if(dist3p<MAXLENGTH)
-	      mm3p[dist3p][toIndex[refeBase][readBase]]++;
+	      mm3p[dist3p][toIndex[refeBase][readBase]] += incval;
 	    
 	}
     }
 }
 
-int damage::damage_analysis(bam1_t *b,int which){
+int damage::damage_analysis(bam1_t *b,int which,float incval){
+  //  fprintf(stderr,"\t-> incval: %f\n",incval);
   if(assoc.find(which)==assoc.end()){
     triple val={0,getmatrix(MAXLENGTH,16),getmatrix(MAXLENGTH,16)};
     assoc[which] = val;
-    mm5p = val.mm5p;
-    mm3p = val.mm3p;
+    mm5pF = val.mm5pF;
+    mm3pF = val.mm3pF;
     //    fprintf(stderr,"has added which: %d\n",which);
   }
   std::map<int,triple >::iterator it=assoc.find(which);
@@ -305,7 +306,7 @@ int damage::damage_analysis(bam1_t *b,int which){
   }
   memset(reconstructedTemp,0,temp_len);
   reconstructRefWithPosHTS(b,reconstructedReference,reconstructedTemp);
-  increaseCounters(b,reconstructedReference.first->s, reconstructedReference.second,minQualBase,MAXLENGTH,it->second.mm5p,it->second.mm3p);
+  increaseCounters(b,reconstructedReference.first->s, reconstructedReference.second,minQualBase,MAXLENGTH,it->second.mm5pF,it->second.mm3pF,incval);
   return 0;
 }
 void damage::write(char *fname,bam_hdr_t *hdr){
@@ -332,11 +333,11 @@ void damage::write(char *fname,bam_hdr_t *hdr){
       ksprintf(&kstr,"%lu",it->second.nreads);
     for(int l=0;l<MAXLENGTH;l++){
       for(int i=0;i<16;i++)
-	ksprintf(&kstr,"\t%d",it->second.mm5p[l][i]);
+	ksprintf(&kstr,"\t%d",it->second.mm5pF[l][i]);
     }
     for(int l=0;l<MAXLENGTH;l++){
       for(int i=0;i<16;i++)
-	ksprintf(&kstr,"\t%d",it->second.mm3p[l][i]);
+	ksprintf(&kstr,"\t%d",it->second.mm3pF[l][i]);
     }
     ksprintf(&kstr,"\n");
     assert(bgzf_write(fp,kstr.s,kstr.l)==kstr.l);
@@ -360,10 +361,10 @@ void damage::bwrite(char *fname,bam_hdr_t *hdr){
     assert(bgzf_write(fp,&it->first,sizeof(int))==sizeof(int));
     assert(bgzf_write(fp,&it->second.nreads,sizeof(int))==sizeof(int));
     for(int l=0;l<MAXLENGTH;l++)
-      assert(bgzf_write(fp,it->second.mm5p[l],sizeof(int)*16)==sizeof(int)*16);
+      assert(bgzf_write(fp,it->second.mm5pF[l],sizeof(int)*16)==sizeof(int)*16);
 
     for(int l=0;l<MAXLENGTH;l++)
-      assert(bgzf_write(fp,it->second.mm3p[l],sizeof(int)*16)==sizeof(int)*16);
+      assert(bgzf_write(fp,it->second.mm3pF[l],sizeof(int)*16)==sizeof(int)*16);
   }
   bgzf_close(fp);
 }
@@ -376,7 +377,7 @@ int printinfo(FILE *fp){
 }
 
 
-int printresults_grenaud2(FILE *fp,unsigned **mm5p,int lengthMaxToPrint){
+int printresults_grenaud2(FILE *fp,float **mm5p,int lengthMaxToPrint){
   fprintf(fp,"pos\tA>C\tA>G\tA>T\tC>A\tC>G\tC>T\tG>A\tG>C\tG>T\tT>A\tT>C\tT>G\n");
   for(int l=0;l<lengthMaxToPrint;l++){
     fprintf(fp,"%*d\t",int(log10(lengthMaxToPrint))+1,l);
@@ -399,10 +400,10 @@ int printresults_grenaud2(FILE *fp,unsigned **mm5p,int lengthMaxToPrint){
 }
 
 void damage::printit(FILE *fp,int l){
-  if(mm5p)
-    printresults_grenaud2(fp,mm5p,l);
-  if(mm3p)
-    printresults_grenaud2(fp,mm3p,l);
+  if(mm5pF)
+    printresults_grenaud2(fp,mm5pF,l);
+  if(mm3pF)
+    printresults_grenaud2(fp,mm3pF,l);
 }
 
 #ifdef __WITH_MAIN__
@@ -602,7 +603,7 @@ std::map<int,double *> load_bdamage3(const char* fname,int howmany ){
   return retmap;
 }
 
-std::map<int, mydata> load_bdamage_full(const char* fname,int &printlength){
+std::map<int, mydataD> load_bdamage_full(const char* fname,int &printlength){
   //  fprintf(stderr,"./metadamage print file.bdamage.gz [-names file.gz -bam file.bam]\n");
   const char *infile = fname;
   //  fprintf(stderr,"infile: %s howmany: %d \n",infile,howmany);
@@ -614,7 +615,7 @@ std::map<int, mydata> load_bdamage_full(const char* fname,int &printlength){
     exit(0);
   }
 
-  std::map<int,mydata> retmap;
+  std::map<int,mydataD> retmap;
   printlength =0;
   assert(sizeof(int)==bgzf_read(bgfp,&printlength,sizeof(int)));
 
@@ -625,23 +626,23 @@ std::map<int, mydata> load_bdamage_full(const char* fname,int &printlength){
     if(nread==0)
       break;
     assert(nread==2*sizeof(int));
-    mydata md;
+    mydataD md;
     
-    md.fw = new size_t[16*printlength];
-    md.bw = new size_t[16*printlength];
+    md.fwD = new double[16*printlength];
+    md.bwD = new double[16*printlength];
     md.nreads = ref_nreads[1];
 
-    int tmp[16];
+    float tmp[16];
     for(int i=0;i<printlength;i++){
-      assert(16*sizeof(int)==bgzf_read(bgfp,tmp,sizeof(int)*16));
+      assert(16*sizeof(float)==bgzf_read(bgfp,tmp,sizeof(float)*16));
       for(int ii=0;ii<16;ii++)
-	md.fw[i*16+ii] = tmp[ii];
+	md.fwD[i*16+ii] = tmp[ii];
     }
   
     for(int i=0;i<printlength;i++){
-      assert(16*sizeof(int)==bgzf_read(bgfp,tmp,sizeof(int)*16));
+      assert(16*sizeof(float)==bgzf_read(bgfp,tmp,sizeof(float)*16));
       for(int ii=0;ii<16;ii++)
-	md.bw[i*16+ii] = tmp[ii];
+	md.bwD[i*16+ii] = tmp[ii];
     }
     retmap[ref_nreads[0]] = md;
   }
@@ -649,9 +650,10 @@ std::map<int, mydata> load_bdamage_full(const char* fname,int &printlength){
   if(bgfp)
     bgzf_close(bgfp);
   fprintf(stderr,"\t-> Done loading binary bdamage.gz file. It contains: %lu\n",retmap.size());
-  for(std::map<int,mydata>::iterator it = retmap.begin();0&&it!=retmap.end();it++)
+#if 0
+  for(std::map<int,mydata>::iterator it = retmap.begin();it!=retmap.end();it++)
     fprintf(stderr,"it->second:%p\n",it->second);
-
+#endif
   return retmap;
 }
 

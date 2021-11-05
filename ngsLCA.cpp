@@ -39,7 +39,10 @@ void handler(int s) {
   VERBOSE=0;
   SIG_COND=0;
 }
-//bit of a hang and counter intuitive. value should contain the value for the key
+//bit of a hang and counter intuitive
+/*
+  We associate a intrank to each char*rank, the value will be the intrank for the key which is the lcarank that we use of the classification.
+*/
 char2int setlevels(int norank2species,char *key,int &value){
   const char*names[46] = {"superkingdom","kingdom","subkingdom","superphylum","phylum","subphylum","superclass","class","subclass","infraclass","clade","cohort","subcohort","superorder","order","suborder","infraorder","parvorder","superfamily","family","subfamily","tribe","subtribe","infratribe","genus","subgenus","section","series","subseries","subsection","species","species group","species subgroup","subspecies","varietas","morph","subvariety","forma","forma specialis","biotype","genotype","isolate","pathogroup","serogroup","serotype ","strain"};
   int values[46] = {35,34,33,32,31,30,29,28,27,26,25,24,23,22,21,20,19,18,17,16,15,14,13,12,11,10,9,8,7,6,5,4,3,2,1,1,1,1,1,1,1,1,1,1,1,1};
@@ -80,6 +83,8 @@ int2int rank2level(int2char &i2c,int norank2species,char *key,int &value){
     }
     i2i[it->first] = key;
   }
+  for(char2int::iterator it = c2i.begin();it!=c2i.end();it++)
+    free(it->first);
   return i2i;
 }
 
@@ -99,10 +104,25 @@ int2int i2i_missing;//contains counter of missing hits for each taxid that doesn
 char2int c2i_missing;//contains counter of missing hits for each taxid that doesnt exists in acc2taxid
 
 void mod_db(int *in,int *out,int2int &parent, int2char &rank,int2char &name_map){
+  int2int::iterator iti;
+  int2char::iterator itc;
   for(int i=0;i<24;i++){
-    assert(parent.count(out[i])==1);
-    parent[in[i]] = parent[out[i]];
-    rank[in[i]] = rank[out[i]];
+    if(parent.count(out[i])!=1){
+      fprintf(stderr,"\t-> Problem \"fixing\" database entries with known issues, consider add -fix_ncbi 0 when running program\n");
+      exit(0);
+    }
+    iti = parent.find(in[i]);
+    if(iti!=parent.end()){
+      int oldval_int = iti->second;
+      parent.erase(iti);
+      parent[out[i]] = oldval_int;
+    }
+    itc = rank.find(in[i]);
+    if(itc!=rank.end()){
+      char *oldval_char = itc->second;
+      rank.erase(itc);
+      rank[out[i]] = oldval_char;
+    }
     name_map[in[i]] = strdup("satan");
   }
 
@@ -136,11 +156,15 @@ float mean(std::vector<float> &vec){
   return tmp/vec.size();
 }
 
-
+int varinfo = 1;
 float var(std::vector<float> &vec){
+
   if(vec.size()<=1){
-    fprintf(stderr,"\t-> Calculation of variance is only defined for >1 datapoints\n");
-    exit(0);
+    if(varinfo==1) {
+      fprintf(stderr,"\t-> Calculation of variance is only defined for >1 datapoints (this message is only printed once)\n");
+      varinfo = 0;
+    }
+    return 0.0;
   }
   float mea=mean(vec);
   float tmp  =0;
@@ -380,10 +404,10 @@ std::vector<int> purge(std::vector<int> &taxids,std::vector<int> &editdist){
   return tmpnewvec;
 }
 
-void hts(FILE *fp,samFile *fp_in,int2int &i2i,int2int& parent,bam_hdr_t *hdr,int2char &rank, int2char &name_map,FILE *log,int minmapq,int discard,int editMin, int editMax, double scoreLow,double scoreHigh,int minlength,int lca_rank,char *prefix,int howmany,samFile *fp_usedreads,int skipnorank,int2int &rank2level){
-  fprintf(stderr,"[%s] \t-> editMin:%d editmMax:%d scoreLow:%f scoreHigh:%f minlength:%d discard: %d prefix: %s howmany: %d skipnorank: %d\n",__FUNCTION__,editMin,editMax,scoreLow,scoreHigh,minlength,discard,prefix,howmany,skipnorank);
+void hts(FILE *fp,samFile *fp_in,int2int &i2i,int2int& parent,bam_hdr_t *hdr,int2char &rank, int2char &name_map,FILE *log,int minmapq,int discard,int editMin, int editMax, double scoreLow,double scoreHigh,int minlength,int lca_rank,char *prefix,int howmany,samFile *fp_usedreads,int skipnorank,int2int &rank2level,int nthreads,int weighttype){
+  fprintf(stderr,"[%s] \t-> editMin:%d editmMax:%d scoreLow:%f scoreHigh:%f minlength:%d discard: %d prefix: %s howmany: %d skipnorank: %d weighttype: %d\n",__FUNCTION__,editMin,editMax,scoreLow,scoreHigh,minlength,discard,prefix,howmany,skipnorank,weighttype);
   assert(fp_in!=NULL);
-  damage *dmg = new damage(howmany,8,13);
+  damage *dmg = new damage(howmany,nthreads,13);
   bam1_t *aln = bam_init1(); //initialize an alignment
   int comp ;
 
@@ -439,7 +463,6 @@ void hts(FILE *fp,samFile *fp_in,int2int &i2i,int2int& parent,bam_hdr_t *hdr,int
 	lca=do_lca(taxids,parent);
 	//	fprintf(stderr,"myq->l: %d\n",myq->l);
 	if(lca!=-1){
-	  adder(lca,strlen(seq),gccontent(seq));
 	  fprintf(fp,"%s:%s:%lu:%d:%f",last,seq,strlen(seq),size,gccontent(seq));
 	  print_chain(fp,lca,parent,rank,name_map);
 	  int varisunique = isuniq(specs);
@@ -455,6 +478,7 @@ void hts(FILE *fp,samFile *fp_in,int2int &i2i,int2int& parent,bam_hdr_t *hdr,int
 	  int2int::iterator myit = rank2level.find(lca);
 	  assert(myit!=rank2level.end());
 	  if(myit->second!=-1 && (myit->second <=lca_rank)){
+	    adder(lca,strlen(seq),gccontent(seq));
 	    for(int i=0;i<myq->l;i++){
 	      int2int::iterator it2k = i2i.find(myq->ary[i]->core.tid);
 	      assert(it2k!=i2i.end());
@@ -465,7 +489,7 @@ void hts(FILE *fp,samFile *fp_in,int2int &i2i,int2int& parent,bam_hdr_t *hdr,int
 	      }
 	      if(skipnorank==1 && strcasecmp(ititit->second,"no rank")==0)
 		continue;
-	      dmg->damage_analysis(myq->ary[i],it2k->second);
+	      dmg->damage_analysis(myq->ary[i],it2k->second,weighttype==0?1:(1.0/(float)myq->l));
 	      if(fp_usedreads)
 		assert(sam_write1(fp_usedreads, hdr,myq->ary[i])>=0);
 	    }
@@ -555,7 +579,6 @@ void hts(FILE *fp,samFile *fp_in,int2int &i2i,int2int& parent,bam_hdr_t *hdr,int
     lca=do_lca(taxids,parent);
     //    fprintf(stderr,"myq->l: %d lca: %d \n",myq->l,lca);
     if(lca!=-1){
-      adder(lca,strlen(seq),gccontent(seq));
       fprintf(fp,"%s:%s:%lu:%d:%f",last,seq,strlen(seq),size,gccontent(seq));
       print_chain(fp,lca,parent,rank,name_map);
       if(isuniq(specs)){
@@ -570,8 +593,8 @@ void hts(FILE *fp,samFile *fp_in,int2int &i2i,int2int& parent,bam_hdr_t *hdr,int
       int2int::iterator myit = rank2level.find(lca);
       assert(myit!=rank2level.end());
       if(myit->second!=-1 && (myit->second <=lca_rank)){
+	adder(lca,strlen(seq),gccontent(seq));
 	//      if(correct_rank(lca_rank,lca,rank,norank2species)){
-
 	for(int i=0;i<myq->l;i++){
 	  //dmg->damage_analysis(myq->ary[i],myq->ary[i]->core.tid);
 	  int2int::iterator ittt = i2i.find(myq->ary[i]->core.tid);
@@ -585,7 +608,7 @@ void hts(FILE *fp,samFile *fp_in,int2int &i2i,int2int& parent,bam_hdr_t *hdr,int
 	  if(skipnorank==1 && strcasecmp(ititit->second,"no rank")==0)
 	    continue;
 	  //	  fprintf(stderr,"uaua\n");
-	  dmg->damage_analysis(myq->ary[i],ittt->second);
+	  dmg->damage_analysis(myq->ary[i],ittt->second,weighttype==0?1:(1.0/(float)myq->l));
 	  if(fp_usedreads)
 	    assert(sam_write1(fp_usedreads, hdr,myq->ary[i])>=0);
 	}
@@ -593,14 +616,18 @@ void hts(FILE *fp,samFile *fp_in,int2int &i2i,int2int& parent,bam_hdr_t *hdr,int
     }
   }
   dmg->bwrite(prefix,hdr);
-  myq->l = 0;
+
   specs.clear();
   editdist.clear();
   bam_destroy1(aln);
   sam_close(fp_in);
   
-  
-  
+  if(seq)
+    delete [] seq;
+  if(last)
+    free(last);
+  destroy_damage(dmg);
+  destroy_queue(myq);
   return ;//0;
 }
 
@@ -668,7 +695,7 @@ int2node makeNodes(int2int &parent){
 int main_lca(int argc, char **argv){
   htsFormat *dingding2 =(htsFormat*) calloc(1,sizeof(htsFormat));
   if(argc==1){
-    fprintf(stderr,"\t-> ./metadamage lca -names -nodes -acc2tax [-editdist[min/max] -simscore[low/high] -minmapq -discard] -bam -lca_rank #version: %s -usedreads [0,1]\n",METADAMAGE_VERSION);
+    fprintf(stderr,"\t-> ./metadamage lca -names -nodes -acc2tax [-editdist[min/max] -simscore[low/high] -minmapq -discard] -bam -lca_rank #version: %s -usedreads [0,1] -weighttype \n",METADAMAGE_VERSION);
     return 0;
   }
   catchkill();
@@ -688,7 +715,7 @@ int main_lca(int argc, char **argv){
   //map of bamref ->taxid
 
   int2int *i2i=NULL;
-  fprintf(stderr,"p->header: %p\n",p->header);
+  //  fprintf(stderr,"p->header: %p\n",p->header);
   if(p->header)
     i2i=(int2int*) bamRefId2tax(p->header,p->acc2taxfile,p->htsfile,errmap);
 
@@ -704,6 +731,7 @@ int main_lca(int argc, char **argv){
   
   parse_nodes(p->nodesfile,rank,parent,child,0);
   int lca_rank;
+  //converts each taxid to a intrepresentation of the rank, we call this level
   int2int tax2level=rank2level(rank,p->norank2species,p->lca_rank,lca_rank);
   //  calc_valens(i2i,parent);
   if(0){
@@ -715,9 +743,10 @@ int main_lca(int argc, char **argv){
   //  int2int closest_species=get_species(i2i,parent,rank,name_map,p->fp3);
   //  fprintf(stderr,"\t-> Number of items in closest_species map:%lu\n",closest_species.size());
 
-  
-  fprintf(stderr,"\t-> Will add some fixes of the ncbi database due to merged names\n");
-  mod_db(mod_in,mod_out,parent,rank,name_map);
+  if(p->fixdb){
+    fprintf(stderr,"\t-> Will add some fixes of the ncbi database due to merged names\n");
+    mod_db(mod_in,mod_out,parent,rank,name_map);
+  }
   samFile *usedreads_sam = NULL;
   if(p->usedreads_sam!=NULL){//p->usedreads sam is const *, sorry this is confusing
     char out_mode[5]="ws";
@@ -729,8 +758,7 @@ int main_lca(int argc, char **argv){
       fprintf(stderr,"writing headers to %s", p->usedreads_sam);
   }
 
-  
-  hts(p->fp1,p->hts,*i2i,parent,p->header,rank,name_map,p->fp3,p->minmapq,p->discard,p->editdistMin,p->editdistMax,p->simscoreLow,p->simscoreHigh,p->minlength,lca_rank,p->outnames,p->howmany,usedreads_sam,p->skipnorank,tax2level);
+  hts(p->fp1,p->hts,*i2i,parent,p->header,rank,name_map,p->fp3,p->minmapq,p->discard,p->editdistMin,p->editdistMax,p->simscoreLow,p->simscoreHigh,p->minlength,lca_rank,p->outnames,p->howmany,usedreads_sam,p->skipnorank,tax2level,p->nthreads,p->weighttype);
 
   fprintf(stderr,"\t-> Number of species with reads that map uniquely: %lu\n",specWeight.size());
   
@@ -743,7 +771,7 @@ int main_lca(int argc, char **argv){
   //p->header points to bam_hdr_t what is expected here?
   for(int2int::iterator it=specWeight.begin();0&&it!=specWeight.end();it++)
     fprintf(p->fp2,"%d\t%s\t%d\n",it->first,name_map[it->first],it->second);
-  pars_free(p);
+  
   fprintf(stderr, "\t-> [ALL done] walltime used =  %.2f sec\n", (float)(time(NULL) - t2));
   
   if(usedreads_sam!=NULL)
@@ -752,7 +780,6 @@ int main_lca(int argc, char **argv){
     for(std::map<int,lcatriplet>::iterator it =lcastat.begin();it!=lcastat.end();it++){
       lcatriplet tmp = it->second;
       fprintf(p->fp_lcadist,"%d\t%d\t%f\t%f\t%f\t%f",it->first,tmp.nalignments,mean(tmp.readlengths),var(tmp.readlengths),mean(tmp.gccontents),var(tmp.gccontents));
-      
       int2char::iterator it1=name_map.find(it->first);
       int2char::iterator it2=rank.find(it->first);
       char *namnam,*rankrank;
@@ -763,8 +790,16 @@ int main_lca(int argc, char **argv){
 	rankrank=it2->second;
       fprintf(p->fp_lcadist,"\t\"%s\"\t\"%s\"\n",namnam,rankrank);
     }
-
+    
   }
   fclose(p->fp_lcadist);
+  for(int2char::iterator it=name_map.begin();it!=name_map.end();it++)
+    free(it->second);
+  for(int2char::iterator it=rank.begin();it!=rank.end();it++)
+    free(it->second);
+  if(i2i)
+    delete i2i;
+  free(dingding2);
+  pars_free(p);
   return 0;
 }

@@ -14,8 +14,8 @@
 
 typedef struct{
   size_t nreads;
-  unsigned **mm5p;
-  unsigned **mm3p;
+  float **mm5pF;
+  float **mm3pF;
 }triple;
 
 
@@ -26,13 +26,13 @@ public:
   int MAXLENGTH;
   int minQualBase;//currently not set; should be set in init_damage
   int nclass;
-  unsigned **mm5p;//will point to first. Just a hack
-  unsigned **mm3p;//will point to first. Just a hack
+  float **mm5pF;//will point to first. Just a hack
+  float **mm3pF;//will point to first. Just a hack
   std::pair< kstring_t*, std::vector<int> >  reconstructedReference;
   std::map<int,triple > assoc;
   void write(char *prefix,bam_hdr_t *hdr);
   void bwrite(char *prefix,bam_hdr_t *hdr);
-  int damage_analysis( bam1_t *b,int whichclass);
+  int damage_analysis( bam1_t *b,int whichclass,float incval);
   void printit(FILE *fp,int l);
   int temp_len;
   damage(int maxlen,int nthd,int minqb){
@@ -45,7 +45,7 @@ public:
     kstr->l=kstr->m=0;
     kstr->s=NULL;
     reconstructedReference.first = kstr;
-    mm5p=mm3p=NULL;
+    mm5pF=mm3pF=NULL;
   }
   ~damage(){free(reconstructedTemp);}
 };
@@ -56,9 +56,9 @@ std::map<int,double *> load_bdamage3(const char *fname,int howmany);
 
 typedef struct{
   int nreads;//this is nalignements
-  size_t *fw;
-  size_t *bw;
-}mydata;
+  double *fwD;
+  double *bwD;
+}mydataD;
 
 typedef struct{
   int nreads;//this is nalignements
@@ -66,5 +66,5 @@ typedef struct{
 }mydata2;
 
 
-std::map<int, mydata> load_bdamage_full(const char* fname,int &printlength);
+std::map<int, mydataD> load_bdamage_full(const char* fname,int &printlength);
 std::map<int, mydata2> load_lcasttat(const char* fname);
