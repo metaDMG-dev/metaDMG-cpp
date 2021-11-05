@@ -19,7 +19,8 @@ pars *pars_init(){
   p->editdistMax=10;
   p->simscoreLow=0;
   p->simscoreHigh=1;
-  p->fp1=p->fp2=p->fp3=p->fp_lcadist=NULL;
+  p->fp1 = Z_NULL;
+  p->fp2=p->fp3=p->fp_lcadist=NULL;
   p->outnames=strdup("outnames");
   p->minmapq=0;
   p->discard=516;//discard unmapped and read fail
@@ -38,7 +39,7 @@ pars *pars_init(){
 }
 
 void pars_free(pars *p){
-  fclose(p->fp1);
+  gzclose(p->fp1);
   //fclose(p->fp2);
   fclose(p->fp3);
 
@@ -199,9 +200,9 @@ pars *get_pars(int argc,char **argv){
   //  assert(pthread_create( &thread2, NULL, read_ass2taxid_thread, (void*) p)==0);
   
   char buf[1024];
-  snprintf(buf,1024,"%s.lca",p->outnames);
+  snprintf(buf,1024,"%s.lca.gz",p->outnames);
   fprintf(stderr,"\t-> Will output lca results in file:\t\t\'%s\'\n",buf);
-  p->fp1 = fopen(buf,"wb");
+  p->fp1 = gzopen(buf,"wb");
   assert(p->fp1);
   snprintf(buf,1024,"%s.lca.stat",p->outnames);
   fprintf(stderr,"\t-> Will output lca distribution in file:\t\t\'%s\'\n",buf);

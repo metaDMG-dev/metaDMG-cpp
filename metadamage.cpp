@@ -1095,10 +1095,10 @@ int main_print_ugly(int argc,char **argv) {
   fprintf(stderr,"infile_names: %s infile_bdamage: %s nodes: %s lca_stat: %s",infile_names,infile_bdamage,infile_nodes,infile_lcastat);
   fprintf(stderr,"#VERSION:%s\n",METADAMAGE_VERSION);
   char buf[1024];
-  snprintf(buf,1024,"%s.uglyprint.mismatch.txt",infile_bdamage);
+  snprintf(buf,1024,"%s.uglyprint.mismatch.txt.gz",infile_bdamage);
   fprintf(stderr,"\t-> Dumping file: \'%s\'\n",buf);
-  FILE *fpfpfp = fopen(buf,"wb");
-  fprintf(fpfpfp,"#taxid\tdirection\tposition\tAA\tAC\tAG\tAT\tCA\tCC\tCG\tCT\tGA\tGC\tGG\tGT\tTA\tTC\tTG\tTT\n");
+  gzFile fpfpfp = gzopen(buf,"wb");
+  gzprintf(fpfpfp,"#taxid\tdirection\tposition\tAA\tAC\tAG\tAT\tCA\tCC\tCG\tCT\tGA\tGC\tGG\tGT\tTA\tTC\tTG\tTT\n");
   //map of taxid -> taxid
   int2int parent;
   //map of taxid -> rank
@@ -1139,25 +1139,25 @@ int main_print_ugly(int argc,char **argv) {
     for(int i=0;i<howmany;i++){
       //      fprintf(stdout,"%d\t\"%s\"\t\"%s\"\t%d\t5'\t%d",taxid,myname,myrank,it->second.nreads,i);
       //      fprintf(fpfpfp,"%d\t%d\t5'\t%d",taxid,it->second.nreads,i);
-      fprintf(fpfpfp,"%d\t5'\t%d",taxid,i);
+      gzprintf(fpfpfp,"%d\t5'\t%d",taxid,i);
       for(int ii=0;ii<16;ii++)
-	fprintf(fpfpfp,"\t%.0f",it->second.fwD[i*16+ii]);
-      fprintf(fpfpfp,"\n");
+	gzprintf(fpfpfp,"\t%.0f",it->second.fwD[i*16+ii]);
+      gzprintf(fpfpfp,"\n");
     }
     for(int i=0;i<howmany;i++){
       //      fprintf(stdout,"%d\t\"%s\"\t\"%s\"\t%d\t3'\t%d",taxid,myname,myrank,it->second.nreads,i);
       //fprintf(fpfpfp,"%d\t%d\t3'\t%d",taxid,it->second.nreads,i);
-      fprintf(fpfpfp,"%d\t3'\t%d",taxid,i);
+      gzprintf(fpfpfp,"%d\t3'\t%d",taxid,i);
       for(int ii=0;ii<16;ii++)
-	fprintf(fpfpfp,"\t%.0f",it->second.bwD[i*16+ii]);
-      fprintf(fpfpfp,"\n");
+	gzprintf(fpfpfp,"\t%.0f",it->second.bwD[i*16+ii]);
+      gzprintf(fpfpfp,"\n");
     }
   }
-  fclose(fpfpfp);
-  snprintf(buf,1024,"%s.uglyprint.stat.txt",infile_bdamage);
+  gzclose(fpfpfp);
+  snprintf(buf,1024,"%s.uglyprint.stat.txt.gz",infile_bdamage);
   fprintf(stderr,"\t-> Dumping file: \'%s\'\n",buf);
-  fpfpfp = fopen(buf,"wb");
-  fprintf(fpfpfp,"#taxid\tname\trank\tnalign\tnreads\tmean_rlen\tvar_rlen\tmean_gc\tvar_gc\n");
+  fpfpfp = gzopen(buf,"wb");
+  gzprintf(fpfpfp,"#taxid\tname\trank\tnalign\tnreads\tmean_rlen\tvar_rlen\tmean_gc\tvar_gc\n");
   std::map<int,mydata2> stats = load_lcasttat(infile_lcastat);
   getval_stats(stats,child,1); //this will do everything
   for(std::map<int,mydata2>::iterator it = stats.begin();1&&it!=stats.end();it++){
@@ -1178,12 +1178,12 @@ int main_print_ugly(int argc,char **argv) {
       itc=name.find(it->first);
       if(itc!=name.end())
 	myname = itc->second;
-      fprintf(fpfpfp,"%d\t\"%s\"\t\"%s\"\t%d\t%d\t%f\t%f\t%f\t%f\t",it->first,myname,myrank,nalign,it->second.nreads,it->second.data[0],it->second.data[1],it->second.data[2],it->second.data[3]);
+      gzprintf(fpfpfp,"%d\t\"%s\"\t\"%s\"\t%d\t%d\t%f\t%f\t%f\t%f\t",it->first,myname,myrank,nalign,it->second.nreads,it->second.data[0],it->second.data[1],it->second.data[2],it->second.data[3]);
       print_chain(fpfpfp,it->first,parent,rank,name);
       //      fprintf(stderr,"%d->(%d,%f,%f,%f,%f)\n",it->first,it->second.nreads,it->second.data[0],it->second.data[1],it->second.data[2],it->second.data[3]);
     }
   }
-  fclose(fpfpfp);
+  gzclose(fpfpfp);
   return 0;
 }
 

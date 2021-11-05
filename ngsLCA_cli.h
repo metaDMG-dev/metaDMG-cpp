@@ -24,7 +24,7 @@ typedef struct{
   int editdistMax;
   int skipnorank;
   char *outnames;
-  FILE *fp1;
+  gzFile fp1;
   FILE *fp_lcadist;
   FILE *fp2;
   FILE *fp3;

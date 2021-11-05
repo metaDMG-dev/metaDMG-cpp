@@ -263,7 +263,7 @@ int do_lca(std::vector<int> &taxids,int2int &parent){
   }
 }
 
-void print_chain1(FILE *fp,int taxa,int2char &rank,int2char &name_map){
+void print_chain1(gzFile fp,int taxa,int2char &rank,int2char &name_map){
   int2char::iterator it1=name_map.find(taxa);
   int2char::iterator it2=rank.find(taxa);
   if(it1==name_map.end()){
@@ -274,7 +274,7 @@ void print_chain1(FILE *fp,int taxa,int2char &rank,int2char &name_map){
     fprintf(stderr,"taxa: %d %s doesnt exists will exit\n",taxa,it1->second);
     exit(0);
   }
-  fprintf(fp,"\t%d:%s:\"%s\"",taxa,it1->second,it2->second);
+  gzprintf(fp,"\t%d:%s:\"%s\"",taxa,it1->second,it2->second);
   
 }
 
@@ -284,7 +284,7 @@ void print_rank(FILE *fp, int taxa, int2char &rank){
   fprintf(stderr,"taxa: %d rank %s\n",taxa,it2->second);
 }
 
-void print_chain(FILE *fp,int taxa,int2int &parent,int2char &rank,int2char &name_map){
+void print_chain(gzFile fp,int taxa,int2int &parent,int2char &rank,int2char &name_map){
 
     while(1){
       print_chain1(fp,taxa,rank,name_map);
@@ -294,7 +294,7 @@ void print_chain(FILE *fp,int taxa,int2int &parent,int2char &rank,int2char &name
 	break;
       taxa=it->second;
     }
-    fprintf(fp,"\n");
+    gzprintf(fp,"\n");
 }
 
 int isuniq(std::vector<int> &vec){
@@ -404,7 +404,7 @@ std::vector<int> purge(std::vector<int> &taxids,std::vector<int> &editdist){
   return tmpnewvec;
 }
 
-void hts(FILE *fp,samFile *fp_in,int2int &i2i,int2int& parent,bam_hdr_t *hdr,int2char &rank, int2char &name_map,FILE *log,int minmapq,int discard,int editMin, int editMax, double scoreLow,double scoreHigh,int minlength,int lca_rank,char *prefix,int howmany,samFile *fp_usedreads,int skipnorank,int2int &rank2level,int nthreads,int weighttype){
+void hts(gzFile fp,samFile *fp_in,int2int &i2i,int2int& parent,bam_hdr_t *hdr,int2char &rank, int2char &name_map,FILE *log,int minmapq,int discard,int editMin, int editMax, double scoreLow,double scoreHigh,int minlength,int lca_rank,char *prefix,int howmany,samFile *fp_usedreads,int skipnorank,int2int &rank2level,int nthreads,int weighttype){
   fprintf(stderr,"[%s] \t-> editMin:%d editmMax:%d scoreLow:%f scoreHigh:%f minlength:%d discard: %d prefix: %s howmany: %d skipnorank: %d weighttype: %d\n",__FUNCTION__,editMin,editMax,scoreLow,scoreHigh,minlength,discard,prefix,howmany,skipnorank,weighttype);
   assert(fp_in!=NULL);
   damage *dmg = new damage(howmany,nthreads,13);
@@ -463,7 +463,7 @@ void hts(FILE *fp,samFile *fp_in,int2int &i2i,int2int& parent,bam_hdr_t *hdr,int
 	lca=do_lca(taxids,parent);
 	//	fprintf(stderr,"myq->l: %d\n",myq->l);
 	if(lca!=-1){
-	  fprintf(fp,"%s:%s:%lu:%d:%f",last,seq,strlen(seq),size,gccontent(seq));
+	  gzprintf(fp,"%s:%s:%lu:%d:%f",last,seq,strlen(seq),size,gccontent(seq));
 	  print_chain(fp,lca,parent,rank,name_map);
 	  int varisunique = isuniq(specs);
 	  if(varisunique){
@@ -579,7 +579,7 @@ void hts(FILE *fp,samFile *fp_in,int2int &i2i,int2int& parent,bam_hdr_t *hdr,int
     lca=do_lca(taxids,parent);
     //    fprintf(stderr,"myq->l: %d lca: %d \n",myq->l,lca);
     if(lca!=-1){
-      fprintf(fp,"%s:%s:%lu:%d:%f",last,seq,strlen(seq),size,gccontent(seq));
+      gzprintf(fp,"%s:%s:%lu:%d:%f",last,seq,strlen(seq),size,gccontent(seq));
       print_chain(fp,lca,parent,rank,name_map);
       if(isuniq(specs)){
 	int2int::iterator it=specWeight.find(specs[0]);
@@ -707,13 +707,12 @@ int main_lca(int argc, char **argv){
 
   pars *p=get_pars(--argc,++argv);
   print_pars(stderr,p);
-  fprintf(p->fp1,"# ./metadamage lca ");
+  gzprintf(p->fp1,"# ./metadamage lca ");
   for(int i=0;i<argc;i++)
-    fprintf(p->fp1," %s",argv[i]);
-  fprintf(p->fp1," #version: %s\n",METADAMAGE_VERSION);
-  fflush(p->fp1);
-  //map of bamref ->taxid
+    gzprintf(p->fp1," %s",argv[i]);
+  gzprintf(p->fp1," #version: %s\n",METADAMAGE_VERSION);
 
+  //map of bamref ->taxid
   int2int *i2i=NULL;
   //  fprintf(stderr,"p->header: %p\n",p->header);
   if(p->header)
