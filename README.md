@@ -1,4 +1,4 @@
-## [![tests](https://github.com/ANGSD/metadamage/actions/workflows/tests.yml/badge.svg)](https://github.com/ANGSD/metadamage/actions/workflows/make.yml) metadamage
+## [![tests](https://github.com/ANGSD/metadamage/actions/workflows/make.yml/badge.svg)](https://github.com/ANGSD/metadamage/actions/workflows/make.yml) metadamage
 
 # Introduction
 
