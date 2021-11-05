@@ -1494,7 +1494,7 @@ void outputfreq(const char* outfreqname, const char* filename, string figname, v
     myfile.close();
 }
 
-pars *pars_init(){
+pars *pars_init_regression(){
     pars *p =(pars*) calloc(1,sizeof(pars));
     p->namedir = strdup("data_ancient_human.txt");
     p->outname = strdup("test.out");
@@ -1508,8 +1508,8 @@ pars *pars_init(){
     return p;
 }
 
-pars *get_pars(int argc,char **argv){
-    pars *p = pars_init();
+pars *get_pars_regression(int argc,char **argv){
+    pars *p = pars_init_regression();
     if(argc % 2){
         fprintf(stderr,"\t-> Must supply arguments in the form -pattern value\n");
         free(p);
@@ -1551,7 +1551,7 @@ int main_regression(int argc,char**argv){
         fprintf(stderr,"\t-> -model 4 stands for Briggs regression, which is under construction!\n");
         return 0;
     }
-    pars *p = get_pars(--argc,++argv);
+    pars *p = get_pars_regression(--argc,++argv);
     int model = p->model;
     int numcolumn = 16 + 4;
     int numppos = p->numppos;

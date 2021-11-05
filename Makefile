@@ -1,5 +1,5 @@
 #modied from htslib makefile
-FLAGS=-O3 -std=c++11
+FLAGS=-O3 -std=c++11 -lgsl
 
 CFLAGS += $(FLAGS)
 CXXFLAGS += $(FLAGS)
