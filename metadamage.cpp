@@ -16,6 +16,7 @@
 #include "version.h"
 #include "ngsLCA.h"
 #include "regression.h"
+#include "main_pmd.h"
 
 htsFormat *dingding2 =(htsFormat*) calloc(1,sizeof(htsFormat));
 typedef std::map<int,char *> int2char;
@@ -1196,6 +1197,7 @@ int main(int argc, char **argv){
  
   if(argc==1){
     fprintf(stderr,"./metadamage regression [other options]\n");
+    fprintf(stderr,"./metadamage pmd [other options]\n");
     fprintf(stderr,"./metadamage getdamage file.bam\n");
     fprintf(stderr,"./metadamage mergedamage files.damage.*.gz\n");
     fprintf(stderr,"./metadamage index files.damage.gz\n");
@@ -1216,6 +1218,10 @@ int main(int argc, char **argv){
   argc--;++argv;
   if(!strcmp(argv[0],"regression"))
     return main_regression(argc,argv);
+  if(!strcmp(argv[0],"pmd"))
+    return main_pmd(argc,argv);
+  if(!strcmp(argv[0],"pmd"))
+      return main_pmd(argc,argv);
   if(!strcmp(argv[0],"getdamage"))
     main_getdamage(argc,argv);
   if(!strcmp(argv[0],"index"))
