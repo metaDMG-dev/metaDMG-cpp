@@ -71,4 +71,3 @@ void output(const char* outputname, const char* filename, string figname, vector
 pars *get_pars(int argc,char **argv);
 pars *pars_init();
 int main_regression(int argc,char**argv);
-//int main_regression();

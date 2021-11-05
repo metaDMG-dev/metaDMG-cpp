@@ -151,57 +151,6 @@ void constructX(MatrixXd &X, int numpos, int numcol, int order){
     
 }
 
-//struct par{
-//    MatrixXd X;
-//    MatrixXd Tab;
-//    int order;
-//    int str_pt;
-//    int end_pt;
-//    int numpos;
-//};
-//
-//struct res{
-//    int dir;
-//    int refnucid;
-//    double LR_like;
-//    double MLR_like;
-//    string refnuc;
-//    VectorXd LR_coeff;
-//    VectorXd MLR_coeff;
-//    MatrixXd X;
-//    vector<vector<double> > LR_freq_p;
-//    vector<vector<double> > LR_freq_n;
-//    vector<vector<double> > MLR_freq_p;
-//    vector<vector<double> > MLR_freq_n;
-//};
-// Likelihood function
-//double loglike(const gsl_vector *v, void *params)
-//{
-//    double l = 0;
-//    par *p = (par *)params;
-//    MatrixXd X = p->X;
-//    MatrixXd Tab = p->Tab;
-//    int typenum = p->end_pt-p->str_pt;
-//    int len = typenum*(p->order+1);
-//    int numpos = p->numpos;
-//    VectorXd vec(len);
-//
-//    for (int i=0; i < len; i++){
-//        vec(i) = gsl_vector_get(v, i);
-//    }
-//    VectorXd Y = X*vec;
-//    double ymax = Y.maxCoeff();
-//    for (int i = 0; i < numpos; i++){
-//        double sumE = 0;
-//        for (int j = 0; j < typenum; j++){
-//            l = l + Tab(i,j)*Y(i*typenum+j);
-//            sumE = sumE + exp(Y(i*typenum+j)-ymax);
-//        }
-//        sumE = sumE + exp(-ymax);
-//        l = l + Tab(i,typenum)*(-ymax-log(sumE));
-//    }
-//    return -l;
-//}
 
 double loglike(const gsl_vector *v, void *params)
 {
@@ -1597,11 +1546,3 @@ int main_regression(int argc,char**argv){
     
     return 0;
 }
-
-//int main(){
-//    int argc;
-//    char **argv;
-//    main_regression(argc,argv);
-//
-//    return 0;
-//}

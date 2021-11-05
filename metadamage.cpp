@@ -15,6 +15,7 @@
 #include "shared.h"
 #include "version.h"
 #include "ngsLCA.h"
+#include "regression.h"
 
 htsFormat *dingding2 =(htsFormat*) calloc(1,sizeof(htsFormat));
 typedef std::map<int,char *> int2char;
@@ -1194,6 +1195,7 @@ int main(int argc, char **argv){
   time_t t2=time(NULL);
  
   if(argc==1){
+    fprintf(stderr,"./metadamage regression [other options]\n");
     fprintf(stderr,"./metadamage getdamage file.bam\n");
     fprintf(stderr,"./metadamage mergedamage files.damage.*.gz\n");
     fprintf(stderr,"./metadamage index files.damage.gz\n");
@@ -1212,17 +1214,19 @@ int main(int argc, char **argv){
   fprintf(stderr,"\n");
   fflush(stderr);
   argc--;++argv;
+  if(!strcmp(argv[0],"regression"))
+    return main_regression(argc,argv);
   if(!strcmp(argv[0],"getdamage"))
     main_getdamage(argc,argv);
   if(!strcmp(argv[0],"index"))
     main_index(argc,argv);
   if(!strcmp(argv[0],"print"))
     main_print(argc,argv);
-   if(!strcmp(argv[0],"print_all"))
+  if(!strcmp(argv[0],"print_all"))
     main_print_all(argc,argv);
-   if(!strcmp(argv[0],"print_ugly"))
-     main_print_ugly(argc,argv);
-   if(!strcmp(argv[0],"print2"))
+  if(!strcmp(argv[0],"print_ugly"))
+    main_print_ugly(argc,argv);
+  if(!strcmp(argv[0],"print2"))
     main_print2(argc,argv);
   if(!strcmp(argv[0],"merge"))
     main_merge(argc,argv);
