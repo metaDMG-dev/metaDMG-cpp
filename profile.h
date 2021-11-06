@@ -68,5 +68,5 @@ typedef struct{
 
 
 std::map<int, mydataD> load_bdamage_full(const char* fname,int &printlength);
-std::map<int, mydata2> load_lcasttat(const char* fname);
+std::map<int, mydata2> load_lcastat(const char* fname);
 void  reconstructRefWithPosHTS(const bam1_t   * b,std::pair< kstring_t *, std::vector<int> > &pp,char *reconstructedTemp);

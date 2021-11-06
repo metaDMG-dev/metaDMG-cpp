@@ -658,7 +658,7 @@ std::map<int, mydataD> load_bdamage_full(const char* fname,int &printlength){
   return retmap;
 }
 
-std::map<int, mydata2> load_lcasttat(const char* fname){
+std::map<int, mydata2> load_lcastat(const char* fname){
   //  fprintf(stderr,"./metadamage print file.bdamage.gz [-names file.gz -bam file.bam]\n");
   const char *infile = fname;
   //  fprintf(stderr,"infile: %s howmany: %d \n",infile,howmany);

@@ -1073,7 +1073,7 @@ int main_print_all(int argc,char **argv){
 
 int main_print_ugly(int argc,char **argv) {
   fprintf(stderr,"./metadamage print_ugly file.bdamage.gz -names file.gz -nodes trestructure.gz -lcastat fil.gz\n");
-  if(argc<=2)
+  if(argc<=1)
     return 0;
   char *infile_bdamage = NULL;
   char *infile_nodes = NULL;
@@ -1159,7 +1159,9 @@ int main_print_ugly(int argc,char **argv) {
   fprintf(stderr,"\t-> Dumping file: \'%s\'\n",buf);
   fpfpfp = gzopen(buf,"wb");
   gzprintf(fpfpfp,"#taxid\tname\trank\tnalign\tnreads\tmean_rlen\tvar_rlen\tmean_gc\tvar_gc\n");
-  std::map<int,mydata2> stats = load_lcasttat(infile_lcastat);
+  std::map<int,mydata2> stats;
+  if(infile_lcastat)
+    stats = load_lcastat(infile_lcastat);
   getval_stats(stats,child,1); //this will do everything
   for(std::map<int,mydata2>::iterator it = stats.begin();1&&it!=stats.end();it++){
 
