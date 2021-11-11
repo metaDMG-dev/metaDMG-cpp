@@ -1,8 +1,6 @@
 #include <stdio.h>
 #include <iostream>
 #include <cmath>
-#include <eigen3/Eigen/Core>
-#include <eigen3/Eigen/Eigenvalues>
 #include <string>
 #include <sstream>
 #include <fstream>
@@ -16,7 +14,6 @@
 #include <gsl/gsl_matrix.h>
 #include <gsl/gsl_min.h>
 #include <gsl/gsl_multimin.h>
-//#include "matplotlibcpp.h"
 #include "regression.h"
 using namespace std;
 using namespace Eigen;
