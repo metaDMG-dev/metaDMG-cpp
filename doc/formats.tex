@@ -14,7 +14,7 @@
 
 \begin{document}
 
-\title{metadamage formats}
+\title{metadamage(?) formats}
 \author{tsk}
 \maketitle
 \vspace*{1em}
@@ -23,7 +23,7 @@ This document describe some of the internal formats used by the metadamage softw
 \begin{itemize}
 \item .bdamage.gz
 \item .lca
-\item .lcadist
+\item .stat
 \end{itemize}
 
 \section{bdamage format}
@@ -75,17 +75,17 @@ Each line consists of a number of items seperated by tabspace. First entry conta
 \end{tabular}\label{tab2}
 \caption{Content of a .lca file. Note that 1) seperate between field[1-5] is colon, but the readID might also contain colon. 2) the quotes around field[8] is intentional since taxlevels might contain spaces. 3) Not that the number of tab seperated entries is different between reads since this is the number of nodes needed to traverse from lca to root}
 \end{table}
-\section{.lcastat}
+\section{.stat}
 Very simple tabseperated flatfile
 \begin{enumerate}
 \item taxid
-\item Number of reads supporting the lca
-\item Mean lengths of reads supporting the lca
-\item Variance of lengths of reads supporting the lca
-\item Mean gccontent of reads supporting the lca
-\item Variance of gccontent of reads supporting the lca
-\item name of lca in quotes
-\item name of taxomic level of lca in quotes
+\item Number of supporting reads
+\item Mean lengths of supporting reads
+\item Variance of the lengths of the supporting reads
+\item Mean gccontent of supporting reads
+\item Variance of the gccontent of supporting reads
+\item name of lca in quotes (if relevant, otherwise NA)
+\item name of taxomic level of lca in quotes (if relevant, otherwise NA)
 \end{enumerate}
 \end{document}
 
