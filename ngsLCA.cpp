@@ -410,7 +410,7 @@ void hts(gzFile fp,samFile *fp_in,int2int &i2i,int2int& parent,bam_hdr_t *hdr,in
   damage *dmg = new damage(howmany,nthreads,13);
   bam1_t *aln = bam_init1(); //initialize an alignment
   int comp ;
-
+  
   char *last=NULL;
   char *seq =NULL;
   std::vector<int> taxids;
@@ -434,8 +434,10 @@ void hts(gzFile fp,samFile *fp_in,int2int &i2i,int2int& parent,bam_hdr_t *hdr,in
     char *qname = bam_get_qname(aln);
     int chr = aln->core.tid ; //contig name (chromosome)
     //    fprintf(stderr,"%d %d\n",aln->core.qual,minmapq);
-    if(aln->core.qual<minmapq){
-      fprintf(stderr,"discarding due to low mapq");
+    static int ntimes = 3;
+    if(aln->core.qual<minmapq && ntimes>0){
+      ntimes--;
+      fprintf(stderr,"Discarding due to low mapq, this message will only be printed three times\n");
       continue;
     }
     
