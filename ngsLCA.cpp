@@ -336,12 +336,12 @@ int2int get_species(int2int &i2i,int2int &parent, int2char &rank,int2char &names
       fprintf(fp,"\t-> Removing pair(%d,%d) accnumber:%s since doesnt exists in node list\n",it->first,it->second,names[it->second]);
       i2i.erase(it);
     }else
-      ret[it->second] = asdf;
+      ret[it->second] = asdf;	// 
 
   }
   return ret;
 }
-
+// 
 char *make_seq(bam1_t *aln){
   int len = aln->core.l_qseq;
   char *qseq = new char[len+1];
@@ -382,6 +382,21 @@ float gccontent(char *seq){
   for(int i=0;i<strlen(seq);i++)
     counts[refToInt[seq[i]]]++;
       
+  float gcs = counts[1]+counts[2];
+  float tot = counts[0]+counts[1]+counts[2]+counts[3];
+  return gcs/tot;
+}
+
+
+float gccontent(bam1_t *aln){
+  int counts[5] ={0,0,0,0,0};
+
+  int len = aln->core.l_qseq;
+  char *qseq = new char[len+1];
+  uint8_t *q = bam_get_seq(aln);
+  for(int i=0; i< len ; i++)
+    counts[refToInt[seq_nt16_str[bam_seqi(q,i)]]]++;
+        
   float gcs = counts[1]+counts[2];
   float tot = counts[0]+counts[1]+counts[2]+counts[3];
   return gcs/tot;

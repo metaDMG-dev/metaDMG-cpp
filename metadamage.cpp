@@ -228,6 +228,8 @@ int main_getdamage(int argc,char **argv){
   int ret;
   damage *dmg = new damage(printLength,nthreads,0);
   int skipper[4] = {3,3,3,3};
+  std::map<int,std::vector<float>> gcconts;
+  std::map<int,std::vector<float>> seqlens;
   while(((ret=sam_read1(fp,hdr,b)))>=0){
     if(bam_is_unmapped(b) ){
       if(skipper[0])
@@ -246,13 +248,46 @@ int main_getdamage(int argc,char **argv){
     }
 
     dmg->damage_analysis(b,runmode!=0?b->core.tid:0,1);
+
+    float mygc = gccontent(b);
+    float mylen = b->core.l_qseq;
+    
+    int whichref =0;
+    if(runmode==1)
+      whichref = b->core.tid;
+    std::map<int,std::vector<float>>::iterator it = gcconts.find(whichref);
+    if(it==gcconts.end()){
+      std::vector<float> tmp1{mygc};
+      gcconts[whichref] = tmp1;
+      std::vector<float> tmp2{mylen};
+      seqlens[whichref] = tmp2;
+    }else{
+      it->second.push_back(mygc);
+      it = seqlens.find(whichref);
+      assert(it!=seqlens.end());
+      it->second.push_back(mylen);
+    }
   }
-
-
+    
   dmg->printit(stdout,printLength);
-  
   dmg->write(onam,runmode==1?hdr:NULL);
   dmg->bwrite(onam,hdr);
+
+  //write stat
+  char buf[1024];
+  snprintf(buf,1024,"%s.stat",onam);
+  fprintf(stderr,"\t-> Outputting overall statistic in file: \"%s\"\n",buf);
+  FILE *fpstat = NULL;
+  assert(((fpstat=fopen(buf,"wb")))!=NULL);
+  for(std::map<int,std::vector<float>>::iterator it=gcconts.begin();it!=gcconts.end();it++){
+    std::map<int,triple>::iterator it2 = dmg->assoc.find(it->first);
+    assert(it2!=dmg->assoc.end());
+    std::map<int,std::vector<float>>::iterator it3 = seqlens.find(it->first);
+    assert(it3!=seqlens.end());
+    fprintf(fpstat,"%d\t%lu\t%f\t%f\t%f\t%f\tNA\tNA\n",it->first,it2->second.nreads,mean(it3->second),var(it3->second),mean(it->second),var(it->second));
+  }
+  if(fpstat!=NULL)
+    fclose(fpstat);
     
   sam_hdr_destroy(hdr);
   bam_destroy1(b);
