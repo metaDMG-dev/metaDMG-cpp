@@ -1,10 +1,14 @@
 //gpl thorfinn@binf.ku.dk
+//lei zhao. code in bottom
+
 #include <cstring>
 #include <cstdlib>
 #include <htslib/hts.h>
 #include <htslib/sam.h>
 #include <ctime>
 #include <getopt.h>
+#include <cmath>
+
 #include "profile.h"
 
 
@@ -13,6 +17,67 @@ htsFormat *dingding3 =(htsFormat*) calloc(1,sizeof(htsFormat));
 int nproc = 0;//number of reads processed
 
 extern char refToChar[256];
+
+char revTable[256];
+char qsToProp[256];
+
+double C0 = 0.01;
+double p = 0.3;
+double ppi = 0.01;
+
+double pmd_stat(char *seq,char *ref,int len,char *qs){
+  //make revcom
+  static char compref1[512];
+  for (int i=0; i<len; i++)
+    compref1[i] = revTable[ref[len-i-1]];
+  
+  //do flipcount
+  int count[2] = {0,0};
+  for(int i=0;i<len;i++){
+    if(ref[i] !=seq[i])
+      count[0] = count[0] + 1;
+    if(compref1[i] !=seq[i])
+      count[1] = count[1] + 1;
+  }
+
+  char *myref = NULL;
+  if(count[0]>count[1])
+    myref = compref1;
+  else
+    myref = ref;
+
+  //do stat
+  double llh1 = 0;
+  double llh2 = 0;
+  for (int i=0; i<len; i++){
+    double eps = qsToProp[qs[i]];
+    if (ref[i] == 'C'){
+      double Dz = C0+p*pow(1-p,i+1);
+      double pm1 = (1-ppi)*(1-eps)*(1-Dz)+ppi*eps/3*(1-Dz)+ppi/3*(1-eps)*Dz+(1-ppi)*eps/3*Dz;
+      double pm2 = (1-ppi)*(1-eps)+ppi*eps/3;
+      if (seq[i] == 'C'){
+	llh1 += log(pm1);
+	llh2 += log(pm2);
+      }else{
+	llh1 += log(1-pm1);
+	llh2 += log(1-pm2);
+      }
+    }else if (ref[i] == 'G'){
+      double Dz = C0+p*pow(1-p,len-i);
+      double pm1 = (1-ppi)*(1-eps)*(1-Dz)+ppi*eps/3*(1-Dz)+ppi/3*(1-eps)*Dz+(1-ppi)*eps/3*Dz;
+      double pm2 = (1-ppi)*(1-eps)+ppi*eps/3;
+      if (seq[i] == 'G'){
+	llh1 += log(pm1);
+	llh2 += log(pm2);
+      }else{
+	llh1 += log(1-pm1);
+	llh2 += log(1-pm2);
+      }
+    }
+  }
+  return llh1-llh2;
+}
+
 
 void wrapper(const bam1_t *b,const char * reconstructedReference,const std::vector<int> &  reconstructedReferencePos,const int & minQualBase, int MAXLENGTH,float **mm5p,float **mm3p,float incval,char myread[512],char myref[512]){
   const char *alphabetHTSLIB = "NACNGNNNTNNNNNNN";
@@ -117,6 +182,7 @@ void parse_sequencingdata(char *refName,char *fname,int mapped_only,int se_only,
   
   int ret;
   int refId=-1;
+  char myqscore[512];
   while(((ret=sam_read1(in,hdr,b)))>0) {
     nproc++;
 
@@ -144,12 +210,16 @@ void parse_sequencingdata(char *refName,char *fname,int mapped_only,int se_only,
       fprintf(stderr,"\t-> Now at Chromosome: %s\n",hdr->target_name[refId]);
     }
 
+#if 0
     fprintf(stderr,"readid:%s len: %d\nREAD:\t\n",bam_get_qname(b),b->core.l_qseq);
     for(int i=0;i<b->core.l_qseq;i++)
       fprintf(stderr,"%c",seq_nt16_str[bam_seqi(bam_get_seq(b),i)]);
     fprintf(stderr,"\nQSCOre: \n");
     for(int i=0;i<b->core.l_qseq;i++)
       fprintf(stderr,"%c",33+bam_get_qual(b)[i]);
+#endif
+    for(int i=0;i<b->core.l_qseq;i++)
+      myqscore[i] = bam_get_qual(b)[i];
     
     //then we simply write it to the output
     memset(reconstructedRef,0,512);
@@ -157,8 +227,14 @@ void parse_sequencingdata(char *refName,char *fname,int mapped_only,int se_only,
     memset(myrefe,'N',512);
     reconstructRefWithPosHTS(b,mypair,reconstructedRef);
     wrapper(b,mypair.first->s,mypair.second,0,0,NULL,NULL,1,myread,myrefe);
+#if 0
     fprintf(stderr,"\nmyread:\n%.*s\nmyReference:\n%.*s\n",b->core.l_qseq,myread,b->core.l_qseq,myrefe);
     fprintf(stderr,"---read[%d]----\n",nproc);
+#endif
+
+    //do stat
+    double pmdstat = pmd_stat(myread,myrefe,b->core.l_qseq,myqscore);
+    fprintf(stderr,"%s\tPMD: %f\n",bam_get_qname(b),pmdstat);
   }
  
   bam_destroy1(b);
@@ -171,13 +247,26 @@ void parse_sequencingdata(char *refName,char *fname,int mapped_only,int se_only,
 }
 
 int usage(FILE *fp,int val){
-  fprintf(stderr,"./metadamage pmd [options]\n");
+  fprintf(stderr,"./metadamage pmd [-T ref.fa -@ threads -a se_only -q minmapQ -v VERBOSE] file.bam\n");
+  fprintf(stderr,"-a is an integer zero or one, indicating if paired end reads should be discarded\n");
   return 0;
 }
 
 
 int main_pmd(int argc, char **argv){
+  //build revtable
+  memset(revTable,'n',256);
+  revTable['A'] = 'T';
+  revTable['C'] = 'G';
+  revTable['G'] = 'C';
+  revTable['T'] = 'A';
 
+  //build qscore to prob table
+  for(int i=0;i<256;i++){
+    double val = i;
+    qsToProp[i] = pow(10.0,-val/10.0);
+  }
+  
   	int VERBOSE = 0;
 	unsigned long int seed = 0;
 
@@ -265,3 +354,107 @@ int main_pmd(int argc, char **argv){
 	return 0;
 }
 
+
+/*
+#include <stdio.h>
+#include <stdlib.h>
+#include <iostream>
+#include <cmath>
+#include <eigen3/Eigen/Core>
+#include <eigen3/Eigen/Eigenvalues>
+#include <string>
+#include <sstream>
+#include <fstream>
+#include <vector>
+using namespace std;
+double C0 = 0.01;
+double p = 0.3;
+double ppi = 0.01;
+int main(){
+    FILE* outfile = fopen("example.txt","wt");
+    ifstream infile("test1.txt");
+    string line;
+    while (getline(infile, line))
+    {
+        istringstream iss(line);
+        int pos, len;
+        string ref, read, bq;
+        if (!(iss >> pos >> len >> ref >> read >> bq)) { break;}
+        //cout << pos << "\t" << len << "\t" << read << "\t" << ref << "\t" << bq << "\n";
+        cout << len <<"\n";
+        cout << read.size() << "\n";
+        int count1 = 0;
+        int count2 = 0;
+        string compref1 = "";
+        for (int i=0; i<len; i++){
+            if (ref[i] == 'A'){
+                compref1 = compref1+"T";
+            }else if (ref[i] == 'C'){
+                compref1 = compref1+"G";
+            }else if (ref[i] == 'G'){
+                compref1 = compref1+"C";
+            }else if (ref[i] == 'T'){
+                compref1 = compref1+"A";
+            }
+        }
+        //cout<<compref1<<"\n";
+        string compref(compref1);
+        reverse(compref.begin(),compref.end());
+ //       cout<<compref<<"\n";
+        if (len>read.size()){
+            ref = ref.substr(0,read.size());
+            compref = compref.substr(len-read.size(),read.size());
+            //compref = compref.substr(0,read.size());
+            len = read.size();
+        }
+ //       cout<<compref<<"\n";
+        for (int i=0; i<read.size(); i++){
+            if (ref[i] != read[i]){
+                count1 = count1 + 1;
+            }
+            if (compref[i] != read[i]){
+                count2 = count2 + 1;
+            }
+        }
+        if (count1 > count2){ref = compref;}
+        double llh1 = 0;
+        double llh2 = 0;
+        for (int i=0; i<len; i++){
+            int Q = bq[i]-'!';
+            double eps = pow(10,-Q/10);
+            if (ref[i] == 'C'){
+                double Dz = C0+p*pow(1-p,i+1);
+                double pm1 = (1-ppi)*(1-eps)*(1-Dz)+ppi*eps/3*(1-Dz)+ppi/3*(1-eps)*Dz+(1-ppi)*eps/3*Dz;
+                double pm2 = (1-ppi)*(1-eps)+ppi*eps/3;
+                if (read[i] == 'C'){
+                    llh1 += log(pm1);
+                    llh2 += log(pm2);
+                }else{
+                    llh1 += log(1-pm1);
+                    llh2 += log(1-pm2);
+                }
+            }else if (ref[i] == 'G'){
+                double Dz = C0+p*pow(1-p,len-i);
+                double pm1 = (1-ppi)*(1-eps)*(1-Dz)+ppi*eps/3*(1-Dz)+ppi/3*(1-eps)*Dz+(1-ppi)*eps/3*Dz;
+                double pm2 = (1-ppi)*(1-eps)+ppi*eps/3;
+                if (read[i] == 'G'){
+                    llh1 += log(pm1);
+                    llh2 += log(pm2);
+                }else{
+                    llh1 += log(1-pm1);
+                    llh2 += log(1-pm2);
+                }
+            }
+        }
+        cout<<ref<<"\n";
+        cout<<read<<"\n";
+        cout<<llh1-llh2<<"\n";
+        fprintf(outfile,"%s\t%s\t%f\n",ref.c_str(),read.c_str(),llh1-llh2);
+//        fprintf(outfile,"%f\n",llh1-llh2);
+        
+    }
+    fclose(outfile);
+    return 0;
+}
+
+ */
