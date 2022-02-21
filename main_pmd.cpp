@@ -183,7 +183,7 @@ void parse_sequencingdata(char *refName,char *fname,int mapped_only,int se_only,
   int ret;
   int refId=-1;
   char myqscore[512];
-  while(((ret=sam_read1(in,hdr,b)))>0) {
+  while(((ret=sam_read1(in,hdr,b)))>=0) {
     nproc++;
 
   
@@ -234,7 +234,7 @@ void parse_sequencingdata(char *refName,char *fname,int mapped_only,int se_only,
 
     //do stat
     double pmdstat = pmd_stat(myread,myrefe,b->core.l_qseq,myqscore);
-    fprintf(stderr,"%s\tPMD: %f\n",bam_get_qname(b),pmdstat);
+    fprintf(stdout,"%s\tPMD: %f\n",bam_get_qname(b),pmdstat);
   }
  
   bam_destroy1(b);
