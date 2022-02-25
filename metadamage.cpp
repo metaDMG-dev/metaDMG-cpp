@@ -284,7 +284,10 @@ int main_getdamage(int argc,char **argv){
     assert(it2!=dmg->assoc.end());
     std::map<int,std::vector<float>>::iterator it3 = seqlens.find(it->first);
     assert(it3!=seqlens.end());
-    fprintf(fpstat,"%d\t%lu\t%f\t%f\t%f\t%f\tNA\tNA\n",it->first,it2->second.nreads,mean(it3->second),var(it3->second),mean(it->second),var(it->second));
+    if(0)
+      fprintf(fpstat,"%d\t%lu\t%f\t%f\t%f\t%f\tNA\tNA\n",it->first,it2->second.nreads,mean(it3->second),var(it3->second),mean(it->second),var(it->second));
+    else
+      fprintf(fpstat,"%s\t%lu\t%f\t%f\t%f\t%f\tNA\tNA\n",sam_hdr_tid2name(hdr,it->first),it2->second.nreads,mean(it3->second),var(it3->second),mean(it->second),var(it->second));
   }
   if(fpstat!=NULL)
     fclose(fpstat);
