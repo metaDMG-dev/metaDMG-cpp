@@ -1117,6 +1117,7 @@ int main_print_ugly(int argc,char **argv) {
   char *infile_nodes = NULL;
   char *infile_names = NULL;
   char *infile_lcastat = NULL;
+  char *infile_bam = NULL;
   int howmany;
  
   while(*(++argv)){
@@ -1126,18 +1127,29 @@ int main_print_ugly(int argc,char **argv) {
       infile_nodes = strdup(*(++argv));
     else if(strcasecmp("-lcastat",*argv)==0)
       infile_lcastat = strdup(*(++argv));
+      else if(strcasecmp("-bam",*argv)==0)
+	infile_bam = strdup(*(++argv));
     else
       infile_bdamage = strdup(*argv);
   }
 
+  htsFile *in2000=NULL;
+  sam_hdr_t *hdr = NULL;
+  if(infile_bam){
+    if((in2000=sam_open_format(infile_bam,"r",dingding2))==NULL ){
+      fprintf(stderr,"[%s] nonexistant file: %s\n",__FUNCTION__,infile_bam);
+      exit(0);
+    }
+    hdr = sam_hdr_read(in2000);
+  }
 
-  fprintf(stderr,"infile_names: %s infile_bdamage: %s nodes: %s lca_stat: %s",infile_names,infile_bdamage,infile_nodes,infile_lcastat);
+  fprintf(stderr,"infile_names: %s infile_bdamage: %s nodes: %s lca_stat: %s infile_bam: %s",infile_names,infile_bdamage,infile_nodes,infile_lcastat,infile_bam);
   fprintf(stderr,"#VERSION:%s\n",METADAMAGE_VERSION);
   char buf[1024];
   snprintf(buf,1024,"%s.uglyprint.mismatch.txt.gz",infile_bdamage);
   fprintf(stderr,"\t-> Dumping file: \'%s\'\n",buf);
   gzFile fpfpfp = gzopen(buf,"wb");
-  gzprintf(fpfpfp,"#taxid\tdirection\tposition\tAA\tAC\tAG\tAT\tCA\tCC\tCG\tCT\tGA\tGC\tGG\tGT\tTA\tTC\tTG\tTT\n");
+  gzprintf(fpfpfp,"#taxidStr\tdirection\tposition\tAA\tAC\tAG\tAT\tCA\tCC\tCG\tCT\tGA\tGC\tGG\tGT\tTA\tTC\tTG\tTT\n");
   //map of taxid -> taxid
   int2int parent;
   //map of taxid -> rank
@@ -1160,6 +1172,7 @@ int main_print_ugly(int argc,char **argv) {
   getval_full(retmap,child,1,howmany); //this will do everything
   float postsize=retmap.size();
   fprintf(stderr,"\t-> pre: %f post:%f grownbyfactor: %f\n",presize,postsize,postsize/presize);
+  
   for(std::map<int, mydataD>::iterator it=retmap.begin();it!=retmap.end();it++){
     int taxid = it->first;
     mydataD md = it->second;
@@ -1178,7 +1191,11 @@ int main_print_ugly(int argc,char **argv) {
     for(int i=0;i<howmany;i++){
       //      fprintf(stdout,"%d\t\"%s\"\t\"%s\"\t%d\t5'\t%d",taxid,myname,myrank,it->second.nreads,i);
       //      fprintf(fpfpfp,"%d\t%d\t5'\t%d",taxid,it->second.nreads,i);
-      gzprintf(fpfpfp,"%d\t5'\t%d",taxid,i);
+      if(hdr == NULL)
+	gzprintf(fpfpfp,"%d\t5'\t%d",taxid,i);
+      else
+	gzprintf(fpfpfp,"%s\t5'\t%d",sam_hdr_tid2name(hdr,taxid),i);
+
       for(int ii=0;ii<16;ii++)
 	gzprintf(fpfpfp,"\t%.0f",it->second.fwD[i*16+ii]);
       gzprintf(fpfpfp,"\n");
