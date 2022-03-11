@@ -1203,7 +1203,10 @@ int main_print_ugly(int argc,char **argv) {
     for(int i=0;i<howmany;i++){
       //      fprintf(stdout,"%d\t\"%s\"\t\"%s\"\t%d\t3'\t%d",taxid,myname,myrank,it->second.nreads,i);
       //fprintf(fpfpfp,"%d\t%d\t3'\t%d",taxid,it->second.nreads,i);
-      gzprintf(fpfpfp,"%d\t3'\t%d",taxid,i);
+      if(hdr == NULL)
+	gzprintf(fpfpfp,"%d\t3'\t%d",taxid,i);
+      else
+	gzprintf(fpfpfp,"%s\t3'\t%d",sam_hdr_tid2name(hdr,taxid),i);
       for(int ii=0;ii<16;ii++)
 	gzprintf(fpfpfp,"\t%.0f",it->second.bwD[i*16+ii]);
       gzprintf(fpfpfp,"\n");
