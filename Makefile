@@ -10,7 +10,7 @@ OBJ = $(CSRC:.c=.o) $(CXXSRC:.cpp=.o)
 
 all: metadamage
 
-PACKAGE_VERSION  = 0.1
+PACKAGE_VERSION  = 0.2
 
 ifneq "$(wildcard .git)" ""
 PACKAGE_VERSION := $(shell git describe --always --dirty)
