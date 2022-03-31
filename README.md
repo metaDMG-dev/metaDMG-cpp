@@ -17,7 +17,13 @@ For all analyses output is a binary '.bdamage.gz' file, that can be accessed wit
 # Installation
 
 ### Dependencies
-metaDamage2.0 requires HTSlib - a common library used for handling high-throughput sequencing data. 
+metaDamage0.2 requires HTSlib - a common library used for handling high-throughput sequencing data.
+eigen3 and gsl.
+
+On ubuntu these can be installed with:
+```
+sudo apt install libgsl-dev libeigen3-dev
+```
 
 To install HTSlib do:
 ```
@@ -25,8 +31,8 @@ git clone https://github.com/SAMtools/htslib
 cd htslib
 make
 ```
-### Installing metaDamage2.0
-To install metaDamage2.0 do:
+### Installing metaDamage0.2
+To install metaDamage0.2 do:
 ```
 git clone https://github.com/ANGSD/metadamage
 cd metadamage

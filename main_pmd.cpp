@@ -8,7 +8,7 @@
 #include <ctime>
 #include <getopt.h>
 #include <cmath>
-
+#include <ctype.h>
 #include "profile.h"
 
 
