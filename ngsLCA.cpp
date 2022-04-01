@@ -10,6 +10,7 @@ int mod_out[] = {1333996, 1333996, 1582270, 1914213, 1917265, 1915309, 263865, 2
 #include <time.h>        // for time, time_t
 #include <zlib.h>        // for gzprintf, gzFile
 
+#include <algorithm>
 #include <cassert>  // for assert
 #include <cmath>    // for pow
 #include <cstdio>   // for fprintf, stderr, NULL, FILE
