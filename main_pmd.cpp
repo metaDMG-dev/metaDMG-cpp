@@ -1,7 +1,6 @@
 // gpl thorfinn@binf.ku.dk
 // lei zhao. code in bottom
 
-#include <__utility/pair.h>  // for pair
 #include <_ctype.h>          // for toupper
 #include <getopt.h>          // for optarg, optind, getopt_long, optopt, option
 #include <htslib/hts.h>      // for kstring_t, htsFormat, hts_opt_add, hts_o...

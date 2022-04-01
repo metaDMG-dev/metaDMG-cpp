@@ -1,13 +1,12 @@
 #include "shared.h"
 
-#include <__utility/pair.h>  // for pair
-#include <htslib/bgzf.h>     // for bgzf_close, bgzf_getline, bgzf_read, bgz...
-#include <htslib/hts.h>      // for kstring_t, BGZF
-#include <libgen.h>          // for basename
-#include <string.h>          // for strlen, strtok, strdup, strcmp
-#include <sys/stat.h>        // for stat, time_t
-#include <unistd.h>          // for isatty
-#include <zlib.h>            // for gzclose, gzgets, gzopen, Z_NULL, gzFile
+#include <htslib/bgzf.h>  // for bgzf_close, bgzf_getline, bgzf_read, bgz...
+#include <htslib/hts.h>   // for kstring_t, BGZF
+#include <libgen.h>       // for basename
+#include <string.h>       // for strlen, strtok, strdup, strcmp
+#include <sys/stat.h>     // for stat, time_t
+#include <unistd.h>       // for isatty
+#include <zlib.h>         // for gzclose, gzgets, gzopen, Z_NULL, gzFile
 
 #include <cassert>  // for assert
 #include <cstdio>   // for fprintf, stderr, snprintf, NULL, size_t

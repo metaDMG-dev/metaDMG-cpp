@@ -1,12 +1,11 @@
 // gpl thorfinn@binf.ku.dk
-#include <__utility/pair.h>  // for pair
-#include <getopt.h>          // for optarg, getopt_long, optind, option
-#include <htslib/bgzf.h>     // for bgzf_read, bgzf_close, bgzf_open, BGZF
-#include <htslib/hts.h>      // for htsFormat, hts_opt_add, htsFile, hts_opt
-#include <htslib/sam.h>      // for sam_hdr_read, bam_hdr_destroy, sam_hdr_t...
-#include <strings.h>         // for strcasecmp
-#include <time.h>            // for clock, time, clock_t, time_t
-#include <zlib.h>            // for gzprintf, gzclose, gzgets, gzopen, Z_NULL
+#include <getopt.h>       // for optarg, getopt_long, optind, option
+#include <htslib/bgzf.h>  // for bgzf_read, bgzf_close, bgzf_open, BGZF
+#include <htslib/hts.h>   // for htsFormat, hts_opt_add, htsFile, hts_opt
+#include <htslib/sam.h>   // for sam_hdr_read, bam_hdr_destroy, sam_hdr_t...
+#include <strings.h>      // for strcasecmp
+#include <time.h>         // for clock, time, clock_t, time_t
+#include <zlib.h>         // for gzprintf, gzclose, gzgets, gzopen, Z_NULL
 
 #include <cassert>  // for assert
 #include <cstdio>   // for fprintf, NULL, stderr, stdout, fopen

@@ -1,9 +1,8 @@
 #pragma once
-#include <__utility/pair.h>  // for pair
-#include <htslib/hts.h>      // for kstring_t
-#include <htslib/sam.h>      // for bam1_t, bam_hdr_t, BAM_FDUP, BAM_FPAIRED
-#include <stdio.h>           // for FILE
-#include <stdlib.h>          // for calloc, free, NULL, size_t
+#include <htslib/hts.h>  // for kstring_t
+#include <htslib/sam.h>  // for bam1_t, bam_hdr_t, BAM_FDUP, BAM_FPAIRED
+#include <stdio.h>       // for FILE
+#include <stdlib.h>      // for calloc, free, NULL, size_t
 
 #include <map>     // for map
 #include <vector>  // for vector

@@ -1,5 +1,4 @@
 
-#include <__utility/move.h>         // for move
 #include <gsl/gsl_vector_double.h>  // for gsl_vector
 
 #include <__config>  // for std
