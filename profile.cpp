@@ -1,17 +1,17 @@
 #include "profile.h"
 
-#include <__algorithm/max.h>  // for max
-#include <_ctype.h>           // for toupper, isalpha, isdigit
-#include <htslib/bgzf.h>      // for bgzf_read, bgzf_write, bgzf_close, bgzf...
-#include <htslib/hts.h>       // for kstring_t, BGZF, kroundup32
-#include <htslib/kstring.h>   // for ksprintf, kputc
-#include <htslib/sam.h>       // for bam1_t, bam1_core_t, bam_aux_get, bam_g...
-#include <stdint.h>           // for int32_t, uint32_t, uint8_t
+#include <ctype.h>           // for toupper, isalpha, isdigit
+#include <htslib/bgzf.h>     // for bgzf_read, bgzf_write, bgzf_close, bgzf...
+#include <htslib/hts.h>      // for kstring_t, BGZF, kroundup32
+#include <htslib/kstring.h>  // for ksprintf, kputc
+#include <htslib/sam.h>      // for bam1_t, bam1_core_t, bam_aux_get, bam_g...
+#include <stdint.h>          // for int32_t, uint32_t, uint8_t
 
-#include <cassert>  // for assert
-#include <cmath>    // for log10
-#include <cstring>  // for strlen, strtok, memset, strdup
-#include <vector>   // for vector
+#include <algorithm>  // for max
+#include <cassert>    // for assert
+#include <cmath>      // for log10
+#include <cstring>    // for strlen, strtok, memset, strdup
+#include <vector>     // for vector
 
 float **getmatrix(size_t x, size_t y) {
     float **ret = new float *[x];

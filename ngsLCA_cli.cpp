@@ -1,16 +1,15 @@
 #include "ngsLCA_cli.h"
 
-#include <assert.h>                         // for assert
-#include <htslib/hts.h>                     // for hts_open
-#include <pthread.h>                        // for pthread_mutex_lock, pthre...
-#include <stdio.h>                          // for fprintf, stderr, NULL
-#include <stdlib.h>                         // for free, atoi, atof, calloc
-#include <string.h>                         // for strdup, strtok, strcpy
-#include <strings.h>                        // for strcasecmp
-#include <sys/_pthread/_pthread_mutex_t.h>  // for pthread_mutex_t
-#include <sys/_pthread/_pthread_t.h>        // for pthread_t
-#include <time.h>                           // for time, time_t
-#include <unistd.h>                         // for isatty
+#include <assert.h>      // for assert
+#include <htslib/hts.h>  // for hts_open
+#include <pthread.h>     // for pthread_mutex_lock, pthre...
+#include <pthread.h>
+#include <stdio.h>    // for fprintf, stderr, NULL
+#include <stdlib.h>   // for free, atoi, atof, calloc
+#include <string.h>   // for strdup, strtok, strcpy
+#include <strings.h>  // for strcasecmp
+#include <time.h>     // for time, time_t
+#include <unistd.h>   // for isatty
 
 #include <map>  // for operator!=, map<>::iterator
 pthread_mutex_t mutex1 = PTHREAD_MUTEX_INITIALIZER;

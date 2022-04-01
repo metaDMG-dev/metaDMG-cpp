@@ -1,7 +1,7 @@
 // gpl thorfinn@binf.ku.dk
 // lei zhao. code in bottom
 
-#include <_ctype.h>          // for toupper
+#include <ctype.h>          // for toupper
 #include <getopt.h>          // for optarg, optind, getopt_long, optopt, option
 #include <htslib/hts.h>      // for kstring_t, htsFormat, hts_opt_add, hts_o...
 #include <htslib/sam.h>      // for bam1_t, bam1_core_t, bam_destroy1, bam_i...
