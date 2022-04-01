@@ -61,16 +61,16 @@ gunzip nucl_gb.accession2taxid.gz;
 
 
 # Single genome analysis
-`./metadamage getdamage -l 10 -p 5 --threads 8 input.bam`
+`./metaDMG-cpp getdamage -l 10 -p 5 --threads 8 input.bam`
 
 All options found below:
 
 ```
-./metadamage getdamage
+./metaDMG-cpp getdamage
 
 Usage: metadamage getdamage [options] <in.bam>|<in.sam>|<in.cram>
 
-Example: ./metadamage getdamage -l 10 -p 5 --threads 8 ../data/subs.sam
+Example: ./metaDMG-cpp getdamage -l 10 -p 5 --threads 8 ../data/subs.sam
 Options:
   -f/--fasta	 is required with CRAM
   -l/--minlength	 reads shorter than minlength will be discarded
@@ -82,16 +82,16 @@ Options:
 ```
 
 # Multiple genome analysis
-` ./metadamage getdamage -l 10 -p 5 --threads 8 input.bam -r 1 `
+` ./metaDMG-cpp getdamage -l 10 -p 5 --threads 8 input.bam -r 1 `
 
 All options found below:
 
 ```
-./metadamage getdamage
+./metaDMG-cpp getdamage
 
 Usage: metadamage getdamage [options] <in.bam>|<in.sam>|<in.cram>
 
-Example: ./metadamage getdamage -l 10 -p 5 --threads 8 input.bam
+Example: ./metaDMG-cpp getdamage -l 10 -p 5 --threads 8 input.bam
 Options:
   -f/--fasta	 is required with CRAM
   -l/--minlength	 reads shorter than minlength will be discarded
@@ -104,16 +104,16 @@ Options:
 
 # LCA analyses
 
-` ./metadamage lca -names names.dmp.gz -nodes nodes.dmp.gz -acc2tax taxid_accssionNO.gz -simscorelow 0.95 -simscorehigh 1.0 -minmapq 30 -howmany 15 -bam input.bam`
+` ./metaDMG-cpp lca -names names.dmp.gz -nodes nodes.dmp.gz -acc2tax taxid_accssionNO.gz -simscorelow 0.95 -simscorehigh 1.0 -minmapq 30 -howmany 15 -bam input.bam`
 
 All options found below:
 
 ```
-./metadamage lca 
+./metaDMG-cpp lca 
 
 Usage: metadamage lca [options] -names -nodes -acc2tax [-editdist[min/max] -simscore[low/high] -minmapq -discard] -bam <in.bam>|<in.sam>|<in.sam.gz>
 
-Example ./metadamage lca -names names.dmp.gz -nodes nodes.dmp.gz -acc2tax taxid_accssionNO.gz -simscorelow 0.95 -simscorehigh 1.0 -minmapq 30 -howmany 15 -bam input.bam
+Example ./metaDMG-cpp lca -names names.dmp.gz -nodes nodes.dmp.gz -acc2tax taxid_accssionNO.gz -simscorelow 0.95 -simscorehigh 1.0 -minmapq 30 -howmany 15 -bam input.bam
 
 Options:
   -simscorelow	number between 0-1
@@ -130,20 +130,20 @@ Options:
 ```
 
 
-# ./metadamage print
+# ./metaDMG-cpp print
 
-`./metadamage print file.bdamage.gz [-names file.gz -bam file.bam -ctga -countout] infile: (null) inbam: (null) names: (null) search: -1 ctga: 0 `
+`./metaDMG-cpp print file.bdamage.gz [-names file.gz -bam file.bam -ctga -countout] infile: (null) inbam: (null) names: (null) search: -1 ctga: 0 `
 
 All options found below:
 
 ```
- ./metadamage print 
+ ./metaDMG-cpp print 
  
  Usage: metadamage print 
  
-Example ./metadamage print file.bdamage.gz -names names.dmp.gz 
-	./metadamage print file.bdamage.gz -r 9639 -ctga
-	./metadamage print file.bdamage.gz -countout 
+Example ./metaDMG-cpp print file.bdamage.gz -names names.dmp.gz 
+	./metaDMG-cpp print file.bdamage.gz -r 9639 -ctga
+	./metaDMG-cpp print file.bdamage.gz -countout 
 Options:
   -ctga		ONLY print CT+ and GA- (the damage ones)
   -countout	print mismatch as counts and not as transition probabilites
@@ -155,17 +155,17 @@ Options:
 #### Header in print: taxid,nralign,orientation,position,AA,AC,AG,AT,CA,CC,CG,CT,GA,GC,GG,GT,TA,TC,TG,TT 
  ```
  
-# ./metadamage merge 
+# ./metaDMG-cpp merge 
 
-`./metadamage merge file.lca file.bdamage.gz ` 
+`./metaDMG-cpp merge file.lca file.bdamage.gz ` 
 
 
 All options found below:
 
 ```
-./metadamage merge 
+./metaDMG-cpp merge 
 
-Usage: ./metadamage merge file.lca file.bdamage.gz [-names names.dmp.gz -bam <in.bam>|<in.sam>|<in.sam.gz> -howmany 5 -nodes nodes.dmp.gz]
+Usage: ./metaDMG-cpp merge file.lca file.bdamage.gz [-names names.dmp.gz -bam <in.bam>|<in.sam>|<in.sam.gz> -howmany 5 -nodes nodes.dmp.gz]
 
 Example
 Options:
@@ -174,7 +174,7 @@ Options:
 -names #NCBI names.dmp file - option that prints taxonomic names to output  
 ```
 
-# ./metadamage mergedamage files.damage.*.gz
+# ./metaDMG-cpp mergedamage files.damage.*.gz
 
-# ./metadamage index files.damage.gz
+# ./metaDMG-cpp index files.damage.gz
 

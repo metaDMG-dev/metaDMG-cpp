@@ -1,14 +1,14 @@
 #modied from htslib makefile
-FLAGS=-O3 -std=c++11 
+FLAGS2=-O3 -std=c++11 
 
-CFLAGS += $(FLAGS)
-CXXFLAGS += $(FLAGS)
+CFLAGS += $(FLAGS2)
+CXXFLAGS += $(FLAGS2)
 
 CSRC = $(wildcard *.c) 
 CXXSRC = $(wildcard *.cpp)
 OBJ = $(CSRC:.c=.o) $(CXXSRC:.cpp=.o)
 
-all: metadamage
+all: metaDMG-cpp
 
 PACKAGE_VERSION  = 0.2
 
@@ -33,6 +33,12 @@ endif
 
 -include $(OBJ:.o=.d)
 
+ifdef LDFLAGS
+FLAGS += $(LDFLAGS)
+else
+FLAGS += $(FLAGS2)
+endif
+
 ifdef HTSSRC
 %.o: %.c
 	$(CC) -c  $(CFLAGS) -I$(HTS_INCDIR) $*.c
@@ -42,8 +48,8 @@ ifdef HTSSRC
 	$(CXX) -c  $(CXXFLAGS)  -I$(HTS_INCDIR) $*.cpp
 	$(CXX) -MM $(CXXFLAGS)  -I$(HTS_INCDIR) $*.cpp >$*.d
 
-metadamage: version.h $(OBJ)
-	$(CXX) $(FLAGS)  -o metadamage *.o $(HTS_LIBDIR) -lz -llzma -lbz2 -lpthread -lcurl -lgsl
+metaDMG-cpp: version.h $(OBJ)
+	$(CXX) $(FLAGS) -o metaDMG-cpp *.o $(HTS_LIBDIR) -lz -llzma -lbz2 -lpthread -lcurl -lgsl
 else
 %.o: %.c
 	$(CC) -c  $(CFLAGS)  $*.c
@@ -53,12 +59,12 @@ else
 	$(CXX) -c  $(CXXFLAGS)  $*.cpp
 	$(CXX) -MM $(CXXFLAGS)  $*.cpp >$*.d
 
-metadamage: version.h $(OBJ)
-	$(CXX) $(FLAGS)  -o metadamage *.o -lz -llzma -lbz2 -lpthread -lcurl -lhts -lgsl
+metaDMG-cpp: version.h $(OBJ)
+	$(CXX) $(FLAGS)  -o metaDMG-cpp *.o -lz -llzma -lbz2 -lpthread -lcurl -lhts -lgsl
 endif
 
 clean:	
-	rm  -f metadamage *.o *.d version.h
+	rm  -f metaDMG-cpp *.o *.d version.h
 
 force:
 

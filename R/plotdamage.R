@@ -38,7 +38,7 @@ print.args<-function(args,des){
 # NULL is an non-optional argument, NA is an optional argument with no default, others are the default arguments
 args<-list(file=NULL,outfile=NA,type=1)
 #if no argument are given prints the need arguments and the optional ones with default
-des<-list(file=" The damage file, typicaly called meta.res.gz",outfile="name of output file",type="type=1 -r 1,type=1 -r 0 in ./metadamage getdamage [maybe not used here yet]")
+des<-list(file=" The damage file, typicaly called meta.res.gz",outfile="name of output file",type="type=1 -r 1,type=1 -r 0 in ./metaDMG-cpp getdamage [maybe not used here yet]")
 
 ######################################
 #######get arguments and add to workspace
