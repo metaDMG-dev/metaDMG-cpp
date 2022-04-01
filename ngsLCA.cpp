@@ -1,16 +1,14 @@
 int mod_in[] = {1649555, 1401172, 1582271, 374764, 242716, 1793725, 292451, 38298, 63403, 67357, 163247, 328623, 356150, 502130, 545877, 996989, 996990, 1086724, 1169024, 1576640, 1769757, 1802981, 1811974, 1955118};
 int mod_out[] = {1333996, 1333996, 1582270, 1914213, 1917265, 1915309, 263865, 2801, 1916091, 285450, 1762941, 1916091, 157727, 1932322, 376133, 1762939, 1762946, 430531, 1169025, 1247960, 1769758, 1708715, 1708715, 1925741};
 
-#include <__algorithm/min_element.h>  // for min_element
-#include <__utility/pair.h>           // for pair
-#include <htslib/hts.h>               // for htsFormat, seq_nt16_str
-#include <htslib/sam.h>               // for bam1_t, bam1_core_t, sam_write1
-#include <signal.h>                   // for sigaction, sigemptyset
-#include <stdint.h>                   // for uint8_t
-#include <strings.h>                  // for strcasecmp
-#include <sys/signal.h>               // for sigaction, SIGINT, SIGPIPE, sa_...
-#include <time.h>                     // for time, time_t
-#include <zlib.h>                     // for gzprintf, gzFile
+#include <htslib/hts.h>  // for htsFormat, seq_nt16_str
+#include <htslib/sam.h>  // for bam1_t, bam1_core_t, sam_write1
+#include <signal.h>      // for sigaction, sigemptyset
+#include <stdint.h>      // for uint8_t
+#include <strings.h>     // for strcasecmp
+#include <sys/signal.h>  // for sigaction, SIGINT, SIGPIPE, sa_...
+#include <time.h>        // for time, time_t
+#include <zlib.h>        // for gzprintf, gzFile
 
 #include <cassert>  // for assert
 #include <cmath>    // for pow
