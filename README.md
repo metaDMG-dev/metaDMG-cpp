@@ -1,8 +1,9 @@
-## [![tests](https://github.com/ANGSD/metadamage/actions/workflows/make.yml/badge.svg)](https://github.com/ANGSD/metadamage/actions/workflows/make.yml) metadamage
+# metaDMG-cpp
+## [![tests](https://github.com/ANGSD/metadamage/actions/workflows/make.yml/badge.svg)](https://github.com/ANGSD/metadamage/actions/workflows/make.yml) 
 
 # Introduction
 
-MetaDamage2.0 is a fast and efficient method for estimating mutation and damage rates in ancient DNA data. It relies on a commonly used alignment files formats bam/sam/sam.gz and can calculate degree of damage from read data mapped against a single as well as multiple genomes. It is especially relevant for data where data have been mapped against multiple reference genomes or to speed up analysis for damage estimation for a single genome.
+metaDMG-cpp is a fast and efficient method for estimating mutation and damage rates in ancient DNA data. It relies on a commonly used alignment files formats bam/sam/sam.gz and can calculate degree of damage from read data mapped against a single as well as multiple genomes. It is especially relevant for data where data have been mapped against multiple reference genomes or to speed up analysis for damage estimation for a single genome.
 
 Possible modes for running. Program is utilizing mdz field of the aux part of reads and is therefore reference free.
 
@@ -17,7 +18,7 @@ For all analyses output is a binary '.bdamage.gz' file, that can be accessed wit
 # Installation
 
 ### Dependencies
-metaDamage0.2 requires HTSlib - a common library used for handling high-throughput sequencing data.
+metaDMG-cpp requires HTSlib - a common library used for handling high-throughput sequencing data.
 eigen3 and gsl.
 
 On ubuntu these can be installed with:
@@ -31,24 +32,25 @@ git clone https://github.com/SAMtools/htslib
 cd htslib
 make
 ```
-### Installing metaDamage0.2
-To install metaDamage0.2 do:
+### Installing and compiling metaDMG
+To install metaDMG-cpp do:
 ```
-git clone https://github.com/ANGSD/metadamage
+git clone https://github.com/metaDMG-dev/metaDMG-cpp.git
 cd metadamage
-make
+make HTTSRC=../htslib
+```
 ```
 
 ## Updating to latest version
-For installing latest updates in the directory metadamage do:
+For installing latest updates in the directory metaDMG-cpp do:
 ```
 make clean
-git pull https://github.com/ANGSD/metadamage
-make
+git pull https://github.com/metaDMG-dev/metaDMG-cpp.git
+make HTTSRC=../htslib
 ```
 
 # Taxonomic resource files
-metaDamage2.0 can perform damage estimations on internal nodes within a taxonomy (e.g. species, genus and family level). In order to traverse up a taxonomic tree the program needs three files in NCBI taxonomy format. These can either be a custom taxonomy or simply rely on the NCBI taxonomy.
+metaDMG-cpp can perform damage estimations on internal nodes within a taxonomy (e.g. species, genus and family level). In order to traverse up a taxonomic tree the program needs three files in NCBI taxonomy format. These can either be a custom taxonomy or simply rely on the NCBI taxonomy.
 ``` 
 # Downloading resource files for program from NCBI
 mkdir ncbi_tax_dmp;
@@ -61,16 +63,16 @@ gunzip nucl_gb.accession2taxid.gz;
 
 
 # Single genome analysis
-`./metadamage getdamage -l 10 -p 5 --threads 8 input.bam`
+`./metaDMG-cpp getdamage -l 10 -p 5 --threads 8 input.bam`
 
 All options found below:
 
 ```
-./metadamage getdamage
+./metaDMG-cpp getdamage
 
-Usage: metadamage getdamage [options] <in.bam>|<in.sam>|<in.cram>
+Usage: ./metaDMG-cpp getdamage [options] <in.bam>|<in.sam>|<in.cram>
 
-Example: ./metadamage getdamage -l 10 -p 5 --threads 8 ../data/subs.sam
+Example: ./metaDMG-cpp getdamage -l 10 -p 5 --threads 8 ../data/subs.sam
 Options:
   -f/--fasta	 is required with CRAM
   -l/--minlength	 reads shorter than minlength will be discarded
@@ -82,16 +84,16 @@ Options:
 ```
 
 # Multiple genome analysis
-` ./metadamage getdamage -l 10 -p 5 --threads 8 input.bam -r 1 `
+` ./metaDMG-cpp getdamage -l 10 -p 5 --threads 8 input.bam -r 1 `
 
 All options found below:
 
 ```
-./metadamage getdamage
+./metaDMG-cpp getdamage
 
-Usage: metadamage getdamage [options] <in.bam>|<in.sam>|<in.cram>
+Usage: ./metaDMG-cpp getdamage [options] <in.bam>|<in.sam>|<in.cram>
 
-Example: ./metadamage getdamage -l 10 -p 5 --threads 8 input.bam
+Example: ./metaDMG-cpp getdamage -l 10 -p 5 --threads 8 input.bam
 Options:
   -f/--fasta	 is required with CRAM
   -l/--minlength	 reads shorter than minlength will be discarded
@@ -104,16 +106,16 @@ Options:
 
 # LCA analyses
 
-` ./metadamage lca -names names.dmp.gz -nodes nodes.dmp.gz -acc2tax taxid_accssionNO.gz -simscorelow 0.95 -simscorehigh 1.0 -minmapq 30 -howmany 15 -bam input.bam`
+` ./metaDMG-cpp lca -names names.dmp.gz -nodes nodes.dmp.gz -acc2tax taxid_accssionNO.gz -simscorelow 0.95 -simscorehigh 1.0 -minmapq 30 -howmany 15 -bam input.bam`
 
 All options found below:
 
 ```
-./metadamage lca 
+./metaDMG-cpp lca 
 
-Usage: metadamage lca [options] -names -nodes -acc2tax [-editdist[min/max] -simscore[low/high] -minmapq -discard] -bam <in.bam>|<in.sam>|<in.sam.gz>
+Usage: ./metaDMG-cpp lca [options] -names -nodes -acc2tax [-editdist[min/max] -simscore[low/high] -minmapq -discard] -bam <in.bam>|<in.sam>|<in.sam.gz>
 
-Example ./metadamage lca -names names.dmp.gz -nodes nodes.dmp.gz -acc2tax taxid_accssionNO.gz -simscorelow 0.95 -simscorehigh 1.0 -minmapq 30 -howmany 15 -bam input.bam
+Example ./metaDMG-cpp lca -names names.dmp.gz -nodes nodes.dmp.gz -acc2tax taxid_accssionNO.gz -simscorelow 0.95 -simscorehigh 1.0 -minmapq 30 -howmany 15 -bam input.bam
 
 Options:
   -simscorelow	number between 0-1
@@ -130,20 +132,20 @@ Options:
 ```
 
 
-# ./metadamage print
+# ./metaDMG-cpp print
 
-`./metadamage print file.bdamage.gz [-names file.gz -bam file.bam -ctga -countout] infile: (null) inbam: (null) names: (null) search: -1 ctga: 0 `
+`./metaDMG-cpp print file.bdamage.gz [-names file.gz -bam file.bam -ctga -countout] infile: (null) inbam: (null) names: (null) search: -1 ctga: 0 `
 
 All options found below:
 
 ```
- ./metadamage print 
+ ./metaDMG-cpp print 
  
- Usage: metadamage print 
+ Usage: ./metaDMG-cpp print 
  
-Example ./metadamage print file.bdamage.gz -names names.dmp.gz 
-	./metadamage print file.bdamage.gz -r 9639 -ctga
-	./metadamage print file.bdamage.gz -countout 
+Example ./metaDMG-cpp print file.bdamage.gz -names names.dmp.gz 
+	./metaDMG-cpp print file.bdamage.gz -r 9639 -ctga
+	./metaDMG-cpp print file.bdamage.gz -countout 
 Options:
   -ctga		ONLY print CT+ and GA- (the damage ones)
   -countout	print mismatch as counts and not as transition probabilites
@@ -155,17 +157,17 @@ Options:
 #### Header in print: taxid,nralign,orientation,position,AA,AC,AG,AT,CA,CC,CG,CT,GA,GC,GG,GT,TA,TC,TG,TT 
  ```
  
-# ./metadamage merge 
+# ./metaDMG-cpp merge 
 
-`./metadamage merge file.lca file.bdamage.gz ` 
+`./metaDMG-cpp merge file.lca file.bdamage.gz ` 
 
 
 All options found below:
 
 ```
-./metadamage merge 
+./metaDMG-cpp merge 
 
-Usage: ./metadamage merge file.lca file.bdamage.gz [-names names.dmp.gz -bam <in.bam>|<in.sam>|<in.sam.gz> -howmany 5 -nodes nodes.dmp.gz]
+Usage: ./metaDMG-cpp merge file.lca file.bdamage.gz [-names names.dmp.gz -bam <in.bam>|<in.sam>|<in.sam.gz> -howmany 5 -nodes nodes.dmp.gz]
 
 Example
 Options:
@@ -174,7 +176,7 @@ Options:
 -names #NCBI names.dmp file - option that prints taxonomic names to output  
 ```
 
-# ./metadamage mergedamage files.damage.*.gz
+# ./metaDMG-cpp mergedamage files.damage.*.gz
 
-# ./metadamage index files.damage.gz
+# ./metaDMG-cpp index files.damage.gz
 
