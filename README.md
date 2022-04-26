@@ -39,7 +39,6 @@ git clone https://github.com/metaDMG-dev/metaDMG-cpp.git
 cd metadamage
 make HTTSRC=../htslib
 ```
-```
 
 ## Updating to latest version
 For installing latest updates in the directory metaDMG-cpp do:
