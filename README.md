@@ -1,5 +1,5 @@
 # metaDMG-cpp
-## [![tests](https://github.com/ANGSD/metadamage/actions/workflows/make.yml/badge.svg)](https://github.com/ANGSD/metadamage/actions/workflows/make.yml) 
+## [![tests](https://github.com/metaDMG-dev/metaDMG-cpp/actions/workflows/make.yml/badge.svg)](https://github.com/metaDMG-dev/metaDMG-cpp/actions/workflows/make.yml) 
 
 # Introduction
 
