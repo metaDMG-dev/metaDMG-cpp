@@ -241,8 +241,8 @@ int main_getdamage(int argc, char **argv) {
     int ret;
     damage *dmg = new damage(printLength, nthreads, 0);
     int skipper[4] = {3, 3, 3, 3};
-    std::map<int, std::vector<float>> gcconts;
-    std::map<int, std::vector<float>> seqlens;
+    std::map<int, std::vector<float> > gcconts;
+    std::map<int, std::vector<float> > seqlens;
     while (((ret = sam_read1(fp, hdr, b))) >= 0) {
         if (bam_is_unmapped(b)) {
             if (skipper[0])
@@ -268,7 +268,7 @@ int main_getdamage(int argc, char **argv) {
         int whichref = 0;
         if (runmode == 1)
             whichref = b->core.tid;
-        std::map<int, std::vector<float>>::iterator it = gcconts.find(whichref);
+        std::map<int, std::vector<float> >::iterator it = gcconts.find(whichref);
         if (it == gcconts.end()) {
             std::vector<float> tmp1{mygc};
             gcconts[whichref] = tmp1;
@@ -402,13 +402,13 @@ int main_print(int argc, char **argv) {
     bam_hdr_t *hdr = NULL;
 
     if (((bgfp = bgzf_open(infile, "r"))) == NULL) {
-        fprintf(stderr, "Could not open input BAM file: %s\n", infile);
+        fprintf(stderr, "Could not open input file file: %s\n", infile);
         return 1;
     }
 
     if (inbam != NULL) {
         if (((samfp = sam_open_format(inbam, "r", NULL))) == NULL) {
-            fprintf(stderr, "Could not open input BAM file: %s\n", inbam);
+            fprintf(stderr, "Could not open input file: %s\n", inbam);
             return 1;
         }
         if (((hdr = sam_hdr_read(samfp))) == NULL) {
@@ -416,7 +416,24 @@ int main_print(int argc, char **argv) {
             return 1;
         }
     }
-
+    //get version.
+    int version = 0;
+    if(1){
+      char magic[8];
+      bgzf_read(bgfp,magic,8);
+      fprintf(stderr,"\t-> magic: %s\n",magic);
+      if(strcmp(magic,"bdmgv1")==0){
+	version = 1;
+      }else{
+	bgzf_close(bgfp);
+	if (((bgfp = bgzf_open(infile, "r"))) == NULL) {
+	  fprintf(stderr, "Could not open input file file: %s\n", infile);
+	  return 1;
+	}
+      }
+    }
+    fprintf(stderr,"\t-> version of bdamage is: %d\n",version);
+    
     int printlength;
     assert(sizeof(int) == bgzf_read(bgfp, &printlength, sizeof(int)));
     fprintf(stderr, "\t-> printlength(howmany) from inputfile: %d\n", printlength);
@@ -425,17 +442,27 @@ int main_print(int argc, char **argv) {
 
     if (ctga == 0) {
         if (hdr != NULL)
-            fprintf(stdout, "#Reference\tNalignments\tDirection\tPos\tAA\tAC\tAG\tAT\tCA\tCC\tCG\tCT\tGA\tGC\tGG\tGT\tTA\tTC\tTG\tTT\n");
+            fprintf(stdout, "#Reference");
         else if (infile_names != NULL)
-            fprintf(stdout, "#FunkyName\tNalignments\tDirection\tPos\tAA\tAC\tAG\tAT\tCA\tCC\tCG\tCT\tGA\tGC\tGG\tGT\tTA\tTC\tTG\tTT\n");
+            fprintf(stdout, "#FunkyName");
         else
-            fprintf(stdout, "#taxid\tNalignments\tDirection\tPos\tAA\tAC\tAG\tAT\tCA\tCC\tCG\tCT\tGA\tGC\tGG\tGT\tTA\tTC\tTG\tTT\n");
+            fprintf(stdout, "#taxid");
     } else {
+      fprintf(stderr,"\t-> Unsupported\n");exit(0);
     }
+    fprintf(stdout,"\tNalignments");
+    if(version==1)
+      fprintf(stdout,"\tNalign_per_species");
+    
+    fprintf(stdout, "\tDirection\tPos\tAA\tAC\tAG\tAT\tCA\tCC\tCG\tCT\tGA\tGC\tGG\tGT\tTA\tTC\tTG\tTT\n");
+    
 
     float data[16];
     while (1) {
         int nread = bgzf_read(bgfp, ref_nreads, 2 * sizeof(int));
+	int naln_per_spec;
+	if(version==1)
+	  assert(bgzf_read(bgfp, &naln_per_spec,sizeof(int)));
         double ctgas[2 * printlength];
         if (nread == 0)
             break;
@@ -446,20 +473,35 @@ int main_print(int argc, char **argv) {
                 continue;
             if (search == -1 || search == ref_nreads[0]) {
                 if (ctga == 0) {
-                    if (hdr != NULL)
-                        fprintf(stdout, "%s\t%d\t5\'\t%d", hdr->target_name[ref_nreads[0]], ref_nreads[1], at);
+		  if (hdr != NULL){
+		    if(version==0)
+		      fprintf(stdout, "%s\t%d\t5\'\t%d", hdr->target_name[ref_nreads[0]], ref_nreads[1], at);
+		    else if(version==1)
+		      fprintf(stdout, "%s\t%d\t5\'\t%d\t%d", hdr->target_name[ref_nreads[0]], ref_nreads[1], naln_per_spec, at);
+		      
+		  }
                     else if (infile_names != NULL) {
                         int2char::iterator itt = name_map.find(ref_nreads[0]);
                         if (itt == name_map.end()) {
                             fprintf(stderr, "\t-> Problem finding taxid: \'%d' in namedatabase: \'%s\'\n", ref_nreads[0], infile_names);
                             exit(0);
                         }
-                        fprintf(stdout, "\"%s\"\t%d\t5\'\t%d", itt->second, ref_nreads[1], at);
-                    } else
+			if(version==0)
+			  fprintf(stdout, "\"%s\"\t%d\t5\'\t%d", itt->second, ref_nreads[1], at);
+			else if(version==1)
+			  fprintf(stdout, "\"%s\"\t%d\t5\'\t%d\t%d", itt->second, ref_nreads[1], naln_per_spec,at);
+                    } else{
+		      if(version==0)
                         fprintf(stdout, "%d\t%d\t5\'\t%d", ref_nreads[0], ref_nreads[1], at);
+		      else if(version==1)
+                        fprintf(stdout, "%d\t%d\t5\'\t%d\t%d", ref_nreads[0], ref_nreads[1], naln_per_spec,at);
+		    }
                 } else {
-                    if (at == 0)
-                        fprintf(stdout, "%d\t%d", ref_nreads[0], ref_nreads[1]);
+		  if (at == 0){
+		    fprintf(stdout, "%d\t%d", ref_nreads[0], ref_nreads[1]);
+		    if(version==1)
+			fprintf(stdout, "\t%d", naln_per_spec);
+		  }
                 }
                 if (countout == 1) {
                     for (int i = 0; i < 16; i++)
@@ -501,17 +543,29 @@ int main_print(int argc, char **argv) {
                 continue;
             if (search == -1 || search == ref_nreads[0]) {
                 if (ctga == 0) {
-                    if (hdr != NULL)
-                        fprintf(stdout, "%s\t%d\t3\'\t%d", hdr->target_name[ref_nreads[0]], ref_nreads[1], at);
+		  if (hdr != NULL){
+		    if(version==0)
+		      fprintf(stdout, "%s\t%d\t3\'\t%d", hdr->target_name[ref_nreads[0]], ref_nreads[1], at);
+		    else if(version==1)
+		      fprintf(stdout, "%s\t%d\t3\'\t%d\t%d", hdr->target_name[ref_nreads[0]], ref_nreads[1], naln_per_spec,at);
+
+		  }
                     else if (infile_names != NULL) {
                         int2char::iterator itt = name_map.find(ref_nreads[0]);
                         if (itt == name_map.end()) {
                             fprintf(stderr, "\t-> Problem finding taxid: \'%d' in namedatabase: \'%s\'\n", ref_nreads[0], infile_names);
                             exit(0);
                         }
-                        fprintf(stdout, "\"%s\"\t%d\t3\'\t%d", itt->second, ref_nreads[1], at);
-                    } else
-                        fprintf(stdout, "%d\t%d\t3\'\t%d", ref_nreads[0], ref_nreads[1], at);
+			if(version==0)
+			  fprintf(stdout, "\"%s\"\t%d\t3\'\t%d", itt->second, ref_nreads[1], at);
+			else if(version==1)
+			  fprintf(stdout, "\"%s\"\t%d\t3\'\t%d\t%d", itt->second, ref_nreads[1],naln_per_spec ,at);
+                    } else{
+		      if(version==0)
+			fprintf(stdout, "%d\t%d\t3\'\t%d", ref_nreads[0], ref_nreads[1], at);
+		      else if(version==1)
+			fprintf(stdout, "%d\t%d\t3\'\t%d\t%d", ref_nreads[0], ref_nreads[1],naln_per_spec, at);
+		    }
                 }
                 if (countout == 1) {
                     for (int i = 0; i < 16; i++)

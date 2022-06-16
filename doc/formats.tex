@@ -28,7 +28,7 @@ This document describe some of the internal formats used by the metadamage softw
 
 \section{bdamage format}
 bdamage files are files that contain counts of mismatchs conditional on strand and cycle (position within read). These are generated with metadamage lca or metadamage getdamage. 
-The first 8 bytes magic number determines which bdamage version. If no magic number is present then version0 is assumed. 
+The first 8 bytes magic number determines which bdamage version. If no magic number is present then version0 is assumed. A magic number of \emph{bdmgv1} means version1.
 
 \subsection{version 0}
 First version of the bdamage file is a single bgzf compressed file. MAXLENGTH occurs once in the beginning of the file, followed by succesive blocks of data[1-8]. Block[3-5] indicates the actual mismatch counts for the forward which we have MAXLENGTH times. Block[6-8] indicates the actual mismatch counts for the reverse strand which will also occur MAXLENGTH times. 
@@ -39,7 +39,7 @@ First version of the bdamage file is a single bgzf compressed file. MAXLENGTH oc
   \hline
   0 & {\sf MAXLENGTH} & int &  Number of cycles\\\hline
   1 & {\sf ID} & int &  Id for mismatch type$^1$\\
-  2 & {\sf NREADS} & size\_t & Number of reads used supporting the mismatch matrix\\\hline\hline
+  2 & {\sf NREADS} & int & Number of reads used supporting the mismatch matrix\\\hline\hline
   3 & {\sf 1} & int[16] & mismatch rate for first cycle from the 5prime\\
   4 & {\sf $i$} & int[16] & mismatch rate for the $i$'th cycle from the 5prime\\
   5 & {\sf MAXLENGTH} & int[16] & mismatch rate for the last cycle from the 5prime\\\hline
@@ -60,8 +60,8 @@ First version of the bdamage file is a single bgzf compressed file. MAXLENGTH oc
   \hline
   0 & {\sf MAXLENGTH} & int &  Number of cycles\\\hline
   1 & {\sf ID} & int &  Id for mismatch type$^1$\\
-  2 & {\sf NREADS} & size\_t & Number of reads used supporting the mismatch matrix\\\hline\hline
-  3 & {\sf NREADS2} & size\_t & Number of unique reads\\\hline\hline
+  2 & {\sf NREADS} & int & Number of reads used supporting the mismatch matrix\\\hline\hline
+  3 & {\sf NREADS\_PER\_SPECIES} & int & Number of unique reads per species\\\hline\hline
   4 & {\sf 1} & int[16] & mismatch rate for first cycle from the 5prime\\
   5 & {\sf $i$} & int[16] & mismatch rate for the $i$'th cycle from the 5prime\\
   6 & {\sf MAXLENGTH} & int[16] & mismatch rate for the last cycle from the 5prime\\\hline

@@ -17,9 +17,10 @@
 #define bam_is_failed(b) (bam_is_qcfailed(b) || bam_is_rmdup(b) || bam_is_supp(b))
 
 typedef struct {
-    size_t nreads;
-    float **mm5pF;
-    float **mm3pF;
+  size_t nreads;
+  size_t naln_per_spec;
+  float **mm5pF;
+  float **mm3pF;
 } triple;
 
 class damage {
@@ -59,9 +60,10 @@ void destroy_damage(damage *dmg);
 std::map<int, double *> load_bdamage3(const char *fname, int howmany);
 
 typedef struct {
-    int nreads;  // this is nalignements
-    double *fwD;
-    double *bwD;
+  int nreads;  // this is nalignements
+  int naln_per_spec;//this is nr of unique aln per spec (antonio metric)
+  double *fwD;
+  double *bwD;
 } mydataD;
 
 typedef struct {

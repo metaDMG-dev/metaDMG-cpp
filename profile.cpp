@@ -286,10 +286,10 @@ inline void increaseCounters(const bam1_t *b, const char *reconstructedReference
 int damage::damage_analysis(bam1_t *b, int which, float incval) {
     //  fprintf(stderr,"\t-> incval: %f\n",incval);
     if (assoc.find(which) == assoc.end()) {
-        triple val = {0, getmatrix(MAXLENGTH, 16), getmatrix(MAXLENGTH, 16)};
-        assoc[which] = val;
-        mm5pF = val.mm5pF;
-        mm3pF = val.mm3pF;
+      triple val = {0,0, getmatrix(MAXLENGTH, 16), getmatrix(MAXLENGTH, 16)};
+      assoc[which] = val;
+      mm5pF = val.mm5pF;
+      mm3pF = val.mm3pF;
         //    fprintf(stderr,"has added which: %d\n",which);
     }
     std::map<int, triple>::iterator it = assoc.find(which);
@@ -350,6 +350,11 @@ void damage::bwrite(char *fname, bam_hdr_t *hdr) {
     snprintf(onam, 1024, "%s.bdamage.gz", fname);
     fprintf(stderr, "\t-> Will dump: \'%s\' this contains damage patterns for: %lu items\n", onam, assoc.size());
     BGZF *fp = my_bgzf_open(onam, nthreads);
+    char buf[8]="bdmgv1";
+    bgzf_write(fp,buf,8);
+    
+    
+
     assert(bgzf_write(fp, &MAXLENGTH, sizeof(int)) == sizeof(int));
 
     for (std::map<int, triple>::iterator it = assoc.begin(); it != assoc.end(); it++) {
@@ -496,7 +501,7 @@ int main(int argc, char *argv[]) {
 #endif
 
 std::map<int, double *> load_bdamage3(const char *fname, int howmany) {
-    //  fprintf(stderr,"./metadamage print file.bdamage.gz [-names file.gz -bam file.bam]\n");
+  fprintf(stderr,"[%s] ./metadamage print file.bdamage.gz [-names file.gz -bam file.bam]\n",__FUNCTION__);
     const char *infile = fname;
     //  fprintf(stderr,"infile: %s howmany: %d \n",infile,howmany);
 
@@ -598,7 +603,7 @@ std::map<int, double *> load_bdamage3(const char *fname, int howmany) {
 }
 
 std::map<int, mydataD> load_bdamage_full(const char *fname, int &printlength) {
-    //  fprintf(stderr,"./metadamage print file.bdamage.gz [-names file.gz -bam file.bam]\n");
+  fprintf(stderr,"[%s] ./metadamage print file.bdamage.gz [-names file.gz -bam file.bam]\n",__FUNCTION__);
     const char *infile = fname;
     //  fprintf(stderr,"infile: %s howmany: %d \n",infile,howmany);
 
@@ -608,39 +613,60 @@ std::map<int, mydataD> load_bdamage_full(const char *fname, int &printlength) {
         fprintf(stderr, "Could not open input BAM file: %s\n", infile);
         exit(0);
     }
+    int version = 0;
+    if(1){
+      char magic[8];
+      bgzf_read(bgfp,magic,8);
+      fprintf(stderr,"\t-> magic: %s\n",magic);
+      if(strcmp(magic,"bdmgv1")==0){
+	version = 1;
+      }else{
+	bgzf_close(bgfp);
+	if (((bgfp = bgzf_open(infile, "r"))) == NULL) {
+	  fprintf(stderr, "Could not open input file file: %s\n", infile);
+	  exit(0);
+	}
+      }
+    }
+    fprintf(stderr,"\t-> version of bdamage is: %d\n",version);
+    
 
+
+    
     std::map<int, mydataD> retmap;
     printlength = 0;
     assert(sizeof(int) == bgzf_read(bgfp, &printlength, sizeof(int)));
 
-    int ref_nreads[2];
+    int ref_nreads[3];
 
     while (1) {
-        int nread = bgzf_read(bgfp, ref_nreads, 2 * sizeof(int));
-        if (nread == 0)
-            break;
-        assert(nread == 2 * sizeof(int));
-        mydataD md;
+      int nread = bgzf_read(bgfp, ref_nreads, (2+version) * sizeof(int));
+      if (nread == 0)
+	break;
+      assert(nread == (2+version) * sizeof(int));
+      mydataD md;
 
-        md.fwD = new double[16 * printlength];
-        md.bwD = new double[16 * printlength];
-        md.nreads = ref_nreads[1];
-
-        float tmp[16];
-        for (int i = 0; i < printlength; i++) {
-            assert(16 * sizeof(float) == bgzf_read(bgfp, tmp, sizeof(float) * 16));
-            for (int ii = 0; ii < 16; ii++)
-                md.fwD[i * 16 + ii] = tmp[ii];
-        }
-
-        for (int i = 0; i < printlength; i++) {
-            assert(16 * sizeof(float) == bgzf_read(bgfp, tmp, sizeof(float) * 16));
-            for (int ii = 0; ii < 16; ii++)
-                md.bwD[i * 16 + ii] = tmp[ii];
-        }
-        retmap[ref_nreads[0]] = md;
+      
+      md.fwD = new double[16 * printlength];
+      md.bwD = new double[16 * printlength];
+      md.nreads = ref_nreads[1];
+      if(version==1)
+	md.naln_per_spec = ref_nreads[2];
+      float tmp[16];
+      for (int i = 0; i < printlength; i++) {
+	assert(16 * sizeof(float) == bgzf_read(bgfp, tmp, sizeof(float) * 16));
+	for (int ii = 0; ii < 16; ii++)
+	  md.fwD[i * 16 + ii] = tmp[ii];
+      }
+      
+      for (int i = 0; i < printlength; i++) {
+	assert(16 * sizeof(float) == bgzf_read(bgfp, tmp, sizeof(float) * 16));
+	for (int ii = 0; ii < 16; ii++)
+	  md.bwD[i * 16 + ii] = tmp[ii];
+      }
+      retmap[ref_nreads[0]] = md;
     }
-
+    
     if (bgfp)
         bgzf_close(bgfp);
     fprintf(stderr, "\t-> Done loading binary bdamage.gz file. It contains: %lu\n", retmap.size());
