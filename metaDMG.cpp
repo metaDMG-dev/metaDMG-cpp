@@ -238,6 +238,9 @@ int main_getdamage(int argc, char **argv) {
 
     bam1_t *b = bam_init1();
     bam_hdr_t *hdr = sam_hdr_read(fp);
+    int checkIfSorted(char *str);
+    if(checkIfSorted(hdr->text))
+      return 0;
     int ret;
     damage *dmg = new damage(printLength, nthreads, 0);
     int skipper[4] = {3, 3, 3, 3};
