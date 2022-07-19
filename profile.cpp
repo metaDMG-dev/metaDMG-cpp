@@ -325,16 +325,16 @@ void damage::write(char *fname, bam_hdr_t *hdr) {
         if (it->second.nreads == 0)  // should never happen
             continue;
         if (hdr != NULL)
-            ksprintf(&kstr, "%s\t%lu", hdr->target_name[it->first], it->second.nreads);
+	  ksprintf(&kstr, "%s\t%lu", hdr->target_name[it->first], it->second.nreads);
         else
             ksprintf(&kstr, "%lu", it->second.nreads);
         for (int l = 0; l < MAXLENGTH; l++) {
             for (int i = 0; i < 16; i++)
-                ksprintf(&kstr, "\t%d", it->second.mm5pF[l][i]);
+                ksprintf(&kstr, "\t%.0f", it->second.mm5pF[l][i]);
         }
         for (int l = 0; l < MAXLENGTH; l++) {
             for (int i = 0; i < 16; i++)
-                ksprintf(&kstr, "\t%d", it->second.mm3pF[l][i]);
+                ksprintf(&kstr, "\t%.0f", it->second.mm3pF[l][i]);
         }
         ksprintf(&kstr, "\n");
         assert(bgzf_write(fp, kstr.s, kstr.l) == kstr.l);
@@ -408,7 +408,7 @@ int main(int argc, char *argv[]) {
     int minQualBase = 0;
     int minLength = 35;
     int quiet = 0;
-
+    htsFile *fp = NULL;
     if (argc == 1 || (argc == 2 && (strcasecmp(argv[1], "--help") == 0))) {
         printinfo(stderr);
         return 0;
@@ -438,7 +438,7 @@ int main(int argc, char *argv[]) {
         return 1;
     }
 
-    damage *dmg = init_damage(MAXLENGTH);
+    damage *dmg = new damage(5,1,0);
     char *bamfiletopen = argv[argc - 1];
 
     ;
@@ -478,17 +478,20 @@ int main(int argc, char *argv[]) {
             continue;
         }
 
-        dmg->damage_analysis(b, 0);
+        dmg->damage_analysis(b, 0,1);
     }
 
     sam_hdr_destroy(h);
     bam_destroy1(b);
     sam_close(fp);
     fprintf(stderr, "nreads: %lu\n", dmg->assoc.begin()->second.nreads);
-    printresults_grenaud2(stdout, dmg->mm5p, lengthMaxToPrint);
-    printresults_grenaud2(stdout, dmg->mm3p, lengthMaxToPrint);
+    std::map<int,triple>::iterator it = dmg->assoc.begin();
+    assert(it!=dmg->assoc.end());
+    triple trpl = it->second;
+    printresults_grenaud2(stdout, trpl.mm5pF, lengthMaxToPrint);
+    printresults_grenaud2(stdout, trpl.mm3pF, lengthMaxToPrint);
     for (int i = 0; 0 & i < 16; i++)
-        fprintf(stdout, "%lu\t", dmg->mm5p[0][i]);
+        fprintf(stdout, "%lu\t", dmg->mm5pF[0][i]);
     destroy_damage(dmg);
     return 0;
 }
