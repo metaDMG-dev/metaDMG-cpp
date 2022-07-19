@@ -110,7 +110,7 @@ grep -i -v version ${LOG}|grep -v tempfolder |grep -v walltime >output/logfile
 gunzip -c output/test3.lca.gz|sed 1d |md5sum -c files2.md5
 if [[ $? -ne 0 ]]; then
     echo "Problem with md5sum for lca file"
-    RVAL=$((1024+RVAL))
+    RVAL=$((1024+${RVAL}))
 fi
 
 
