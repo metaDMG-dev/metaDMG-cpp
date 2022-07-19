@@ -19,12 +19,18 @@ endif
 
 all: metaDMG-cpp
 
+.PHONY: all clean test
+
 PACKAGE_VERSION  = 0.2
 
 ifneq "$(wildcard .git)" ""
 PACKAGE_VERSION := $(shell git describe --always --dirty)
 version.h: $(if $(wildcard version.h),$(if $(findstring "$(PACKAGE_VERSION)",$(shell cat version.h)),,force))
 endif
+
+
+
+
 
 version.h:
 	echo '#define METADAMAGE_VERSION "$(PACKAGE_VERSION)"' > $@
@@ -72,8 +78,10 @@ metaDMG-cpp: version.h $(OBJ)
 endif
 
 clean:	
-	rm  -f metaDMG-cpp *.o *.d version.h
+	rm  -rf metaDMG-cpp *.o *.d version.h test/output
 
 force:
 
 test:
+	echo "Running unittest of metadamage"
+	cd test;./testAll.sh 
