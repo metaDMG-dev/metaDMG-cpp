@@ -119,12 +119,14 @@ fi
 gunzip -c output/test1.res.gz|md5sum -c files3.md5
 if [[ $? -ne 0 ]]; then
     echo "Problem with md5sum for test1.res.gz file"
+    gunzip -c test1.res.gz
     RVAL=$((2048+${RVAL}))
 fi
 
 gunzip -c output/test2.res.gz|md5sum -c files4.md5
 if [[ $? -ne 0 ]]; then
     echo "Problem with md5sum for test2.res.gz file"
+    gunzip -c test2.res.gz
     RVAL=$((4096+${RVAL}))
 fi
 
@@ -139,7 +141,11 @@ echo "=====RVAL:${RVAL}======="
 
 
 if [[ ${RVAL} -ne 0 ]];then
+    echo "====Purelog==="
     cat ${LOG}
+    echo "====Prunedlog==="
+    cat outout/logfile
+    echo "====EndOfLog==="
 fi
 
 exit ${RVAL}
