@@ -104,7 +104,7 @@ fi
 
 echo "Copying logfile and validating checksum"
 echo "========================"
-grep -i -v version ${LOG}|grep -v tempfolder |grep -v walltime >output/logfile
+grep -v version ${LOG}|grep -v VERSION|grep -v tempfolder |grep -v walltime >output/logfile
 
 
 gunzip -c output/test3.lca.gz|sed 1d |md5sum -c files2.md5
@@ -116,26 +116,24 @@ fi
 #gunzip -c output/test1.res.gz |md5sum >files3.md5
 #gunzip -c output/test2.res.gz |md5sum >files4.md5
 
-gunzip -c output/test1.res.gz|md5sum -c files3.md5
-if [[ $? -ne 0 ]]; then
-    echo "Problem with md5sum for test1.res.gz file"
-    gunzip -c output/test1.res.gz
-    RVAL=$((2048+${RVAL}))
-fi
+#gunzip -c output/test1.res.gz|md5sum -c files3.md5
+#if [[ $? -ne 0 ]]; then
+#    echo "Problem with md5sum for test1.res.gz file"
+#    RVAL=$((2048+${RVAL}))
+#fi
 
-gunzip -c output/test2.res.gz|md5sum -c files4.md5
-if [[ $? -ne 0 ]]; then
-    echo "Problem with md5sum for test2.res.gz file"
-    gunzip -c output/test2.res.gz
-    RVAL=$((4096+${RVAL}))
-fi
+#gunzip -c output/test2.res.gz|md5sum -c files4.md5
+#if [[ $? -ne 0 ]]; then
+#    echo "Problem with md5sum for test2.res.gz file"
+#    RVAL=$((4096+${RVAL}))
+#fi
 
-#md5sum output/*|grep -v lca.gz|grep -v res.gz >files.md5
+#md5sum output/*|grep -v lca.gz >files.md5
 
 md5sum -c files.md5 
 if [[ $? -ne 0 ]]; then
     echo "Problem with md5sums"
-    RVAL=$((8292+${RVAL}))
+    RVAL=$((2048+${RVAL}))
 fi
 echo "=====RVAL:${RVAL}======="
 
