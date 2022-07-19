@@ -105,7 +105,7 @@ fi
 
 echo "Copying logfile and validating checksum"
 echo "========================"
-grep -v version ${LOG}|grep -v VERSION|grep -v tempfolder |grep -v walltime|grep -v taken >output/logfile
+grep -v version ${LOG}|grep -v VERSION|grep -v tempfolder |grep -v walltime|grep -v taken|grep -v thread1 >output/logfile
 
 
 gunzip -c output/test3.lca.gz|sed 1d |md5sum -c files2.md5

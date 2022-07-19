@@ -44,8 +44,6 @@ pos	A>C	A>G	A>T	C>A	C>G	C>T	G>A	G>C	G>T	T>A	T>C	T>G
 4	0.00000	0.00000	0.00000	0.01020	0.02041	0.02041	0.02913	0.06796	0.00000	0.02041	0.02041	0.00000
 #../metaDMG-cpp lca -bam ./data/f570b1db7c.dedup.filtered.rname.bam -names data/names.dmp.gz -nodes data/nodes.dmp.gz -acc2tax data/acc2taxid.map.gz -simscorelow 0.9 -simscorehigh 1.0 -editdistmin 0 -editdistmax 10 -minmapq 0 -howmany 35 -weighttype 1 -fix_ncbi 0 -out output/test3 
 	-> Will output lca results in file:		'output/test3.lca.gz'
-	-> [thread1] Will read header
-	-> [thread1] Done reading header: 0.00 sec, header contains: 154 
 	-> Will output lca distribution in file:		'output/test3.stat'
 	-> Will output lca weight in file:		'output/test3.wlca'
 	-> Will output log info (problems) in file:	'output/test3.log'
@@ -80,8 +78,6 @@ pos	A>C	A>G	A>T	C>A	C>G	C>T	G>A	G>C	G>T	T>A	T>C	T>G
 	-> Number of species with reads that map uniquely: 152
 #../metaDMG-cpp lca -bam ./data/f570b1db7c.dedup.filtered.rname.bam -names data/names.dmp.gz -nodes data/nodes.dmp.gz -acc2tax data/acc2taxid.map.gz -simscorelow 0.9 -simscorehigh 1.0 -editdistmin 0 -editdistmax 10 -minmapq 0 -howmany 35 -weighttype 1 -fix_ncbi 0 -out output/test4 
 	-> Will output lca results in file:		'output/test4.lca.gz'
-	-> [thread1] Will read header
-	-> [thread1] Done reading header: 0.00 sec, header contains: 154 
 	-> Will output lca distribution in file:		'output/test4.stat'
 	-> Will output lca weight in file:		'output/test4.wlca'
 	-> Will output log info (problems) in file:	'output/test4.log'
