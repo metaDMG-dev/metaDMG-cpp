@@ -117,7 +117,7 @@ fi
 md5sum -c files.md5 
 if [[ $? -ne 0 ]]; then
     echo "Problem with md5sums"
-    RVAL=$((2048+RVAL))
+    RVAL=$((2048+${RVAL}))
 fi
 echo "=====RVAL:${RVAL}======="
 
