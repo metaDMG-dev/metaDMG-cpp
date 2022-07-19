@@ -66,10 +66,11 @@ pos	A>C	A>G	A>T	C>A	C>G	C>T	G>A	G>C	G>T	T>A	T>C	T>G
 	-> -weighttype	1
 	-> Starting to extract (acc->taxid) from binary file: 'data/acc2taxid.map.gz'
 	-> Checking if exits: 'acc2taxid.map.gzf570b1db7c.dedup.filtered.rname.bam.bin'
-	-> Checking if bimnary file exists. dodump=0 
-	-> opening file: 'acc2taxid.map.gzf570b1db7c.dedup.filtered.rname.bam.bin' mode: 'rb'
+	-> Checking if bimnary file exists. dodump=1 
+	-> opening file: 'acc2taxid.map.gzf570b1db7c.dedup.filtered.rname.bam.bin' mode: 'wb'
 	-> Setting threads to: 4 
-	-> Number of entries to use from accesion to taxid: 154, time taken: 0.00 sec
+	-> opening file: 'data/acc2taxid.map.gz' mode: 'rb'
+	-> Setting threads to: 2 
 	-> [data/names.dmp.gz] Number of unique names (column1): 152066 with third column 'scientific name'
 	-> Number of unique names (column1): 152066 from file: data/nodes.dmp.gz parent.size():152066 child.size():0
 	-> Number of entries with level information: 48 
@@ -104,7 +105,6 @@ pos	A>C	A>G	A>T	C>A	C>G	C>T	G>A	G>C	G>T	T>A	T>C	T>G
 	-> Checking if bimnary file exists. dodump=0 
 	-> opening file: 'acc2taxid.map.gzf570b1db7c.dedup.filtered.rname.bam.bin' mode: 'rb'
 	-> Setting threads to: 4 
-	-> Number of entries to use from accesion to taxid: 154, time taken: 0.00 sec
 	-> [data/names.dmp.gz] Number of unique names (column1): 152066 with third column 'scientific name'
 	-> Number of unique names (column1): 152066 from file: data/nodes.dmp.gz parent.size():152066 child.size():0
 	-> Number of entries with level information: 48 

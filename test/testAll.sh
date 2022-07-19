@@ -12,7 +12,8 @@ echo "--------------------"
 
 LOG=${0}.log
 echo Using Logfile: ${LOG}
-rm -f ${LOG}
+rm -f ${LOG} *.bin #remove old logfile and binary tempfile
+
 RVAL=0
 
 echo "Testing Existence of ${PRG}"
@@ -104,7 +105,7 @@ fi
 
 echo "Copying logfile and validating checksum"
 echo "========================"
-grep -v version ${LOG}|grep -v VERSION|grep -v tempfolder |grep -v walltime >output/logfile
+grep -v version ${LOG}|grep -v VERSION|grep -v tempfolder |grep -v walltime|grep -v taken >output/logfile
 
 
 gunzip -c output/test3.lca.gz|sed 1d |md5sum -c files2.md5
