@@ -797,6 +797,7 @@ int main_print2(int argc, char **argv) {
 }
 
 int main_merge(int argc, char **argv) {
+
     fprintf(stderr, "./metaDMG-cpp merge file.lca file.bdamage.gz [-names file.gz -bam file.bam -howmany 5 -nodes trestructure.gz]\n");
     if (argc <= 2)
         return 0;
@@ -1250,6 +1251,7 @@ int main_print_ugly(int argc, char **argv) {
 // from ngsLCA.cpp
 int main_lca(int argc, char **argv);
 int main(int argc, char **argv) {
+  fprintf(stderr,"\t-> metaDMG version: %s (htslib: %s) build(%s %s)\n",METADAMAGE_VERSION,hts_version(),__DATE__,__TIME__); 
     clock_t t = clock();
     time_t t2 = time(NULL);
 

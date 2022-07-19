@@ -1,12 +1,21 @@
 #modied from htslib makefile
-FLAGS2=-O3 -std=c++11 
-
-CFLAGS += $(FLAGS2)
-CXXFLAGS += $(FLAGS2)
+FLAGS=-O3 -std=c++11 
+LIBS = -lz -llzma -lbz2 -lpthread -lcurl -lgsl
+CFLAGS += $(FLAGS)
+CXXFLAGS += $(FLAGS)
 
 CSRC = $(wildcard *.c) 
 CXXSRC = $(wildcard *.cpp)
 OBJ = $(CSRC:.c=.o) $(CXXSRC:.cpp=.o)
+
+CRYPTO_TRY=$(shell echo 'int main(){}'|g++ -x c++ - -lcrypto 2>/dev/null; echo $$?)
+ifeq "$(CRYPTO_TRY)" "0"
+$(info Crypto library is available to link; adding -lcrypto to LIBS)
+LIBS += -lcrypto
+else
+$(info Crypto library is not available to link; will not use -lcrypto)
+endif
+
 
 all: metaDMG-cpp
 
@@ -28,6 +37,7 @@ HTS_INCDIR=$(realpath $(HTSSRC))
 HTS_LIBDIR=$(realpath $(HTSSRC))/libhts.a
 else
 $(info HTSSRC not defined, assuming systemwide installation -lhts)
+LIBS += -lhts
 endif
 
 
@@ -35,8 +45,6 @@ endif
 
 ifdef LDFLAGS
 FLAGS += $(LDFLAGS)
-else
-FLAGS += $(FLAGS2)
 endif
 
 ifdef HTSSRC
@@ -49,7 +57,7 @@ ifdef HTSSRC
 	$(CXX) -MM $(CXXFLAGS)  -I$(HTS_INCDIR) $*.cpp >$*.d
 
 metaDMG-cpp: version.h $(OBJ)
-	$(CXX) $(FLAGS) -o metaDMG-cpp *.o $(HTS_LIBDIR) -lz -llzma -lbz2 -lpthread -lcurl -lgsl
+	$(CXX) $(FLAGS) -o metaDMG-cpp *.o $(HTS_LIBDIR) $(LIBS)
 else
 %.o: %.c
 	$(CC) -c  $(CFLAGS)  $*.c
@@ -60,7 +68,7 @@ else
 	$(CXX) -MM $(CXXFLAGS)  $*.cpp >$*.d
 
 metaDMG-cpp: version.h $(OBJ)
-	$(CXX) $(FLAGS)  -o metaDMG-cpp *.o -lz -llzma -lbz2 -lpthread -lcurl -lhts -lgsl
+	$(CXX) $(FLAGS)  -o metaDMG-cpp *.o $(LIBS)
 endif
 
 clean:	
@@ -69,4 +77,3 @@ clean:
 force:
 
 test:
-	
