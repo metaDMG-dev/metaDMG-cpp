@@ -101,19 +101,28 @@ if [[ $? -ne 0 ]]; then
     RVAL=$((512+RVAL))
 fi
 
+
 echo "Copying logfile and validating checksum"
-echo "================"
-grep -v version ${LOG}|grep -v tempfolder |grep -v walltime >output/logfile
+echo "========================"
+grep -i -v version ${LOG}|grep -v tempfolder |grep -v walltime >output/logfile
+
+
+gunzip -c output/test3.lca.gz|sed 1d |md5sum -c files2.md5
+if [[ $? -ne 0 ]]; then
+    echo "Problem with md5sum for lca file"
+    RVAL=$((1024+RVAL))
+fi
+
 
 md5sum -c files.md5 
 if [[ $? -ne 0 ]]; then
     echo "Problem with md5sums"
-    RVAL=$((1024+RVAL))
+    RVAL=$((2048+RVAL))
 fi
-echo "================"
+echo "=====RVAL:${RVAL}======="
 
 
-if [[ ${VAL} -ne 0 ]];then
+if [[ ${RVAL} -ne 0 ]];then
     cat ${LOG}
 fi
 
