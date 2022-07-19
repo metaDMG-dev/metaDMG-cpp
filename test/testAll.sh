@@ -127,8 +127,6 @@ echo "=====RVAL:${RVAL}======="
 if [[ ${RVAL} -ne 0 ]];then
     echo "====Prunedlog==="
     cat output/logfile
-    echo "====diff========"
-    diff logfile output/logfile
     echo "====Purelog==="
     cat ${LOG}
     echo "====EndOfLog==="  
