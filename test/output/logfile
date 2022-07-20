@@ -76,6 +76,17 @@ pos	A>C	A>G	A>T	C>A	C>G	C>T	G>A	G>C	G>T	T>A	T>C	T>G
 	-> Will dump: 'output/test3.bdamage.gz' this contains damage patterns for: 152 items
 	-> Setting threads to: 4 
 	-> Number of species with reads that map uniquely: 152
+#../metaDMG-cpp print_ugly output/test3.bdamage.gz 
+./metaDMG-cpp print_ugly file.bdamage.gz -names file.gz -nodes trestructure.gz -lcastat fil.gz
+	-> Dumping file: 'output/test3.bdamage.gz.uglyprint.mismatch.txt.gz'
+	-> Done loading binary bdamage.gz file. It contains: 152
+	-> Number of entries in damage pattern file: 152 printlength(howmany):35
+	-> pre: 152.000000 post:153.000000 grownbyfactor: 1.006579
+	-> Dumping file: 'output/test3.bdamage.gz.uglyprint.stat.txt.gz'
+#../metaDMG-cpp print_ugly output/test4.bdamage.gz -names test/data/names.dmp.gz -nodes test/data/nodes.dmp.gz -lcastat test/output/test4.stat 
+./metaDMG-cpp print_ugly file.bdamage.gz -names file.gz -nodes trestructure.gz -lcastat fil.gz
+	-> Dumping file: 'output/test4.bdamage.gz.uglyprint.mismatch.txt.gz'
+	-> Problems opening file: 'test/data/nodes.dmp.gz'
 #../metaDMG-cpp lca -bam ./data/f570b1db7c.dedup.filtered.rname.bam -names data/names.dmp.gz -nodes data/nodes.dmp.gz -acc2tax data/acc2taxid.map.gz -simscorelow 0.9 -simscorehigh 1.0 -editdistmin 0 -editdistmax 10 -minmapq 0 -howmany 35 -weighttype 1 -fix_ncbi 0 -out output/test4 
 	-> Will output lca results in file:		'output/test4.lca.gz'
 	-> Will output lca distribution in file:		'output/test4.stat'
