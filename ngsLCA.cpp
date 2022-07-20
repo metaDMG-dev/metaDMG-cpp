@@ -376,7 +376,6 @@ float gccontent(bam1_t *aln) {
     int counts[5] = {0, 0, 0, 0, 0};
 
     int len = aln->core.l_qseq;
-    char *qseq = new char[len + 1];
     uint8_t *q = bam_get_seq(aln);
     for (int i = 0; i < len; i++)
         counts[refToInt[seq_nt16_str[bam_seqi(q, i)]]]++;

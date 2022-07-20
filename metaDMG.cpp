@@ -244,8 +244,8 @@ int main_getdamage(int argc, char **argv) {
     int ret;
     damage *dmg = new damage(printLength, nthreads, 0);
     int skipper[4] = {3, 3, 3, 3};
-    std::map<int, std::vector<float>> gcconts;
-    std::map<int, std::vector<float>> seqlens;
+    std::map<int, std::vector<float> > gcconts;
+    std::map<int, std::vector<float> > seqlens;
     while (((ret = sam_read1(fp, hdr, b))) >= 0) {
         if (bam_is_unmapped(b)) {
             if (skipper[0])
@@ -271,7 +271,7 @@ int main_getdamage(int argc, char **argv) {
         int whichref = 0;
         if (runmode == 1)
             whichref = b->core.tid;
-        std::map<int, std::vector<float>>::iterator it = gcconts.find(whichref);
+        std::map<int, std::vector<float> >::iterator it = gcconts.find(whichref);
         if (it == gcconts.end()) {
             std::vector<float> tmp1{mygc};
             gcconts[whichref] = tmp1;
@@ -550,6 +550,11 @@ int main_print(int argc, char **argv) {
             }
         }
     }
+    //cleanup
+    for(int2char::iterator it=name_map.begin();it!=name_map.end();it++)
+      free(it->second);
+    for(int2char::iterator it=rank.begin();it!=rank.end();it++)
+      free(it->second);
 
     if (bgfp)
         bgzf_close(bgfp);
@@ -557,6 +562,14 @@ int main_print(int argc, char **argv) {
         bam_hdr_destroy(hdr);
     if (samfp)
         sam_close(samfp);
+    if(infile)
+      free(infile);
+    if(infile_nodes)
+      free(infile_nodes);
+    if(infile_names)
+      free(infile_names);
+    if(inbam)
+      free(inbam);
     return 0;
 }
 
@@ -630,7 +643,7 @@ int main_print2(int argc, char **argv) {
     bam_hdr_t *hdr = NULL;
 
     if (((bgfp = bgzf_open(infile, "r"))) == NULL) {
-        fprintf(stderr, "Could not open input BAM file: %s\n", infile);
+        fprintf(stderr, "Could not open input bdamage.gz file: %s\n", infile);
         return 1;
     }
 
@@ -786,6 +799,11 @@ int main_print2(int argc, char **argv) {
             }
         }
     }
+    //clean up
+    for(int2char::iterator it=name_map.begin();it!=name_map.end();it++)
+      free(it->second);
+    for(int2char::iterator it=rank.begin();it!=rank.end();it++)
+      free(it->second);
 
     if (bgfp)
         bgzf_close(bgfp);
@@ -793,6 +811,16 @@ int main_print2(int argc, char **argv) {
         bam_hdr_destroy(hdr);
     if (samfp)
         sam_close(samfp);
+    if(type_name)
+      free(type_name);
+    if(infile_nodes)
+      free(infile_nodes);
+    if(infile)
+      free(infile);
+    if(inbam)
+      free(inbam);
+    if(acc2tax)
+      free(acc2tax);
     return 0;
 }
 

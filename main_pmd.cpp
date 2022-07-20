@@ -15,7 +15,9 @@
 
 #include "profile.h"  // for reconstructRefWithPosHTS
 
-htsFormat *dingding3 = (htsFormat *)calloc(1, sizeof(htsFormat));
+extern htsFormat *dingding2;
+htsFormat *dingding3 = dingding2;
+
 
 int nproc = 0;  // number of reads processed
 
