@@ -98,7 +98,7 @@ mydataD getval_full(std::map<int, mydataD> &retmap, int2intvec &child, int taxid
             std::vector<int> &avec = it2->second;
             for (int i = 0; i < avec.size(); i++) {
                 //	fprintf(stderr,"%d/%d %d\n",i,avec.size(),avec[i]);
-                mydataD tmp = getval_full(retmap, child, avec[i], howmany);
+	      mydataD tmp = getval_full(retmap, child, avec[i], howmany);
                 ret.nreads += tmp.nreads;
                 for (int i = 0; i < 16 * howmany; i++) {
                     ret.fwD[i] += tmp.fwD[i];
@@ -405,7 +405,7 @@ int main_print(int argc, char **argv) {
     bam_hdr_t *hdr = NULL;
 
     if (((bgfp = bgzf_open(infile, "r"))) == NULL) {
-        fprintf(stderr, "Could not open input BAM file: %s\n", infile);
+        fprintf(stderr, "Could not open input bdamage.gz file: %s\n", infile);
         return 1;
     }
 
@@ -1162,14 +1162,14 @@ int main_print_ugly(int argc, char **argv) {
             infile_bdamage = strdup(*argv);
     }
 
-    htsFile *in2000 = NULL;
+    htsFile *samfp = NULL;
     sam_hdr_t *hdr = NULL;
     if (infile_bam) {
-        if ((in2000 = sam_open_format(infile_bam, "r", dingding2)) == NULL) {
+        if ((samfp = sam_open_format(infile_bam, "r", dingding2)) == NULL) {
             fprintf(stderr, "[%s] nonexistant file: %s\n", __FUNCTION__, infile_bam);
             exit(0);
         }
-        hdr = sam_hdr_read(in2000);
+        hdr = sam_hdr_read(samfp);
     }
 
     fprintf(stderr, "infile_names: %s infile_bdamage: %s nodes: %s lca_stat: %s infile_bam: %s", infile_names, infile_bdamage, infile_nodes, infile_lcastat, infile_bam);
@@ -1192,10 +1192,10 @@ int main_print_ugly(int argc, char **argv) {
     std::map<int, mydataD> retmap = load_bdamage_full(infile_bdamage, howmany);
     fprintf(stderr, "\t-> Number of entries in damage pattern file: %lu printlength(howmany):%d\n", retmap.size(), howmany);
 
-    int2char name;
+    int2char name_map;
 
     if (infile_names)
-        name = parse_names(infile_names);
+        name_map = parse_names(infile_names);
 
     float presize = retmap.size();
     getval_full(retmap, child, 1, howmany);  // this will do everything
@@ -1264,15 +1264,46 @@ int main_print_ugly(int argc, char **argv) {
             int2char::iterator itc = rank.find(it->first);
             if (itc != rank.end())
                 myrank = itc->second;
-            itc = name.find(it->first);
-            if (itc != name.end())
+            itc = name_map.find(it->first);
+            if (itc != name_map.end())
                 myname = itc->second;
             gzprintf(fpfpfp, "%d\t\"%s\"\t\"%s\"\t%d\t%d\t%f\t%f\t%f\t%f\t", it->first, myname, myrank, nalign, it->second.nreads, it->second.data[0], it->second.data[1], it->second.data[2], it->second.data[3]);
-            print_chain(fpfpfp, it->first, parent, rank, name);
+            print_chain(fpfpfp, it->first, parent, rank, name_map);
             //      fprintf(stderr,"%d->(%d,%f,%f,%f,%f)\n",it->first,it->second.nreads,it->second.data[0],it->second.data[1],it->second.data[2],it->second.data[3]);
         }
     }
+    //cleanup
     gzclose(fpfpfp);
+    for(int2char::iterator it=name_map.begin();it!=name_map.end();it++)
+      free(it->second);
+    for(int2char::iterator it=rank.begin();it!=rank.end();it++)
+      free(it->second);
+
+    for( std::map<int, mydataD>::iterator it = retmap.begin();it!=retmap.end();it++){
+      mydataD md = it->second;
+      delete [] md.fwD;
+      delete [] md.bwD;
+    }
+
+    for( std::map<int, mydata2>::iterator it = stats.begin();it!=stats.end();it++){
+      mydata2 md = it->second;
+      delete [] md.data;
+    }
+
+    if (hdr)
+        bam_hdr_destroy(hdr);
+    if (samfp)
+        sam_close(samfp);
+    if(infile_bdamage)
+      free(infile_bdamage);
+    if(infile_nodes)
+      free(infile_nodes);
+    if(infile_names)
+      free(infile_names);
+    if(infile_bam)
+      free(infile_bam);
+    if(infile_lcastat)
+      free(infile_lcastat);
     return 0;
 }
 

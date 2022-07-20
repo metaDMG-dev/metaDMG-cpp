@@ -663,7 +663,7 @@ std::map<int, mydata2> load_lcastat(const char *fname) {
 
     if (((fp = fopen(infile, "r"))) == NULL) {
         fprintf(stderr, "Could not open input lcastat file: %s\n", infile);
-        exit(0);
+        exit(1);
     }
 
     std::map<int, mydata2> retmap;
