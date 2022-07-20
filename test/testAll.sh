@@ -129,7 +129,7 @@ if [[ ${RVAL} -ne 0 ]];then
     cat output/logfile
     echo "====Purelog==="
     cat ${LOG}
-    echo "====EndOfLog==="  
+    echo "====EndOfLog==="
+    exit 1 #exit codes are capped at 255
 fi
-
-exit ${RVAL}
+exit 0
