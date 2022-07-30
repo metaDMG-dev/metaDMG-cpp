@@ -237,7 +237,6 @@ void parse_sequencingdata(char *refName, char *fname, int mapped_only, int se_on
     }
 
     bam_destroy1(b);
-    hts_opt_free((hts_opt *)dingding3->specific);
     free(dingding3);
     sam_hdr_destroy(hdr);
     sam_close(in);
