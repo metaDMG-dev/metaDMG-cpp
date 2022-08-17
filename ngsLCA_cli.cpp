@@ -92,7 +92,7 @@ void *read_header_thread(void *ptr) {
     p->hts = hts_open(p->htsfile, "r");
     p->header = sam_hdr_read(p->hts);
     if(checkIfSorted(p->header->text))
-      exit(0);
+      exit(1);
     assert(p->header);
     fprintf(stderr, "\t-> [thread1] Done reading header: %.2f sec, header contains: %d \n", (float)(time(NULL) - t), p->header->n_targets);
     pthread_mutex_unlock(&mutex1);
