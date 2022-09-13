@@ -1,6 +1,6 @@
 #modied from htslib makefile
 FLAGS=-O3 -std=c++11 
-LIBS = -lz -llzma -lbz2 -lpthread -lcurl -lgsl
+LIBS = -lz -llzma -lbz2 -lpthread -lcurl -lgsl -lgslcblas
 CFLAGS += $(FLAGS)
 CXXFLAGS += $(FLAGS)
 
