@@ -173,6 +173,7 @@ int main_getdamage(int argc, char **argv) {
     htsFile *fp = NULL;
     char *onam = strdup("meta");
     int nthreads = 4;
+    int stopIfErrors = 1;
     // fix thesepro
     static struct option lopts[] = {
         {"fasta", 1, 0, 'f'},
@@ -182,6 +183,7 @@ int main_getdamage(int argc, char **argv) {
         {"outname", 1, 0, 'o'},
         {"help", 0, 0, '?'},
         {"runmode", 1, 0, 'r'},
+	{"stopIfErrors", 1, 0, 'S'},
         {NULL, 0, NULL, 0}};
 
     int c;
@@ -201,6 +203,9 @@ int main_getdamage(int argc, char **argv) {
             case 'p':
                 printLength = atoi(optarg);
                 break;
+	case 'S':
+                stopIfErrors = atoi(optarg);
+                break;
             case 'o': {
                 free(onam);
                 onam = strdup(optarg);
@@ -219,7 +224,7 @@ int main_getdamage(int argc, char **argv) {
     }
     if (optind < argc)
         fname = strdup(argv[optind]);
-    fprintf(stderr, "./metaDMG-cpp refName: %s minLength: %d printLength: %d runmode: %d outname: %s nthreads: %d\n", refName, minLength, printLength, runmode, onam, nthreads);
+    fprintf(stderr, "./metaDMG-cpp refName: %s minLength: %d printLength: %d runmode: %d outname: %s nthreads: %d \tstopIfErrors: %d\n", refName, minLength, printLength, runmode, onam, nthreads,stopIfErrors);
     if (fname == NULL) {
         usage_getdamage(stderr);
         return 0;
@@ -239,7 +244,7 @@ int main_getdamage(int argc, char **argv) {
     bam1_t *b = bam_init1();
     bam_hdr_t *hdr = sam_hdr_read(fp);
     int checkIfSorted(char *str);
-    if(checkIfSorted(hdr->text))
+    if(stopIfErrors&&checkIfSorted(hdr->text))
       return 1;
     int ret;
     damage *dmg = new damage(printLength, nthreads, 0);

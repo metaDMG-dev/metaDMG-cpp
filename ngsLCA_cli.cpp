@@ -42,6 +42,7 @@ pars *pars_init() {
     p->nthreads = 4;
     p->weighttype = 0;
     p->tempfolder = strdup("");
+    p->stopIfErrors = 1;
     return p;
 }
 
@@ -91,7 +92,7 @@ void *read_header_thread(void *ptr) {
     fprintf(stderr, "\t-> [thread1] Will read header\n");
     p->hts = hts_open(p->htsfile, "r");
     p->header = sam_hdr_read(p->hts);
-    if(checkIfSorted(p->header->text))
+    if(p->stopIfErrors&&checkIfSorted(p->header->text))
       exit(1);
     assert(p->header);
     fprintf(stderr, "\t-> [thread1] Done reading header: %.2f sec, header contains: %d \n", (float)(time(NULL) - t), p->header->n_targets);
@@ -238,6 +239,8 @@ pars *get_pars(int argc, char **argv) {
             p->nthreads = atoi(val);
         else if (!strcasecmp("-weighttype", key))
             p->weighttype = atoi(val);
+	else if (!strcasecmp("-stopIfErrors", key))
+            p->stopIfErrors = atoi(val);
         else if (!strcasecmp("-@", key))
             p->nthreads = atoi(val);
         else if (!strcasecmp("-tempfolder", key)) {
@@ -304,6 +307,7 @@ void print_pars(FILE *fp, pars *p) {
     fprintf(fp, "\t-> -fix_ncbi\t%d\n", p->fixdb);
     fprintf(fp, "\t-> -weighttype\t%d\n", p->weighttype);
     fprintf(fp, "\t-> -tempfolder\t%d\n", p->tempfolder);
+    fprintf(fp, "\t-> -stopIfErrors\t%d\n", p->stopIfErrors);
 }
 
 #ifdef __WITH_MAIN__
