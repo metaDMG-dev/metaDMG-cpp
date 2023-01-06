@@ -188,7 +188,7 @@ int main_getdamage(int argc, char **argv) {
 
     int c;
     while ((c = getopt_long(argc, argv,
-                            "f:l:p:r:o:@:",
+                            "f:l:p:r:o:@:S:",
                             lopts, NULL)) >= 0) {
         switch (c) {
             case 'f':
