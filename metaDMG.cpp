@@ -98,7 +98,7 @@ mydataD getval_full(std::map<int, mydataD> &retmap, int2intvec &child, int taxid
             std::vector<int> &avec = it2->second;
             for (int i = 0; i < avec.size(); i++) {
                 //	fprintf(stderr,"%d/%d %d\n",i,avec.size(),avec[i]);
-	      mydataD tmp = getval_full(retmap, child, avec[i], howmany);
+                mydataD tmp = getval_full(retmap, child, avec[i], howmany);
                 ret.nreads += tmp.nreads;
                 for (int i = 0; i < 16 * howmany; i++) {
                     ret.fwD[i] += tmp.fwD[i];
@@ -183,7 +183,7 @@ int main_getdamage(int argc, char **argv) {
         {"outname", 1, 0, 'o'},
         {"help", 0, 0, '?'},
         {"runmode", 1, 0, 'r'},
-	{"stopIfErrors", 1, 0, 'S'},
+        {"stopIfErrors", 1, 0, 'S'},
         {NULL, 0, NULL, 0}};
 
     int c;
@@ -203,7 +203,7 @@ int main_getdamage(int argc, char **argv) {
             case 'p':
                 printLength = atoi(optarg);
                 break;
-	case 'S':
+            case 'S':
                 stopIfErrors = atoi(optarg);
                 break;
             case 'o': {
@@ -224,7 +224,7 @@ int main_getdamage(int argc, char **argv) {
     }
     if (optind < argc)
         fname = strdup(argv[optind]);
-    fprintf(stderr, "./metaDMG-cpp refName: %s minLength: %d printLength: %d runmode: %d outname: %s nthreads: %d \tstopIfErrors: %d\n", refName, minLength, printLength, runmode, onam, nthreads,stopIfErrors);
+    fprintf(stderr, "./metaDMG-cpp refName: %s minLength: %d printLength: %d runmode: %d outname: %s nthreads: %d \tstopIfErrors: %d\n", refName, minLength, printLength, runmode, onam, nthreads, stopIfErrors);
     if (fname == NULL) {
         usage_getdamage(stderr);
         return 0;
@@ -244,13 +244,13 @@ int main_getdamage(int argc, char **argv) {
     bam1_t *b = bam_init1();
     bam_hdr_t *hdr = sam_hdr_read(fp);
     int checkIfSorted(char *str);
-    if(stopIfErrors&&checkIfSorted(hdr->text))
-      return 1;
+    if (stopIfErrors && checkIfSorted(hdr->text))
+        return 1;
     int ret;
     damage *dmg = new damage(printLength, nthreads, 0);
     int skipper[4] = {3, 3, 3, 3};
-    std::map<int, std::vector<float> > gcconts;
-    std::map<int, std::vector<float> > seqlens;
+    std::map<int, std::vector<float>> gcconts;
+    std::map<int, std::vector<float>> seqlens;
     while (((ret = sam_read1(fp, hdr, b))) >= 0) {
         if (bam_is_unmapped(b)) {
             if (skipper[0])
@@ -276,7 +276,7 @@ int main_getdamage(int argc, char **argv) {
         int whichref = 0;
         if (runmode == 1)
             whichref = b->core.tid;
-        std::map<int, std::vector<float> >::iterator it = gcconts.find(whichref);
+        std::map<int, std::vector<float>>::iterator it = gcconts.find(whichref);
         if (it == gcconts.end()) {
             std::vector<float> tmp1{mygc};
             gcconts[whichref] = tmp1;
@@ -555,11 +555,11 @@ int main_print(int argc, char **argv) {
             }
         }
     }
-    //cleanup
-    for(int2char::iterator it=name_map.begin();it!=name_map.end();it++)
-      free(it->second);
-    for(int2char::iterator it=rank.begin();it!=rank.end();it++)
-      free(it->second);
+    // cleanup
+    for (int2char::iterator it = name_map.begin(); it != name_map.end(); it++)
+        free(it->second);
+    for (int2char::iterator it = rank.begin(); it != rank.end(); it++)
+        free(it->second);
 
     if (bgfp)
         bgzf_close(bgfp);
@@ -567,14 +567,14 @@ int main_print(int argc, char **argv) {
         bam_hdr_destroy(hdr);
     if (samfp)
         sam_close(samfp);
-    if(infile)
-      free(infile);
-    if(infile_nodes)
-      free(infile_nodes);
-    if(infile_names)
-      free(infile_names);
-    if(inbam)
-      free(inbam);
+    if (infile)
+        free(infile);
+    if (infile_nodes)
+        free(infile_nodes);
+    if (infile_names)
+        free(infile_names);
+    if (inbam)
+        free(inbam);
     return 0;
 }
 
@@ -804,11 +804,11 @@ int main_print2(int argc, char **argv) {
             }
         }
     }
-    //clean up
-    for(int2char::iterator it=name_map.begin();it!=name_map.end();it++)
-      free(it->second);
-    for(int2char::iterator it=rank.begin();it!=rank.end();it++)
-      free(it->second);
+    // clean up
+    for (int2char::iterator it = name_map.begin(); it != name_map.end(); it++)
+        free(it->second);
+    for (int2char::iterator it = rank.begin(); it != rank.end(); it++)
+        free(it->second);
 
     if (bgfp)
         bgzf_close(bgfp);
@@ -816,21 +816,20 @@ int main_print2(int argc, char **argv) {
         bam_hdr_destroy(hdr);
     if (samfp)
         sam_close(samfp);
-    if(type_name)
-      free(type_name);
-    if(infile_nodes)
-      free(infile_nodes);
-    if(infile)
-      free(infile);
-    if(inbam)
-      free(inbam);
-    if(acc2tax)
-      free(acc2tax);
+    if (type_name)
+        free(type_name);
+    if (infile_nodes)
+        free(infile_nodes);
+    if (infile)
+        free(infile);
+    if (inbam)
+        free(inbam);
+    if (acc2tax)
+        free(acc2tax);
     return 0;
 }
 
 int main_merge(int argc, char **argv) {
-
     fprintf(stderr, "./metaDMG-cpp merge file.lca file.bdamage.gz [-names file.gz -bam file.bam -howmany 5 -nodes trestructure.gz]\n");
     if (argc <= 2)
         return 0;
@@ -1143,8 +1142,8 @@ int main_print_all(int argc, char **argv) {
     return 0;
 }
 
-int main_print_ugly(int argc, char **argv) {
-    fprintf(stderr, "./metaDMG-cpp print_ugly file.bdamage.gz -names file.gz -nodes trestructure.gz -lcastat fil.gz\n");
+int main_print_summary(int argc, char **argv) {
+    fprintf(stderr, "./metaDMG-cpp print_summary file.bdamage.gz -names file.gz -nodes trestructure.gz -lcastat fil.gz\n");
     if (argc <= 1)
         return 0;
     char *infile_bdamage = NULL;
@@ -1180,7 +1179,7 @@ int main_print_ugly(int argc, char **argv) {
     fprintf(stderr, "infile_names: %s infile_bdamage: %s nodes: %s lca_stat: %s infile_bam: %s", infile_names, infile_bdamage, infile_nodes, infile_lcastat, infile_bam);
     fprintf(stderr, "#VERSION:%s\n", METADAMAGE_VERSION);
     char buf[1024];
-    snprintf(buf, 1024, "%s.uglyprint.mismatch.txt.gz", infile_bdamage);
+    snprintf(buf, 1024, "%s.summaryprint.mismatch.txt.gz", infile_bdamage);
     fprintf(stderr, "\t-> Dumping file: \'%s\'\n", buf);
     gzFile fpfpfp = gzopen(buf, "wb");
     gzprintf(fpfpfp, "#taxidStr\tdirection\tposition\tAA\tAC\tAG\tAT\tCA\tCC\tCG\tCT\tGA\tGC\tGG\tGT\tTA\tTC\tTG\tTT\n");
@@ -1247,7 +1246,7 @@ int main_print_ugly(int argc, char **argv) {
         }
     }
     gzclose(fpfpfp);
-    snprintf(buf, 1024, "%s.uglyprint.stat.txt.gz", infile_bdamage);
+    snprintf(buf, 1024, "%s.summaryprint.stat.txt.gz", infile_bdamage);
     fprintf(stderr, "\t-> Dumping file: \'%s\'\n", buf);
     fpfpfp = gzopen(buf, "wb");
     gzprintf(fpfpfp, "#taxid\tname\trank\tnalign\tnreads\tmean_rlen\tvar_rlen\tmean_gc\tvar_gc\n");
@@ -1277,45 +1276,45 @@ int main_print_ugly(int argc, char **argv) {
             //      fprintf(stderr,"%d->(%d,%f,%f,%f,%f)\n",it->first,it->second.nreads,it->second.data[0],it->second.data[1],it->second.data[2],it->second.data[3]);
         }
     }
-    //cleanup
+    // cleanup
     gzclose(fpfpfp);
-    for(int2char::iterator it=name_map.begin();it!=name_map.end();it++)
-      free(it->second);
-    for(int2char::iterator it=rank.begin();it!=rank.end();it++)
-      free(it->second);
+    for (int2char::iterator it = name_map.begin(); it != name_map.end(); it++)
+        free(it->second);
+    for (int2char::iterator it = rank.begin(); it != rank.end(); it++)
+        free(it->second);
 
-    for( std::map<int, mydataD>::iterator it = retmap.begin();it!=retmap.end();it++){
-      mydataD md = it->second;
-      delete [] md.fwD;
-      delete [] md.bwD;
+    for (std::map<int, mydataD>::iterator it = retmap.begin(); it != retmap.end(); it++) {
+        mydataD md = it->second;
+        delete[] md.fwD;
+        delete[] md.bwD;
     }
 
-    for( std::map<int, mydata2>::iterator it = stats.begin();it!=stats.end();it++){
-      mydata2 md = it->second;
-      delete [] md.data;
+    for (std::map<int, mydata2>::iterator it = stats.begin(); it != stats.end(); it++) {
+        mydata2 md = it->second;
+        delete[] md.data;
     }
 
     if (hdr)
         bam_hdr_destroy(hdr);
     if (samfp)
         sam_close(samfp);
-    if(infile_bdamage)
-      free(infile_bdamage);
-    if(infile_nodes)
-      free(infile_nodes);
-    if(infile_names)
-      free(infile_names);
-    if(infile_bam)
-      free(infile_bam);
-    if(infile_lcastat)
-      free(infile_lcastat);
+    if (infile_bdamage)
+        free(infile_bdamage);
+    if (infile_nodes)
+        free(infile_nodes);
+    if (infile_names)
+        free(infile_names);
+    if (infile_bam)
+        free(infile_bam);
+    if (infile_lcastat)
+        free(infile_lcastat);
     return 0;
 }
 
 // from ngsLCA.cpp
 int main_lca(int argc, char **argv);
 int main(int argc, char **argv) {
-  fprintf(stderr,"\t-> metaDMG version: %s (htslib: %s) build(%s %s)\n",METADAMAGE_VERSION,hts_version(),__DATE__,__TIME__); 
+    fprintf(stderr, "\t-> metaDMG version: %s (htslib: %s) build(%s %s)\n", METADAMAGE_VERSION, hts_version(), __DATE__, __TIME__);
     clock_t t = clock();
     time_t t2 = time(NULL);
 
@@ -1331,7 +1330,7 @@ int main(int argc, char **argv) {
         fprintf(stderr, "./metaDMG-cpp print bdamage.gz\n");
         fprintf(stderr, "./metaDMG-cpp print2 [many options] bdamage.gz\n");
         fprintf(stderr, "./metaDMG-cpp print_all [many options] bdamage.gz\n");
-        fprintf(stderr, "./metaDMG-cpp print_ugly [many options] bdamage.gz\n");
+        fprintf(stderr, "./metaDMG-cpp print_summary [many options] bdamage.gz\n");
         return 0;
     }
     fprintf(stderr, "#");
@@ -1355,8 +1354,8 @@ int main(int argc, char **argv) {
         main_print(argc, argv);
     if (!strcmp(argv[0], "print_all"))
         main_print_all(argc, argv);
-    if (!strcmp(argv[0], "print_ugly"))
-        main_print_ugly(argc, argv);
+    if (!strcmp(argv[0], "print_summary"))
+        main_print_summary(argc, argv);
     if (!strcmp(argv[0], "print2"))
         main_print2(argc, argv);
     if (!strcmp(argv[0], "merge"))

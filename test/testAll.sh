@@ -62,21 +62,21 @@ if [[ $? -ne 0 ]]; then
     RVAL=$((32 + RVAL))
 fi
 
-CMD="${PRG} print_ugly output/test3.bdamage.gz"
+CMD="${PRG} print_summary output/test3.bdamage.gz"
 ${CMD} &>>${LOG}
 if [[ $? -ne 0 ]]; then
     echo "Problem running command: ${CMD}"
     RVAL=$((32 + RVAL))
 fi
 
-CMD="${PRG} print_ugly output/test4.bdamage.gz -names test/data/names.dmp.gz -nodes test/data/nodes.dmp.gz -lcastat test/output/test4.stat"
+CMD="${PRG} print_summary output/test4.bdamage.gz -names test/data/names.dmp.gz -nodes test/data/nodes.dmp.gz -lcastat test/output/test4.stat"
 ${CMD} &>>${LOG}
 if [[ $? -ne 0 ]]; then
     echo "Problem running command: ${CMD}"
     RVAL=$((32 + RVAL))
 fi
 
-## below is for validating print_ugly with different parameters, should be updated with a print_ugly --out argument so it is not nescessary
+## below is for validating print_summary with different parameters, should be updated with a print_summary --out argument so it is not nescessary
 CMD="${PRG} lca -bam ${BAM} -names data/names.dmp.gz -nodes data/nodes.dmp.gz -acc2tax data/acc2taxid.map.gz -simscorelow 0.9 -simscorehigh 1.0 -editdistmin 0 -editdistmax 10 -minmapq 0 -howmany 35 -weighttype 1 -fix_ncbi 0 -out output/test4"
 ${CMD} &>>${LOG}
 if [[ $? -ne 0 ]]; then
@@ -100,14 +100,14 @@ if [[ $? -ne 0 ]]; then
     RVAL=$((128 + RVAL))
 fi
 
-CMD="${PRG} print_ugly output/test3.bdamage.gz"
+CMD="${PRG} print_summary output/test3.bdamage.gz"
 ${CMD} &>>${LOG}
 if [[ $? -ne 0 ]]; then
     echo "Problem running command: ${CMD}"
     RVAL=$((256 + RVAL))
 fi
 
-CMD="${PRG} print_ugly output/test4.bdamage.gz -names data/names.dmp.gz -nodes data/nodes.dmp.gz -lcastat output/test4.stat "
+CMD="${PRG} print_summary output/test4.bdamage.gz -names data/names.dmp.gz -nodes data/nodes.dmp.gz -lcastat output/test4.stat "
 ${CMD} &>>${LOG}
 if [[ $? -ne 0 ]]; then
     echo "Problem running command: ${CMD}"
