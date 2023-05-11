@@ -235,7 +235,7 @@ int main(int argc,char**argv){
   htsfp=hts_open(hts,"r" );
   hdr = sam_hdr_read(htsfp);
   writemod(outfile,hdr,keeplist,htsfp,mycl);
-  fprintf(stderr,"\t-> Done writing file: \'%s\'\n",hts);
+  fprintf(stderr,"\t-> Done writing file: \'%s\'\n",outfile);
   free(mycl);
   sam_close(htsfp);
 
