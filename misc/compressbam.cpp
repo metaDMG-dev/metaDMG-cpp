@@ -1,3 +1,6 @@
+// g++ compressbam.cpp -O3 -o compressbam ../../htslib/libhts.a -lz -lbz2 -llzma -lpthread -lcurl -ggdb                                                                                                                                 
+// ./compressbam -hts small.sam -out small.out.bam2 -type bam -@ 16
+
 #include <cstdio>
 #include <zlib.h>
 #include <map>
