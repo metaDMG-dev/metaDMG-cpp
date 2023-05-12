@@ -178,7 +178,7 @@ int main(int argc,char**argv){
     return 0;
   }
   char *mycl = stringify_argv(argc,argv);
-  fprintf(stderr,"\t-> compressbam: (%s;%d;%s): \'%s\'\n",__FILE__,__DATE__,__TIME__,mycl);  
+  fprintf(stderr,"\t-> compressbam: (%s;%s;%s): \'%s\'\n",__FILE__,__DATE__,__TIME__,mycl);  
   
   argv++;
   char *hts = NULL;
