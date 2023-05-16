@@ -1,14 +1,9 @@
-#modied from htslib makefile
-FLAGS=-O3 -std=c++11 
-LIBS = -lz -llzma -lbz2 -lpthread -lcurl -lgsl -lgslcblas
-CFLAGS += $(FLAGS)
-CXXFLAGS += $(FLAGS)
+CC  ?= gcc
+CXX ?= g++
 
-CSRC = $(wildcard *.c) 
-CXXSRC = $(wildcard *.cpp)
-OBJ = $(CSRC:.c=.o) $(CXXSRC:.cpp=.o)
+LIBS = -lz -lm -lbz2 -llzma -lpthread -lcurl -lgsl -lgslcblas
 
-CRYPTO_TRY=$(shell echo 'int main(){}'|g++ -x c++ - -lcrypto 2>/dev/null; echo $$?)
+CRYPTO_TRY=$(shell echo 'int main(){}'|$(CXX) -x c++ - -lcrypto 2>/dev/null -o /dev/null; echo $$?)
 ifeq "$(CRYPTO_TRY)" "0"
 $(info Crypto library is available to link; adding -lcrypto to LIBS)
 LIBS += -lcrypto
@@ -17,9 +12,73 @@ $(info Crypto library is not available to link; will not use -lcrypto)
 endif
 
 
-all: metaDMG-cpp
+#if htslib source is defined
+ifdef HTSSRC
 
-.PHONY: all clean test
+#if hts source is set to systemwide
+ifeq ($(HTSSRC),systemwide)
+$(info HTSSRC set to systemwide; assuming systemwide installation)
+LIBS += -lhts
+
+else
+
+#if hts source path is given
+# Adjust $(HTSSRC) to point to your top-level htslib directory
+$(info HTSSRC defined: $(HTSSRC))
+CPPFLAGS += -I"$(realpath $(HTSSRC))"
+LIBHTS := $(HTSSRC)/libhts.a
+LIBS := $(LIBHTS) $(LIBS)
+
+endif
+
+#if htssrc not defined
+else
+
+$(info HTSSRC not defined; using htslib submodule)
+$(info Use `make HTSSRC=/path/to/htslib` to build metadamage using a local htslib installation)
+$(info Use `make HTSSRC=systemwide` to build metadamage using the systemwide htslib installation)
+
+
+HTSSRC := $(CURDIR)/htslib
+CPPFLAGS += -I$(HTSSRC)
+LIBHTS := $(HTSSRC)/libhts.a
+LIBS := $(LIBHTS) $(LIBS)
+
+all: .activate_module
+
+endif
+
+.PHONY: .activate_module 
+
+.activate_module:
+	git submodule update --init --recursive
+	$(MAKE) -C $(HTSSRC)
+
+
+
+#modied from htslib makefile
+FLAGS = -O3 
+CPPFLAGS := $(filter-out -DNDEBUG,$(CPPFLAGS))
+FLAGS2 = $(CPPFLAGS) $(FLAGS) $(LDFLAGS)
+
+CFLAGS := $(FLAGS2) $(CFLAGS)
+CXXFLAGS := $(FLAGS2) $(CXXFLAGS)
+
+CSRC = $(wildcard *.c)
+CXXSRC = $(wildcard *.cpp)
+OBJ = $(CSRC:.c=.o) $(CXXSRC:.cpp=.o)
+
+prefix      = /usr/local
+exec_prefix = $(prefix)
+bindir      = $(exec_prefix)/bin
+
+INSTALL = install
+INSTALL_DIR = $(INSTALL) -dm0755
+INSTALL_PROGRAM = $(INSTALL) -m0755
+
+PROGRAMS = metaDMG-cpp
+
+all: $(PROGRAMS) misc
 
 PACKAGE_VERSION  = 0.2
 
@@ -28,60 +87,48 @@ PACKAGE_VERSION := $(shell git describe --always --dirty)
 version.h: $(if $(wildcard version.h),$(if $(findstring "$(PACKAGE_VERSION)",$(shell cat version.h)),,force))
 endif
 
-
-
-
-
 version.h:
 	echo '#define METADAMAGE_VERSION "$(PACKAGE_VERSION)"' > $@
 
+.PHONY: all clean install install-all install-misc misc test
 
-# Adjust $(HTSSRC) to point to your top-level htslib directory
-ifdef HTSSRC
-$(info HTSSRC defined)
-HTS_INCDIR=$(realpath $(HTSSRC))
-HTS_LIBDIR=$(realpath $(HTSSRC))/libhts.a
-else
-$(info HTSSRC not defined, assuming systemwide installation -lhts)
-LIBS += -lhts
-endif
-
+misc: 
+	$(MAKE) -C misc HTSSRC="$(realpath $(HTSSRC))"
 
 -include $(OBJ:.o=.d)
 
-ifdef LDFLAGS
-FLAGS += $(LDFLAGS)
-endif
-
-ifdef HTSSRC
 %.o: %.c
-	$(CC) -c  $(CFLAGS) -I$(HTS_INCDIR) $*.c
-	$(CC) -MM $(CFLAGS)  -I$(HTS_INCDIR) $*.c >$*.d
+	$(CC) -c  $(CFLAGS) $*.c
+	$(CC) -MM $(CFLAGS) $*.c >$*.d
 
 %.o: %.cpp
-	$(CXX) -c  $(CXXFLAGS)  -I$(HTS_INCDIR) $*.cpp
-	$(CXX) -MM $(CXXFLAGS)  -I$(HTS_INCDIR) $*.cpp >$*.d
+	$(CXX) -c  $(CXXFLAGS) $*.cpp
+	$(CXX) -MM $(CXXFLAGS) $*.cpp >$*.d
+
 
 metaDMG-cpp: version.h $(OBJ)
-	$(CXX) $(FLAGS) -o metaDMG-cpp *.o $(HTS_LIBDIR) $(LIBS)
-else
-%.o: %.c
-	$(CC) -c  $(CFLAGS)  $*.c
-	$(CC) -MM $(CFLAGS)  $*.c >$*.d
+	$(CXX) $(FLAGS) -o metaDMG-cpp *.o $(LIBS)
 
-%.o: %.cpp
-	$(CXX) -c  $(CXXFLAGS)  $*.cpp
-	$(CXX) -MM $(CXXFLAGS)  $*.cpp >$*.d
 
-metaDMG-cpp: version.h $(OBJ)
-	$(CXX) $(FLAGS)  -o metaDMG-cpp *.o $(LIBS)
-endif
+testclean:
+	rm -rf test/sfstest/output test/tajima/output test/*.log version.h test/temp.txt
 
-clean:	
-	rm  -rf metaDMG-cpp *.o *.d version.h test/output
-
-force:
+clean: testclean
+	rm  -f *.o *.d $(PROGRAMS) version.h *~
+	$(MAKE) -C misc clean
 
 test:
 	echo "Running unittest of metadamage"
 	cd test;./testAll.sh 
+
+force:
+
+install: all
+	$(INSTALL_DIR) $(DESTDIR)$(bindir)
+	$(INSTALL_PROGRAM) $(PROGRAMS) $(DESTDIR)$(bindir)
+	$(MAKE) -C misc HTSSRC="$(realpath $(HTSSRC))" install
+
+install-misc: misc
+	$(MAKE) -C misc HTSSRC="$(realpath $(HTSSRC))" install-misc
+
+install-all: install install-misc
