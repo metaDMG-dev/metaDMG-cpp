@@ -46,15 +46,14 @@ void MAP(double M3[MAX_ROWS][MAX_COLS],double* MAP){
 void MAP_stat_file(double M3[MAX_ROWS][MAX_COLS],double* LlhRes,gzFile file){
 
     // MAP damage, damage_std Map_damage_significance
-    int N_max = M3[0][NCOL];
+    int N_pos = M3[0][NCOL];
 
     // mu = A = LlhRes[0]
-    //std::cout << " N MAX " << N_max << std::endl;
-    double std = std::sqrt((LlhRes[0]*(1-LlhRes[0])*(LlhRes[3]+N_max))/((LlhRes[3]+1)*N_max));
+    double std = std::sqrt((LlhRes[0]*(1-LlhRes[0])*(LlhRes[3]+N_pos))/((LlhRes[3]+1)*N_pos));
     double significance = LlhRes[0]/std;
 
     // MAP_Damage   MAP_signifcance     MAP_damage_std
-    gzprintf(file,"MAP_damage:%f \t MAP_damage_std:%f \t MAP_damage_significance:%f \t",LlhRes[0],std,significance);
+    gzprintf(file,"%f \t %f \t %f \t",LlhRes[0],std,significance);
 
     /*
     add the significance etc for the A, q, c when done
@@ -66,7 +65,7 @@ void MAP_stat_file(double M3[MAX_ROWS][MAX_COLS],double* LlhRes,gzFile file){
     double phi = LlhRes[3];
     
     // then the optimized values MAP_A MAP_q MAP_phi MAP_c 
-    gzprintf(file,"A:%f \t q:%f \t phi:%f \t c:%f \t",A,q,phi,c);
+    gzprintf(file,"%f \t %f \t %f \t %f \t",A,q,phi,c);
     
     double alpha;
     double beta;
@@ -76,7 +75,7 @@ void MAP_stat_file(double M3[MAX_ROWS][MAX_COLS],double* LlhRes,gzFile file){
     double Dx_std_norm;
     for(int i = 0; i < NUMROWS;i++){
         double Dx = A * pow((1 - q), fabs(M3[i][XCOL]) - 1) + c;
-        gzprintf(file,"Dx_%d:%f \t",i,Dx);
+        gzprintf(file,"%f \t",Dx);
     }
 
     for(int i = 0; i < NUMROWS;i++){
@@ -87,9 +86,18 @@ void MAP_stat_file(double M3[MAX_ROWS][MAX_COLS],double* LlhRes,gzFile file){
         Dx_var_deumerator = pow((alpha+beta),2)*(alpha+beta+1);
         Dx_std = std::sqrt((Dx_var_numerator/Dx_var_deumerator));
         Dx_std_norm = Dx_std / M3[i][NCOL];
-        gzprintf(file,"Dx_std_%d:%f \t",i,Dx_std_norm);
-        //fprintf(stderr,"Dx_%d std %f \n",i,Dx_std_norm);
+        gzprintf(file,"%f",Dx_std_norm);
+        
+        if (i < NUMROWS-1){
+            //ensures the elements are tab seperated
+            gzprintf(file,"\t");
+        }
+        else{
+            // except for the last making new line
+            gzprintf(file,"\n");
+        }
     }
+
     /*mu = A
     std = np.sqrt(A * (1 - A) * (phi + N) / ((phi + 1) * N))
     significance = mu / std
@@ -109,87 +117,236 @@ void M3_stat_file(double M3[MAX_ROWS][MAX_COLS],gzFile file){
     int N_max = 0;
     
     // N_x=1_forward  N_x=1_reverse
-    gzprintf(file,"Nfwd:%d \t Nrev:%d \t",M3[0][NCOL],M3[NUMROWS-1][NCOL]);
+    gzprintf(file,"%d \t %d \t",(int) M3[0][NCOL],(int)M3[NUMROWS-1][NCOL]);
 
     int N_sum = 0;
     int N_sum_fwd = 0;
     int N_sum_rev = 0;
-    int K_sum = 0;
     int K_sum_fwd = 0;
     int K_sum_rev = 0;
     for(int i = 0; i < NUMROWS;i++){
         N_sum += M3[i][NCOL];
-        K_sum += M3[i][KCOL];
         if (i < NUMROWS/2){
             N_sum_fwd += M3[i][NCOL];
             K_sum_fwd += M3[i][KCOL];
         }
         else if (i > NUMROWS/2){
-            N_sum_rev = M3[i][NCOL];
+            N_sum_rev += M3[i][NCOL];
             K_sum_rev += M3[i][KCOL];
         }
     }
 
-    gzprintf(file,"Nsum:%d \t Nfwd:%d \t Nrev:%d \t ksum:%d \t kfwd:%d \t krev:%d\t",N_sum,N_sum_fwd,N_sum_rev,K_sum,K_sum_fwd,K_sum_rev);
-
+    gzprintf(file,"%d \t %d \t %d \t %d \t %d\t",N_sum,N_sum_fwd,N_sum_rev,(int)M3[0][26],(int)M3[0][27]);
+    gzprintf(file,"%d \t %d \t %d \t",(int)M3[0][25],K_sum_fwd,K_sum_rev);
+    /*
+            M3[i][25] = k_sum_total;
+        M3[i][26] = Min_N_in_group;
+        M3[i][27] = Max_N_in_group;
+        */
     // 5'
     for(int i = 0; i < NUMROWS/2;i++){
-        gzprintf(file,"K_%d:%d \t",i+1,(int) M3[i][KCOL]);
+        //fprintf(stderr,"K col %d \n",i);
+        gzprintf(file,"%d \t",(int) M3[i][KCOL]);
     }
 
     for(int i = 0; i < NUMROWS/2;i++){
-        gzprintf(file,"N_%d:%d \t",i+1,(int) M3[i][NCOL]);
+        //fprintf(stderr,"N col %d \n",i);
+        gzprintf(file,"%d \t",(int) M3[i][NCOL]);
     }
 
     for(int i = 0; i < NUMROWS/2;i++){
-        gzprintf(file,"f_%d:%f \t",i+1, M3[i][C_freq]);
+        //fprintf(stderr,"F col %d \n",i);
+        gzprintf(file,"%f \t",M3[i][C_freq]);
     }
 
     // 3'
-    for(int i = NUMROWS-1; i > NUMROWS/2;i--){
-        gzprintf(file,"N_%d:%d \t",i,(int) M3[i][KCOL]);
+    for(int i = NUMROWS; i > NUMROWS/2;i--){
+        //fprintf(stderr,"K col %d \n",i);
+        gzprintf(file,"%d \t",(int) M3[i-1][KCOL]);
     }
 
-     for(int i = NUMROWS-1; i > NUMROWS/2;i--){
-        gzprintf(file,"N_%d:%d \t",i,(int) M3[i][NCOL]);
+     for(int i = NUMROWS; i > NUMROWS/2;i--){
+        //fprintf(stderr,"N col %d \n",i);
+        gzprintf(file,"%d \t",(int) M3[i-1][NCOL]);
     }
-
-     for(int i = NUMROWS-1; i > NUMROWS/2;i--){
-        gzprintf(file,"f_%d:%f \t",i,M3[i][G_freq]);
+    int last_i = 0;
+    for(int i = NUMROWS; i > NUMROWS/2+1;i--){
+        //fprintf(stderr,"f col %d \n",i);
+        gzprintf(file,"%f \t",M3[i-1][G_freq]);
+        last_i = i;
     }
+    gzprintf(file,"%f \t",M3[last_i-1][G_freq]);
 }
+
+const char** getColumnNames(int* colnumber) {
+    const int maxColumnNames = 200;
+    const char** columnNames = (const char**)malloc(200 * sizeof(const char*));
+    if (columnNames == NULL) {
+        fprintf(stderr,"Failed to allocate memory for column names");
+        return NULL;
+    }
+
+    columnNames[0] = "sample";
+    columnNames[1] = "tax_id";
+
+    int N_sum = 0;
+    int N_sum_fwd = 0;
+    int N_sum_rev = 0;
+    int K_sum_fwd = 0;
+    int K_sum_rev = 0;
+
+    for (int i = 0; i < NUMROWS; i++) {
+        N_sum += M3[i][NCOL];
+        if (i < NUMROWS / 2) {
+            N_sum_fwd += M3[i][NCOL];
+            K_sum_fwd += M3[i][KCOL];
+        }
+        else if (i > NUMROWS / 2) {
+            N_sum_rev += M3[i][NCOL];
+            K_sum_rev += M3[i][KCOL];
+        }
+    }
+
+    columnNames[2] = "N_x=1_forward";
+    columnNames[3] = "N_x=1_reverse";
+    columnNames[4] = "N_sum_total";
+    columnNames[5] = "N_sum_forward";
+    columnNames[6] = "N_sum_reverse";
+    columnNames[7] = "N_min";
+    columnNames[8] = "N_max";
+
+    columnNames[9] = "k_sum";
+    columnNames[10] = "k_sum_forward";
+    columnNames[11] = "k_sum_reverse";
+
+    int curr_it = 11;
+
+    for (int i = 0; i < NUMROWS / 2; i++) {
+        char k_buff_fwd[10];
+        snprintf(k_buff_fwd, sizeof(k_buff_fwd), "k+%d", i + 1);
+        columnNames[curr_it+i+1] = strdup(k_buff_fwd);
+    }
+
+    curr_it += NUMROWS / 2;
+    for (int i = 0; i < NUMROWS / 2; i++) {
+        char N_buff_fwd[10];
+        snprintf(N_buff_fwd, sizeof(N_buff_fwd), "N+%d", i + 1);
+        columnNames[curr_it+i+1] = strdup(N_buff_fwd);
+    }
+
+    curr_it += NUMROWS / 2;
+    for (int i = 0; i < NUMROWS / 2; i++) {
+        char f_buff_fwd[10];
+        snprintf(f_buff_fwd, sizeof(f_buff_fwd), "f+%d", i + 1);
+        columnNames[curr_it+i+1] = strdup(f_buff_fwd);
+    }
+
+    curr_it += NUMROWS / 2;
+    for (int i = 0; i < NUMROWS / 2; i++) {
+        char k_buff_rev[10];
+        snprintf(k_buff_rev, sizeof(k_buff_rev), "k-%d", i + 1);
+        columnNames[curr_it+i+1] = strdup(k_buff_rev);
+    }
+
+    curr_it += NUMROWS / 2;
+    for (int i = 0; i < NUMROWS / 2; i++) {
+        char N_buff_rev[10];
+        snprintf(N_buff_rev, sizeof(N_buff_rev), "N-%d", i + 1);
+        columnNames[curr_it+i+1] = strdup(N_buff_rev);
+    }
+    
+    curr_it += NUMROWS / 2;
+    for (int i = 0; i < NUMROWS / 2; i++) {
+        char f_buff_rev[10];
+        snprintf(f_buff_rev, sizeof(f_buff_rev), "f-%d", i + 1);
+        columnNames[curr_it+i+1] = strdup(f_buff_rev);
+    }
+    
+    curr_it += NUMROWS / 2;
+    columnNames[curr_it + 1] = "MAP";
+    columnNames[curr_it + 2] = "MAP_damage_std";
+    columnNames[curr_it + 3] = "MAP_damage_significance";
+    columnNames[curr_it + 4] = "A";
+    columnNames[curr_it + 5] = "q";
+    columnNames[curr_it + 6] = "phi";
+    columnNames[curr_it + 7] = "c";
+
+    curr_it += 7;
+    for (int i = 0; i < NUMROWS / 2; i++) {
+        //std::cout << "values curr_it " << curr_it + i << std::endl;
+        char Dx_buff_fwd[10];
+        snprintf(Dx_buff_fwd, sizeof(Dx_buff_fwd), "Dx+%d", i + 1);
+        columnNames[curr_it+i+1] = strdup(Dx_buff_fwd);
+    }
+
+    curr_it += NUMROWS / 2;
+    for (int i = 0; i < NUMROWS/2; i++) {
+        char Dx_buff_rev[10];
+        sprintf(Dx_buff_rev, "Dx-%d", i + 1);
+        columnNames[curr_it+i+1] = strdup(Dx_buff_rev);
+    }
+    
+    curr_it += NUMROWS / 2;
+    for (int i = 0; i < NUMROWS/2; i++) {
+        char Dx_std_buff_fwd[10];
+        sprintf(Dx_std_buff_fwd, "Dx_std+%d", i + 1);
+        columnNames[curr_it+i+1] = strdup(Dx_std_buff_fwd);
+    }
+
+    curr_it += NUMROWS / 2;
+    for (int i = 0; i < NUMROWS/2; i++) {
+        char Dx_std_buff_rev[10];
+        sprintf(Dx_std_buff_rev, "Dx_std-%d", i + 1);
+        columnNames[curr_it+i+1] = strdup(Dx_std_buff_rev);
+    }
+    curr_it += NUMROWS / 2;
+
+    (*colnumber) = curr_it+1;
+    return columnNames;
+}
+
+
 
 #ifdef __WITH_MAIN__
 
-int main() {
+int main(){
     /*double M3[MAX_ROWS][MAX_COLS];
     char tax_id[MAX_ROWS][MAX_COLS];
     char dir[MAX_ROWS][MAX_COLS];*/
-
+    
     int num_rows, num_cols;
     read_count_matrix("MycoBactBamSEOutSortMDSortN.mismatches.txt.gz", M3,tax_id,dir,&num_rows, &num_cols);
     Alter_count_matrix(M3,tax_id,dir,num_rows,num_cols);
-    
+    std::cout << "AFSGAJHGHJGHDJ" << tax_id[0] << std::endl;
     int numpars = 5;
     double* LlhRes = (double*) malloc(numpars*sizeof(double));    
     MAP(M3,LlhRes);
 
-    fprintf(stderr,"A: %f \t q: %f \t c: %f \t phi: %f \t llh: %f \n",LlhRes[0],LlhRes[1],LlhRes[2],LlhRes[3],LlhRes[4]);
+    //fprintf(stderr,"A: %f \t q: %f \t c: %f \t phi: %f \t llh: %f \n",LlhRes[0],LlhRes[1],LlhRes[2],LlhRes[3],LlhRes[4]);
+
+    int colnumber = 0;
+    const char** columnNames = getColumnNames(&colnumber);
 
     const char* filename = "outputtest.txt.gz";
     gzFile gz = Z_NULL;
     gz = gzopen(filename,"w");
     assert(gz!=Z_NULL);
+
+    if (columnNames != NULL) {
+        for (int i = 0; i < colnumber; i++) {
+            //fprintf(stderr,"%s \t",columnNames[i]);
+            gzprintf(gz,"%s \t",columnNames[i]);
+        }
+        gzprintf(gz,"\n");    
+        // Free the allocated memory
+        free(columnNames);
+    }
+    
+    // insert values
+    gzprintf(gz,"%s \t %s \t","MycoBactBamSEOutSortMDSortN",tax_id[0]);
     M3_stat_file(M3,gz);
     MAP_stat_file(M3,LlhRes,gz);
-    gzprintf(gz,"\n");
     gzclose(gz);
-    //;
-    
-    /*for (int i = 0; i < numpars; i++) {
-        fprintf(stderr,"Value %f \n",LlhRes[i]);
-    }*/
-
     return 0;
 }
 #endif
