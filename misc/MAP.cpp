@@ -17,6 +17,46 @@
 #define C_freq 19
 #define G_freq 20
 
+typedef struct{
+    const char* M3_matrix_print;
+    const char* OutputStat;
+}argStruct;
+
+int HelpPage(FILE *fp){
+  fprintf(fp,"Generate artificial reference genome uniformly sampled from the four nucleotides\n");
+  fprintf(fp,"Usage\n./MAP -m <Suffix.mismatches.txt.gz> -o <NAME.txt.gz>\n");
+  fprintf(fp,"\nExample\n\n");
+  fprintf(fp,"\nOptions: \n");
+  fprintf(fp,"-h   | --help: \t\t\t Print help page.\n");
+  fprintf(fp,"-v   | --version: \t\t Print help page.\n\n");
+  fprintf(fp,"-m  | --mismatchmatrix: \t Mismatch matrix from metadamage print or print_ugly, not bdamage file\n");
+  fprintf(fp,"-o   | --outstat: \t\t output statistics file in .gz format\n");
+  exit(1);
+  return 0;
+}
+ 
+argStruct *getpars(int argc,char ** argv){
+  argStruct *mypars = new argStruct;
+  mypars->M3_matrix_print = NULL;
+  mypars->OutputStat = NULL;
+  ++argv;
+  while(*argv){
+    //fprintf(stderr,"ARGV %s\n",*argv);
+    if(strcasecmp("-m",*argv)==0 || strcasecmp("--mismatchmatrix",*argv)==0){
+      mypars->M3_matrix_print = strdup(*(++argv));
+    }
+    else if(strcasecmp("-o",*argv)==0 || strcasecmp("--outstat",*argv)==0){
+      mypars->OutputStat = strdup(*(++argv));
+    }
+    else{
+      fprintf(stderr,"unrecognized input option %s, see help page\n\n",*(argv));
+      exit(0);
+    }
+    ++argv;
+  }
+  return mypars;
+}
+
 void MAP(double M3[MAX_ROWS][MAX_COLS],double* MAP){
     double lowbound[] = {0.00000001,0.00000001,0.00000001,2};
     double upbound[] = {1-0.00000001,1-0.00000001,1-0.00000001,100000};
@@ -305,48 +345,62 @@ const char** getColumnNames(int* colnumber) {
     return columnNames;
 }
 
+void M3Print_to_OutStat(int argc,char **argv){
+    argStruct *mypars = NULL;
+    if(argc==1||(argc==2&&(strcasecmp(argv[1],"--version")==0||strcasecmp(argv[1],"-v")==0||
+                            strcasecmp(argv[1],"--help")==0||strcasecmp(argv[1],"-h")==0))){
+        HelpPage(stderr);
+    }
+    else{
+        mypars = getpars(argc,argv);
+
+        int num_rows, num_cols;
+        const char* M3file = mypars-> M3_matrix_print; //"MycoBactBamSEOutSortMDSortN.mismatches.txt.gz";
+        const char* filename = mypars-> OutputStat; //"outputtest.txt.gz";
+
+        read_count_matrix(M3file, M3,tax_id,dir,&num_rows, &num_cols);
+        Alter_count_matrix(M3,tax_id,dir,num_rows,num_cols);
+
+        int numpars = 5;
+        double* LlhRes = (double*) malloc(numpars*sizeof(double));    
+        MAP(M3,LlhRes);
+        //fprintf(stderr,"A: %f \t q: %f \t c: %f \t phi: %f \t llh: %f \n",LlhRes[0],LlhRes[1],LlhRes[2],LlhRes[3],LlhRes[4]);
+
+        int colnumber = 0;
+        const char** columnNames = getColumnNames(&colnumber);
+
+        gzFile gz = Z_NULL;
+        gz = gzopen(filename,"w");
+        assert(gz!=Z_NULL);
+
+        if (columnNames != NULL) {
+            for (int i = 0; i < colnumber; i++) {
+                //fprintf(stderr,"%s \t",columnNames[i]);
+                gzprintf(gz,"%s \t",columnNames[i]);
+            }
+            gzprintf(gz,"\n");    
+            // Free the allocated memory
+            free(columnNames);
+        }
+
+        char* Id_copy = strdup(M3file);
+        char* sample_id = strtok(Id_copy,".");
+        free(Id_copy);
+
+
+        gzprintf(gz,"%s \t %s \t","tmp",tax_id[0]);
+        M3_stat_file(M3,gz);
+        MAP_stat_file(M3,LlhRes,gz);
+        gzclose(gz);
+    }
+}
+
+
 
 
 #ifdef __WITH_MAIN__
-
-int main(){
-    /*double M3[MAX_ROWS][MAX_COLS];
-    char tax_id[MAX_ROWS][MAX_COLS];
-    char dir[MAX_ROWS][MAX_COLS];*/
-    
-    int num_rows, num_cols;
-    read_count_matrix("MycoBactBamSEOutSortMDSortN.mismatches.txt.gz", M3,tax_id,dir,&num_rows, &num_cols);
-    Alter_count_matrix(M3,tax_id,dir,num_rows,num_cols);
-    std::cout << "AFSGAJHGHJGHDJ" << tax_id[0] << std::endl;
-    int numpars = 5;
-    double* LlhRes = (double*) malloc(numpars*sizeof(double));    
-    MAP(M3,LlhRes);
-
-    //fprintf(stderr,"A: %f \t q: %f \t c: %f \t phi: %f \t llh: %f \n",LlhRes[0],LlhRes[1],LlhRes[2],LlhRes[3],LlhRes[4]);
-
-    int colnumber = 0;
-    const char** columnNames = getColumnNames(&colnumber);
-
-    const char* filename = "outputtest.txt.gz";
-    gzFile gz = Z_NULL;
-    gz = gzopen(filename,"w");
-    assert(gz!=Z_NULL);
-
-    if (columnNames != NULL) {
-        for (int i = 0; i < colnumber; i++) {
-            //fprintf(stderr,"%s \t",columnNames[i]);
-            gzprintf(gz,"%s \t",columnNames[i]);
-        }
-        gzprintf(gz,"\n");    
-        // Free the allocated memory
-        free(columnNames);
-    }
-    
-    // insert values
-    gzprintf(gz,"%s \t %s \t","MycoBactBamSEOutSortMDSortN",tax_id[0]);
-    M3_stat_file(M3,gz);
-    MAP_stat_file(M3,LlhRes,gz);
-    gzclose(gz);
+int main(int argc,char **argv){
+    M3Print_to_OutStat(argc,argv); 
     return 0;
 }
 #endif
