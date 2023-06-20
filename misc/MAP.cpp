@@ -103,9 +103,9 @@ void MAP_stat_file(double M3[MAX_ROWS][MAX_COLS],double* LlhRes,gzFile file){
     double A = LlhRes[0];
     double c = LlhRes[2];
     double phi = LlhRes[3];
-    
+    double llh = LlhRes[4];
     // then the optimized values MAP_A MAP_q MAP_phi MAP_c 
-    gzprintf(file,"%f \t %f \t %f \t %f \t",A,q,phi,c);
+    gzprintf(file,"%f \t %f \t %f \t %f \t %f \t",A,q,phi,c,llh);
     
     double alpha;
     double beta;
@@ -310,8 +310,9 @@ const char** getColumnNames(int* colnumber) {
     columnNames[curr_it + 5] = "q";
     columnNames[curr_it + 6] = "phi";
     columnNames[curr_it + 7] = "c";
+    columnNames[curr_it + 8] = "llh";
 
-    curr_it += 7;
+    curr_it += 8;
     for (int i = 0; i < NUMROWS / 2; i++) {
         //std::cout << "values curr_it " << curr_it + i << std::endl;
         char Dx_buff_fwd[10];
