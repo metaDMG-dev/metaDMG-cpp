@@ -13,9 +13,9 @@
 //decreasing factr, pgtol will increase precision
 //factr is the multiple of machine precision that result will be
 //pgtol is size of gradient on exit
-#define MVAL 10
-#define FACTR 1.0e4
-#define PGTOL 1.0e-6
+#define MVAL 23
+#define FACTR 1.0e6
+#define PGTOL 1.0e-3
 
 //nbd is a vector of integers of dimension numpars.
 //nbd[i]=0 if there are no bounds for parameter i, 
