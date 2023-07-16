@@ -15,6 +15,7 @@
 #include <vector>   // for vector
 
 #include "main_pmd.h"    // for main_pmd
+#include "main_dfit.h"   // for main_pmd
 #include "ngsLCA.h"      // for mean, var, gccontent, print_chain
 #include "profile.h"     // for mydataD, mydata2, load_bdamage3, (anonym...
 #include "regression.h"  // for main_regression
@@ -1315,6 +1316,7 @@ int main_print_ugly(int argc, char **argv) {
     return 0;
 }
 
+
 // from ngsLCA.cpp
 int main_lca(int argc, char **argv);
 int main(int argc, char **argv) {
@@ -1335,6 +1337,7 @@ int main(int argc, char **argv) {
         fprintf(stderr, "./metaDMG-cpp print2 [many options] bdamage.gz\n");
         fprintf(stderr, "./metaDMG-cpp print_all [many options] bdamage.gz\n");
         fprintf(stderr, "./metaDMG-cpp print_ugly [many options] bdamage.gz\n");
+	fprintf(stderr, "./metaDMG-cpp dfit [many options] bdamage.gz\n");
         return 0;
     }
     fprintf(stderr, "#");
@@ -1360,6 +1363,8 @@ int main(int argc, char **argv) {
         main_print_all(argc, argv);
     if (!strcmp(argv[0], "print_ugly"))
         main_print_ugly(argc, argv);
+    if (!strcmp(argv[0], "dfit"))
+      main_dfit(argc, argv);
     if (!strcmp(argv[0], "print2"))
         main_print2(argc, argv);
     if (!strcmp(argv[0], "merge"))
