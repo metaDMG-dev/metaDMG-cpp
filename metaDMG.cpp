@@ -230,8 +230,9 @@ int main_getdamage(int argc, char **argv) {
         return 0;
     }
     if (refName) {
-        char *ref = (char *)malloc(10 + strlen(refName) + 1);
-        sprintf(ref, "reference=%s", refName);
+      int lenlen = 10 + strlen(refName) + 1;
+      char *ref = (char *)malloc(lenlen);
+      snprintf(ref,lenlen, "reference=%s", refName);
         hts_opt_add((hts_opt **)&dingding2->specific, ref);
         free(ref);
     }
@@ -278,10 +279,12 @@ int main_getdamage(int argc, char **argv) {
             whichref = b->core.tid;
         std::map<int, std::vector<float> >::iterator it = gcconts.find(whichref);
         if (it == gcconts.end()) {
-            std::vector<float> tmp1{mygc};
-            gcconts[whichref] = tmp1;
-            std::vector<float> tmp2{mylen};
-            seqlens[whichref] = tmp2;
+	  std::vector<float> tmp1;
+	  tmp1.push_back(mygc);
+	  gcconts[whichref] = tmp1;
+	  std::vector<float> tmp2;
+	  tmp2.push_back(mylen);
+	  seqlens[whichref] = tmp2;
         } else {
             it->second.push_back(mygc);
             it = seqlens.find(whichref);
@@ -300,10 +303,10 @@ int main_getdamage(int argc, char **argv) {
     fprintf(stderr, "\t-> Outputting overall statistic in file: \"%s\"\n", buf);
     FILE *fpstat = NULL;
     assert(((fpstat = fopen(buf, "wb"))) != NULL);
-    for (std::map<int, std::vector<float>>::iterator it = gcconts.begin(); it != gcconts.end(); it++) {
+    for (std::map<int, std::vector<float> >::iterator it = gcconts.begin(); it != gcconts.end(); it++) {
         std::map<int, triple>::iterator it2 = dmg->assoc.find(it->first);
         assert(it2 != dmg->assoc.end());
-        std::map<int, std::vector<float>>::iterator it3 = seqlens.find(it->first);
+        std::map<int, std::vector<float> >::iterator it3 = seqlens.find(it->first);
         assert(it3 != seqlens.end());
         if (0)
             fprintf(fpstat, "%d\t%lu\t%f\t%f\t%f\t%f\tNA\tNA\n", it->first, it2->second.nreads, mean(it3->second), var(it3->second), mean(it->second), var(it->second));
@@ -326,7 +329,7 @@ int main_index(int argc, char **argv) {
     char *infile = argv[1];
     fprintf(stderr, "infile: %s\n", infile);
     char onam[strlen(infile) + 20];
-    sprintf(onam, "%s.idx", infile);
+    snprintf(onam,strlen(infile) + 20, "%s.idx", infile);
     fprintf(stderr, "outfile: %s\n", onam);
     FILE *fp = NULL;
     if (((fp = fopen(onam, "wb"))) == NULL) {
@@ -471,7 +474,7 @@ int main_print(int argc, char **argv) {
                 }
                 if (countout == 1) {
                     for (int i = 0; i < 16; i++)
-                        fprintf(stdout, "\t%d", data[i]);
+                        fprintf(stdout, "\t%f", data[i]);
                     fprintf(stdout, "\n");
                 } else {
                     float flt[16];
@@ -523,7 +526,7 @@ int main_print(int argc, char **argv) {
                 }
                 if (countout == 1) {
                     for (int i = 0; i < 16; i++)
-                        fprintf(stdout, "\t%d", data[i]);
+                        fprintf(stdout, "\t%f",data[i]);
                     fprintf(stdout, "\n");
                 } else {
                     float flt[16];
