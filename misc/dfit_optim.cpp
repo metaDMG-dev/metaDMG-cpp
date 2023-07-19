@@ -116,7 +116,7 @@ double compute_log_likelihood(const double DMGparam[], const void *dats){
     double like_sum = 0;
     for (int i = 0; i < NUMROWS; i++) {
         Dx = A * pow((1 - q), fabs(XCOL[i+1]) - 1) + c;
-        fprintf(stderr,"DX %f \n",Dx);
+	//        fprintf(stderr,"DX %f \n",Dx);
         alpha = Dx * phi;
         beta = (1 - Dx) * phi;
         //double likelihood = compute_log_likelihood(A, q, c, phi, M3[i][x_col], M3[i][k_col], M3[i][N_col]);
