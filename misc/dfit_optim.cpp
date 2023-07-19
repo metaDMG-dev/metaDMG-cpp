@@ -2,6 +2,7 @@
 #include <cassert>
 #include <cstring>
 #include <vector>
+#include <cstdio>
 #include <zlib.h>
 
 #include "bfgs.h"
