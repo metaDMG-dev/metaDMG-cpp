@@ -35,7 +35,7 @@ INSTALL_DIR = $(INSTALL) -dm0755
 INSTALL_PROGRAM = $(INSTALL) -Dm0755
 
 PROGRAMS = compressbam 
-PROGRAMS_MISC = MAP
+PROGRAMS_MISC = MAP dfit_optim
 
 all: $(PROGRAMS) $(PROGRAMS_MISC)
 
@@ -54,6 +54,8 @@ compressbam: compressbam.cpp
 MAP: MAP.cpp M3Load.o bfgs.o Likelihood.o
 	$(CXX) $(FLAGS) -std=c++11 MAP.cpp M3Load.o bfgs.o Likelihood.o -o MAP $(LIBS) -D__WITH_MAIN__
 
+dfit_optim: dfit_optim.cpp bfgs.o
+	$(CXX) $(FLAGS) dfit_optim.cpp bfgs.o -o dfit_optim $(LIBS) -D__WITH_MAIN__
 clean:
 	rm -f *.o $(PROGRAMS) $(PROGRAMS_MISC) *~
 
