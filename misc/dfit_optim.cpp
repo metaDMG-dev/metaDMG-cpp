@@ -126,7 +126,7 @@ double compute_log_likelihood(const double DMGparam[], const void *dats){
         //fprintf(stderr,"part1 is %f \t part2 %f \n",part1,part2);
         like_sum = like_sum + (part1-part2); //(part1-part2) -> likelihood
     }
-    exit(0);
+
     //fprintf(stderr,"A: %0.10f \t q %0.10f \t c %0.10f \t phi %0.10f\n",A,q,c,phi);
     //fprintf(stderr,"Compute log-likelihood is %f \n",(-1)*like_sum);
     return (-1)*like_sum;
