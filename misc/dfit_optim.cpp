@@ -70,10 +70,11 @@ double **read1_ugly_matrix(const char *fname){
     xcol.push_back(pos);
     ncol.push_back(nsum);
     kcol.push_back(k);
+       
   }
   fprintf(stderr,"\t-> Number of datapoints: %lu \n",xcol.size());
   double **ret = new double*[3];
-  ret[0] = new double[xcol.size()];
+  ret[0] = new double[xcol.size()+1];
   ret[0][0] = xcol.size();
   ret[1] = new double[xcol.size()];
   ret[2] = new double[xcol.size()];
@@ -81,6 +82,7 @@ double **read1_ugly_matrix(const char *fname){
     ret[0][i+1] = xcol[i];
     ret[1][i] = kcol[i];
     ret[2][i] = ncol[i];
+    //   fprintf(stderr,"-> %d) %f %f %f\n",i,ret[0][i+1],ret[1][i],ret[2][i]);
   }
   
   return ret;
@@ -115,20 +117,22 @@ double compute_log_likelihood(const double DMGparam[], const void *dats){
 
     double like_sum = 0;
     for (int i = 0; i < NUMROWS; i++) {
-        Dx = A * pow((1 - q), fabs(XCOL[i+1]) - 1) + c;
-	//        fprintf(stderr,"DX %f \n",Dx);
+        Dx = A * pow((1 - q), fabs(XCOL[i+1])) + c;
+	//fprintf(stderr,"DX %f \n",Dx);
         alpha = Dx * phi;
         beta = (1 - Dx) * phi;
+	//	fprintf(stderr,"[%d] XCOL: %f KCOL: %f NCOL: %f\n",i,XCOL[i+1],KCOL[i],NCOL[i]);
         //double likelihood = compute_log_likelihood(A, q, c, phi, M3[i][x_col], M3[i][k_col], M3[i][N_col]);
         part1 = lgamma(NCOL[i]+1)+lgamma(KCOL[i]+alpha)+lgamma(NCOL[i]-KCOL[i]+beta)+lgamma(alpha+beta);
         part2 = lgamma(KCOL[i]+1)+lgamma(NCOL[i]-KCOL[i]+1)+lgamma(alpha)+lgamma(beta)+lgamma(NCOL[i]+alpha+beta);
         //fprintf(stderr,"XCAL %f \t M3[i][NCOL] %f \n",fabs(M3[i][KCOL]),M3[i][NCOL]);
-        //fprintf(stderr,"part1 is %f \t part2 %f \n",part1,part2);
+	//   fprintf(stderr,"part1 is %f \t part2 %f \n",part1,part2);
         like_sum = like_sum + (part1-part2); //(part1-part2) -> likelihood
     }
-
-    //fprintf(stderr,"A: %0.10f \t q %0.10f \t c %0.10f \t phi %0.10f\n",A,q,c,phi);
+    //exit(0);
+    //  fprintf(stderr,"A: %0.10f \t q %0.10f \t c %0.10f \t phi %0.10f\n",A,q,c,phi);
     //fprintf(stderr,"Compute log-likelihood is %f \n",(-1)*like_sum);
+    
     return (-1)*like_sum;
 }
 
@@ -171,6 +175,8 @@ int main(int argc,char **argv){
   if(argc>1)
     fname = strdup(argv[1]);
   double **dat = read1_ugly_matrix(fname);
+  for(int i=0;0&&i<dat[0][0];i++)
+    fprintf(stderr,"%d) %f %f %f\n",i,dat[0][i+1],dat[1][i],dat[2][i]);
   optimoptim(dat);
 }
 
