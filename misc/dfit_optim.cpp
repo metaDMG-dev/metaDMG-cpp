@@ -7,28 +7,6 @@
 
 #include "bfgs.h"
 
-
-void mu_phi_to_alpha_beta(double mu, double phi, double* alpha, double* beta) {
-    *alpha = mu * phi;
-    *beta = phi * (1 - mu);
-}
-
-void get_priors(double* priors) {
-    // Generate priors
-    double A_mu = 0.1, A_phi = 10;
-    double q_mu = 0.2, q_phi = 5;
-    double c_mu = 0.1, c_phi = 10;
-    double phi_min = 2, phi_scale = 1000;
-
-    mu_phi_to_alpha_beta(A_mu, A_phi, &priors[0], &priors[1]);
-    mu_phi_to_alpha_beta(q_mu, q_phi, &priors[2], &priors[3]);
-    mu_phi_to_alpha_beta(c_mu, c_phi, &priors[4], &priors[5]);
-    
-    priors[6] = phi_min;
-    priors[7] = phi_scale;
-}
-
-
 double **read1_ugly_matrix(const char *fname){
   fprintf(stderr,"\t-> Reading file: \'%s\'\n",fname);
   gzFile gz = Z_NULL;
@@ -75,12 +53,13 @@ double **read1_ugly_matrix(const char *fname){
   }
   fprintf(stderr,"\t-> Number of datapoints: %lu \n",xcol.size());
   double **ret = new double*[3];
-  ret[0] = new double[xcol.size()+1];
+  ret[0] = new double[xcol.size()+2];
   ret[0][0] = xcol.size();
+  ret[0][1] = 0;//<- function counter
   ret[1] = new double[xcol.size()];
   ret[2] = new double[xcol.size()];
   for(int i=0;i<xcol.size();i++){
-    ret[0][i+1] = xcol[i];
+    ret[0][i+2] = xcol[i];
     ret[1][i] = kcol[i];
     ret[2][i] = ncol[i];
     //   fprintf(stderr,"-> %d) %f %f %f\n",i,ret[0][i+1],ret[1][i],ret[2][i]);
@@ -90,20 +69,13 @@ double **read1_ugly_matrix(const char *fname){
 }
 
 double compute_log_likelihood(const double DMGparam[], const void *dats){
-
-  const double **tmp =(const double **) dats;
-  const double *XCOL = tmp[0];
+  
+  double **tmp =(double **) dats;
+  const double *XCOL = tmp[0] +2;
   const double *KCOL = tmp[1];
   const double *NCOL = tmp[2];
-  int NUMROWS = XCOL[0];
-
-    //Compute the log-likelihood across all positions and return the result
-    /*double part1=0;
-    double part2=0;
-    double Dx;
-    double alpha;
-    double beta;*/
-
+  int NUMROWS = tmp[0][0];
+  tmp[0][1] = tmp[0][1]+1;//increment llh function counter for nice information
     // DMGparam =  A q c phi
     double A = DMGparam[0]; 
     double q = DMGparam[1];
@@ -118,11 +90,11 @@ double compute_log_likelihood(const double DMGparam[], const void *dats){
 
     double like_sum = 0;
     for (int i = 0; i < NUMROWS; i++) {
-        Dx = A * pow((1 - q), fabs(XCOL[i+1])) + c;
+        Dx = A * pow((1 - q), fabs(XCOL[i])) + c;
 	//fprintf(stderr,"DX %f \n",Dx);
         alpha = Dx * phi;
         beta = (1 - Dx) * phi;
-	//	fprintf(stderr,"[%d] XCOL: %f KCOL: %f NCOL: %f\n",i,XCOL[i+1],KCOL[i],NCOL[i]);
+	//		fprintf(stderr,"[%d] XCOL: %f KCOL: %f NCOL: %f\n",i,XCOL[i],KCOL[i],NCOL[i]);
         //double likelihood = compute_log_likelihood(A, q, c, phi, M3[i][x_col], M3[i][k_col], M3[i][N_col]);
         part1 = lgamma(NCOL[i]+1)+lgamma(KCOL[i]+alpha)+lgamma(NCOL[i]-KCOL[i]+beta)+lgamma(alpha+beta);
         part2 = lgamma(KCOL[i]+1)+lgamma(NCOL[i]-KCOL[i]+1)+lgamma(alpha)+lgamma(beta)+lgamma(NCOL[i]+alpha+beta);
@@ -130,43 +102,88 @@ double compute_log_likelihood(const double DMGparam[], const void *dats){
 	//   fprintf(stderr,"part1 is %f \t part2 %f \n",part1,part2);
         like_sum = like_sum + (part1-part2); //(part1-part2) -> likelihood
     }
-    //exit(0);
+    //    exit(0);
     //  fprintf(stderr,"A: %0.10f \t q %0.10f \t c %0.10f \t phi %0.10f\n",A,q,c,phi);
     //fprintf(stderr,"Compute log-likelihood is %f \n",(-1)*like_sum);
     
-    return (-1)*like_sum;
+    return -like_sum;
 }
 
-
-double optimoptim(double **dat){
- 
-    double priors[8];
-    get_priors(priors);
-
-    int numpars = 4;
-
-    double lowbound[] = {0.00000001,0.00000001,0.00000001,2};
-    double upbound[] = {1-0.00000001,1-0.00000001,1-0.00000001,100000};
-    int nbd[] = {2,2,2,1}; //2 is both lower/upper bound
-    int noisy = -1;
-    
-    double* DMGparam = (double*) malloc(numpars*sizeof(double)); // A q c phi
-    double* CombinedParam = (double*) malloc((numpars + 8) * sizeof(double));
-    DMGparam[0] = 0.1;
-    DMGparam[1] = 0.1;
-    DMGparam[2] = 0.01; 
-    DMGparam[3] = 1000; 
-    memcpy(CombinedParam, DMGparam, numpars * sizeof(double));
-    memcpy(CombinedParam + numpars, priors, 8 * sizeof(double));
-
-    double lik = findmax_bfgs(numpars, DMGparam, dat,compute_log_likelihood,nullptr,lowbound,upbound,nbd,noisy);
-    fprintf(stderr,"\t-> Optimized DMGparam A:%f \t q:%f \t c:%f \t phi:%f lik:%f \n",DMGparam[0],DMGparam[1],DMGparam[2],DMGparam[3],lik);
-    
-    free(DMGparam);
-    return lik;
+//invec is 4 double long, pre values are start, post value are the optimized parameters
+// A q c phi
+double optimoptim(double *invec,double **dat){
+  int numpars = 4;
+  double lowbound[] = {0.00000001,0.00000001,0.00000001,2};
+  double upbound[] = {1-0.00000001,1-0.00000001,1-0.00000001,100000};
+  int nbd[] = {2,2,2,1}; //2 is both lower/upper bound
+  int noisy = -1;
+  dat[0][1] = 1;
+  double lik = findmax_bfgs(numpars, invec, dat,compute_log_likelihood,nullptr,lowbound,upbound,nbd,noisy);
+  // fprintf(stderr,"\t-> Optimized DMGparam A:%f \t q:%f \t c:%f \t phi:%f lik:%f nit: %.0f\n",invec[0],invec[1],invec[2],invec[3],lik,dat[0][1]);
+  invec[4] = lik;
+  invec[5] = dat[0][1];//<- plugin ncall of the objective function
+  return lik;
 }
+/*
+  function to fill in
+  std::significance::dxfit_{0...nrows}::dxfix_conf_{0...nrows}
+  statpars is therefore of length 2+2*numrows;
+ */
+void getstat(double **dat,double *pars,double *statpars){
 
+    // MAP damage, damage_std Map_damage_significance
+    
+     double A = pars[0];
+    double q = pars[1];
+    double c = pars[2];
+    double phi = pars[3];
+    double llh = pars[4];
+    int NUMROWS = dat[0][0];
+    double *XCOL = dat[0]+2;
+    double *KCOL = dat[1];
+    double *NCOL = dat[2];
+    double N_pos = dat[2][0];
+    
+    double std = std::sqrt((A*(1-A)*(phi+N_pos))/((phi+1)*N_pos));
+    double significance = A/std;
+    statpars[0] = std;
+    statpars[1] = significance;
 
+    //gzprintf(file,"%f \t %f \t %f \t",A,std,significance);
+
+    /*
+    add the significance etc for the A, q, c when done
+    */
+   
+    double alpha;
+    double beta;
+    double Dx_var_numerator;
+    double Dx_var_deumerator;
+    double Dx_std;
+    double Dx_std_norm;
+    
+    for(int i = 0; i < NUMROWS;i++){
+      double Dx = A * pow((1 - q), fabs(XCOL[i])) + c;
+      statpars[i+2] = Dx;
+      //  fprintf(stderr,"i: %d val: %f\n",i,Dx);
+      //        gzprintf(file,"%f \t",Dx);
+    }
+
+    for(int i = 0; i < NUMROWS;i++){
+        double Dx = A * pow((1 - q), fabs(XCOL[i])) + c;
+        alpha = Dx * phi;
+        beta = (1 - Dx) * phi;
+        Dx_var_numerator = NCOL[i]*alpha*beta*(alpha+beta+NCOL[i]);
+        Dx_var_deumerator = pow((alpha+beta),2)*(alpha+beta+1);
+        Dx_std = std::sqrt((Dx_var_numerator/Dx_var_deumerator));
+        Dx_std_norm = Dx_std / NCOL[i];
+	statpars[NUMROWS+2+i] = Dx_std_norm;
+	//	fprintf(stderr,"at: %d val:%f\n",NUMROWS+2+i, Dx_std_norm);
+	//        gzprintf(file,"%f",Dx_std_norm);
+	
+    }
+
+}
 
 
 #ifdef __WITH_MAIN__
@@ -176,9 +193,28 @@ int main(int argc,char **argv){
   if(argc>1)
     fname = strdup(argv[1]);
   double **dat = read1_ugly_matrix(fname);
-  for(int i=0;0&&i<dat[0][0];i++)
-    fprintf(stderr,"%d) %f %f %f\n",i,dat[0][i+1],dat[1][i],dat[2][i]);
-  optimoptim(dat);
+  double pars[6] = {0.1,0.1,0.01,1000};//last one will contain the llh,and the ncall for the objective function
+  optimoptim(pars,dat);
+  double stats[2+2*(int)dat[0][0]];
+  getstat(dat,pars,stats);
+
+  //printit
+  fprintf(stderr,"(A,q,c,phi,llh,ncall,Z,sign)\n");
+  for(int i=0;i<6;i++)
+    fprintf(stderr,"%f\t",pars[i]);
+  fprintf(stderr,"%f\t%f\n",stats[0],stats[1]);
+
+  fprintf(stderr,"direction,cycle,k,n,dx,dx_conf\n");
+  int nrows = (int) dat[0][0];
+  int ncycle = nrows/2;
+  double *dx = stats+2;
+  double *dx_conf = stats+2+nrows;
+  for(int i=0;i<ncycle;i++)
+    fprintf(stderr,"5\t%d\t%.0f\t%0.f\t%f\t%f\n",i,dat[1][i],dat[2][i],dx[i],dx_conf[i]);
+  dx = stats+2+ncycle;
+  dx_conf = stats+2+nrows+ncycle;
+  for(int i=0;i<ncycle;i++)
+    fprintf(stderr,"3\t%d\t%.0f\t%0.f\t%f\t%f\n",i,dat[1][i+ncycle],dat[2][i+ncycle],dx[i],dx_conf[i]);
 }
 
 #endif
