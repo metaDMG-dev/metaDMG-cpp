@@ -14,7 +14,9 @@ jobs:
     steps:
     - uses: actions/checkout@v2
     - name: Install dependencies
-      run: sudo apt-get install  libgsl-dev libcurl4-openssl-dev libeigen3-dev samtools
+      run: |
+      sudo apt-get update;
+      sudo apt-get install -y libbz2-dev liblzma-dev libcurl4-openssl-devlibgsl-dev libeigen3-dev samtools
     - name: prepare htslib
       run: git clone --branch=develop --recursive https://github.com/samtools/htslib.git;cd htslib; make;cd ..;
     - name: make
