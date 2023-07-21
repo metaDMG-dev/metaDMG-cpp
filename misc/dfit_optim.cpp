@@ -111,10 +111,10 @@ double compute_log_likelihood(const double DMGparam[], const void *dats){
 
 //invec is 4 double long, pre values are start, post value are the optimized parameters
 // A q c phi
-double optimoptim(double *invec,double **dat){
+double optim1(double *invec,double **dat){
   int numpars = 4;
   double lowbound[] = {0.00000001,0.00000001,0.00000001,2};
-  double upbound[] = {1-0.00000001,1-0.00000001,1-0.00000001,100000};
+  double upbound[] = {1-0.00000001,1-0.00000001,0.25,100000};
   int nbd[] = {2,2,2,1}; //2 is both lower/upper bound
   int noisy = -1;
   dat[0][1] = 1;
@@ -124,6 +124,28 @@ double optimoptim(double *invec,double **dat){
   invec[5] = dat[0][1];//<- plugin ncall of the objective function
   return lik;
 }
+
+double optimoptim(double *invec,double **dat,int nopt){
+  double llhs=optim1(invec,dat);
+  double pars[6];
+  for(int i=0;i<nopt;i++){
+    pars[0] = drand48()*0.8+0.1;
+    pars[1] = drand48();
+    pars[2] = drand48()*0.1+0.01;
+    pars[3] = drand48()*10;
+    
+    double lik = optim1(pars,dat);
+    if(lik>llhs){
+      //      fprintf(stderr,"swapping\n");
+      llhs=lik;
+      memcpy(invec,pars,sizeof(double)*6);
+    }
+  }
+    
+  return llhs;
+}
+
+
 /*
   function to fill in
   std::significance::dxfit_{0...nrows}::dxfix_conf_{0...nrows}
@@ -190,11 +212,23 @@ void getstat(double **dat,double *pars,double *statpars){
 
 int main(int argc,char **argv){
   const char *fname = "MycoBactBamSEOutSortMDSortN.mismatches.txt.gz";
-  if(argc>1)
-    fname = strdup(argv[1]);
+  int nopt = 10;
+  if(argc>1){
+    for(int i=1;i<argc;i+=2)
+      if(!strcmp(argv[i],"-file"))
+	fname = strdup(argv[i+1]);
+      else if(!strcmp(argv[i],"-nopt")){
+	nopt= atoi(argv[i+1]);
+      }else{
+	fprintf(stderr,"\t-> Unknown option: %s\n",argv[i]);
+	return 0;
+      }
+   
+  }
+  fprintf(stderr,"\t-> -fname: %s -nopt: %d\n",fname,nopt);
   double **dat = read1_ugly_matrix(fname);
   double pars[6] = {0.1,0.1,0.01,1000};//last one will contain the llh,and the ncall for the objective function
-  optimoptim(pars,dat);
+  optimoptim(pars,dat,nopt);
   double stats[2+2*(int)dat[0][0]];
   getstat(dat,pars,stats);
 
