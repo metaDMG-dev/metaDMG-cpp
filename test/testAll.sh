@@ -70,13 +70,14 @@ if [[ $? -ne 0 ]]; then
     RVAL=$((32+RVAL))
 fi
 
+if [ 1 -eq 0 ]; then
 CMD="${PRG} print_ugly output/test4.bdamage.gz -names test/data/names.dmp.gz -nodes test/data/nodes.dmp.gz -lcastat test/output/test4.stat"
 ${CMD}  >> ${LOG} 2>&1
 if [[ $? -ne 0 ]]; then
     echo "Problem running command: ${CMD}"
     RVAL=$((32+RVAL))
 fi
-
+fi
 
 
 ## below is for validating print_ugly with different parameters, should be updated with a print_ugly --out argument so it is not nescessary

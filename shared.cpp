@@ -21,7 +21,7 @@ BGZF *getbgzf(const char *str1, const char *mode, int nthreads) {
     fprintf(stderr, "\t-> opening file: \'%s\' mode: \'%s\'\n", str1, mode);
     if (fp == NULL) {
         fprintf(stderr, "\t-> Problem opening file: \"%s\"\n", str1);
-        exit(0);
+        exit(1);
     }
     if (nthreads > 1) {
         fprintf(stderr, "\t-> Setting threads to: %d \n", nthreads);
@@ -120,7 +120,7 @@ int2char parse_names(const char *fname) {
     gz = gzopen(fname, "rb");
     if (gz == Z_NULL) {
         fprintf(stderr, "\t-> Problems opening file: \'%s\'\n", fname);
-        exit(0);
+        exit(1);
     }
     int2char name_map;
     char buf[4096];
@@ -163,7 +163,7 @@ void parse_nodes(const char *fname, int2char &rank, int2int &parent, int2intvec 
     gz = gzopen(fname, "rb");
     if (gz == Z_NULL) {
         fprintf(stderr, "\t-> Problems opening file: \'%s\'\n", fname);
-        exit(0);
+        exit(1);
     }
     char buf[4096];
     int at = 0;
