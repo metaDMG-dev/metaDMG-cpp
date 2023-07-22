@@ -7,12 +7,8 @@ c99b4cee656eb6fa61d6e61131a7c083  output/test2.bdamage.gz.txt
 cf42ce79672ae2b26a81c41b7eff6b57  output/test2.res.gz
 8988be730e68cce151310d6fad161297  output/test2.stat
 b52ad708bac84a7356b76b62d8657912  output/test3.bdamage.gz
-d1316e395d41a9b3df7df58bba45e86e  output/test3.bdamage.gz.uglyprint.mismatch.txt.gz
-14bbb585ec1f4be845894a75e69c4994  output/test3.bdamage.gz.uglyprint.stat.txt.gz
 d41d8cd98f00b204e9800998ecf8427e  output/test3.log
 8c858b08b7d79e7cebff334ac5724ab0  output/test3.stat
 b52ad708bac84a7356b76b62d8657912  output/test4.bdamage.gz
-ff88388d8fee1ac74740e7a69a236260  output/test4.bdamage.gz.uglyprint.mismatch.txt.gz
-e8cf370d36f2f3bb34625ebca7035630  output/test4.bdamage.gz.uglyprint.stat.txt.gz
 d41d8cd98f00b204e9800998ecf8427e  output/test4.log
 8c858b08b7d79e7cebff334ac5724ab0  output/test4.stat
