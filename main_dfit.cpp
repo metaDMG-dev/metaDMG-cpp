@@ -14,8 +14,35 @@
 #include "ngsLCA.h" //<- print_chain
 #include "types.h"       // for int2intvec, int2int
 #include "version.h"     // for METADAMAGE_VERSION
-
+#include "dfit_optim.h"
 extern htsFormat *dingding2;
+
+//aa,ac,ag,at,ca,cc,cg,ct,ga
+//ct and ga has index 7,8 when zero indexed
+void make_dfit_format(mydataD &md,double **dat,int howmany){
+  dat[0][0] = 2*howmany;
+  dat[0][1] = 0;
+  for(int i=0;i<howmany;i++){
+    dat[0][i+2] =i;
+
+    dat[2][i] = 0;//initialize kcol to zero, a few lines down we will sum over all C*
+    dat[1][i] = md.fwD[i*16+7];//plugin ct at kcol
+    
+    for(int at=0;at<4;at++)
+      dat[2][i] = dat[2][i]+md.fwD[i*16+4+at];
+  }
+
+  for(int i=0;i<howmany;i++){
+    dat[0][howmany+i+2] =i;
+
+    dat[2][howmany+i] = 0;//initialize kcol to zero, a few lines dows we will sum over all G*
+    dat[1][howmany+i] = md.bwD[i*16+8];//plugin ga at kcol
+    
+    for(int at=0;at<4;at++)
+      dat[2][howmany+i] = dat[2][howmany+i]+md.bwD[i*16+8+at];
+  }
+
+}
 
 mydataD getval_full(std::map<int, mydataD> &retmap, int2intvec &child, int taxid, int howmany);
 mydata2 getval_stats(std::map<int, mydata2> &retmap, int2intvec &child, int taxid) ;
@@ -56,10 +83,10 @@ int main_dfit(int argc, char **argv) {
     fprintf(stderr, "infile_names: %s infile_bdamage: %s nodes: %s lca_stat: %s infile_bam: %s", infile_names, infile_bdamage, infile_nodes, infile_lcastat, infile_bam);
     fprintf(stderr, "#VERSION:%s\n", METADAMAGE_VERSION);
     char buf[1024];
-    snprintf(buf, 1024, "%s.uglyprint.mismatch.txt.gz", infile_bdamage);
+    snprintf(buf, 1024, "%s.dfit.gz", infile_bdamage);
     fprintf(stderr, "\t-> Dumping file: \'%s\'\n", buf);
     gzFile fpfpfp = gzopen(buf, "wb");
-    gzprintf(fpfpfp, "#taxidStr\tdirection\tposition\tAA\tAC\tAG\tAT\tCA\tCC\tCG\tCT\tGA\tGC\tGG\tGT\tTA\tTC\tTG\tTT\n");
+
     // map of taxid -> taxid
     int2int parent;
     // map of taxid -> rank
@@ -83,44 +110,47 @@ int main_dfit(int argc, char **argv) {
     float postsize = retmap.size();
     fprintf(stderr, "\t-> pre: %f post:%f grownbyfactor: %f\n", presize, postsize, postsize / presize);
 
+    //prepare matrix to be passed to optimization
+    double **dat = new double*[3];
+    dat[0] = new double[2+2*howmany];
+    dat[1] = new double [2*howmany];
+    dat[2] = new double [2*howmany];
+
     for (std::map<int, mydataD>::iterator it = retmap.begin(); it != retmap.end(); it++) {
         int taxid = it->first;
         mydataD md = it->second;
         if (it->second.nreads == 0)
             continue;
-        /*
-        char *myrank =NULL;
-        char *myname = NULL;
-        int2char::iterator itc=rank.find(taxid);
-        if(itc!=rank.end())
-          myrank=itc->second;
-          itc=name.find(taxid);
-        if(itc!=name.end())
-          myname = itc->second;
-        */
-        for (int i = 0; i < howmany; i++) {
-            //      fprintf(stdout,"%d\t\"%s\"\t\"%s\"\t%d\t5'\t%d",taxid,myname,myrank,it->second.nreads,i);
-            //      fprintf(fpfpfp,"%d\t%d\t5'\t%d",taxid,it->second.nreads,i);
-            if (hdr == NULL)
-                gzprintf(fpfpfp, "%d\t5'\t%d", taxid, i);
-            else
-                gzprintf(fpfpfp, "%s\t5'\t%d", sam_hdr_tid2name(hdr, taxid), i);
 
-            for (int ii = 0; ii < 16; ii++)
-                gzprintf(fpfpfp, "\t%.0f", it->second.fwD[i * 16 + ii]);
-            gzprintf(fpfpfp, "\n");
-        }
-        for (int i = 0; i < howmany; i++) {
-            //      fprintf(stdout,"%d\t\"%s\"\t\"%s\"\t%d\t3'\t%d",taxid,myname,myrank,it->second.nreads,i);
-            // fprintf(fpfpfp,"%d\t%d\t3'\t%d",taxid,it->second.nreads,i);
-            if (hdr == NULL)
-                gzprintf(fpfpfp, "%d\t3'\t%d", taxid, i);
-            else
-                gzprintf(fpfpfp, "%s\t3'\t%d", sam_hdr_tid2name(hdr, taxid), i);
-            for (int ii = 0; ii < 16; ii++)
-                gzprintf(fpfpfp, "\t%.0f", it->second.bwD[i * 16 + ii]);
-            gzprintf(fpfpfp, "\n");
-        }
+	if(hdr==NULL){
+	  int taxid_id_refid =1;
+	  //gzprintf(fpfpfp, "%s\t5'\t%d", sam_hdr_tid2name(hdr, taxid), i);
+	}
+
+	make_dfit_format(md,dat,howmany);
+	double pars[6] = {0.1,0.1,0.01,1000};//last one will contain the llh,and the ncall for the objective function
+	optimoptim(pars,dat,20);
+	double stats[2+2*(int)dat[0][0]];
+	getstat(dat,pars,stats);
+	
+	//printit
+	fprintf(stderr,"(A,q,c,phi,llh,ncall,Z,sign)\n");
+	for(int i=0;i<6;i++)
+	  fprintf(stderr,"%f\t",pars[i]);
+	fprintf(stderr,"%f\t%f\n",stats[0],stats[1]);
+	
+	fprintf(stderr,"direction,cycle,k,n,dx,dx_conf\n");
+	int nrows = (int) dat[0][0];
+	int ncycle = nrows/2;
+	double *dx = stats+2;
+	double *dx_conf = stats+2+nrows;
+	for(int i=0;i<ncycle;i++)
+	  fprintf(stderr,"5\t%d\t%.0f\t%0.f\t%f\t%f\n",i,dat[1][i],dat[2][i],dx[i],dx_conf[i]);
+	dx = stats+2+ncycle;
+	dx_conf = stats+2+nrows+ncycle;
+	for(int i=0;i<ncycle;i++)
+	  fprintf(stderr,"3\t%d\t%.0f\t%0.f\t%f\t%f\n",i,dat[1][i+ncycle],dat[2][i+ncycle],dx[i],dx_conf[i]);
+	
     }
     gzclose(fpfpfp);
     snprintf(buf, 1024, "%s.uglyprint.stat.txt.gz", infile_bdamage);
