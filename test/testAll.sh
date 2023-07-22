@@ -69,7 +69,7 @@ if [[ $? -ne 0 ]]; then
     echo "Problem running command: ${CMD}"
     RVAL=$((32+RVAL))
 fi
-
+##comment out the below
 if [ 1 -eq 0 ]; then
 CMD="${PRG} print_ugly output/test4.bdamage.gz -names test/data/names.dmp.gz -nodes test/data/nodes.dmp.gz -lcastat test/output/test4.stat"
 ${CMD}  >> ${LOG} 2>&1

@@ -111,7 +111,7 @@ metaDMG-cpp: version.h $(OBJ)
 
 
 testclean:
-	rm -rf test/sfstest/output test/tajima/output test/*.log version.h test/temp.txt
+	rm -rf test/output test/logfile version.h 
 
 clean: testclean
 	rm  -f *.o *.d $(PROGRAMS) version.h *~
