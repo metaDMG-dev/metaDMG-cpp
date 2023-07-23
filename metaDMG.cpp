@@ -1194,6 +1194,8 @@ int main_print_ugly(int argc, char **argv) {
     int2char rank;
     // map of parent -> child taxids
     int2intvec child;
+    kstring_t *kstr = new kstring_t;
+    kstr->s = NULL; kstr->l =kstr->m = 0;
 
     if (infile_nodes != NULL)
         parse_nodes(infile_nodes, rank, parent, child, 1);
@@ -1277,7 +1279,10 @@ int main_print_ugly(int argc, char **argv) {
             if (itc != name_map.end())
                 myname = itc->second;
             gzprintf(fpfpfp, "%d\t\"%s\"\t\"%s\"\t%d\t%d\t%f\t%f\t%f\t%f\t", it->first, myname, myrank, nalign, it->second.nreads, it->second.data[0], it->second.data[1], it->second.data[2], it->second.data[3]);
-            print_chain(fpfpfp, it->first, parent, rank, name_map);
+	   
+	    print_chain(kstr, it->first, parent, rank, name_map);
+	    gzwrite(fpfpfp,kstr->s,kstr->l);
+	    kstr->l = 0;
             //      fprintf(stderr,"%d->(%d,%f,%f,%f,%f)\n",it->first,it->second.nreads,it->second.data[0],it->second.data[1],it->second.data[2],it->second.data[3]);
         }
     }
@@ -1313,6 +1318,8 @@ int main_print_ugly(int argc, char **argv) {
       free(infile_bam);
     if(infile_lcastat)
       free(infile_lcastat);
+    free(kstr->s);
+    delete kstr;
     return 0;
 }
 

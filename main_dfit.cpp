@@ -47,7 +47,7 @@ void make_dfit_format(mydataD &md,double **dat,int howmany){
 mydataD getval_full(std::map<int, mydataD> &retmap, int2intvec &child, int taxid, int howmany);
 mydata2 getval_stats(std::map<int, mydata2> &retmap, int2intvec &child, int taxid) ;
 int main_dfit(int argc, char **argv) {
-    fprintf(stderr, "./metaDMG-cpp dfit file.bdamage.gz -names file.gz -nodes trestructure.gz -lcastat fil.gz\n");
+    fprintf(stderr, "./metaDMG-cpp dfit file.bdamage.gz -names file.gz -nodes trestructure.gz -lcastat fil.gz -bam file.bam -showfits int -nopt int\n");
     if (argc <= 1)
         return 0;
     char *infile_bdamage = NULL;
@@ -55,8 +55,9 @@ int main_dfit(int argc, char **argv) {
     char *infile_names = NULL;
     char *infile_lcastat = NULL;
     char *infile_bam = NULL;
-    int howmany;
-
+    int howmany;//this is the cycle
+    int showfits=0;
+    int nopt = 5;
     while (*(++argv)) {
         if (strcasecmp("-names", *argv) == 0)
             infile_names = strdup(*(++argv));
@@ -66,27 +67,35 @@ int main_dfit(int argc, char **argv) {
             infile_lcastat = strdup(*(++argv));
         else if (strcasecmp("-bam", *argv) == 0)
             infile_bam = strdup(*(++argv));
+	else if (strcasecmp("-nopt", *argv) == 0)
+	  nopt = atoi(*(++argv));
+	else if (strcasecmp("-showfits", *argv) == 0)
+	  showfits = atoi(*(++argv));
         else
             infile_bdamage = strdup(*argv);
     }
-
+    if(infile_nodes&&!infile_names){
+      fprintf(stderr,"\t-> -names file.txt.gz must be defined with -nodes is defined\n");
+      exit(1);
+    }
     htsFile *samfp = NULL;
     sam_hdr_t *hdr = NULL;
     if (infile_bam) {
         if ((samfp = sam_open_format(infile_bam, "r", dingding2)) == NULL) {
             fprintf(stderr, "[%s] nonexistant file: %s\n", __FUNCTION__, infile_bam);
-            exit(0);
+            exit(1);
         }
         hdr = sam_hdr_read(samfp);
     }
 
-    fprintf(stderr, "infile_names: %s infile_bdamage: %s nodes: %s lca_stat: %s infile_bam: %s", infile_names, infile_bdamage, infile_nodes, infile_lcastat, infile_bam);
+    fprintf(stderr, "infile_names: %s infile_bdamage: %s nodes: %s lca_stat: %s infile_bam: %s showfits: %d nopt: %d ", infile_names, infile_bdamage, infile_nodes, infile_lcastat, infile_bam,showfits,nopt);
     fprintf(stderr, "#VERSION:%s\n", METADAMAGE_VERSION);
     char buf[1024];
     snprintf(buf, 1024, "%s.dfit.gz", infile_bdamage);
     fprintf(stderr, "\t-> Dumping file: \'%s\'\n", buf);
     gzFile fpfpfp = gzopen(buf, "wb");
-
+    kstring_t *kstr = new kstring_t;
+    kstr->s = NULL; kstr->l = kstr->m = 0;
     // map of taxid -> taxid
     int2int parent;
     // map of taxid -> rank
@@ -106,7 +115,8 @@ int main_dfit(int argc, char **argv) {
         name_map = parse_names(infile_names);
 
     float presize = retmap.size();
-    getval_full(retmap, child, 1, howmany);  // this will do everything
+    if(child.size()>0)
+      getval_full(retmap, child, 1, howmany);  // this will do everything
     float postsize = retmap.size();
     fprintf(stderr, "\t-> pre: %f post:%f grownbyfactor: %f\n", presize, postsize, postsize / presize);
 
@@ -115,7 +125,17 @@ int main_dfit(int argc, char **argv) {
     dat[0] = new double[2+2*howmany];
     dat[1] = new double [2*howmany];
     dat[2] = new double [2*howmany];
-
+    fprintf(stderr,"\t-> Will do optimization of %lu different taxids/chromosomes/scaffolds\n",retmap.size());
+    if(showfits==0){
+      ksprintf(kstr,"A\tq\tc\tphi\tllh\tncall\tZ\tsign\n");
+    }else{
+      ksprintf(kstr,"A\tq\tc\tphi\tllh\tncall\tZ\tsign");
+      for(int i=0;i<howmany;i++)
+	ksprintf(kstr,"\tfwK%d\tfwN%d\tfwdx%d\tfwdxConf%d",i,i,i,i);
+      for(int i=0;i<howmany;i++)
+	ksprintf(kstr,"\tbwK%d\tbwN%d\tbwdx%d\tbwtdxConf%d",i,i,i,i);
+      ksprintf(kstr,"\n");
+    }
     for (std::map<int, mydataD>::iterator it = retmap.begin(); it != retmap.end(); it++) {
         int taxid = it->first;
         mydataD md = it->second;
@@ -129,44 +149,55 @@ int main_dfit(int argc, char **argv) {
 
 	make_dfit_format(md,dat,howmany);
 	double pars[6] = {0.1,0.1,0.01,1000};//last one will contain the llh,and the ncall for the objective function
-	optimoptim(pars,dat,20);
+	optimoptim(pars,dat,5);
 	double stats[2+2*(int)dat[0][0]];
 	getstat(dat,pars,stats);
 	
 	//printit
-	fprintf(stderr,"(A,q,c,phi,llh,ncall,Z,sign)\n");
+
 	for(int i=0;i<6;i++)
-	  fprintf(stderr,"%f\t",pars[i]);
-	fprintf(stderr,"%f\t%f\n",stats[0],stats[1]);
-	
-	fprintf(stderr,"direction,cycle,k,n,dx,dx_conf\n");
-	int nrows = (int) dat[0][0];
-	int ncycle = nrows/2;
-	double *dx = stats+2;
-	double *dx_conf = stats+2+nrows;
-	for(int i=0;i<ncycle;i++)
-	  fprintf(stderr,"5\t%d\t%.0f\t%0.f\t%f\t%f\n",i,dat[1][i],dat[2][i],dx[i],dx_conf[i]);
-	dx = stats+2+ncycle;
-	dx_conf = stats+2+nrows+ncycle;
-	for(int i=0;i<ncycle;i++)
-	  fprintf(stderr,"3\t%d\t%.0f\t%0.f\t%f\t%f\n",i,dat[1][i+ncycle],dat[2][i+ncycle],dx[i],dx_conf[i]);
-	
+	  ksprintf(kstr,"%f\t",pars[i]);
+	ksprintf(kstr,"%f\t%f",stats[0],stats[1]);
+	if(showfits){
+	  int nrows = (int) dat[0][0];
+	  int ncycle = nrows/2;
+	  double *dx = stats+2;
+	  double *dx_conf = stats+2+nrows;
+	  for(int i=0;i<ncycle;i++)
+	    ksprintf(kstr,"\t%.0f\t%0.f\t%f\t%f",dat[1][i],dat[2][i],dx[i],dx_conf[i]);
+	  dx = stats+2+ncycle;
+	  dx_conf = stats+2+nrows+ncycle;
+	  for(int i=0;i<ncycle;i++)
+	    ksprintf(kstr,"\t%.0f\t%0.f\t%f\t%f",dat[1][i+ncycle],dat[2][i+ncycle],dx[i],dx_conf[i]);
+	}
+	ksprintf(kstr,"\n");
     }
+    gzwrite(fpfpfp,kstr->s,kstr->l);
+    kstr->l = 0;
     gzclose(fpfpfp);
-    snprintf(buf, 1024, "%s.uglyprint.stat.txt.gz", infile_bdamage);
-    fprintf(stderr, "\t-> Dumping file: \'%s\'\n", buf);
-    fpfpfp = gzopen(buf, "wb");
-    gzprintf(fpfpfp, "#taxid\tname\trank\tnalign\tnreads\tmean_rlen\tvar_rlen\tmean_gc\tvar_gc\n");
+    if(infile_lcastat){
+      snprintf(buf, 1024, "%s.dfit.stat.txt.gz", infile_bdamage);
+      fprintf(stderr, "\t-> Dumping file: \'%s\'\n", buf);
+      fpfpfp = gzopen(buf, "wb");
+      ksprintf(kstr, "#taxid\tname\trank\tnalign\tnreads\tmean_rlen\tvar_rlen\tmean_gc\tvar_gc\n");
+    }
     std::map<int, mydata2> stats;
-    if (infile_lcastat)
+    if (infile_lcastat){
         stats = load_lcastat(infile_lcastat);
-    getval_stats(stats, child, 1);  // this will do everything
-    for (std::map<int, mydata2>::iterator it = stats.begin(); 1 && it != stats.end(); it++) {
-        std::map<int, mydataD>::iterator itold = retmap.find(it->first);
+	presize = stats.size();
+    }
+    if(child.size()>0)
+      getval_stats(stats, child, 1);  // this will do everything
+    if(stats.size()>0){
+      postsize = stats.size();
+      fprintf(stderr, "\t-> pre: %f post:%f grownbyfactor: %f\n", presize, postsize, postsize / presize);
+    }
+    for (std::map<int, mydata2>::iterator it = stats.begin(); it != stats.end(); it++) {
+      std::map<int, mydataD>::iterator itold = retmap.find(it->first);
         int nalign = -1;
         if (itold == retmap.end()) {
             fprintf(stderr, "\t-> Problem finding taxid: %d\n", it->first);
-            //      exit(0);
+	    exit(1);
         } else
             nalign = itold->second.nreads;
         char *myrank = NULL;
@@ -178,11 +209,16 @@ int main_dfit(int argc, char **argv) {
             itc = name_map.find(it->first);
             if (itc != name_map.end())
                 myname = itc->second;
-            gzprintf(fpfpfp, "%d\t\"%s\"\t\"%s\"\t%d\t%d\t%f\t%f\t%f\t%f\t", it->first, myname, myrank, nalign, it->second.nreads, it->second.data[0], it->second.data[1], it->second.data[2], it->second.data[3]);
-            print_chain(fpfpfp, it->first, parent, rank, name_map);
+            ksprintf(kstr, "%d\t\"%s\"\t\"%s\"\t%d\t%d\t%f\t%f\t%f\t%f\t", it->first, myname, myrank, nalign, it->second.nreads, it->second.data[0], it->second.data[1], it->second.data[2], it->second.data[3]);
+	    if(child.size()>0)
+	      print_chain(kstr, it->first, parent, rank, name_map);
+	    else
+	      ksprintf(kstr,"\n");
             //      fprintf(stderr,"%d->(%d,%f,%f,%f,%f)\n",it->first,it->second.nreads,it->second.data[0],it->second.data[1],it->second.data[2],it->second.data[3]);
         }
     }
+    gzwrite(fpfpfp,kstr->s,kstr->l);
+    
     //cleanup
     gzclose(fpfpfp);
     for(int2char::iterator it=name_map.begin();it!=name_map.end();it++)
@@ -200,7 +236,9 @@ int main_dfit(int argc, char **argv) {
       mydata2 md = it->second;
       delete [] md.data;
     }
-
+    free(kstr->s);
+    delete kstr;
+    
     if (hdr)
         bam_hdr_destroy(hdr);
     if (samfp)

@@ -253,7 +253,7 @@ int do_lca(std::vector<int> &taxids, int2int &parent) {
     }
 }
 
-void print_chain1(gzFile fp, int taxa, int2char &rank, int2char &name_map) {
+void print_chain1(kstring_t *kstr, int taxa, int2char &rank, int2char &name_map) {
     int2char::iterator it1 = name_map.find(taxa);
     int2char::iterator it2 = rank.find(taxa);
     if (it1 == name_map.end()) {
@@ -262,9 +262,9 @@ void print_chain1(gzFile fp, int taxa, int2char &rank, int2char &name_map) {
     assert(it2 != rank.end());
     if (it1 == name_map.end() || it2 == rank.end()) {
         fprintf(stderr, "taxa: %d %s doesnt exists will exit\n", taxa, it1->second);
-        exit(0);
+        exit(1);
     }
-    gzprintf(fp, "\t%d:%s:\"%s\"", taxa, it1->second, it2->second);
+    ksprintf(kstr, "\t%d:%s:\"%s\"", taxa, it1->second, it2->second);
 }
 
 void print_rank(FILE *fp, int taxa, int2char &rank) {
@@ -273,16 +273,16 @@ void print_rank(FILE *fp, int taxa, int2char &rank) {
     fprintf(stderr, "taxa: %d rank %s\n", taxa, it2->second);
 }
 
-void print_chain(gzFile fp, int taxa, int2int &parent, int2char &rank, int2char &name_map) {
+void print_chain(kstring_t *kstr, int taxa, int2int &parent, int2char &rank, int2char &name_map) {
     while (1) {
-        print_chain1(fp, taxa, rank, name_map);
+        print_chain1(kstr, taxa, rank, name_map);
         int2int::iterator it = parent.find(taxa);
         assert(it != parent.end());
         if (taxa == it->second)  //<- catch root
             break;
         taxa = it->second;
     }
-    gzprintf(fp, "\n");
+    ksprintf(kstr,"\n");
 }
 
 int isuniq(std::vector<int> &vec) {
@@ -419,6 +419,8 @@ void hts(gzFile fp, samFile *fp_in, int2int &i2i, int2int &parent, bam_hdr_t *hd
     int2int closest_species;
     int skip = 0;
     int inc = 0;
+    kstring_t *kstr = new kstring_t;
+    kstr->s = NULL;kstr->l = kstr->m =0;
     while (sam_read1(fp_in, hdr, aln) >= 0) {
         if (bam_is_unmapped(aln)) {
             // fprintf(stderr,"skipping: %s unmapped \n",bam_get_qname(b));
@@ -463,7 +465,11 @@ void hts(gzFile fp, samFile *fp_in, int2int &i2i, int2int &parent, bam_hdr_t *hd
                 //	fprintf(stderr,"myq->l: %d\n",myq->l);
                 if (lca != -1) {
                     gzprintf(fp, "%s:%s:%lu:%d:%f", last, seq, strlen(seq), size, gccontent(seq));
-                    print_chain(fp, lca, parent, rank, name_map);
+		   
+		    print_chain(kstr, lca, parent, rank, name_map);
+		    gzwrite(fp,kstr->s,kstr->l);
+		    kstr->l =0;
+
                     int varisunique = isuniq(specs);
                     if (varisunique) {
                         int2int::iterator it = specWeight.find(specs[0]);
@@ -577,7 +583,9 @@ void hts(gzFile fp, samFile *fp_in, int2int &i2i, int2int &parent, bam_hdr_t *hd
         //    fprintf(stderr,"myq->l: %d lca: %d \n",myq->l,lca);
         if (lca != -1) {
             gzprintf(fp, "%s:%s:%lu:%d:%f", last, seq, strlen(seq), size, gccontent(seq));
-            print_chain(fp, lca, parent, rank, name_map);
+            print_chain(kstr, lca, parent, rank, name_map);
+	    gzwrite(fp,kstr->s,kstr->l);
+	    kstr->l = 0;
             if (isuniq(specs)) {
                 int2int::iterator it = specWeight.find(specs[0]);
                 if (it == specWeight.end())
@@ -624,6 +632,7 @@ void hts(gzFile fp, samFile *fp_in, int2int &i2i, int2int &parent, bam_hdr_t *hd
         free(last);
     destroy_damage(dmg);
     destroy_queue(myq);
+    free(kstr->s);delete kstr;
     return;  // 0;
 }
 
