@@ -24,6 +24,8 @@ This document describe some of the internal formats used by the metadamage softw
 \item .bdamage.gz
 \item .lca
 \item .stat
+\item .dfit.txt.gz
+\item .dfit.stat.txt.gz
 \end{itemize}
 
 \section{bdamage format}
@@ -75,7 +77,7 @@ Each line consists of a number of items seperated by tabspace. First entry conta
 \end{tabular}\label{tab2}
 \caption{Content of a .lca file. Note that 1) seperate between field[1-5] is colon, but the readID might also contain colon. 2) the quotes around field[8] is intentional since taxlevels might contain spaces. 3) Not that the number of tab seperated entries is different between reads since this is the number of nodes needed to traverse from lca to root}
 \end{table}
-\section{.stat}
+\section{.stat}\label{sec:stat}
 Very simple tabseperated flatfile
 \begin{enumerate}
 \item taxid
@@ -87,6 +89,56 @@ Very simple tabseperated flatfile
 \item name of lca in quotes (if relevant, otherwise NA)
 \item name of taxomic level of lca in quotes (if relevant, otherwise NA)
 \end{enumerate}
+\clearpage
+\section{.dfit.txt.gz}
+This output format was added 8d28d337 Sun Jul 23.  Depending on
+runmode and parameters supplied to the program. It will contain the
+per file, the per reference or the per species estimate of damage.
+
+\begin{table}[h]
+\begin{tabular}{rll}
+  \hline
+  {\bf Col} & {\bf Brief description} \\
+  \hline
+  1 & {\sf id} & identifier see paragraph for details\\
+  2 & {\sf A} & Dfit statistic. Damage at position one, taking into account offset\\
+  3 & {\sf q} & per cycle decrease\\
+  4 & {\sf c} & background substitution rate or noise baseline\\ 
+  4 & {\sf $\phi$} & \\
+  5 & {\sf llh} & Likelihood for our MLE\\
+  6 & {\sf nopt} & Number of function calls used for obtaining our MLE\\
+  7 & {\sf Z} & Z value\\
+  8 & {\sf Z} & significance\\\hline\hline
+  9 & {\sf $K_i$} & Number of CT og AG observations\\
+  10 & {\sf $N_i$} & Count of either CA,CC,CG,CT or AA,AG,AC,AT observations\\
+  11 & {\sf $Dx_i$} & Fitted value of cycle specific damage\\
+  13 &{\sf $Dconf_i$ }& Confidence interval for the cycle specfic damage\\\hline\hline     
+\end{tabular}\label{tab3}
+\caption{Content of a .dfit.txt.gz file. Note that entry nine to 13 is
+  repeated for each cycle first of the 5\' and then from the 3\'. With
+  the total number of times repeated is given by \ref{tab1}.} 
+\end{table}
+Depending on which parameters that was supplied to both
+\emph{getdamage} and \emph{dfit}, the content of the id will be
+different. If a bamfile is supplied (with -bam) then each line will be
+the information associated with the different refids in the bam file
+and the id will be the referenceids from the bam file. The case
+scenario for this would be either obtaining perchromosome estimates of
+damage or per reference damage which could be relevant for metagenomic
+studies. If user are computing the damagesignal in the context of the
+lca. Then the id column will contain the taxid. If -names has been
+supplied to the dfit program, then the id column will the
+taxid:\emph{scientific name} . If -nodes has not been defined the
+dfit.txt.gz will only contain information for the observed
+references. If -nodes has been defined the program will aggregate the
+summary statitics for the internal nodes.
+
+\section{.dfit.stat.txt.gz}
+This output format was added 8d28d337 Sun Jul 23.  Depending on
+runmode and parameters supplied to the program. It will contain the
+per file, the per reference or the per species estimate of the
+statistic. This format extends \ref{sec:stat} to include the internal
+nodes.
 \end{document}
 
 %%% Local Variables:
