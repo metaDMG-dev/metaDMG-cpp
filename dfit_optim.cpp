@@ -118,7 +118,7 @@ double optim1(double *invec,double **dat){
   double upbound[] = {1-0.00000001,1-0.00000001,0.25,100000};
   int nbd[] = {2,2,2,1}; //2 is both lower/upper bound
   int noisy = -1;
-  dat[0][1] = 1;
+  //  dat[0][1] = 1;
   double lik = findmax_bfgs(numpars, invec, dat,compute_log_likelihood,nullptr,lowbound,upbound,nbd,noisy);
   // fprintf(stderr,"\t-> Optimized DMGparam A:%f \t q:%f \t c:%f \t phi:%f lik:%f nit: %.0f\n",invec[0],invec[1],invec[2],invec[3],lik,dat[0][1]);
   invec[4] = lik;
