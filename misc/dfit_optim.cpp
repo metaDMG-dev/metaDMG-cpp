@@ -233,7 +233,7 @@ int main(int argc,char **argv){
   getstat(dat,pars,stats);
 
   //printit
-  fprintf(stderr,"(A,q,c,phi,llh,ncall,Z,sign)\n");
+  fprintf(stderr,"(A,q,c,phi,llh,ncall,sigmaD,Zscore)\n");
   for(int i=0;i<6;i++)
     fprintf(stderr,"%f\t",pars[i]);
   fprintf(stderr,"%f\t%f\n",stats[0],stats[1]);
