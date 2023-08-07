@@ -36,7 +36,7 @@ make
 To install metaDMG-cpp do:
 ```
 git clone https://github.com/metaDMG-dev/metaDMG-cpp.git
-cd metadamage
+cd metaDMG
 make HTTSRC=../htslib
 ```
 
@@ -45,7 +45,15 @@ For installing latest updates in the directory metaDMG-cpp do:
 ```
 make clean
 git pull https://github.com/metaDMG-dev/metaDMG-cpp.git
-make HTTSRC=../htslib
+```
+
+## Installing metaDMG using Conda
+```
+conda create -n metaDMG htslib eigen cxx-compiler c-compiler gsl
+conda activate metaDMG
+git clone https://github.com/metaDMG-dev/metaDMG-cpp.git
+cd metaDMG
+make clean && make -j 8 HTSSRC=systemwide
 ```
 
 # Taxonomic resource files
