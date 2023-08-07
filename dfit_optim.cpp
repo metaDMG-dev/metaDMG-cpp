@@ -155,8 +155,7 @@ double optimoptim(double *invec,double **dat,int nopt){
 void getstat(double **dat,double *pars,double *statpars){
 
     // MAP damage, damage_std Map_damage_significance
-    
-     double A = pars[0];
+    double A = pars[0];
     double q = pars[1];
     double c = pars[2];
     double phi = pars[3];
@@ -172,12 +171,6 @@ void getstat(double **dat,double *pars,double *statpars){
     statpars[0] = std;
     statpars[1] = significance;
 
-    //gzprintf(file,"%f \t %f \t %f \t",A,std,significance);
-
-    /*
-    add the significance etc for the A, q, c when done
-    */
-   
     double alpha;
     double beta;
     double Dx_var_numerator;
@@ -234,7 +227,7 @@ int main(int argc,char **argv){
   getstat(dat,pars,stats);
 
   //printit
-  fprintf(stderr,"(A,q,c,phi,llh,ncall,Z,sign)\n");
+  fprintf(stderr,"(A,q,c,phi,llh,ncall,SigmaD,Zfit)\n");
   for(int i=0;i<6;i++)
     fprintf(stderr,"%f\t",pars[i]);
   fprintf(stderr,"%f\t%f\n",stats[0],stats[1]);

@@ -137,9 +137,9 @@ int main_dfit(int argc, char **argv) {
     dat[2] = new double [2*howmany];
     fprintf(stderr,"\t-> Will do optimization of %lu different taxids/chromosomes/scaffolds\n",retmap.size());
     if(showfits==0){
-      ksprintf(kstr,"id\tA\tq\tc\tphi\tllh\tncall\tZ\tsign\n");
+      ksprintf(kstr,"id\tA\tq\tc\tphi\tllh\tncall\tsigmaD\tZfit\n");
     }else{
-      ksprintf(kstr,"id\tA\tq\tc\tphi\tllh\tncall\tZ\tsign");
+      ksprintf(kstr,"id\tA\tq\tc\tphi\tllh\tncall\tsigmaD\tZfit");
       for(int i=0;i<howmany;i++)
 	ksprintf(kstr,"\tfwK%d\tfwN%d\tfwdx%d\tfwdxConf%d",i,i,i,i);
       for(int i=0;i<howmany;i++)
