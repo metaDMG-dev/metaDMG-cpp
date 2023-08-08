@@ -8,7 +8,11 @@
 #include <htslib/hts.h>   // for htsFormat, hts_opt_add, htsFile, hts_opt
 #include <htslib/sam.h>   // for htsFormat, hts_opt_add, htsFile, hts_opt
 #include <htslib/bgzf.h>
+#include <ctime>
+#include <sys/time.h>
+#include <math.h>
 
+#include <iostream>
 #include "profile.h"
 #include "shared.h"
 #include "ngsLCA.h" //<- print_chain
@@ -30,6 +34,9 @@ void make_dfit_format(mydataD &md,double **dat,int howmany){
     
     for(int at=0;at<4;at++)
       dat[2][i] = dat[2][i]+md.fwD[i*16+4+at];
+
+    dat[3][i] = (double) dat[1][i]/dat[2][i];
+
   }
 
   for(int i=0;i<howmany;i++){
@@ -40,6 +47,8 @@ void make_dfit_format(mydataD &md,double **dat,int howmany){
     
     for(int at=0;at<4;at++)
       dat[2][howmany+i] = dat[2][howmany+i]+md.bwD[i*16+8+at];
+
+    dat[3][howmany+i] = (double) dat[1][howmany+i]/dat[2][howmany+i];
   }
 
 }
@@ -76,12 +85,16 @@ int main_dfit(int argc, char **argv) {
 	else if (strcasecmp("-showfits", *argv) == 0)
 	  showfits = atoi(*(++argv));
         else
-            infile_bdamage = strdup(*argv);
+          infile_bdamage = strdup(*argv);
     }
     if(infile_nodes&&!infile_names){
       fprintf(stderr,"\t-> -names file.txt.gz must be defined with -nodes is defined\n");
       exit(1);
     }
+    clock_t t = clock();
+    struct timeval start_time, end_time;
+    gettimeofday(&start_time, NULL);
+
     htsFile *samfp = NULL;
     sam_hdr_t *hdr = NULL;
     if (infile_bam) {
@@ -131,19 +144,34 @@ int main_dfit(int argc, char **argv) {
     fprintf(stderr, "\t-> pre: %f post:%f grownbyfactor: %f\n", presize, postsize, postsize / presize);
 
     //prepare matrix to be passed to optimization
-    double **dat = new double*[3];
+    double **dat = new double*[4];
     dat[0] = new double[2+2*howmany];
     dat[1] = new double [2*howmany];
     dat[2] = new double [2*howmany];
+    dat[3] = new double [2*howmany];
     fprintf(stderr,"\t-> Will do optimization of %lu different taxids/chromosomes/scaffolds\n",retmap.size());
+    
     if(showfits==0){
       ksprintf(kstr,"id\tA\tq\tc\tphi\tllh\tncall\tsigmaD\tZfit\n");
-    }else{
+    }
+    else if(showfits==1){
       ksprintf(kstr,"id\tA\tq\tc\tphi\tllh\tncall\tsigmaD\tZfit");
+      for(int i=0;i<howmany;i++){
+        //fprintf(stderr,"\t asfafs %d\n",i);
+	      ksprintf(kstr,"\tfwdx%d\tfwdxConf%d",i,i);
+      }
       for(int i=0;i<howmany;i++)
-	ksprintf(kstr,"\tfwK%d\tfwN%d\tfwdx%d\tfwdxConf%d",i,i,i,i);
+	      ksprintf(kstr,"\tbwdx%d\tbwtdxConf%d",i,i);
+      ksprintf(kstr,"\n");
+    }
+    else{
+      ksprintf(kstr,"id\tA\tq\tc\tphi\tllh\tncall\tsigmaD\tZfit");
+      for(int i=0;i<howmany;i++){
+        //fprintf(stderr,"\t asfafs %d\n",i);
+	      ksprintf(kstr,"\tfwK%d\tfwN%d\tfwdx%d\tfwf%d\tfwdxConf%d",i,i,i,i,i);
+      }
       for(int i=0;i<howmany;i++)
-	ksprintf(kstr,"\tbwK%d\tbwN%d\tbwdx%d\tbwtdxConf%d",i,i,i,i);
+	      ksprintf(kstr,"\tbwK%d\tbwN%d\tbwdx%d\tbwf%d\tbwtdxConf%d",i,i,i,i,i);
       ksprintf(kstr,"\n");
     }
 
@@ -168,29 +196,60 @@ int main_dfit(int argc, char **argv) {
 	  }
 	    
 	}
-
 	make_dfit_format(md,dat,howmany);
 	double pars[6] = {0.1,0.1,0.01,1000};//last one will contain the llh,and the ncall for the objective function
 	optimoptim(pars,dat,5);
 	double stats[2+2*(int)dat[0][0]];
 	getstat(dat,pars,stats);
-	
+
 	//printit
 
 	for(int i=0;i<6;i++)
 	  ksprintf(kstr,"%f\t",pars[i]);
 	ksprintf(kstr,"%f\t%f",stats[0],stats[1]);
-	if(showfits){
+	
+  if(showfits == 1){
 	  int nrows = (int) dat[0][0];
 	  int ncycle = nrows/2;
 	  double *dx = stats+2;
 	  double *dx_conf = stats+2+nrows;
-	  for(int i=0;i<ncycle;i++)
-	    ksprintf(kstr,"\t%.0f\t%0.f\t%f\t%f",dat[1][i],dat[2][i],dx[i],dx_conf[i]);
-	  dx = stats+2+ncycle;
+
+    // beginning positions fwK0	fwN0	fwdx0	fwdxConf0
+	  for(int i=0;i<ncycle;i++){
+      if(isnan(dx_conf[i])){dx_conf[i] = 0.0;}
+      if(isnan(dat[3][i])){dat[3][i] = 0.0;}
+	    ksprintf(kstr,"\t%f\t%f",dx[i],dx_conf[i]);
+    }
+	  
+    dx = stats+2+ncycle;
 	  dx_conf = stats+2+nrows+ncycle;
-	  for(int i=0;i<ncycle;i++)
-	    ksprintf(kstr,"\t%.0f\t%0.f\t%f\t%f",dat[1][i+ncycle],dat[2][i+ncycle],dx[i],dx_conf[i]);
+
+	  for(int i=0;i<ncycle;i++){
+      if (isnan(dx_conf[i])){dx_conf[i] = 0.0;}
+	    ksprintf(kstr,"\t%f\t%f",dx[i],dx_conf[i]);
+    }
+	}
+  else if(showfits > 1){
+	  int nrows = (int) dat[0][0];
+	  int ncycle = nrows/2;
+	  double *dx = stats+2;
+	  double *dx_conf = stats+2+nrows;
+
+    // beginning positions fwK0	fwN0	fwdx0	fwdxConf0
+	  for(int i=0;i<ncycle;i++){
+      if(isnan(dx_conf[i])){dx_conf[i] = 0.0;}
+      if(isnan(dat[3][i])){dat[3][i] = 0.0;}
+	    ksprintf(kstr,"\t%.0f\t%0.f\t%0.f\t%f\t%f",dat[1][i],dat[2][i],dat[3][i],dx[i],dx_conf[i]);
+    }
+	  
+    dx = stats+2+ncycle;
+	  dx_conf = stats+2+nrows+ncycle;
+
+	  for(int i=0;i<ncycle;i++){
+      if (isnan(dx_conf[i])){dx_conf[i] = 0.0;}
+      if(isnan(dat[3][i+ncycle])){dat[3][i+ncycle] = 0.0;} //the f column
+	    ksprintf(kstr,"\t%.0f\t%0.f\t%0.f\t%f\t%f",dat[1][i+ncycle],dat[2][i+ncycle],dat[3][i+ncycle],dx[i],dx_conf[i]);
+    }
 	}
 	ksprintf(kstr,"\n");
     }
@@ -277,5 +336,13 @@ int main_dfit(int argc, char **argv) {
       free(infile_bam);
     if(infile_lcastat)
       free(infile_lcastat);
-    return 0;
+    
+  gettimeofday(&end_time, NULL);
+  long seconds = end_time.tv_sec - start_time.tv_sec;
+  long microseconds = end_time.tv_usec - start_time.tv_usec;
+  double elapsed_time = seconds + microseconds / 1000000.0;
+
+  fprintf(stderr, "\t[ALL done] cpu-time used =  %.6f sec\n", (float)(clock() - t) / CLOCKS_PER_SEC);
+  fprintf(stderr, "\t[ALL done] walltime used =  %.6f sec\n", elapsed_time);
+  return 0;
 }

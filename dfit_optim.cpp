@@ -4,7 +4,7 @@
 #include <vector>
 #include <cstdio>
 #include <zlib.h>
-
+#include <iostream>
 #include "dfit_optim.h"
 #include "bfgs.h"
 
@@ -153,7 +153,6 @@ double optimoptim(double *invec,double **dat,int nopt){
   statpars is therefore of length 2+2*numrows;
  */
 void getstat(double **dat,double *pars,double *statpars){
-
     // MAP damage, damage_std Map_damage_significance
     double A = pars[0];
     double q = pars[1];
@@ -164,13 +163,25 @@ void getstat(double **dat,double *pars,double *statpars){
     double *XCOL = dat[0]+2;
     double *KCOL = dat[1];
     double *NCOL = dat[2];
+
     double N_pos = dat[2][0];
-    
+    if (N_pos < 1){
+      N_pos = 1;
+    }
+    //  id	    A        	q	        c	          phi     	llh     	ncall	sigmaD	Zfit
+    // 144905	1.000000	0.000000	0.250000	1000.000000	0.223144	27.000000	inf	0.000000
+    /*fprintf(stderr,"A %f \t %f \t %f\n",A,phi,N_pos);
+    fprintf(stderr,"Num 1 %f \n",A*(1-A));
+    fprintf(stderr,"Num 2 %f \n",phi+N_pos);
+    fprintf(stderr,"Num 2 %f \n",dat[2][0]);
+    fprintf(stderr,"Num 3 %f \n",A*(1-A)*(phi+N_pos));
+    fprintf(stderr,"Num 4 %f \n",(phi+1));
+    fprintf(stderr,"Num 4 %f \n",(phi+1)*N_pos);*/
     double std = std::sqrt((A*(1-A)*(phi+N_pos))/((phi+1)*N_pos));
     double significance = A/std;
     statpars[0] = std;
     statpars[1] = significance;
-
+    //fprintf(stderr,"STD %f \t SIGNIFICANCE %f \n",std,significance);
     double alpha;
     double beta;
     double Dx_var_numerator;
@@ -181,8 +192,8 @@ void getstat(double **dat,double *pars,double *statpars){
     for(int i = 0; i < NUMROWS;i++){
       double Dx = A * pow((1 - q), fabs(XCOL[i])) + c;
       statpars[i+2] = Dx;
-      //  fprintf(stderr,"i: %d val: %f\n",i,Dx);
-      //        gzprintf(file,"%f \t",Dx);
+      //fprintf(stderr,"i: %d val: %f\n",i,Dx);
+      // gzprintf(file,"%f \t",Dx);
     }
 
     for(int i = 0; i < NUMROWS;i++){
