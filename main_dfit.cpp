@@ -21,6 +21,33 @@
 #include "dfit_optim.h"
 extern htsFormat *dingding2;
 
+
+void make_bootstrap_data(double **in,double **out,int howmany){
+  double *xcol_in = in[0];
+  double *kvec_in = in[1];
+  double *nvec_in = in[2];
+  double *xcol_out = out[0];
+  double *kvec_out = out[1];
+  double *nvec_out = out[2];
+
+  xcol_out[0] = xcol_in[0];
+  xcol_out[1] = xcol_in[1];
+  for(int p = 0;p < 2*howmany;p++){
+    xcol_out[p+2] = xcol_in[p+2];
+    double prob =(double) kvec_in[p]/nvec_in[p];
+    //    fprintf(stderr,"Prob: %f\n",prob);
+    kvec_out[p] = nvec_out[p] = 0;
+    for(int i =0;i<(int)nvec_in[p];i++){
+      if(drand48()<prob)
+	kvec_out[p] +=1;
+      else
+	nvec_out[p] +=1;
+    }
+    //   fprintf(stderr,"k: %f n: %f\n",kvec_out[p],nvec_out[p]);
+  }
+}
+
+
 //aa,ac,ag,at,ca,cc,cg,ct,ga
 //ct and ga has index 7,8 when zero indexed
 void make_dfit_format(mydataD &md,double **dat,int howmany){
@@ -69,6 +96,8 @@ int main_dfit(int argc, char **argv) {
     int howmany;//this is the cycle
     int showfits=0;
     int nopt = 5;
+    int sigtype = 0;
+    int nbootstrap = 100;
     while (*(++argv)) {
         if (strcasecmp("-names", *argv) == 0)
             infile_names = strdup(*(++argv));
@@ -82,8 +111,12 @@ int main_dfit(int argc, char **argv) {
             outfile_name = strdup(*(++argv));
 	else if (strcasecmp("-nopt", *argv) == 0)
 	  nopt = atoi(*(++argv));
+	else if (strcasecmp("-sigtype", *argv) == 0)
+	  sigtype = atoi(*(++argv));
 	else if (strcasecmp("-showfits", *argv) == 0)
 	  showfits = atoi(*(++argv));
+	else if (strcasecmp("-nbootstrap", *argv) == 0)
+	  nbootstrap = atoi(*(++argv));
         else
           infile_bdamage = strdup(*argv);
     }
@@ -109,7 +142,7 @@ int main_dfit(int argc, char **argv) {
       exit(1);
     }
     
-    fprintf(stderr, "infile_names: %s infile_bdamage: %s nodes: %s lca_stat: %s infile_bam: %s showfits: %d nopt: %d outname: %s ", infile_names, infile_bdamage, infile_nodes, infile_lcastat, infile_bam,showfits,nopt,outfile_name);
+    fprintf(stderr, "infile_names: %s infile_bdamage: %s nodes: %s lca_stat: %s infile_bam: %s showfits: %d nopt: %d outname: %s sigtype: %d nbootstrap: %d", infile_names, infile_bdamage, infile_nodes, infile_lcastat, infile_bam,showfits,nopt,outfile_name,sigtype,nbootstrap);
     fprintf(stderr, "#VERSION:%s\n", METADAMAGE_VERSION);
     if(outfile_name==NULL)
       outfile_name = strdup(infile_bdamage);
@@ -198,7 +231,27 @@ int main_dfit(int argc, char **argv) {
 	}
 	make_dfit_format(md,dat,howmany);
 	double pars[6] = {0.1,0.1,0.01,1000};//last one will contain the llh,and the ncall for the objective function
-	optimoptim(pars,dat,5);
+	optimoptim(pars,dat,nopt);
+	//do bootstrap, print to screen for now
+	double **bootdata = new double*[4];
+	bootdata[0] = new double[2+2*howmany];
+	bootdata[1] = new double [2*howmany];
+	bootdata[2] = new double [2*howmany];
+	bootdata[3] = new double [2*howmany];
+	for(int ii=0;ii<5;ii++)
+	  fprintf(stdout,"%f\t",pars[ii]);
+	fprintf(stdout,"%f\n",pars[5]);
+	for(int b=0;b<nbootstrap;b++){
+	  make_bootstrap_data(dat,bootdata,howmany);
+	  pars[0] = 0.1;pars[1]=0.1,pars[2]=0.01,pars[3]=1000;
+	  optimoptim(pars,bootdata,nopt);
+	  for(int ii=0;ii<5;ii++)
+	    fprintf(stdout,"%f\t",pars[ii]);
+	  fprintf(stdout,"%f\n",pars[5]);
+	}
+	//end do bootstrap
+	
+	
 	double stats[2+2*(int)dat[0][0]];
 	getstat(dat,pars,stats);
 
