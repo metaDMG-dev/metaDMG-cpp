@@ -11,6 +11,7 @@
 #include <ctime>
 #include <sys/time.h>
 #include <math.h>
+#include <gsl/gsl_cdf.h>
 
 #include <iostream>
 #include "profile.h"
@@ -19,10 +20,13 @@
 #include "types.h"       // for int2intvec, int2int
 #include "version.h"     // for METADAMAGE_VERSION
 #include "dfit_optim.h"
+#include "pval.h"
+
 extern htsFormat *dingding2;
 
+void make_bootstrap_data(double **in,double **out,int howmany,int seedval){
+  srand48(seedval);
 
-void make_bootstrap_data(double **in,double **out,int howmany){
   double *xcol_in = in[0];
   double *kvec_in = in[1];
   double *nvec_in = in[2];
@@ -39,14 +43,13 @@ void make_bootstrap_data(double **in,double **out,int howmany){
     kvec_out[p] = nvec_out[p] = 0;
     for(int i =0;i<(int)nvec_in[p];i++){
       if(drand48()<prob)
-	kvec_out[p] +=1;
+	      kvec_out[p] +=1;
       else
-	nvec_out[p] +=1;
+	      nvec_out[p] +=1;
     }
     //   fprintf(stderr,"k: %f n: %f\n",kvec_out[p],nvec_out[p]);
   }
 }
-
 
 //aa,ac,ag,at,ca,cc,cg,ct,ga
 //ct and ga has index 7,8 when zero indexed
@@ -84,7 +87,7 @@ mydataD getval_full(std::map<int, mydataD> &retmap, int2intvec &child, int taxid
 mydata2 getval_stats(std::map<int, mydata2> &retmap, int2intvec &child, int taxid) ;
 
 int main_dfit(int argc, char **argv) {
-    fprintf(stderr, "./metaDMG-cpp dfit file.bdamage.gz -names file.gz -nodes trestructure.gz -lcastat fil.gz -bam file.bam -showfits int -nopt int -out file\n");
+    fprintf(stderr, "./metaDMG-cpp dfit file.bdamage.gz -names file.gz -nodes trestructure.gz -lcastat fil.gz -bam file.bam -showfits int -nopt int -nbootstrap int -seed int -out file\n");
     if (argc <= 1)
         return 0;
     char *infile_bdamage = NULL;
@@ -98,6 +101,8 @@ int main_dfit(int argc, char **argv) {
     int nopt = 5;
     int sigtype = 0;
     int nbootstrap = 100;
+    int seed = time(NULL); 
+
     while (*(++argv)) {
         if (strcasecmp("-names", *argv) == 0)
             infile_names = strdup(*(++argv));
@@ -107,16 +112,18 @@ int main_dfit(int argc, char **argv) {
             infile_lcastat = strdup(*(++argv));
         else if (strcasecmp("-bam", *argv) == 0)
             infile_bam = strdup(*(++argv));
-	 else if (strcasecmp("-out", *argv) == 0)
-            outfile_name = strdup(*(++argv));
-	else if (strcasecmp("-nopt", *argv) == 0)
-	  nopt = atoi(*(++argv));
-	else if (strcasecmp("-sigtype", *argv) == 0)
-	  sigtype = atoi(*(++argv));
-	else if (strcasecmp("-showfits", *argv) == 0)
-	  showfits = atoi(*(++argv));
-	else if (strcasecmp("-nbootstrap", *argv) == 0)
-	  nbootstrap = atoi(*(++argv));
+        else if (strcasecmp("-out", *argv) == 0)
+                  outfile_name = strdup(*(++argv));
+        else if (strcasecmp("-nopt", *argv) == 0)
+          nopt = atoi(*(++argv));
+        else if (strcasecmp("-sigtype", *argv) == 0)
+          sigtype = atoi(*(++argv));
+        else if (strcasecmp("-showfits", *argv) == 0)
+          showfits = atoi(*(++argv));
+        else if (strcasecmp("-nbootstrap", *argv) == 0)
+          nbootstrap = atoi(*(++argv));
+        else if (strcasecmp("-seed", *argv) == 0)
+          seed = atoi(*(++argv));
         else
           infile_bdamage = strdup(*argv);
     }
@@ -188,7 +195,10 @@ int main_dfit(int argc, char **argv) {
       ksprintf(kstr,"id\tA\tq\tc\tphi\tllh\tncall\tsigmaD\tZfit\n");
     }
     else if(showfits==1){
-      ksprintf(kstr,"id\tA\tq\tc\tphi\tllh\tncall\tsigmaD\tZfit");
+      ksprintf(kstr,"id\tA\tq\tc\tphi\tllh\tncall\tsigmaD\tZfit\tA_CI\tq_CI\tc_CI\tphi_CI\tp_val\n");
+    }
+    else if(showfits==2){
+      ksprintf(kstr,"id\tA\tq\tc\tphi\tllh\tncall\tsigmaD\tZfit\tA_CI\tq_CI\tc_CI\tphi_CI\tp_val");
       for(int i=0;i<howmany;i++){
         //fprintf(stderr,"\t asfafs %d\n",i);
 	      ksprintf(kstr,"\tfwdx%d\tfwdxConf%d",i,i);
@@ -198,7 +208,7 @@ int main_dfit(int argc, char **argv) {
       ksprintf(kstr,"\n");
     }
     else{
-      ksprintf(kstr,"id\tA\tq\tc\tphi\tllh\tncall\tsigmaD\tZfit");
+      ksprintf(kstr,"id\tA\tq\tc\tphi\tllh\tncall\tsigmaD\tZfit\tA_CI\tq_CI\tc_CI\tphi_CI\tp_val");
       for(int i=0;i<howmany;i++){
         //fprintf(stderr,"\t asfafs %d\n",i);
 	      ksprintf(kstr,"\tfwK%d\tfwN%d\tfwdx%d\tfwf%d\tfwdxConf%d",i,i,i,i,i);
@@ -238,30 +248,110 @@ int main_dfit(int argc, char **argv) {
 	bootdata[1] = new double [2*howmany];
 	bootdata[2] = new double [2*howmany];
 	bootdata[3] = new double [2*howmany];
-	for(int ii=0;ii<5;ii++)
+
+  double z_score = 1.96;
+  double cistat[12] = {0,0,0,0,0,0,0,0,0,0,0,0};
+
+  int npars = 6;
+  double** bootcidata = (double**)malloc(nbootstrap * sizeof(double*));
+  for (int i = 0; i < nbootstrap; i++) {bootcidata[i] = (double*)malloc(npars * sizeof(double));}
+  for (int i = 0; i < nbootstrap; i++) {
+    for (int j = 0; j < npars; j++) {
+      bootcidata[i][j] = 0.0; // You can replace this with your initialization values
+      }
+  }
+
+	/*for(int ii=0;ii<5;ii++)
 	  fprintf(stdout,"%f\t",pars[ii]);
 	fprintf(stdout,"%f\n",pars[5]);
+  fprintf(stdout,"-----\n");*/
+
+  double acumtmp = 0; double qcumtmp = 0; double ccumtmp = 0; double phicumtmp = 0;
+  double astdtmp = 0; double qstdtmp = 0; double cstdtmp = 0; double phistdtmp = 0;
+
+  double llhtmp = 0; double ncalltmp = 0;
+
 	for(int b=0;b<nbootstrap;b++){
-	  make_bootstrap_data(dat,bootdata,howmany);
+	  make_bootstrap_data(dat,bootdata,howmany,(int)(seed+b));
 	  pars[0] = 0.1;pars[1]=0.1,pars[2]=0.01,pars[3]=1000;
 	  optimoptim(pars,bootdata,nopt);
-	  for(int ii=0;ii<5;ii++)
-	    fprintf(stdout,"%f\t",pars[ii]);
-	  fprintf(stdout,"%f\n",pars[5]);
+	  for(int ii=0;ii<npars;ii++){
+      bootcidata[b][ii] = pars[ii];
+      //fprintf(stderr,"test %f \t",pars[ii]);
+    }
+    /*fprintf(stderr,"\n");
+    for (int ii = 0; ii < npars; ii++) {
+      fprintf(stdout, "%f\t", bootcidata[b][ii]);
+    }
+    fprintf(stdout,"\n");*/    
+    acumtmp += bootcidata[b][0];
+    qcumtmp += bootcidata[b][1];
+    ccumtmp += bootcidata[b][2];
+    phicumtmp += bootcidata[b][3];
+    llhtmp += abs(bootcidata[b][4]);
+    ncalltmp += bootcidata[b][5];
+	  //fprintf(stdout,"%f\n",pars[5]);
 	}
-	//end do bootstrap
-	
-	
+
+  cistat[0] = acumtmp/nbootstrap;
+  cistat[1] = qcumtmp/nbootstrap;
+  cistat[2] = ccumtmp/nbootstrap;
+  cistat[3] = phicumtmp/nbootstrap;
+  cistat[4] = llhtmp/nbootstrap;
+  cistat[5] = ncalltmp/nbootstrap;
+
+  double square_diff[6] = {0,0,0,0,0,0};
+  double margin_error[6] = {0,0,0,0,0,0};
+
+  for (int j = 0; j < npars; j++) {
+    for (int i = 0; i < nbootstrap; i++) {
+        square_diff[i] += (bootcidata[i][j] - cistat[j])*(bootcidata[i][j] - cistat[j]);
+      }
+    cistat[j+6] = sqrt(square_diff[j] / (nbootstrap - 1));
+    margin_error[j] = z_score * (cistat[j+6] / sqrt(nbootstrap));
+  }
+  /*
+  fprintf(stdout,"mean %f\t%f\t%f\t%f\n",cistat[0],cistat[1],cistat[2],cistat[3]);
+  fprintf(stdout,"std %f\t%f\t%f\t%f\n",cistat[4],cistat[5],cistat[6],cistat[7]);
+  fprintf(stdout,"margin %f\t%f\t%f\t%f\n",margin_error[0],margin_error[1],margin_error[2],margin_error[3]);
+  */
+  double hypothesized_mean = 0;
+  double t_value = (cistat[0] - hypothesized_mean) / (cistat[6] / sqrt(nbootstrap));
+  int degrees_of_freedom = nbootstrap-1;
+
+  //double pval = calculate_two_tailed_p_value(2.5, 10, 100000);
+  double pval = calculate_one_tailed_p_value(t_value, nbootstrap, 100000);
+
+  //fprintf(stdout,"T-Score: %.8f\nDegrees of Freedom: %d\nP-Value: %.20f\nP-Value: %.20f\n", t_value, degrees_of_freedom, pval);
+
+  // Free allocated memory
+  for (int i = 0; i < nbootstrap; i++){free(bootcidata[i]);}
+  free(bootcidata);
+  
 	double stats[2+2*(int)dat[0][0]];
 	getstat(dat,pars,stats);
 
 	//printit
 
-	for(int i=0;i<6;i++)
-	  ksprintf(kstr,"%f\t",pars[i]);
-	ksprintf(kstr,"%f\t%f",stats[0],stats[1]);
-	
+	for(int i=0;i<6;i++){
+    if(i == 4){
+  	  ksprintf(kstr,"%f\t",(-1)*cistat[i]);
+    }
+    else if(i == 5){
+  	  ksprintf(kstr,"%f\t",round(cistat[i]));
+    }
+    else{
+      ksprintf(kstr,"%f\t",cistat[i]);
+    }
+  }
+
+  ksprintf(kstr,"%f\t%f\t",stats[0],stats[1]);
+
   if(showfits == 1){
+    ksprintf(kstr,"[%f;%f]\t[%f;%f]\t[%f;%f]\t[%f;%f]\t%f",cistat[0]-margin_error[0],cistat[0]+margin_error[0],cistat[1]-margin_error[1],cistat[1]+margin_error[1],cistat[2]-margin_error[2],cistat[2]+margin_error[2],cistat[3]-margin_error[3],cistat[3]+margin_error[3],pval);
+  }
+  else if(showfits == 2){
+    ksprintf(kstr,"[%f;%f]\t[%f;%f]\t[%f;%f]\t[%f;%f]\t%f",cistat[0]-margin_error[0],cistat[0]+margin_error[0],cistat[1]-margin_error[1],cistat[1]+margin_error[1],cistat[2]-margin_error[2],cistat[2]+margin_error[2],cistat[3]-margin_error[3],cistat[3]+margin_error[3],pval);
 	  int nrows = (int) dat[0][0];
 	  int ncycle = nrows/2;
 	  double *dx = stats+2;
@@ -282,7 +372,8 @@ int main_dfit(int argc, char **argv) {
 	    ksprintf(kstr,"\t%f\t%f",dx[i],dx_conf[i]);
     }
 	}
-  else if(showfits > 1){
+  else if(showfits > 2){
+    ksprintf(kstr,"[%f;%f]\t[%f;%f]\t[%f;%f]\t[%f;%f]\t%f",cistat[0]-margin_error[0],cistat[0]+margin_error[0],cistat[1]-margin_error[1],cistat[1]+margin_error[1],cistat[2]-margin_error[2],cistat[2]+margin_error[2],cistat[3]-margin_error[3],cistat[3]+margin_error[3],pval);
 	  int nrows = (int) dat[0][0];
 	  int ncycle = nrows/2;
 	  double *dx = stats+2;
