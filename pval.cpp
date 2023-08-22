@@ -1,6 +1,7 @@
 #ifndef PVAL_h
 #define PVAL_h
 #include <math.h>
+#include <gsl/gsl_cdf.h>
 
 #define PI 3.14159265358979323846264338327950288
 
@@ -40,6 +41,17 @@ double calculate_one_tailed_p_value(double t_statistic, int degrees_of_freedom, 
     double one_tailed_p_value = 1.0 - cdf_positive; // One-tailed p-value (upper tail)
 
     return one_tailed_p_value;
+}
+
+double calculate_z_score(double confidence_level) {
+    // Calculate the (1 - alpha/2) quantile for a two-tailed distribution
+    double alpha = 1.0 - confidence_level;
+    double quantile = 1.0 - alpha / 2.0;
+
+    // Estimate the Z-score using the quantile function
+    double z_score = gsl_cdf_ugaussian_Pinv(quantile);
+
+    return z_score;
 }
 
 #endif

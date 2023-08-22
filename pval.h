@@ -12,5 +12,6 @@ double calculate_two_tailed_p_value(double t_statistic, int degrees_of_freedom, 
 
 double calculate_one_tailed_p_value(double t_statistic, int degrees_of_freedom, int num_segments);
 
+double calculate_z_score(double confidence_level);
 
 #endif

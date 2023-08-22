@@ -102,6 +102,7 @@ int main_dfit(int argc, char **argv) {
     int sigtype = 0;
     int nbootstrap = 100;
     int seed = time(NULL); 
+    double CI = 0.95;
 
     while (*(++argv)) {
         if (strcasecmp("-names", *argv) == 0)
@@ -124,6 +125,8 @@ int main_dfit(int argc, char **argv) {
           nbootstrap = atoi(*(++argv));
         else if (strcasecmp("-seed", *argv) == 0)
           seed = atoi(*(++argv));
+        else if (strcasecmp("-CI", *argv) == 0)
+          CI = atof(*(++argv));
         else
           infile_bdamage = strdup(*argv);
     }
@@ -192,13 +195,17 @@ int main_dfit(int argc, char **argv) {
     fprintf(stderr,"\t-> Will do optimization of %lu different taxids/chromosomes/scaffolds\n",retmap.size());
     
     if(showfits==0){
+      // Without bootstrap
       ksprintf(kstr,"id\tA\tq\tc\tphi\tllh\tncall\tsigmaD\tZfit\n");
     }
     else if(showfits==1){
+      // With bootstrap
       ksprintf(kstr,"id\tA\tq\tc\tphi\tllh\tncall\tsigmaD\tZfit\tA_CI\tq_CI\tc_CI\tphi_CI\tp_val\n");
     }
     else if(showfits==2){
+      // With bootstrap
       ksprintf(kstr,"id\tA\tq\tc\tphi\tllh\tncall\tsigmaD\tZfit\tA_CI\tq_CI\tc_CI\tphi_CI\tp_val");
+      // And fwd + bwd dx and Conf information
       for(int i=0;i<howmany;i++){
         //fprintf(stderr,"\t asfafs %d\n",i);
 	      ksprintf(kstr,"\tfwdx%d\tfwdxConf%d",i,i);
@@ -208,7 +215,9 @@ int main_dfit(int argc, char **argv) {
       ksprintf(kstr,"\n");
     }
     else{
+      // With bootstrap
       ksprintf(kstr,"id\tA\tq\tc\tphi\tllh\tncall\tsigmaD\tZfit\tA_CI\tq_CI\tc_CI\tphi_CI\tp_val");
+      // And fwd + bwd k, N, dx, f and Conf information
       for(int i=0;i<howmany;i++){
         //fprintf(stderr,"\t asfafs %d\n",i);
 	      ksprintf(kstr,"\tfwK%d\tfwN%d\tfwdx%d\tfwf%d\tfwdxConf%d",i,i,i,i,i);
@@ -249,27 +258,29 @@ int main_dfit(int argc, char **argv) {
 	bootdata[2] = new double [2*howmany];
 	bootdata[3] = new double [2*howmany];
 
-  double z_score = 1.96;
+  double z_score = calculate_z_score(CI);
   double cistat[12] = {0,0,0,0,0,0,0,0,0,0,0,0};
 
   int npars = 6;
   double** bootcidata = (double**)malloc(nbootstrap * sizeof(double*));
-  for (int i = 0; i < nbootstrap; i++) {bootcidata[i] = (double*)malloc(npars * sizeof(double));}
-  for (int i = 0; i < nbootstrap; i++) {
+
+  double acumtmp = 0; double qcumtmp = 0; double ccumtmp = 0; double phicumtmp = 0;
+  double astdtmp = 0; double qstdtmp = 0; double cstdtmp = 0; double phistdtmp = 0;
+
+  double llhtmp = 0; double ncalltmp = 0;
+
+  // allocate
+  for (int i = 0; i < nbootstrap; i++){
+    bootcidata[i] = (double*)malloc(npars * sizeof(double));
     for (int j = 0; j < npars; j++) {
       bootcidata[i][j] = 0.0; // You can replace this with your initialization values
-      }
+    }
   }
 
 	/*for(int ii=0;ii<5;ii++)
 	  fprintf(stdout,"%f\t",pars[ii]);
 	fprintf(stdout,"%f\n",pars[5]);
   fprintf(stdout,"-----\n");*/
-
-  double acumtmp = 0; double qcumtmp = 0; double ccumtmp = 0; double phicumtmp = 0;
-  double astdtmp = 0; double qstdtmp = 0; double cstdtmp = 0; double phistdtmp = 0;
-
-  double llhtmp = 0; double ncalltmp = 0;
 
 	for(int b=0;b<nbootstrap;b++){
 	  make_bootstrap_data(dat,bootdata,howmany,(int)(seed+b));
@@ -315,6 +326,7 @@ int main_dfit(int argc, char **argv) {
   fprintf(stdout,"std %f\t%f\t%f\t%f\n",cistat[4],cistat[5],cistat[6],cistat[7]);
   fprintf(stdout,"margin %f\t%f\t%f\t%f\n",margin_error[0],margin_error[1],margin_error[2],margin_error[3]);
   */
+
   double hypothesized_mean = 0;
   double t_value = (cistat[0] - hypothesized_mean) / (cistat[6] / sqrt(nbootstrap));
   int degrees_of_freedom = nbootstrap-1;
