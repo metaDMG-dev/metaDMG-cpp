@@ -162,6 +162,7 @@ int main_dfit(int argc, char **argv) {
     BGZF *fpfpfp = bgzf_open(buf, "wb");
     kstring_t *kstr = new kstring_t;
     kstr->s = NULL; kstr->l = kstr->m = 0;
+
     // map of taxid -> taxid
     int2int parent;
     // map of taxid -> rank
@@ -193,7 +194,7 @@ int main_dfit(int argc, char **argv) {
     dat[2] = new double [2*howmany];
     dat[3] = new double [2*howmany];
     fprintf(stderr,"\t-> Will do optimization of %lu different taxids/chromosomes/scaffolds\n",retmap.size());
-    
+
     if(showfits==0){
       // Without bootstrap
       ksprintf(kstr,"id\tA\tq\tc\tphi\tllh\tncall\tsigmaD\tZfit\n");
@@ -249,8 +250,9 @@ int main_dfit(int argc, char **argv) {
 	    
 	}
 	make_dfit_format(md,dat,howmany);
-	double pars[6] = {0.0,0.1,0.01,1000};//last one will contain the llh,and the ncall for the objective function
+	double pars[6] = {0.1,0.1,0.01,1000};//last one will contain the llh,and the ncall for the objective function
   optimoptim(pars,dat,nopt);
+
 
   //fprintf(stdout,"THIS IS THE ACTUAL DATA %f\t%f\t%f\t%f\n",pars[0],pars[1],pars[2],pars[3]);
 
@@ -260,6 +262,15 @@ int main_dfit(int argc, char **argv) {
   double pval;
 
   if(showfits>0){
+    char bootbuf[1024];
+    snprintf(bootbuf, 1024, "%s.boot.stat.txt.gz", outfile_name);
+
+    kstring_t *bootkstr = new kstring_t;
+    bootkstr->s = NULL; bootkstr->l = bootkstr->m = 0;
+    BGZF *bootfp = bgzf_open(bootbuf, "wb");    
+
+    ksprintf(bootkstr,"A\tq\tc\tphi\tllh\tncall\n");
+
     //do bootstrap, print to screen for now
     double **bootdata = new double*[4];
     bootdata[0] = new double[2+2*howmany];
@@ -284,7 +295,7 @@ int main_dfit(int argc, char **argv) {
         bootcidata[i][j] = 0.0; // You can replace this with your initialization values
       }
     }
-
+    //fprintf(stdout,"Bootstrap estimates\n");
     for(int b=0;b<nbootstrap;b++){
       make_bootstrap_data(dat,bootdata,howmany,(int)(seed+b));
       pars[0] = 0.1;pars[1]=0.1,pars[2]=0.01,pars[3]=1000;
@@ -293,11 +304,13 @@ int main_dfit(int argc, char **argv) {
         bootcidata[b][ii] = pars[ii];
         //fprintf(stderr,"test %f \t",pars[ii]);
       }
-      /*fprintf(stderr,"\n");
+      //fprintf(stderr,"\n");
       for (int ii = 0; ii < npars; ii++) {
-        fprintf(stdout, "%f\t", bootcidata[b][ii]);
+        //fprintf(stdout, "%d \t %f\t", b,bootcidata[b][ii]);
+        ksprintf(bootkstr,"%f\t",bootcidata[b][ii]);
       }
-      fprintf(stdout,"\n");*/    
+      ksprintf(bootkstr,"\n");
+      //fprintf(stdout,"\n");    
       acumtmp += bootcidata[b][0];
       qcumtmp += bootcidata[b][1];
       ccumtmp += bootcidata[b][2];
@@ -306,6 +319,10 @@ int main_dfit(int argc, char **argv) {
       ncalltmp += bootcidata[b][5];
       //fprintf(stdout,"%f\n",pars[5]);
     }
+
+    bgzf_write(bootfp,bootkstr->s,bootkstr->l);
+    bootkstr->l = 0;
+    bgzf_close(bootfp);
 
     cistat[0] = acumtmp/nbootstrap;
     cistat[1] = qcumtmp/nbootstrap;
@@ -328,8 +345,12 @@ int main_dfit(int argc, char **argv) {
     double t_value = (cistat[0] - hypothesized_mean) / (cistat[6] / sqrt(nbootstrap));
     int degrees_of_freedom = nbootstrap-1;
 
+    double p_value = 1-gsl_cdf_tdist_P(fabs(t_value), degrees_of_freedom);
+    std::cout << p_value << std::endl;
+    printf("P-value at x = %.2f with dof = %d: \t%lf\n", t_value, degrees_of_freedom, p_value);
+
     //double pval = calculate_two_tailed_p_value(2.5, 10, 100000);
-    pval = calculate_one_tailed_p_value(t_value, nbootstrap, 100000);
+    pval = calculate_one_tailed_p_value(t_value,degrees_of_freedom, 1000000);
 
     //fprintf(stdout,"T-Score: %.8f\nDegrees of Freedom: %d\nP-Value: %.20f\nP-Value: %.20f\n", t_value, degrees_of_freedom, pval);
 
@@ -358,11 +379,14 @@ int main_dfit(int argc, char **argv) {
     ksprintf(kstr,"%f\t%f\t",stats[0],stats[1]);
   }
   else if(showfits == 1){
+ 	  ksprintf(kstr,"%f\t%f\t",stats[0],stats[1]);
     ksprintf(kstr,"[%f;%f]\t[%f;%f]\t[%f;%f]\t[%f;%f]\t%f",cistat[0]-margin_error[0],cistat[0]+margin_error[0],cistat[1]-margin_error[1],cistat[1]+margin_error[1],cistat[2]-margin_error[2],cistat[2]+margin_error[2],cistat[3]-margin_error[3],cistat[3]+margin_error[3],pval);
+
   }
   else if(showfits == 2){
+	  ksprintf(kstr,"%f\t%f\t",stats[0],stats[1]);
     ksprintf(kstr,"[%f;%f]\t[%f;%f]\t[%f;%f]\t[%f;%f]\t%f",cistat[0]-margin_error[0],cistat[0]+margin_error[0],cistat[1]-margin_error[1],cistat[1]+margin_error[1],cistat[2]-margin_error[2],cistat[2]+margin_error[2],cistat[3]-margin_error[3],cistat[3]+margin_error[3],pval);
-	  int nrows = (int) dat[0][0];
+    int nrows = (int) dat[0][0];
 	  int ncycle = nrows/2;
 	  double *dx = stats+2;
 	  double *dx_conf = stats+2+nrows;

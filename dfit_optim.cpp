@@ -92,15 +92,15 @@ double compute_log_likelihood(const double DMGparam[], const void *dats){
     double like_sum = 0;
     for (int i = 0; i < NUMROWS; i++) {
         Dx = A * pow((1 - q), fabs(XCOL[i])) + c;
-	//fprintf(stderr,"DX %f \n",Dx);
+	      //fprintf(stderr,"DX %f \n",Dx);
         alpha = Dx * phi;
         beta = (1 - Dx) * phi;
-	//		fprintf(stderr,"[%d] XCOL: %f KCOL: %f NCOL: %f\n",i,XCOL[i],KCOL[i],NCOL[i]);
+	      //fprintf(stderr,"[%d] XCOL: %f KCOL: %f NCOL: %f\n",i,XCOL[i],KCOL[i],NCOL[i]);
         //double likelihood = compute_log_likelihood(A, q, c, phi, M3[i][x_col], M3[i][k_col], M3[i][N_col]);
         part1 = lgamma(NCOL[i]+1)+lgamma(KCOL[i]+alpha)+lgamma(NCOL[i]-KCOL[i]+beta)+lgamma(alpha+beta);
         part2 = lgamma(KCOL[i]+1)+lgamma(NCOL[i]-KCOL[i]+1)+lgamma(alpha)+lgamma(beta)+lgamma(NCOL[i]+alpha+beta);
         //fprintf(stderr,"XCAL %f \t M3[i][NCOL] %f \n",fabs(M3[i][KCOL]),M3[i][NCOL]);
-	//   fprintf(stderr,"part1 is %f \t part2 %f \n",part1,part2);
+	      //fprintf(stderr,"part1 is %f \t part2 %f \n",part1,part2);
         like_sum = like_sum + (part1-part2); //(part1-part2) -> likelihood
     }
     //    exit(0);
