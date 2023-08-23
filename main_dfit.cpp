@@ -4,6 +4,7 @@
   
  */
 
+#include <random>
 #include <cstdio>
 #include <htslib/hts.h>   // for htsFormat, hts_opt_add, htsFile, hts_opt
 #include <htslib/sam.h>   // for htsFormat, hts_opt_add, htsFile, hts_opt
@@ -105,10 +106,10 @@ void make_dfit_format_bootstrap(mydataD &md,double **dat,int howmany,int seed){
     for(int r=0;r<4;r++)//loop over ref
       for(int o=0;o<4;o++)//loop over obs
 	tsum[r] += md.fwD[i*16+r*4+o];
-
+    //  fprintf(stderr,"tsum: %f %f\n",tsum[1],tsum[2]);
     double prob1 = tsum[1]/(tsum[0]+tsum[1]+tsum[2]+tsum[3]);//prob of ref=c
     double prob2 =((double) md.fwD[i*16+7])/tsum[1];//prob of obs=t, with ref=c
-    //    fprintf(stderr,"probl1: %f %f\n",prob1,prob2);
+    //  fprintf(stderr,"probl1: %f %f\n",prob1,prob2);
     dat[2][i] = 0;//initialize kcol to zero, a few lines down we will sum over all C*
 
     for(int f=0;f<tsum[0]+tsum[1]+tsum[2]+tsum[3];f++){
@@ -132,17 +133,70 @@ void make_dfit_format_bootstrap(mydataD &md,double **dat,int howmany,int seed){
       for(int o=0;o<4;o++)
 	tsum[r] += md.bwD[i*16+r*4+o];
     
-    double prob1 = tsum[1]/(tsum[0]+tsum[1]+tsum[2]+tsum[3]);//sum over all
+    double prob1 = tsum[2]/(tsum[0]+tsum[1]+tsum[2]+tsum[3]);//sum over all
     double prob2 =((double) md.bwD[i*16+8])/tsum[2];//ga over sum of g*
     dat[2][howmany+i] = 0;//initialize kcol to zero, a few lines dows we will sum over all G*
     for(int f=0;f<tsum[0]+tsum[1]+tsum[2]+tsum[3];f++){
       if(drand48()<prob1){//if reference is g
 	if(drand48()<prob2)//if observertion is a
-	  dat[1][i] += 1;
+	  dat[1][howmany+i] += 1;
 	
-	dat[2][i] += 1;//we are at ref=g, so increment the nvec
+	dat[2][howmany+i] += 1;//we are at ref=g, so increment the nvec
       }
     }
+
+    dat[3][howmany+i] = (double) dat[1][howmany+i]/dat[2][howmany+i];
+  }
+
+}
+
+void make_dfit_format_bootstrap2(mydataD &md,double **dat,int howmany,int seed){
+  static std::random_device rd;
+  static std::mt19937 gen(rd());
+
+  
+  srand48(seed);
+  dat[0][0] = 2*howmany;
+  dat[0][1] = 0;
+
+  //do 5'
+  for(int i=0;i<howmany;i++){
+    dat[0][i+2] =i;
+
+    double tsum[4] = {0,0,0,0};
+    for(int r=0;r<4;r++)//loop over ref
+      for(int o=0;o<4;o++)//loop over obs
+	tsum[r] += md.fwD[i*16+r*4+o];
+    //  fprintf(stderr,"tsum: %f %f\n",tsum[1],tsum[2]);
+    double prob1 = tsum[1]/(tsum[0]+tsum[1]+tsum[2]+tsum[3]);//prob of ref=c
+    double prob2 =((double) md.fwD[i*16+7])/tsum[1];//prob of obs=t, with ref=c
+    // fprintf(stderr,"probl1: %f %f\n",prob1,prob2);
+    std::binomial_distribution<> d(tsum[0]+tsum[1]+tsum[2]+tsum[3], prob1);
+    dat[2][i] = d(gen);
+    std::binomial_distribution<> d2(dat[2][i], prob2);
+    dat[1][i] = d2(gen);
+    
+    dat[3][i] = (double) dat[1][i]/dat[2][i];
+  }
+
+  //do 3'
+  for(int i=0;i<howmany;i++){
+    dat[0][howmany+i+2] =i;
+
+    double tsum[4] = {0,0,0,0};
+    for(int r=0;r<4;r++)
+      for(int o=0;o<4;o++)
+	tsum[r] += md.bwD[i*16+r*4+o];
+    
+    double prob1 = tsum[2]/(tsum[0]+tsum[1]+tsum[2]+tsum[3]);//sum over all
+    double prob2 =((double) md.bwD[i*16+8])/tsum[2];//ga over sum of g*
+
+    std::binomial_distribution<> d(tsum[0]+tsum[1]+tsum[2]+tsum[3], prob1);
+    
+    dat[2][howmany+i] = d(gen);
+    std::binomial_distribution<> d2(dat[2][i], prob2);
+    dat[2][howmany+i] = d2(gen);
+
 
     dat[3][howmany+i] = (double) dat[1][howmany+i]/dat[2][howmany+i];
   }
@@ -366,9 +420,10 @@ int main_dfit(int argc, char **argv) {
     }
     //fprintf(stdout,"Bootstrap estimates\n");
     for(int b=0;b<nbootstrap;b++){
-
       if(sigtype==2)
 	make_dfit_format_bootstrap(md,bootdata,howmany,(seed+b));//<-this makes a new dat that has been resampled
+      if(sigtype==3)
+	make_dfit_format_bootstrap2(md,bootdata,howmany,(seed+b));//<-this makes a new dat that has been resampled
       else if(sigtype==1)
 	make_bootstrap_data(dat,bootdata,howmany,(int)(seed+b));
       
