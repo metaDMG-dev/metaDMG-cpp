@@ -12,19 +12,19 @@ double t_pdf(double x, int dof) {
     return numerator / denominator * pow(1 + (x * x) / dof, -(dof + 1) / 2.0);
 }
 
-// Calculate the t-distribution CDF using the trapezoidal rule
-double t_cdf(double x, int dof, int num_segments) {
-    double step_size = x / num_segments;
-    double integral = 0.5 * t_pdf(-x, dof); // Start with the contribution at -infinity
-
-    for (int i = 1; i < num_segments; ++i) {
-        double x_i = i * step_size;
-        integral += t_pdf(x_i, dof);
+double t_cdf(double x, int dof, double step = 0.001) {
+    double result = 0.0;
+    double current_x = -20.0;  // Starting from a very negative value
+    while (current_x <= x) {
+        result += t_pdf(current_x, dof) * step;
+        current_x += step;
     }
+    return result;
+}
 
-    integral *= step_size;
-
-    return 0.5 + integral; // Add the 0.5 for the symmetric nature of the t-distribution
+double calculate_p_value(double test_statistic, int dof) {
+    double p_value = 1.0 - t_cdf(test_statistic, dof);
+    return p_value;
 }
 
 double calculate_two_tailed_p_value(double t_statistic, int degrees_of_freedom, int num_segments) {

@@ -42,10 +42,9 @@ void make_bootstrap_data(double **in,double **out,int howmany,int seedval){
     //    fprintf(stderr,"Prob: %f\n",prob);
     kvec_out[p] = nvec_out[p] = 0;
     for(int i =0;i<(int)nvec_in[p];i++){
+      nvec_out[p] +=1;
       if(drand48()<prob)
 	      kvec_out[p] +=1;
-      else
-	      nvec_out[p] +=1;
     }
     //   fprintf(stderr,"k: %f n: %f\n",kvec_out[p],nvec_out[p]);
   }
@@ -303,7 +302,8 @@ int main_dfit(int argc, char **argv) {
 
 	if(hdr!=NULL){
 	  ksprintf(kstr, "%s\t", sam_hdr_tid2name(hdr, it->first));
-	}else{
+	}
+  else{
 	  if(name_map.size()==0)
 	    ksprintf(kstr,"%d\t",it->first);
 	  else{
@@ -416,22 +416,26 @@ int main_dfit(int argc, char **argv) {
     }
 
     double hypothesized_mean = 0;
-    double t_value = (cistat[0] - hypothesized_mean) / (cistat[6] / sqrt(nbootstrap));
+    //fprintf(stderr,"BEFORE tstat %f \t %f \n",cistat[0],cistat[6]);
+    double t_value = fabs((cistat[0] - hypothesized_mean)) / (cistat[6] / sqrt(nbootstrap));
     int degrees_of_freedom = nbootstrap-1;
+    //fprintf(stderr,"---------\n");
+    double p_value = gsl_cdf_tdist_Q(t_value, degrees_of_freedom);
+    double p_value2 = 2 * (1 - gsl_cdf_tdist_P(t_value, degrees_of_freedom));
 
-    double p_value = 1-gsl_cdf_tdist_P(fabs(t_value), degrees_of_freedom);
-    std::cout << p_value << std::endl;
-    printf("P-value at x = %.2f with dof = %d: \t%lf\n", t_value, degrees_of_freedom, p_value);
-
-    //double pval = calculate_two_tailed_p_value(2.5, 10, 100000);
-    pval = calculate_one_tailed_p_value(t_value,degrees_of_freedom, 1000000);
-
-    //fprintf(stdout,"T-Score: %.8f\nDegrees of Freedom: %d\nP-Value: %.20f\nP-Value: %.20f\n", t_value, degrees_of_freedom, pval);
+    /*fprintf(stdout,"P-value at x = %.2f with dof = %d: \t%.35f\n", t_value, degrees_of_freedom, p_value);
+    fprintf(stdout,"P-value at x = %.2f with dof = %d: \t%.35f\n", t_value, degrees_of_freedom, p_value2);*/
+    pval = calculate_one_tailed_p_value(t_value,degrees_of_freedom, 10000);
+    /*pval = calculate_p_value(t_value,degrees_of_freedom);
+    fprintf(stdout,"T-Score: %.8f\nDegrees of Freedom: %d\nP-Value: %.20f\n", t_value, degrees_of_freedom, pval);
+    fprintf(stderr,"---------\n");*/
 
     // Free allocated memory
     for (int i = 0; i < nbootstrap; i++){free(bootcidata[i]);}
     free(bootcidata);
-  
+
+    // adding the estimated parameters for the bootstrapping method -> this does not conform with the original estimated A value obtained from 
+    // the first optimoptit(pars,dat,nopt), so this is the mean estimate across all bootstrap, same for the other parameters q,c,phi,llh,ncall
     for(int i=0;i<6;i++){
       if(i == 4){
         ksprintf(kstr,"%f\t",(-1)*cistat[i]);
