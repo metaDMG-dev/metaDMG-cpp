@@ -105,7 +105,7 @@ void make_dfit_format_bootstrap(mydataD &md,double **dat,int howmany,int seed){
     double tsum[4] = {0,0,0,0};
     for(int r=0;r<4;r++)//loop over ref
       for(int o=0;o<4;o++)//loop over obs
-	tsum[r] += md.fwD[i*16+r*4+o];
+	      tsum[r] += md.fwD[i*16+r*4+o];
     //  fprintf(stderr,"tsum: %f %f\n",tsum[1],tsum[2]);
     double prob1 = tsum[1]/(tsum[0]+tsum[1]+tsum[2]+tsum[3]);//prob of ref=c
     double prob2 =((double) md.fwD[i*16+7])/tsum[1];//prob of obs=t, with ref=c
@@ -114,10 +114,10 @@ void make_dfit_format_bootstrap(mydataD &md,double **dat,int howmany,int seed){
 
     for(int f=0;f<tsum[0]+tsum[1]+tsum[2]+tsum[3];f++){
       if(drand48()<prob1){//if reference is c
-	if(drand48()<prob2)//if observertion is t
-	  dat[1][i] += 1;
+        if(drand48()<prob2)//if observertion is t
+          dat[1][i] += 1;
 	
-	dat[2][i] += 1;//we are at ref=c, so increment the nvec
+	      dat[2][i] += 1;//we are at ref=c, so increment the nvec
       }
     }
     
@@ -131,17 +131,17 @@ void make_dfit_format_bootstrap(mydataD &md,double **dat,int howmany,int seed){
     double tsum[4] = {0,0,0,0};
     for(int r=0;r<4;r++)
       for(int o=0;o<4;o++)
-	tsum[r] += md.bwD[i*16+r*4+o];
+	      tsum[r] += md.bwD[i*16+r*4+o];
     
     double prob1 = tsum[2]/(tsum[0]+tsum[1]+tsum[2]+tsum[3]);//sum over all
     double prob2 =((double) md.bwD[i*16+8])/tsum[2];//ga over sum of g*
     dat[2][howmany+i] = 0;//initialize kcol to zero, a few lines dows we will sum over all G*
     for(int f=0;f<tsum[0]+tsum[1]+tsum[2]+tsum[3];f++){
       if(drand48()<prob1){//if reference is g
-	if(drand48()<prob2)//if observertion is a
-	  dat[1][howmany+i] += 1;
-	
-	dat[2][howmany+i] += 1;//we are at ref=g, so increment the nvec
+        if(drand48()<prob2)//if observertion is a
+          dat[1][howmany+i] += 1;
+        
+        dat[2][howmany+i] += 1;//we are at ref=g, so increment the nvec
       }
     }
 
@@ -166,7 +166,7 @@ void make_dfit_format_bootstrap2(mydataD &md,double **dat,int howmany,int seed){
     double tsum[4] = {0,0,0,0};
     for(int r=0;r<4;r++)//loop over ref
       for(int o=0;o<4;o++)//loop over obs
-	tsum[r] += md.fwD[i*16+r*4+o];
+	      tsum[r] += md.fwD[i*16+r*4+o];
     //  fprintf(stderr,"tsum: %f %f\n",tsum[1],tsum[2]);
     double prob1 = tsum[1]/(tsum[0]+tsum[1]+tsum[2]+tsum[3]);//prob of ref=c
     double prob2 =((double) md.fwD[i*16+7])/tsum[1];//prob of obs=t, with ref=c
@@ -186,7 +186,7 @@ void make_dfit_format_bootstrap2(mydataD &md,double **dat,int howmany,int seed){
     double tsum[4] = {0,0,0,0};
     for(int r=0;r<4;r++)
       for(int o=0;o<4;o++)
-	tsum[r] += md.bwD[i*16+r*4+o];
+	      tsum[r] += md.bwD[i*16+r*4+o];
     
     double prob1 = tsum[2]/(tsum[0]+tsum[1]+tsum[2]+tsum[3]);//sum over all
     double prob2 =((double) md.bwD[i*16+8])/tsum[2];//ga over sum of g*
@@ -219,8 +219,9 @@ int main_dfit(int argc, char **argv) {
     int howmany;//this is the cycle
     int showfits=0;
     int nopt = 10;
-    int sigtype = 0;
-    int nbootstrap = 20;
+    int sigtype = 1;
+    int nbootstrap = 1;
+    int doboot = 0;
     int seed = time(NULL); 
     double CI = 0.95;
 
@@ -243,6 +244,8 @@ int main_dfit(int argc, char **argv) {
           showfits = atoi(*(++argv));
         else if (strcasecmp("-nbootstrap", *argv) == 0)
           nbootstrap = atoi(*(++argv));
+        else if (strcasecmp("-doboot", *argv) == 0)
+          doboot = atoi(*(++argv));
         else if (strcasecmp("-seed", *argv) == 0)
           seed = atoi(*(++argv));
         else if (strcasecmp("-CI", *argv) == 0)
@@ -316,16 +319,19 @@ int main_dfit(int argc, char **argv) {
     fprintf(stderr,"\t-> Will do optimization of %lu different taxids/chromosomes/scaffolds\n",retmap.size());
 
     if(showfits==0){
+      //fprintf(stderr,"INSIDE THE FIRST SHOWFITS loop 0 \n");
       // Without bootstrap
-      ksprintf(kstr,"id\tA\tq\tc\tphi\tllh\tncall\tsigmaD\tZfit\n");
+      if(nbootstrap < 2){
+        ksprintf(kstr,"id\tA\tq\tc\tphi\tllh\tncall\tsigmaD\tZfit\n");
+      }
+      else{
+        ksprintf(kstr,"id\tA\tq\tc\tphi\tllh\tncall\tsigmaD\tZfit\tA_b\tq_b\tc_b\tphi_b\tA_CI\tq_CI\tc_CI\tphi_CI\n");
+      }
     }
     else if(showfits==1){
+      //fprintf(stderr,"INSIDE THE FIRST SHOWFITS loop 1 \n");
       // With bootstrap
-      ksprintf(kstr,"id\tA\tq\tc\tphi\tllh\tncall\tsigmaD\tZfit\tA_CI\tq_CI\tc_CI\tphi_CI\tp_val\n");
-    }
-    else if(showfits==2){
-      // With bootstrap
-      ksprintf(kstr,"id\tA\tq\tc\tphi\tllh\tncall\tsigmaD\tZfit\tA_CI\tq_CI\tc_CI\tphi_CI\tp_val");
+      ksprintf(kstr,"id\tA\tq\tc\tphi\tllh\tncall\tsigmaD\tZfit\tA_b\tq_b\tc_b\tphi_b\tA_CI\tq_CI\tc_CI\tphi_CI");
       // And fwd + bwd dx and Conf information
       for(int i=0;i<howmany;i++){
         //fprintf(stderr,"\t asfafs %d\n",i);
@@ -336,8 +342,9 @@ int main_dfit(int argc, char **argv) {
       ksprintf(kstr,"\n");
     }
     else{
+      //fprintf(stderr,"INSIDE THE FIRST SHOWFITS loop 2 \n");
       // With bootstrap
-      ksprintf(kstr,"id\tA\tq\tc\tphi\tllh\tncall\tsigmaD\tZfit\tA_CI\tq_CI\tc_CI\tphi_CI\tp_val");
+      ksprintf(kstr,"id\tA\tq\tc\tphi\tllh\tncall\tsigmaD\tZfit\tA_b\tq_b\tc_b\tphi_b\tA_CI\tq_CI\tc_CI\tphi_CI");
       // And fwd + bwd k, N, dx, f and Conf information
       for(int i=0;i<howmany;i++){
         //fprintf(stderr,"\t asfafs %d\n",i);
@@ -368,31 +375,22 @@ int main_dfit(int argc, char **argv) {
 	    }
 	    ksprintf(kstr,"%d:%s\t",it->first,nit->second);
 	  }
-	    
 	}
 	make_dfit_format(md,dat,howmany);
 
 	double pars[6] = {0.1,0.1,0.01,1000};//last one will contain the llh,and the ncall for the objective function
   optimoptim(pars,dat,nopt);
 
+  double pars_b[6] = {0.1,0.1,0.01,1000};//last one will contain the llh,and the ncall for the objective function
 
-  //fprintf(stdout,"THIS IS THE ACTUAL DATA %f\t%f\t%f\t%f\n",pars[0],pars[1],pars[2],pars[3]);
+  //fprintf(stderr,"THIS IS THE ACTUAL DATA %f\t%f\t%f\t%f\n",pars[0],pars[1],pars[2],pars[3]);
 
   double cistat[12] = {0,0,0,0,0,0,0,0,0,0,0,0};
   double square_diff[6] = {0,0,0,0,0,0};
   double margin_error[6] = {0,0,0,0,0,0};
-  double pval;
 
-  if(showfits>0){
-
-    char bootbuf[1024];
-    snprintf(bootbuf, 1024, "%s.boot.stat.txt.gz", outfile_name);
-
-    kstring_t *bootkstr = new kstring_t;
-    bootkstr->s = NULL; bootkstr->l = bootkstr->m = 0;
-    BGZF *bootfp = bgzf_open(bootbuf, "wb");    
-
-    ksprintf(bootkstr,"A\tq\tc\tphi\tllh\tncall\n");
+  //Bootstrapping procedure
+  if(nbootstrap>1){
 
     //do bootstrap, print to screen for now
     double **bootdata = new double*[4];
@@ -418,27 +416,33 @@ int main_dfit(int argc, char **argv) {
         bootcidata[i][j] = 0.0; // You can replace this with your initialization values
       }
     }
+
+    char bootbuf[1024];
+    BGZF *bootfp;
+    kstring_t *bootkstr = new kstring_t;
+    bootkstr->s = NULL; bootkstr->l = bootkstr->m = 0;
+    if(doboot>0){
+      snprintf(bootbuf, 1024, "%s.boot.stat.txt.gz", outfile_name);
+      bootfp = bgzf_open(bootbuf, "wb");    
+      ksprintf(bootkstr,"id\tA\tq\tc\tphi\tllh\tncall\n");
+    }
+
     //fprintf(stdout,"Bootstrap estimates\n");
     for(int b=0;b<nbootstrap;b++){
       if(sigtype==2)
-	make_dfit_format_bootstrap(md,bootdata,howmany,(seed+b));//<-this makes a new dat that has been resampled
+	      make_dfit_format_bootstrap(md,bootdata,howmany,(seed+b));//<-this makes a new dat that has been resampled
       if(sigtype==3)
-	make_dfit_format_bootstrap2(md,bootdata,howmany,(seed+b));//<-this makes a new dat that has been resampled
+	      make_dfit_format_bootstrap2(md,bootdata,howmany,(seed+b));//<-this makes a new dat that has been resampled
       else if(sigtype==1)
-	make_bootstrap_data(dat,bootdata,howmany,(int)(seed+b));
+	      make_bootstrap_data(dat,bootdata,howmany,(int)(seed+b));
       
-      pars[0] = 0.1;pars[1]=0.1,pars[2]=0.01,pars[3]=1000;
-      optimoptim(pars,bootdata,nopt);
+      pars_b[0] = 0.1;pars_b[1]=0.1,pars_b[2]=0.01,pars_b[3]=1000,pars_b[4]=0,pars_b[5]=0;
+      optimoptim(pars_b,bootdata,nopt);
       for(int ii=0;ii<npars;ii++){
-        bootcidata[b][ii] = pars[ii];
+        bootcidata[b][ii] = pars_b[ii];
         //fprintf(stderr,"test %f \t",pars[ii]);
       }
-      //fprintf(stderr,"\n");
-      for (int ii = 0; ii < npars; ii++) {
-        //fprintf(stdout, "%d \t %f\t", b,bootcidata[b][ii]);
-        ksprintf(bootkstr,"%f\t",bootcidata[b][ii]);
-      }
-      ksprintf(bootkstr,"\n");
+
       //fprintf(stdout,"\n");    
       acumtmp += bootcidata[b][0];
       qcumtmp += bootcidata[b][1];
@@ -447,11 +451,35 @@ int main_dfit(int argc, char **argv) {
       llhtmp += abs(bootcidata[b][4]);
       ncalltmp += bootcidata[b][5];
       //fprintf(stdout,"%f\n",pars[5]);
+      if(doboot>0){
+        if(hdr!=NULL){
+          ksprintf(bootkstr, "%s\t", sam_hdr_tid2name(hdr, it->first));
+        }
+        else{
+          if(name_map.size()==0)
+            ksprintf(bootkstr,"%d\t",it->first);
+          else{
+            int2char::iterator nit = name_map.find(it->first);
+            if(nit==name_map.end()){
+              fprintf(stderr,"\t-> Problem finding taxid: %d in names database: %s\n",it->first,infile_names);
+              exit(1);
+            }
+            ksprintf(bootkstr,"%d:%s\t",it->first,nit->second);
+          }
+        }
+        for (int ii = 0; ii < npars; ii++) {
+          //fprintf(stdout, "%d \t %f\t", b,bootcidata[b][ii]);
+          ksprintf(bootkstr,"%f\t",bootcidata[b][ii]);
+        }
+        ksprintf(bootkstr,"\n");
+      }
     }
-
-    bgzf_write(bootfp,bootkstr->s,bootkstr->l);
-    bootkstr->l = 0;
-    bgzf_close(bootfp);
+    
+    if(doboot>0){
+      bgzf_write(bootfp,bootkstr->s,bootkstr->l);
+      bootkstr->l = 0;
+      bgzf_close(bootfp);
+    }
 
     cistat[0] = acumtmp/nbootstrap;
     cistat[1] = qcumtmp/nbootstrap;
@@ -459,8 +487,6 @@ int main_dfit(int argc, char **argv) {
     cistat[3] = phicumtmp/nbootstrap;
     cistat[4] = llhtmp/nbootstrap;
     cistat[5] = ncalltmp/nbootstrap;
-
-    
 
     for (int j = 0; j < npars; j++) {
       for (int i = 0; i < nbootstrap; i++) {
@@ -470,55 +496,57 @@ int main_dfit(int argc, char **argv) {
       margin_error[j] = z_score * (cistat[j+6] / sqrt(nbootstrap));
     }
 
-    double hypothesized_mean = 0;
-    //fprintf(stderr,"BEFORE tstat %f \t %f \n",cistat[0],cistat[6]);
-    double t_value = fabs((cistat[0] - hypothesized_mean)) / (cistat[6] / sqrt(nbootstrap));
-    int degrees_of_freedom = nbootstrap-1;
-    //fprintf(stderr,"---------\n");
-    double p_value = gsl_cdf_tdist_Q(t_value, degrees_of_freedom);
-    double p_value2 = 2 * (1 - gsl_cdf_tdist_P(t_value, degrees_of_freedom));
-
-    /*fprintf(stdout,"P-value at x = %.2f with dof = %d: \t%.35f\n", t_value, degrees_of_freedom, p_value);
-    fprintf(stdout,"P-value at x = %.2f with dof = %d: \t%.35f\n", t_value, degrees_of_freedom, p_value2);*/
-    pval = calculate_one_tailed_p_value(t_value,degrees_of_freedom, 10000);
-    /*pval = calculate_p_value(t_value,degrees_of_freedom);
-    fprintf(stdout,"T-Score: %.8f\nDegrees of Freedom: %d\nP-Value: %.20f\n", t_value, degrees_of_freedom, pval);
-    fprintf(stderr,"---------\n");*/
-
     // Free allocated memory
     for (int i = 0; i < nbootstrap; i++){free(bootcidata[i]);}
     free(bootcidata);
-
-    // adding the estimated parameters for the bootstrapping method -> this does not conform with the original estimated A value obtained from 
-    // the first optimoptit(pars,dat,nopt), so this is the mean estimate across all bootstrap, same for the other parameters q,c,phi,llh,ncall
-    for(int i=0;i<6;i++){
-      if(i == 4){
-        ksprintf(kstr,"%f\t",(-1)*cistat[i]);
-      }
-      else if(i == 5){
-        ksprintf(kstr,"%f\t",round(cistat[i]));
-      }
-      else{
-        ksprintf(kstr,"%f\t",cistat[i]);
-      }
-    }
   }
-
+  // Sigma and Z
   double stats[2+2*(int)dat[0][0]];
   getstat(dat,pars,stats);
+  for(int i=0;i<6;i++){
+    //std::cout << "showfit s " << pars[i] << std::endl;
+    ksprintf(kstr,"%f\t",pars[i]);
+  }
+  //std::cout << "stats " << stats[0] << " " << stats[1] << std::endl;
+  ksprintf(kstr,"%f\t%f\t",stats[0],stats[1]);
+
   if(showfits == 0){
-    for(int i=0;i<6;i++)
-  	  ksprintf(kstr,"%f\t",pars[i]);
-    ksprintf(kstr,"%f\t%f\t",stats[0],stats[1]);
+    //fprintf(stderr,"INSIDE THE 0 loop 2\n");
+    //ksprintf(kstr,"%f\t%f\t",stats[0],stats[1]);
+    if(nbootstrap > 1){
+      // adding the estimated parameters for the bootstrapping method -> this does not conform with the original estimated A value obtained from 
+      // the first optimoptit(pars,dat,nopt), so this is the mean estimate across all bootstrap, same for the other parameters q,c,phi,llh,ncall
+      for(int i=0;i<6;i++){
+        if(i == 4){
+          // llh
+          //ksprintf(kstr,"%f\t",(-1)*cistat[i]);
+          continue;
+        }
+        else if(i == 5){
+          // ncall
+          //ksprintf(kstr,"%f\t",round(cistat[i]));
+          continue;
+        }
+        else{
+          // A q c phi 
+          ksprintf(kstr,"%f\t",cistat[i]);
+        }
+      }
+      ksprintf(kstr,"[%f;%f]\t[%f;%f]\t[%f;%f]\t[%f;%f]",cistat[0]-margin_error[0],cistat[0]+margin_error[0],cistat[1]-margin_error[1],cistat[1]+margin_error[1],cistat[2]-margin_error[2],cistat[2]+margin_error[2],cistat[3]-margin_error[3],cistat[3]+margin_error[3]);
+    }
   }
   else if(showfits == 1){
- 	  ksprintf(kstr,"%f\t%f\t",stats[0],stats[1]);
-    ksprintf(kstr,"[%f;%f]\t[%f;%f]\t[%f;%f]\t[%f;%f]\t%f",cistat[0]-margin_error[0],cistat[0]+margin_error[0],cistat[1]-margin_error[1],cistat[1]+margin_error[1],cistat[2]-margin_error[2],cistat[2]+margin_error[2],cistat[3]-margin_error[3],cistat[3]+margin_error[3],pval);
-
-  }
-  else if(showfits == 2){
-	  ksprintf(kstr,"%f\t%f\t",stats[0],stats[1]);
-    ksprintf(kstr,"[%f;%f]\t[%f;%f]\t[%f;%f]\t[%f;%f]\t%f",cistat[0]-margin_error[0],cistat[0]+margin_error[0],cistat[1]-margin_error[1],cistat[1]+margin_error[1],cistat[2]-margin_error[2],cistat[2]+margin_error[2],cistat[3]-margin_error[3],cistat[3]+margin_error[3],pval);
+    //fprintf(stderr,"INSIDE THE 1 loop 2\n");
+    if(nbootstrap > 1){
+      for(int i=0;i<6;i++){
+        if(i == 4){continue;}
+        else if(i == 5){continue;}
+        else{
+          ksprintf(kstr,"%f\t",cistat[i]);
+        }
+      }
+      ksprintf(kstr,"[%f;%f]\t[%f;%f]\t[%f;%f]\t[%f;%f]",cistat[0]-margin_error[0],cistat[0]+margin_error[0],cistat[1]-margin_error[1],cistat[1]+margin_error[1],cistat[2]-margin_error[2],cistat[2]+margin_error[2],cistat[3]-margin_error[3],cistat[3]+margin_error[3]);
+    }
     int nrows = (int) dat[0][0];
 	  int ncycle = nrows/2;
 	  double *dx = stats+2;
@@ -539,8 +567,18 @@ int main_dfit(int argc, char **argv) {
 	    ksprintf(kstr,"\t%f\t%f",dx[i],dx_conf[i]);
     }
 	}
-  else if(showfits > 2){
-    ksprintf(kstr,"[%f;%f]\t[%f;%f]\t[%f;%f]\t[%f;%f]\t%f",cistat[0]-margin_error[0],cistat[0]+margin_error[0],cistat[1]-margin_error[1],cistat[1]+margin_error[1],cistat[2]-margin_error[2],cistat[2]+margin_error[2],cistat[3]-margin_error[3],cistat[3]+margin_error[3],pval);
+  else if(showfits == 2){
+    //fprintf(stderr,"INSIDE THE 2 loop 2\n");
+    if(nbootstrap > 1){
+      for(int i=0;i<6;i++){
+        if(i == 4){continue;}
+        else if(i == 5){continue;}
+        else{
+          ksprintf(kstr,"%f\t",cistat[i]);
+        }
+      }
+      ksprintf(kstr,"[%f;%f]\t[%f;%f]\t[%f;%f]\t[%f;%f]",cistat[0]-margin_error[0],cistat[0]+margin_error[0],cistat[1]-margin_error[1],cistat[1]+margin_error[1],cistat[2]-margin_error[2],cistat[2]+margin_error[2],cistat[3]-margin_error[3],cistat[3]+margin_error[3]);
+    }
 	  int nrows = (int) dat[0][0];
 	  int ncycle = nrows/2;
 	  double *dx = stats+2;
