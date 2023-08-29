@@ -13,6 +13,7 @@
 #include <sys/time.h>
 #include <math.h>
 #include <gsl/gsl_cdf.h>
+#include <algorithm> // for std::sort
 
 #include <iostream>
 #include "profile.h"
@@ -24,6 +25,14 @@
 #include "pval.h"
 
 extern htsFormat *dingding2;
+
+// the compare function for double values
+static int compare (const void * a, const void * b)
+{
+  if (*(double*)a > *(double*)b) return 1;
+  else if (*(double*)a < *(double*)b) return -1;
+  else return 0;  
+}
 
 void make_bootstrap_data(double **in,double **out,int howmany,int seedval){
   srand48(seedval);
@@ -224,6 +233,7 @@ int main_dfit(int argc, char **argv) {
     int doboot = 0;
     int seed = time(NULL); 
     double CI = 0.95;
+    int doCI = 1;
 
     while (*(++argv)) {
         if (strcasecmp("-names", *argv) == 0)
@@ -250,6 +260,8 @@ int main_dfit(int argc, char **argv) {
           seed = atoi(*(++argv));
         else if (strcasecmp("-CI", *argv) == 0)
           CI = atof(*(++argv));
+        else if (strcasecmp("-doCI", *argv) == 0)
+          doCI = atof(*(++argv));
         else
           infile_bdamage = strdup(*argv);
     }
@@ -389,11 +401,14 @@ int main_dfit(int argc, char **argv) {
   double square_diff[6] = {0,0,0,0,0,0};
   double margin_error[6] = {0,0,0,0,0,0};
 
-  //Bootstrapping procedure
+  int npars = 4;
+  double **CI_val = new double*[npars];
+
   if(nbootstrap>1){
+    //Bootstrapping procedure
 
     //do bootstrap, print to screen for now
-    double **bootdata = new double*[4];
+    double **bootdata = new double*[npars];
     bootdata[0] = new double[2+2*howmany];
     bootdata[1] = new double [2*howmany];
     bootdata[2] = new double [2*howmany];
@@ -401,13 +416,15 @@ int main_dfit(int argc, char **argv) {
 
     double z_score = calculate_z_score(CI);
 
-    int npars = 6;
     double** bootcidata = (double**)malloc(nbootstrap * sizeof(double*));
 
     double acumtmp = 0; double qcumtmp = 0; double ccumtmp = 0; double phicumtmp = 0;
     double astdtmp = 0; double qstdtmp = 0; double cstdtmp = 0; double phistdtmp = 0;
 
-    double llhtmp = 0; double ncalltmp = 0;
+    //store the confidence interval  values
+    for (int j = 0; j < npars; j++){
+      CI_val[j] = new double [2];
+    }
 
     // allocate
     for (int i = 0; i < nbootstrap; i++){
@@ -440,7 +457,6 @@ int main_dfit(int argc, char **argv) {
       optimoptim(pars_b,bootdata,nopt);
       for(int ii=0;ii<npars;ii++){
         bootcidata[b][ii] = pars_b[ii];
-        //fprintf(stderr,"test %f \t",pars[ii]);
       }
 
       //fprintf(stdout,"\n");    
@@ -448,8 +464,7 @@ int main_dfit(int argc, char **argv) {
       qcumtmp += bootcidata[b][1];
       ccumtmp += bootcidata[b][2];
       phicumtmp += bootcidata[b][3];
-      llhtmp += abs(bootcidata[b][4]);
-      ncalltmp += bootcidata[b][5];
+
       //fprintf(stdout,"%f\n",pars[5]);
       if(doboot>0){
         if(hdr!=NULL){
@@ -485,15 +500,46 @@ int main_dfit(int argc, char **argv) {
     cistat[1] = qcumtmp/nbootstrap;
     cistat[2] = ccumtmp/nbootstrap;
     cistat[3] = phicumtmp/nbootstrap;
-    cistat[4] = llhtmp/nbootstrap;
-    cistat[5] = ncalltmp/nbootstrap;
 
-    for (int j = 0; j < npars; j++) {
-      for (int i = 0; i < nbootstrap; i++) {
-          square_diff[i] += (bootcidata[i][j] - cistat[j])*(bootcidata[i][j] - cistat[j]);
+    if(doCI == 1){
+      for (int j = 0; j < npars; j++) {
+        for (int i = 0; i < nbootstrap; i++) {
+            square_diff[i] += (bootcidata[i][j] - cistat[j])*(bootcidata[i][j] - cistat[j]);
+          }
+        cistat[j+npars] = sqrt(square_diff[j] / (nbootstrap - 1));
+        margin_error[j] = z_score * (cistat[j+npars]);
+      }
+
+      for (int j = 0; j < npars; j++){
+        CI_val[j][0] = cistat[j]-margin_error[j];
+        CI_val[j][1] = cistat[j]+margin_error[j];
+        //std::cout << CI_val[j][0] << " sad " << CI_val[j][1] << std::endl;
+      }
+    
+    }
+    else if(doCI == 2){
+      //for (int i = 0; i < nbootstrap; i++) {std::cout << bootcidata[i][0] << std::endl;}
+      // Sort each column (index j) within rows independently
+      for (int j = 0; j < npars; j++) {
+        double* temp_column = (double*)malloc(nbootstrap * sizeof(double));
+        for (int i = 0; i < nbootstrap; i++) {
+          temp_column[i] = bootcidata[i][j];
         }
-      cistat[j+6] = sqrt(square_diff[j] / (nbootstrap - 1));
-      margin_error[j] = z_score * (cistat[j+6] / sqrt(nbootstrap));
+        qsort(temp_column, nbootstrap, sizeof(double), compare);
+        for (int i = 0; i < nbootstrap; i++) {
+        bootcidata[i][j] = temp_column[i];
+      }
+      free(temp_column);
+      }
+      //std::cout << "-----" << std::endl;
+      //for (int i = 0; i < nbootstrap; i++){std::cout << bootcidata[i][0] << std::endl;}
+      int CI_cutval = ceil(nbootstrap * ((1-CI)/2));
+      
+      for (int j = 0; j < npars; j++){
+        CI_val[j][0] = bootcidata[0+CI_cutval][j];
+        CI_val[j][1] = bootcidata[nbootstrap-CI_cutval-1][j];
+        //std::cout << CI_val[j][0] << " sad " << CI_val[j][1] << std::endl;
+      }
     }
 
     // Free allocated memory
@@ -532,7 +578,7 @@ int main_dfit(int argc, char **argv) {
           ksprintf(kstr,"%f\t",cistat[i]);
         }
       }
-      ksprintf(kstr,"[%f;%f]\t[%f;%f]\t[%f;%f]\t[%f;%f]",cistat[0]-margin_error[0],cistat[0]+margin_error[0],cistat[1]-margin_error[1],cistat[1]+margin_error[1],cistat[2]-margin_error[2],cistat[2]+margin_error[2],cistat[3]-margin_error[3],cistat[3]+margin_error[3]);
+      ksprintf(kstr,"[%f;%f]\t[%f;%f]\t[%f;%f]\t[%f;%f]",CI_val[0][0],CI_val[0][1],CI_val[1][0],CI_val[1][1],CI_val[2][0],CI_val[2][1],CI_val[3][0],CI_val[3][1]);
     }
   }
   else if(showfits == 1){
@@ -545,7 +591,7 @@ int main_dfit(int argc, char **argv) {
           ksprintf(kstr,"%f\t",cistat[i]);
         }
       }
-      ksprintf(kstr,"[%f;%f]\t[%f;%f]\t[%f;%f]\t[%f;%f]",cistat[0]-margin_error[0],cistat[0]+margin_error[0],cistat[1]-margin_error[1],cistat[1]+margin_error[1],cistat[2]-margin_error[2],cistat[2]+margin_error[2],cistat[3]-margin_error[3],cistat[3]+margin_error[3]);
+      ksprintf(kstr,"[%f;%f]\t[%f;%f]\t[%f;%f]\t[%f;%f]",CI_val[0][0],CI_val[0][1],CI_val[1][0],CI_val[1][1],CI_val[2][0],CI_val[2][1],CI_val[3][0],CI_val[3][1]);
     }
     int nrows = (int) dat[0][0];
 	  int ncycle = nrows/2;
@@ -577,7 +623,7 @@ int main_dfit(int argc, char **argv) {
           ksprintf(kstr,"%f\t",cistat[i]);
         }
       }
-      ksprintf(kstr,"[%f;%f]\t[%f;%f]\t[%f;%f]\t[%f;%f]",cistat[0]-margin_error[0],cistat[0]+margin_error[0],cistat[1]-margin_error[1],cistat[1]+margin_error[1],cistat[2]-margin_error[2],cistat[2]+margin_error[2],cistat[3]-margin_error[3],cistat[3]+margin_error[3]);
+      ksprintf(kstr,"[%f;%f]\t[%f;%f]\t[%f;%f]\t[%f;%f]",CI_val[0][0],CI_val[0][1],CI_val[1][0],CI_val[1][1],CI_val[2][0],CI_val[2][1],CI_val[3][0],CI_val[3][1]);
     }
 	  int nrows = (int) dat[0][0];
 	  int ncycle = nrows/2;
