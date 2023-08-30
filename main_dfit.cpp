@@ -343,7 +343,13 @@ int main_dfit(int argc, char **argv) {
     else if(showfits==1){
       //fprintf(stderr,"INSIDE THE FIRST SHOWFITS loop 1 \n");
       // With bootstrap
-      ksprintf(kstr,"id\tA\tq\tc\tphi\tllh\tncall\tsigmaD\tZfit\tA_b\tq_b\tc_b\tphi_b\tA_CI\tq_CI\tc_CI\tphi_CI");
+      
+      if(nbootstrap < 2){
+        ksprintf(kstr,"id\tA\tq\tc\tphi\tllh\tncall\tsigmaD\tZfit");
+      }
+      else{
+        ksprintf(kstr,"id\tA\tq\tc\tphi\tllh\tncall\tsigmaD\tZfit\tA_b\tq_b\tc_b\tphi_b\tA_CI\tq_CI\tc_CI\tphi_CI");
+      }
       // And fwd + bwd dx and Conf information
       for(int i=0;i<howmany;i++){
         //fprintf(stderr,"\t asfafs %d\n",i);
@@ -356,7 +362,12 @@ int main_dfit(int argc, char **argv) {
     else{
       //fprintf(stderr,"INSIDE THE FIRST SHOWFITS loop 2 \n");
       // With bootstrap
-      ksprintf(kstr,"id\tA\tq\tc\tphi\tllh\tncall\tsigmaD\tZfit\tA_b\tq_b\tc_b\tphi_b\tA_CI\tq_CI\tc_CI\tphi_CI");
+      if(nbootstrap < 2){
+        ksprintf(kstr,"id\tA\tq\tc\tphi\tllh\tncall\tsigmaD\tZfit");
+      }
+      else{
+        ksprintf(kstr,"id\tA\tq\tc\tphi\tllh\tncall\tsigmaD\tZfit\tA_b\tq_b\tc_b\tphi_b\tA_CI\tq_CI\tc_CI\tphi_CI");
+      }
       // And fwd + bwd k, N, dx, f and Conf information
       for(int i=0;i<howmany;i++){
         //fprintf(stderr,"\t asfafs %d\n",i);
@@ -468,23 +479,23 @@ int main_dfit(int argc, char **argv) {
       //fprintf(stdout,"%f\n",pars[5]);
       if(doboot>0){
         if(hdr!=NULL){
-          ksprintf(bootkstr, "%s\t", sam_hdr_tid2name(hdr, it->first));
+          ksprintf(bootkstr, "%s", sam_hdr_tid2name(hdr, it->first));
         }
         else{
           if(name_map.size()==0)
-            ksprintf(bootkstr,"%d\t",it->first);
+            ksprintf(bootkstr,"%d",it->first);
           else{
             int2char::iterator nit = name_map.find(it->first);
             if(nit==name_map.end()){
               fprintf(stderr,"\t-> Problem finding taxid: %d in names database: %s\n",it->first,infile_names);
               exit(1);
             }
-            ksprintf(bootkstr,"%d:%s\t",it->first,nit->second);
+            ksprintf(bootkstr,"%d:%s",it->first,nit->second);
           }
         }
         for (int ii = 0; ii < npars; ii++) {
           //fprintf(stdout, "%d \t %f\t", b,bootcidata[b][ii]);
-          ksprintf(bootkstr,"%f\t",bootcidata[b][ii]);
+          ksprintf(bootkstr,"\t%f",bootcidata[b][ii]);
         }
         ksprintf(bootkstr,"\n");
       }
@@ -549,12 +560,13 @@ int main_dfit(int argc, char **argv) {
   // Sigma and Z
   double stats[2+2*(int)dat[0][0]];
   getstat(dat,pars,stats);
-  for(int i=0;i<6;i++){
+  ksprintf(kstr,"%f",pars[0]);
+  for(int i=1;i<6;i++){
     //std::cout << "showfit s " << pars[i] << std::endl;
-    ksprintf(kstr,"%f\t",pars[i]);
+    ksprintf(kstr,"\t%f",pars[i]);
   }
   //std::cout << "stats " << stats[0] << " " << stats[1] << std::endl;
-  ksprintf(kstr,"%f\t%f\t",stats[0],stats[1]);
+  ksprintf(kstr,"\t%f\t%f",stats[0],stats[1]);
 
   if(showfits == 0){
     //fprintf(stderr,"INSIDE THE 0 loop 2\n");
@@ -563,6 +575,10 @@ int main_dfit(int argc, char **argv) {
       // adding the estimated parameters for the bootstrapping method -> this does not conform with the original estimated A value obtained from 
       // the first optimoptit(pars,dat,nopt), so this is the mean estimate across all bootstrap, same for the other parameters q,c,phi,llh,ncall
       for(int i=0;i<6;i++){
+        if(i == 0){
+          // A
+          ksprintf(kstr,"%f",cistat[i]);
+        }
         if(i == 4){
           // llh
           //ksprintf(kstr,"%f\t",(-1)*cistat[i]);
@@ -574,24 +590,27 @@ int main_dfit(int argc, char **argv) {
           continue;
         }
         else{
-          // A q c phi 
-          ksprintf(kstr,"%f\t",cistat[i]);
+          // q c phi 
+          ksprintf(kstr,"\t%f",cistat[i]);
         }
       }
-      ksprintf(kstr,"[%f;%f]\t[%f;%f]\t[%f;%f]\t[%f;%f]",CI_val[0][0],CI_val[0][1],CI_val[1][0],CI_val[1][1],CI_val[2][0],CI_val[2][1],CI_val[3][0],CI_val[3][1]);
+      ksprintf(kstr,"\t[%f;%f]\t[%f;%f]\t[%f;%f]\t[%f;%f]",CI_val[0][0],CI_val[0][1],CI_val[1][0],CI_val[1][1],CI_val[2][0],CI_val[2][1],CI_val[3][0],CI_val[3][1]);
     }
   }
   else if(showfits == 1){
     //fprintf(stderr,"INSIDE THE 1 loop 2\n");
     if(nbootstrap > 1){
       for(int i=0;i<6;i++){
+        if(i == 0){
+          ksprintf(kstr,"%f",cistat[i]);
+        }
         if(i == 4){continue;}
         else if(i == 5){continue;}
         else{
-          ksprintf(kstr,"%f\t",cistat[i]);
+          ksprintf(kstr,"\t%f",cistat[i]);
         }
       }
-      ksprintf(kstr,"[%f;%f]\t[%f;%f]\t[%f;%f]\t[%f;%f]",CI_val[0][0],CI_val[0][1],CI_val[1][0],CI_val[1][1],CI_val[2][0],CI_val[2][1],CI_val[3][0],CI_val[3][1]);
+      ksprintf(kstr,"\t[%f;%f]\t[%f;%f]\t[%f;%f]\t[%f;%f]",CI_val[0][0],CI_val[0][1],CI_val[1][0],CI_val[1][1],CI_val[2][0],CI_val[2][1],CI_val[3][0],CI_val[3][1]);
     }
     int nrows = (int) dat[0][0];
 	  int ncycle = nrows/2;
@@ -617,13 +636,16 @@ int main_dfit(int argc, char **argv) {
     //fprintf(stderr,"INSIDE THE 2 loop 2\n");
     if(nbootstrap > 1){
       for(int i=0;i<6;i++){
+        if(i == 0){
+          ksprintf(kstr,"%f",cistat[i]);
+        }
         if(i == 4){continue;}
         else if(i == 5){continue;}
         else{
-          ksprintf(kstr,"%f\t",cistat[i]);
+          ksprintf(kstr,"\t%f",cistat[i]);
         }
       }
-      ksprintf(kstr,"[%f;%f]\t[%f;%f]\t[%f;%f]\t[%f;%f]",CI_val[0][0],CI_val[0][1],CI_val[1][0],CI_val[1][1],CI_val[2][0],CI_val[2][1],CI_val[3][0],CI_val[3][1]);
+      ksprintf(kstr,"\t[%f;%f]\t[%f;%f]\t[%f;%f]\t[%f;%f]",CI_val[0][0],CI_val[0][1],CI_val[1][0],CI_val[1][1],CI_val[2][0],CI_val[2][1],CI_val[3][0],CI_val[3][1]);
     }
 	  int nrows = (int) dat[0][0];
 	  int ncycle = nrows/2;
