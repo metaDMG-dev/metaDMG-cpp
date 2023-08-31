@@ -560,16 +560,21 @@ int main_dfit(int argc, char **argv) {
   // Sigma and Z
   double stats[2+2*(int)dat[0][0]];
   getstat(dat,pars,stats);
+
+  // stats contains standard deviation, then significance, then the calculated Dx for each position then the normalized 
   ksprintf(kstr,"%f",pars[0]);
   for(int i=1;i<6;i++){
-    //std::cout << "showfit s " << pars[i] << std::endl;
     ksprintf(kstr,"\t%f",pars[i]);
   }
+
   //std::cout << "stats " << stats[0] << " " << stats[1] << std::endl;
   ksprintf(kstr,"\t%f\t%f",stats[0],stats[1]);
-
+  
   if(showfits == 0){
-    //fprintf(stderr,"INSIDE THE 0 loop 2\n");
+    fprintf(stderr,"INSIDE THE 0 loop 2\n");
+    for(int i=0; i<20;i++){
+      std::cout << i <<": " << stats[i] << std::endl;
+    }
     //ksprintf(kstr,"%f\t%f\t",stats[0],stats[1]);
     if(nbootstrap > 1){
       // adding the estimated parameters for the bootstrapping method -> this does not conform with the original estimated A value obtained from 
@@ -598,7 +603,10 @@ int main_dfit(int argc, char **argv) {
     }
   }
   else if(showfits == 1){
-    //fprintf(stderr,"INSIDE THE 1 loop 2\n");
+    fprintf(stderr,"INSIDE THE 1 loop 2\n");
+    for(int i=0; i<20;i++){
+      std::cout << i <<": " << stats[i] << std::endl;
+    }
     if(nbootstrap > 1){
       for(int i=0;i<6;i++){
         if(i == 0){
@@ -612,11 +620,12 @@ int main_dfit(int argc, char **argv) {
       }
       ksprintf(kstr,"\t[%f;%f]\t[%f;%f]\t[%f;%f]\t[%f;%f]",CI_val[0][0],CI_val[0][1],CI_val[1][0],CI_val[1][1],CI_val[2][0],CI_val[2][1],CI_val[3][0],CI_val[3][1]);
     }
+    fprintf(stderr,"-----------------\n");
     int nrows = (int) dat[0][0];
 	  int ncycle = nrows/2;
 	  double *dx = stats+2;
 	  double *dx_conf = stats+2+nrows;
-
+    std::cout << stats[3] << std::endl;
     // beginning positions fwK0	fwN0	fwdx0	fwdxConf0
 	  for(int i=0;i<ncycle;i++){
       if(isnan(dx_conf[i])){dx_conf[i] = 0.0;}
@@ -633,7 +642,10 @@ int main_dfit(int argc, char **argv) {
     }
 	}
   else if(showfits == 2){
-    //fprintf(stderr,"INSIDE THE 2 loop 2\n");
+    fprintf(stderr,"INSIDE THE 2 loop 2\n");
+    for(int i=0; i<20;i++){
+      std::cout << i <<": " << stats[i] << std::endl;
+    }
     if(nbootstrap > 1){
       for(int i=0;i<6;i++){
         if(i == 0){
@@ -647,16 +659,20 @@ int main_dfit(int argc, char **argv) {
       }
       ksprintf(kstr,"\t[%f;%f]\t[%f;%f]\t[%f;%f]\t[%f;%f]",CI_val[0][0],CI_val[0][1],CI_val[1][0],CI_val[1][1],CI_val[2][0],CI_val[2][1],CI_val[3][0],CI_val[3][1]);
     }
-	  int nrows = (int) dat[0][0];
+
+    fprintf(stderr,"-----------------\n");
+    int nrows = (int) dat[0][0];
 	  int ncycle = nrows/2;
 	  double *dx = stats+2;
 	  double *dx_conf = stats+2+nrows;
-
+    //std::cout << stats[2] << " " << dx[0] << std::endl;
+    
     // beginning positions fwK0	fwN0	fwdx0	fwdxConf0
 	  for(int i=0;i<ncycle;i++){
+      //std::cout << " check " << dat[1][i] << " " << dat[2][i]<< " " <<dat[3][i]<< " " <<dx[i]<< " " <<dx_conf[i] << std::endl;
       if(isnan(dx_conf[i])){dx_conf[i] = 0.0;}
       if(isnan(dat[3][i])){dat[3][i] = 0.0;}
-	    ksprintf(kstr,"\t%.0f\t%0.f\t%0.f\t%f\t%f",dat[1][i],dat[2][i],dat[3][i],dx[i],dx_conf[i]);
+	    ksprintf(kstr,"\t%.0f\t%0.f\t%f\t%f\t%f",dat[1][i],dat[2][i],dat[3][i],dx[i],dx_conf[i]);
     }
 	  
     dx = stats+2+ncycle;
@@ -665,7 +681,7 @@ int main_dfit(int argc, char **argv) {
 	  for(int i=0;i<ncycle;i++){
       if (isnan(dx_conf[i])){dx_conf[i] = 0.0;}
       if(isnan(dat[3][i+ncycle])){dat[3][i+ncycle] = 0.0;} //the f column
-	    ksprintf(kstr,"\t%.0f\t%0.f\t%0.f\t%f\t%f",dat[1][i+ncycle],dat[2][i+ncycle],dat[3][i+ncycle],dx[i],dx_conf[i]);
+	    ksprintf(kstr,"\t%.0f\t%0.f\t%f\t%f\t%f",dat[1][i+ncycle],dat[2][i+ncycle],dat[3][i+ncycle],dx[i],dx_conf[i]);
     }
 	}
 	  ksprintf(kstr,"\n");
