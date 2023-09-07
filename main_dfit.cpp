@@ -62,14 +62,27 @@ void make_bootstrap_data(double **in,double **out,int howmany,int seedval){
 
 //aa,ac,ag,at,ca,cc,cg,ct,ga
 //ct and ga has index 7,8 when zero indexed
-void make_dfit_format(mydataD &md,double **dat,int howmany){
+void make_dfit_format(mydataD &md,double **dat,int howmany,int libprep){
+  /*
+  for double-stranded lib prep we would observe both C>T and G>A
+  for single-stranded lib prep we would only observe C>T
+
+  Therefore the columns extracted from the MisMatchMatrix will differ
+  */
+
+  int col_5p = 7; // ct for ds
+  int col_3p = 8; // ga for da
+  if(libprep == 1){
+    col_3p = 7; //only ct for ss
+  }
+
   dat[0][0] = 2*howmany;
   dat[0][1] = 0;
   for(int i=0;i<howmany;i++){
     dat[0][i+2] =i;//plug in position
 
     dat[2][i] = 0;//initialize kcol to zero, a few lines down we will sum over all C*
-    dat[1][i] = md.fwD[i*16+7];//plugin ct at kcol
+    dat[1][i] = md.fwD[i*16+col_5p];//plugin ct at kcol
     
     for(int at=0;at<4;at++)
       dat[2][i] = dat[2][i]+md.fwD[i*16+4+at];
@@ -77,15 +90,15 @@ void make_dfit_format(mydataD &md,double **dat,int howmany){
     dat[3][i] = (double) dat[1][i]/dat[2][i];
 
   }
-
+  // In the 3' end, for ds we use the GA col (8), for ss we use CA col (7)
   for(int i=0;i<howmany;i++){
     dat[0][howmany+i+2] =i;//plug in position
 
     dat[2][howmany+i] = 0;//initialize kcol to zero, a few lines dows we will sum over all G*
-    dat[1][howmany+i] = md.bwD[i*16+8];//plugin ga at kcol
+    dat[1][howmany+i] = md.bwD[i*16+col_3p];//plugin ga at kcol
     
     for(int at=0;at<4;at++)
-      dat[2][howmany+i] = dat[2][howmany+i]+md.bwD[i*16+8+at];
+      dat[2][howmany+i] = dat[2][howmany+i]+md.bwD[i*16+col_3p+at];
 
     dat[3][howmany+i] = (double) dat[1][howmany+i]/dat[2][howmany+i];
   }
@@ -216,7 +229,7 @@ mydataD getval_full(std::map<int, mydataD> &retmap, int2intvec &child, int taxid
 mydata2 getval_stats(std::map<int, mydata2> &retmap, int2intvec &child, int taxid) ;
 
 int main_dfit(int argc, char **argv) {
-    fprintf(stderr, "./metaDMG-cpp dfit file.bdamage.gz -names file.gz -nodes trestructure.gz -lcastat fil.gz -bam file.bam -showfits int -nopt int -nbootstrap int -seed int -out file\n");
+    fprintf(stderr, "./metaDMG-cpp dfit file.bdamage.gz -names file.gz -nodes trestructure.gz -lcastat fil.gz -bam file.bam -showfits int -nopt int -nbootstrap int -seed int -doCI int -CI float -lib <ds,ss> -out file\n");
     if (argc <= 1)
         return 0;
     char *infile_bdamage = NULL;
@@ -225,6 +238,7 @@ int main_dfit(int argc, char **argv) {
     char *infile_lcastat = NULL;
     char *infile_bam = NULL;
     char *outfile_name = NULL;
+    char *lib_prep = NULL;
     int howmany;//this is the cycle
     int showfits=0;
     int nopt = 10;
@@ -233,7 +247,7 @@ int main_dfit(int argc, char **argv) {
     int doboot = 0;
     int seed = time(NULL); 
     double CI = 0.95;
-    int doCI = 1;
+    int doCI = 2;
 
     while (*(++argv)) {
         if (strcasecmp("-names", *argv) == 0)
@@ -245,7 +259,7 @@ int main_dfit(int argc, char **argv) {
         else if (strcasecmp("-bam", *argv) == 0)
             infile_bam = strdup(*(++argv));
         else if (strcasecmp("-out", *argv) == 0)
-                  outfile_name = strdup(*(++argv));
+            outfile_name = strdup(*(++argv));
         else if (strcasecmp("-nopt", *argv) == 0)
           nopt = atoi(*(++argv));
         else if (strcasecmp("-sigtype", *argv) == 0)
@@ -262,6 +276,8 @@ int main_dfit(int argc, char **argv) {
           CI = atof(*(++argv));
         else if (strcasecmp("-doCI", *argv) == 0)
           doCI = atof(*(++argv));
+        else if (strcasecmp("-lib", *argv) == 0)
+            lib_prep = strdup(*(++argv));
         else
           infile_bdamage = strdup(*argv);
     }
@@ -321,6 +337,17 @@ int main_dfit(int argc, char **argv) {
       getval_full(retmap, child, 1, howmany);  // this will do everything
     float postsize = retmap.size();
     fprintf(stderr, "\t-> pre: %f post:%f grownbyfactor: %f\n", presize, postsize, postsize / presize);
+
+    int libprep = 0;
+
+    if (lib_prep != NULL){
+      if(strcasecmp(lib_prep, "ds")==0){
+        libprep = 0;
+      }
+      else if(strcasecmp(lib_prep, "ss")==0){
+        libprep = 1;
+      }
+    }
 
     //prepare matrix to be passed to optimization
     double **dat = new double*[4];
@@ -399,8 +426,9 @@ int main_dfit(int argc, char **argv) {
 	    ksprintf(kstr,"%d:%s\t",it->first,nit->second);
 	  }
 	}
-	make_dfit_format(md,dat,howmany);
-
+  fprintf(stderr,"before make_dfit_format\n");
+	make_dfit_format(md,dat,howmany,libprep);
+  fprintf(stderr,"after make_dfit_format\n");
 	double pars[6] = {0.1,0.1,0.01,1000};//last one will contain the llh,and the ncall for the objective function
   optimoptim(pars,dat,nopt);
 
@@ -452,7 +480,7 @@ int main_dfit(int argc, char **argv) {
     if(doboot>0){
       snprintf(bootbuf, 1024, "%s.boot.stat.txt.gz", outfile_name);
       bootfp = bgzf_open(bootbuf, "wb");    
-      ksprintf(bootkstr,"id\tA\tq\tc\tphi\tllh\tncall\n");
+      ksprintf(bootkstr,"id\tA\tq\tc\tphi\tAc\n");
     }
 
     //fprintf(stdout,"Bootstrap estimates\n");
@@ -497,6 +525,7 @@ int main_dfit(int argc, char **argv) {
           //fprintf(stdout, "%d \t %f\t", b,bootcidata[b][ii]);
           ksprintf(bootkstr,"\t%f",bootcidata[b][ii]);
         }
+        ksprintf(bootkstr,"\t%f",bootcidata[b][0]-bootcidata[b][2]);
         ksprintf(bootkstr,"\n");
       }
     }
@@ -571,10 +600,10 @@ int main_dfit(int argc, char **argv) {
   ksprintf(kstr,"\t%f\t%f",stats[0],stats[1]);
   
   if(showfits == 0){
-    fprintf(stderr,"INSIDE THE 0 loop 2\n");
+    /*fprintf(stderr,"INSIDE THE 0 loop 2\n");
     for(int i=0; i<20;i++){
       std::cout << i <<": " << stats[i] << std::endl;
-    }
+    }*/
     //ksprintf(kstr,"%f\t%f\t",stats[0],stats[1]);
     if(nbootstrap > 1){
       // adding the estimated parameters for the bootstrapping method -> this does not conform with the original estimated A value obtained from 

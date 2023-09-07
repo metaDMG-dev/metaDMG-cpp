@@ -204,7 +204,7 @@ void getstat(double **dat,double *pars,double *statpars){
         Dx_var_deumerator = pow((alpha+beta),2)*(alpha+beta+1);
         Dx_std = std::sqrt((Dx_var_numerator/Dx_var_deumerator));
         Dx_std_norm = Dx_std / NCOL[i];
-	statpars[NUMROWS+2+i] = Dx_std_norm;
+	      statpars[NUMROWS+2+i] = Dx_std_norm;
 	//	fprintf(stderr,"at: %d val:%f\n",NUMROWS+2+i, Dx_std_norm);
 	//        gzprintf(file,"%f",Dx_std_norm);
 	
