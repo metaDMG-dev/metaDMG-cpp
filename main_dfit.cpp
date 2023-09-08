@@ -314,6 +314,16 @@ int main_dfit(int argc, char **argv) {
     kstring_t *kstr = new kstring_t;
     kstr->s = NULL; kstr->l = kstr->m = 0;
 
+    char bootbuf[1024];
+    BGZF *bootfp;
+    kstring_t *bootkstr = new kstring_t;
+    bootkstr->s = NULL; bootkstr->l = bootkstr->m = 0;
+    if(doboot>0){
+      snprintf(bootbuf, 1024, "%s.boot.stat.txt.gz", outfile_name);
+      bootfp = bgzf_open(bootbuf, "wb");    
+      ksprintf(bootkstr,"id\tA\tq\tc\tphi\tAc\n");
+    }
+
     // map of taxid -> taxid
     int2int parent;
     // map of taxid -> rank
@@ -426,6 +436,8 @@ int main_dfit(int argc, char **argv) {
 	    ksprintf(kstr,"%d:%s\t",it->first,nit->second);
 	  }
 	}
+
+
   fprintf(stderr,"before make_dfit_format\n");
 	make_dfit_format(md,dat,howmany,libprep);
   fprintf(stderr,"after make_dfit_format\n");
@@ -471,16 +483,6 @@ int main_dfit(int argc, char **argv) {
       for (int j = 0; j < npars; j++) {
         bootcidata[i][j] = 0.0; // You can replace this with your initialization values
       }
-    }
-
-    char bootbuf[1024];
-    BGZF *bootfp;
-    kstring_t *bootkstr = new kstring_t;
-    bootkstr->s = NULL; bootkstr->l = bootkstr->m = 0;
-    if(doboot>0){
-      snprintf(bootbuf, 1024, "%s.boot.stat.txt.gz", outfile_name);
-      bootfp = bgzf_open(bootbuf, "wb");    
-      ksprintf(bootkstr,"id\tA\tq\tc\tphi\tAc\n");
     }
 
     //fprintf(stdout,"Bootstrap estimates\n");
@@ -530,12 +532,6 @@ int main_dfit(int argc, char **argv) {
       }
     }
     
-    if(doboot>0){
-      bgzf_write(bootfp,bootkstr->s,bootkstr->l);
-      bootkstr->l = 0;
-      bgzf_close(bootfp);
-    }
-
     cistat[0] = acumtmp/nbootstrap;
     cistat[1] = qcumtmp/nbootstrap;
     cistat[2] = ccumtmp/nbootstrap;
@@ -586,6 +582,7 @@ int main_dfit(int argc, char **argv) {
     for (int i = 0; i < nbootstrap; i++){free(bootcidata[i]);}
     free(bootcidata);
   }
+
   // Sigma and Z
   double stats[2+2*(int)dat[0][0]];
   getstat(dat,pars,stats);
@@ -760,6 +757,11 @@ int main_dfit(int argc, char **argv) {
 	      ksprintf(kstr,"\n");
             //      fprintf(stderr,"%d->(%d,%f,%f,%f,%f)\n",it->first,it->second.nreads,it->second.data[0],it->second.data[1],it->second.data[2],it->second.data[3]);
         }
+    }
+    if(doboot>0){
+      bgzf_write(bootfp,bootkstr->s,bootkstr->l);
+      bootkstr->l = 0;
+      bgzf_close(bootfp);
     }
     //cleanup
     if(fpfpfp){
