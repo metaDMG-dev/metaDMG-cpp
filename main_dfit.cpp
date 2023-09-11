@@ -321,7 +321,7 @@ int main_dfit(int argc, char **argv) {
     if(doboot>0){
       snprintf(bootbuf, 1024, "%s.boot.stat.txt.gz", outfile_name);
       bootfp = bgzf_open(bootbuf, "wb");    
-      ksprintf(bootkstr,"id\tA\tq\tc\tphi\tAc\n");
+      ksprintf(bootkstr,"id\tA\tq\tc\tphi\n");
     }
 
     // map of taxid -> taxid
@@ -374,7 +374,7 @@ int main_dfit(int argc, char **argv) {
         ksprintf(kstr,"id\tA\tq\tc\tphi\tllh\tncall\tsigmaD\tZfit\n");
       }
       else{
-        ksprintf(kstr,"id\tA\tq\tc\tphi\tllh\tncall\tsigmaD\tZfit\tA_b\tq_b\tc_b\tphi_b\tA_CI\tq_CI\tc_CI\tphi_CI\n");
+        ksprintf(kstr,"id\tA\tq\tc\tphi\tllh\tncall\tsigmaD\tZfit\tA_b\tq_b\tc_b\tphi_b\tA_CI_l\tA_CI_h\tq_CI_l\tq_CI_h\tc_CI_l\tc_CI_h\tphi_CI_l\tphi_CI_h\n");
       }
     }
     else if(showfits==1){
@@ -385,7 +385,7 @@ int main_dfit(int argc, char **argv) {
         ksprintf(kstr,"id\tA\tq\tc\tphi\tllh\tncall\tsigmaD\tZfit");
       }
       else{
-        ksprintf(kstr,"id\tA\tq\tc\tphi\tllh\tncall\tsigmaD\tZfit\tA_b\tq_b\tc_b\tphi_b\tA_CI\tq_CI\tc_CI\tphi_CI");
+        ksprintf(kstr,"id\tA\tq\tc\tphi\tllh\tncall\tsigmaD\tZfit\tA_b\tq_b\tc_b\tphi_b\tA_CI_l\tA_CI_h\tq_CI_l\tq_CI_h\tc_CI_l\tc_CI_h\tphi_CI_l\tphi_CI_h");
       }
       // And fwd + bwd dx and Conf information
       for(int i=0;i<howmany;i++){
@@ -403,7 +403,7 @@ int main_dfit(int argc, char **argv) {
         ksprintf(kstr,"id\tA\tq\tc\tphi\tllh\tncall\tsigmaD\tZfit");
       }
       else{
-        ksprintf(kstr,"id\tA\tq\tc\tphi\tllh\tncall\tsigmaD\tZfit\tA_b\tq_b\tc_b\tphi_b\tA_CI\tq_CI\tc_CI\tphi_CI");
+        ksprintf(kstr,"id\tA\tq\tc\tphi\tllh\tncall\tsigmaD\tZfit\tA_b\tq_b\tc_b\tphi_b\tA_CI_l\tA_CI_h\tq_CI_l\tq_CI_h\tc_CI_l\tc_CI_h\tphi_CI_l\tphi_CI_h");
       }
       // And fwd + bwd k, N, dx, f and Conf information
       for(int i=0;i<howmany;i++){
@@ -438,9 +438,9 @@ int main_dfit(int argc, char **argv) {
 	}
 
 
-  fprintf(stderr,"before make_dfit_format\n");
+  //fprintf(stderr,"before make_dfit_format\n");
 	make_dfit_format(md,dat,howmany,libprep);
-  fprintf(stderr,"after make_dfit_format\n");
+  //fprintf(stderr,"after make_dfit_format\n");
 	double pars[6] = {0.1,0.1,0.01,1000};//last one will contain the llh,and the ncall for the objective function
   optimoptim(pars,dat,nopt);
 
@@ -527,7 +527,7 @@ int main_dfit(int argc, char **argv) {
           //fprintf(stdout, "%d \t %f\t", b,bootcidata[b][ii]);
           ksprintf(bootkstr,"\t%f",bootcidata[b][ii]);
         }
-        ksprintf(bootkstr,"\t%f",bootcidata[b][0]-bootcidata[b][2]);
+        //ksprintf(bootkstr,"\t%f",bootcidata[b][0]-bootcidata[b][2]); //A-c
         ksprintf(bootkstr,"\n");
       }
     }
@@ -572,7 +572,7 @@ int main_dfit(int argc, char **argv) {
       int CI_cutval = ceil(nbootstrap * ((1-CI)/2));
       
       for (int j = 0; j < npars; j++){
-        CI_val[j][0] = bootcidata[0+CI_cutval][j];
+        CI_val[j][0] = bootcidata[0+CI_cutval][j]; 
         CI_val[j][1] = bootcidata[nbootstrap-CI_cutval-1][j];
         //std::cout << CI_val[j][0] << " sad " << CI_val[j][1] << std::endl;
       }
@@ -603,14 +603,15 @@ int main_dfit(int argc, char **argv) {
     }*/
     //ksprintf(kstr,"%f\t%f\t",stats[0],stats[1]);
     if(nbootstrap > 1){
+      //fprintf(stderr,"INSIDE nboot loop \n");
       // adding the estimated parameters for the bootstrapping method -> this does not conform with the original estimated A value obtained from 
       // the first optimoptit(pars,dat,nopt), so this is the mean estimate across all bootstrap, same for the other parameters q,c,phi,llh,ncall
       for(int i=0;i<6;i++){
         if(i == 0){
           // A
-          ksprintf(kstr,"%f",cistat[i]);
+          ksprintf(kstr,"\t%f",cistat[i]);
         }
-        if(i == 4){
+        else if(i == 4){
           // llh
           //ksprintf(kstr,"%f\t",(-1)*cistat[i]);
           continue;
@@ -625,7 +626,7 @@ int main_dfit(int argc, char **argv) {
           ksprintf(kstr,"\t%f",cistat[i]);
         }
       }
-      ksprintf(kstr,"\t[%f;%f]\t[%f;%f]\t[%f;%f]\t[%f;%f]",CI_val[0][0],CI_val[0][1],CI_val[1][0],CI_val[1][1],CI_val[2][0],CI_val[2][1],CI_val[3][0],CI_val[3][1]);
+      ksprintf(kstr,"\t%f\t%f\t%f\t%f\t%f\t%f\t%f\t%f",CI_val[0][0],CI_val[0][1],CI_val[1][0],CI_val[1][1],CI_val[2][0],CI_val[2][1],CI_val[3][0],CI_val[3][1]);
     }
   }
   else if(showfits == 1){
@@ -644,7 +645,7 @@ int main_dfit(int argc, char **argv) {
           ksprintf(kstr,"\t%f",cistat[i]);
         }
       }
-      ksprintf(kstr,"\t[%f;%f]\t[%f;%f]\t[%f;%f]\t[%f;%f]",CI_val[0][0],CI_val[0][1],CI_val[1][0],CI_val[1][1],CI_val[2][0],CI_val[2][1],CI_val[3][0],CI_val[3][1]);
+      ksprintf(kstr,"\t%f\t%f\t%f\t%f\t%f\t%f\t%f\t%f",CI_val[0][0],CI_val[0][1],CI_val[1][0],CI_val[1][1],CI_val[2][0],CI_val[2][1],CI_val[3][0],CI_val[3][1]);
     }
     fprintf(stderr,"-----------------\n");
     int nrows = (int) dat[0][0];
@@ -683,7 +684,7 @@ int main_dfit(int argc, char **argv) {
           ksprintf(kstr,"\t%f",cistat[i]);
         }
       }
-      ksprintf(kstr,"\t[%f;%f]\t[%f;%f]\t[%f;%f]\t[%f;%f]",CI_val[0][0],CI_val[0][1],CI_val[1][0],CI_val[1][1],CI_val[2][0],CI_val[2][1],CI_val[3][0],CI_val[3][1]);
+      ksprintf(kstr,"\t%f\t%f\t%f\t%f\t%f\t%f\t%f\t%f",CI_val[0][0],CI_val[0][1],CI_val[1][0],CI_val[1][1],CI_val[2][0],CI_val[2][1],CI_val[3][0],CI_val[3][1]);
     }
 
     fprintf(stderr,"-----------------\n");
