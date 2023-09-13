@@ -64,6 +64,11 @@ FLAGS2 = $(CPPFLAGS) $(FLAGS) $(LDFLAGS)
 CFLAGS := $(FLAGS2) $(CFLAGS)
 CXXFLAGS := $(FLAGS2) $(CXXFLAGS)
 
+OPT=-Wl,-O2
+# filter -O2 optimization flag CXXFLAGS
+CXXFLAGS := $(filter-out -O2,$(CXXFLAGS))
+CXXFLAGS := $(subst $(OPT),,$(CXXFLAGS))
+
 CSRC = $(wildcard *.c)
 CXXSRC = $(wildcard *.cpp)
 OBJ = $(CSRC:.c=.o) $(CXXSRC:.cpp=.o)
