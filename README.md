@@ -36,7 +36,7 @@ make
 To install metaDMG-cpp do:
 ```
 git clone https://github.com/metaDMG-dev/metaDMG-cpp.git
-cd metaDMG
+cd metaDMG-cpp
 make HTTSRC=../htslib
 ```
 
