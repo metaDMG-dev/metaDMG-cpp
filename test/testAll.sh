@@ -56,7 +56,7 @@ if [[ $? -ne 0 ]]; then
 fi
 
 echo "Validating lca"
-CMD="${PRG} lca -bam ${BAM} -names data/names.dmp.gz -nodes data/nodes.dmp.gz -acc2tax data/acc2taxid.map.gz -simscorelow 0.9 -simscorehigh 1.0 -editdistmin 0 -editdistmax 10 -minmapq 0 -howmany 35 -weighttype 1 -fix_ncbi 0 -out output/test3"
+CMD="${PRG} lca --bam ${BAM} --names data/names.dmp.gz --nodes data/nodes.dmp.gz --acc2tax data/acc2taxid.map.gz --sim_score_low 0.9 --sim_score_high 1.0 --edit_dist_min 0 --edit_dist_max 10 --min_mapq 0 --how_many 35 --weight_type 1 --fix_ncbi 0 --out output/test3"
 ${CMD}  >> ${LOG} 2>&1
 if [[ $? -ne 0 ]]; then
     echo "Problem running command: ${CMD}"
