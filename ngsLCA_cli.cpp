@@ -188,62 +188,55 @@ pars *get_pars(int argc, char **argv) {
         char *key = *argv;
         char *val = *(++argv);
         //    fprintf(stderr,"key: %s val: %s\n",key,val);
-        if (!strcasecmp("-bam", key)) {
+        if (!strcasecmp("--bam", key)) {
             free(p->htsfile);
             p->htsfile = strdup(val);
-        } else if (!strcasecmp("-names", key)) {
+        } else if (!strcasecmp("--names", key)) {
             free(p->namesfile);
             p->namesfile = strdup(val);
-        } else if (!strcasecmp("-nodes", key)) {
+        } else if (!strcasecmp("--nodes", key)) {
             free(p->nodesfile);
             p->nodesfile = strdup(val);
-        } else if (!strcasecmp("-acc2tax", key)) {
+        } else if (!strcasecmp("--acc2tax", key)) {
             free(p->acc2taxfile);
             p->acc2taxfile = strdup(val);
-        } else if (!strcasecmp("-editdistMin", key))
+        } else if (!strcasecmp("--edit_dist_min", key))
             p->editdistMin = atoi(val);
-        else if (!strcasecmp("-editdistMax", key))
+        else if (!strcasecmp("--edit_dist_max", key))
             p->editdistMax = atoi(val);
-        else if (!strcasecmp("-minmapq", key))
+        else if (!strcasecmp("--min_mapq", key))
             p->minmapq = atoi(val);
-        else if (!strcasecmp("-minlength", key))
+        else if (!strcasecmp("--min_length", key))
             p->minlength = atoi(val);
-        else if (!strcasecmp("-simscoreLow", key))
+        else if (!strcasecmp("--sim_score_low", key))
             p->simscoreLow = atof(val);
-        else if (!strcasecmp("-lca_rank", key)) {
+	else if (!strcasecmp("--sim_score_high", key))
+            p->simscoreHigh = atof(val);
+        else if (!strcasecmp("--lca_rank", key)) {
             free(p->lca_rank);
             p->lca_rank = strdup(val);
-        } else if (!strcasecmp("-simscoreHigh", key))
-            p->simscoreHigh = atof(val);
-        else if (!strcasecmp("-outnames", key)) {
+        } else if (!strcasecmp("--out", key) || !strcasecmp("--out_prefix", key)) {
             free(p->outnames);
             p->outnames = strdup(val);
-        } else if (!strcasecmp("-out", key)) {
-            free(p->outnames);
-            p->outnames = strdup(val);
-        } else if (!strcasecmp("-fix-ncbi", key))
+        } else if (!strcasecmp("--fix_ncbi", key))
             p->fixdb = atoi(val);
-        else if (!strcasecmp("-fix_ncbi", key))
-            p->fixdb = atoi(val);
-        else if (!strcasecmp("-discard", key))
+        else if (!strcasecmp("--discard", key))
             p->discard = atoi(val);
-        else if (!strcasecmp("-howmany", key))
+        else if (!strcasecmp("--how_many", key))
             p->howmany = atoi(val);
-        else if (!strcasecmp("-usedreads", key))
+        else if (!strcasecmp("--used_reads", key))
             make_used_reads = atoi(val);
-        else if (!strcasecmp("-norank2species", key))
+        else if (!strcasecmp("--no_rank2species", key))
             p->norank2species = atoi(val);
-        else if (!strcasecmp("-skipnorank", key))
+        else if (!strcasecmp("--skip_no_rank", key))
             p->skipnorank = atoi(val);
-        else if (!strcasecmp("-nthreads", key))
+        else if (!strcasecmp("-n", key) || !strcasecmp("--threads", key))
             p->nthreads = atoi(val);
-        else if (!strcasecmp("-weighttype", key))
+        else if (!strcasecmp("--weight_type", key))
             p->weighttype = atoi(val);
-	else if (!strcasecmp("-stopIfErrors", key))
+	else if (!strcasecmp("--stop_if_errors", key))
             p->stopIfErrors = atoi(val);
-        else if (!strcasecmp("-@", key))
-            p->nthreads = atoi(val);
-        else if (!strcasecmp("-tempfolder", key)) {
+        else if (!strcasecmp("--temp", key)) {
             free(p->tempfolder);
             p->tempfolder = strdup(val);
         } else {
@@ -291,23 +284,23 @@ pars *get_pars(int argc, char **argv) {
 }
 
 void print_pars(FILE *fp, pars *p) {
-    fprintf(fp, "\t-> -bam  \t%s\n", p->htsfile);
-    fprintf(fp, "\t-> -names\t%s\n", p->namesfile);
-    fprintf(fp, "\t-> -nodes\t%s\n", p->nodesfile);
-    fprintf(fp, "\t-> -acc2tax\t%s\n", p->acc2taxfile);
-    fprintf(fp, "\t-> -simscoreLow\t%f\n", p->simscoreLow);
-    fprintf(fp, "\t-> -simscoreHigh\t%f\n", p->simscoreHigh);
-    fprintf(fp, "\t-> -editdistMin\t%d\n", p->editdistMin);
-    fprintf(fp, "\t-> -editdistMax\t%d\n", p->editdistMax);
-    fprintf(fp, "\t-> -outnames\t%s\n", p->outnames);
-    fprintf(fp, "\t-> -minmapq\t%d\n", p->minmapq);
-    fprintf(fp, "\t-> -lca_rank\t%s\n", p->lca_rank);
-    fprintf(fp, "\t-> -norank2species\t%d\n", p->norank2species);
-    fprintf(fp, "\t-> -howmany\t%d\n", p->howmany);
-    fprintf(fp, "\t-> -fix_ncbi\t%d\n", p->fixdb);
-    fprintf(fp, "\t-> -weighttype\t%d\n", p->weighttype);
-    fprintf(fp, "\t-> -tempfolder\t%d\n", p->tempfolder);
-    fprintf(fp, "\t-> -stopIfErrors\t%d\n", p->stopIfErrors);
+    fprintf(fp, "\t-> --bam\t%s\n", p->htsfile);
+    fprintf(fp, "\t-> --names\t%s\n", p->namesfile);
+    fprintf(fp, "\t-> --nodes\t%s\n", p->nodesfile);
+    fprintf(fp, "\t-> --acc2tax\t%s\n", p->acc2taxfile);
+    fprintf(fp, "\t-> --simscoreLow\t%f\n", p->simscoreLow);
+    fprintf(fp, "\t-> --simscoreHigh\t%f\n", p->simscoreHigh);
+    fprintf(fp, "\t-> --editdistMin\t%d\n", p->editdistMin);
+    fprintf(fp, "\t-> --editdistMax\t%d\n", p->editdistMax);
+    fprintf(fp, "\t-> --outnames\t%s\n", p->outnames);
+    fprintf(fp, "\t-> --minmapq\t%d\n", p->minmapq);
+    fprintf(fp, "\t-> --lca_rank\t%s\n", p->lca_rank);
+    fprintf(fp, "\t-> --norank2species\t%d\n", p->norank2species);
+    fprintf(fp, "\t-> --howmany\t%d\n", p->howmany);
+    fprintf(fp, "\t-> --fix_ncbi\t%d\n", p->fixdb);
+    fprintf(fp, "\t-> --weighttype\t%d\n", p->weighttype);
+    fprintf(fp, "\t-> --tempfolder\t%d\n", p->tempfolder);
+    fprintf(fp, "\t-> --stopIfErrors\t%d\n", p->stopIfErrors);
 }
 
 #ifdef __WITH_MAIN__

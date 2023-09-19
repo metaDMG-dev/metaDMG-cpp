@@ -1470,31 +1470,31 @@ pars *get_pars_regression(int argc, char **argv) {
     }
 
     while (*argv) {
-        char *key = *argv;
-        char *val = *(++argv);
+      char *key = *argv;
+      char *val = *(++argv);
 
-        if (!strcasecmp("-dir", key))
-            p->namedir = strdup(val);
-        else if (!strcasecmp("-o", key))
-            p->outname = strdup(val);
-        // else if(!strcasecmp("-outfig",key)) p->outfigname=strdup(val);
-        else if (!strcasecmp("-outfreq", key))
-            p->outfreqname = strdup(val);
-        else if (!strcasecmp("-model", key))
-            p->model = atoi(val);
-        else if (!strcasecmp("-ppos", key))
-            p->numppos = atoi(val);
-        else if (!strcasecmp("-npos", key))
-            p->numnpos = atoi(val);
-        else if (!strcasecmp("-order", key))
-            p->order = atoi(val);
-        else {
-            fprintf(stderr, "\t Unknown parameter key:%s val:%s\n", key, val);
-            free(p);
-            return NULL;
-        }
-
-        ++argv;
+      if (!strcasecmp("-dir", key))
+	p->namedir = strdup(val);
+      else if (!strcasecmp("-o", key))
+	p->outname = strdup(val);
+      // else if(!strcasecmp("-outfig",key)) p->outfigname=strdup(val);
+      else if (!strcasecmp("-outfreq", key))
+	p->outfreqname = strdup(val);
+      else if (!strcasecmp("-model", key))
+	p->model = atoi(val);
+      else if (!strcasecmp("-ppos", key))
+	p->numppos = atoi(val);
+      else if (!strcasecmp("-npos", key))
+	p->numnpos = atoi(val);
+      else if (!strcasecmp("-order", key))
+	p->order = atoi(val);
+      else {
+	fprintf(stderr, "\t Unknown parameter key:%s val:%s\n", key, val);
+	free(p);
+	return NULL;
+      }
+      
+      ++argv;
     }
     return p;
 }

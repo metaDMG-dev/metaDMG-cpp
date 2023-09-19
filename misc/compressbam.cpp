@@ -1,5 +1,5 @@
 // g++ compressbam.cpp -O3 -o compressbam ../../htslib/libhts.a -lz -lbz2 -llzma -lpthread -lcurl -ggdb                                                                                                                                 
-// ./compressbam -hts small.sam -out small.out.bam2 -type bam -@ 16
+// ./compressbam --threads 16 --input small.sam --output small.out.bam2
 
 #include <cstdio>
 #include <zlib.h>
@@ -124,12 +124,12 @@ void writemod(const char *outfile ,bam_hdr_t *hdr,int *keeplist,samFile *htsfp,c
   samFile *outhts = NULL;
   if ((outhts = sam_open_format(outfile,out_mode, dingding2)) == 0) {
     fprintf(stderr,"Error opening file for writing: %s\n",outfile);
-    exit(0);
+    exit(-1);
   }
   if(nthreads>1){
     if (!(p.pool = hts_tpool_init(nthreads))) {
       fprintf(stderr, "Error creating thread pool\n");
-      exit(0);
+      exit(-1);
     }
     hts_set_opt(outhts,  HTS_OPT_THREAD_POOL, &p);
   }
@@ -174,8 +174,8 @@ int main(int argc,char**argv){
   time_t t2=time(NULL);
 
   if(argc==1){
-    fprintf(stderr,"./compressbam -hts -ref -out -type [Sam,Cram,Bam] -@ nthreads\n");
-    return 0;
+    fprintf(stderr,"./compressbam --threads <INT> --input <FILE> --ref <FILE> --output <FILE>\n");
+    return -1;
   }
   char *mycl = stringify_argv(argc,argv);
   fprintf(stderr,"\t-> compressbam: (%s;%s;%s): \'%s\'\n",__FILE__,__DATE__,__TIME__,mycl);  
@@ -192,30 +192,24 @@ int main(int argc,char**argv){
     char *key=*argv;
     char *val=*(++argv);
     //fprintf(stderr,"key: %s val: %s\n",key,val);
-    if(!strcasecmp("-hts",key)) hts=strdup(val);
-    else if(!strcasecmp("-out",key))
-      {
-	free(outfile);
-	outfile=strdup(val);
-      }
-    else if(!strcasecmp("-ref",key)) ref=strdup(val);
-    else if(!strcasecmp("-@",key)) nthreads=atoi(val);
-    else if(!strcasecmp("-type",key)){
-      char c = tolower(val[0]);
-      if(c!='b'&&c!='s'&&c!='c'){
-	fprintf(stderr,"\t-> Problem understanding output format, bam,cram or sam val: %s val[0]:%c\n",val,val[0]);
-	return 0;
-      }
-      out_mode[1] = c;
+    if(!strcasecmp("-i",key) || !strcasecmp("--input",key)) hts=strdup(val);
+    else if(!strcasecmp("-o",key) || !strcasecmp("--output",key)){
+      free(outfile);
+      outfile=strdup(val);
     }
+    else if(!strcasecmp("--ref",key)) ref=strdup(val);
+    else if(!strcasecmp("-n",key) || !strcasecmp("--threads",key)) nthreads=atoi(val);
     else{
       fprintf(stderr,"\t Unknown parameter key:%s val:%s\n",key,val);
-      return 0;
+      return -1;
     }
     ++argv;
   }
+
+  // Infer output format
+  out_mode[1] = strrchr(outfile, '.')[1];
   
-  fprintf(stderr,"\t-> hts: %s out: %s type: %s ref: %s nthreads: %d\n",hts,outfile,out_mode,ref,nthreads);
+  fprintf(stderr,"\t-> input: %s; output: %s; out format: %s; ref: %s; nthreads: %d\n",hts,outfile,out_mode,ref,nthreads);
   
   //open inputfile and parse header
   samFile *htsfp = hts_open(hts,"r");
