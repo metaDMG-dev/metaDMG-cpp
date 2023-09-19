@@ -178,50 +178,49 @@ int main_getdamage(int argc, char **argv) {
     // fix thesepro
     static struct option lopts[] = {
         {"fasta", 1, 0, 'f'},
-        {"minlength", 1, 0, 'l'},
-        {"threads", 1, 0, '@'},
-        {"printlength", 1, 0, 'p'},
-        {"outname", 1, 0, 'o'},
+        {"min_length", 1, 0, 'l'},
+        {"threads", 1, 0, 'n'},
+        {"print_length", 1, 0, 'p'},
+        {"out_prefix", 1, 0, 'o'},
         {"help", 0, 0, '?'},
-        {"runmode", 1, 0, 'r'},
-	{"stopIfErrors", 1, 0, 'S'},
+        {"run_mode", 1, 0, 'r'},
+	{"stop_if_error", 1, 0, 'S'},
         {NULL, 0, NULL, 0}};
 
     int c;
     while ((c = getopt_long(argc, argv,
                             "f:l:p:r:o:@:S:",
                             lopts, NULL)) >= 0) {
-        switch (c) {
-            case 'f':
-                refName = strdup(optarg);
-                break;
-            case 'l':
-                minLength = atoi(optarg);
-                break;
-            case '@':
-                nthreads = atoi(optarg);
-                break;
-            case 'p':
-                printLength = atoi(optarg);
-                break;
-	case 'S':
-                stopIfErrors = atoi(optarg);
-                break;
-            case 'o': {
-                free(onam);
-                onam = strdup(optarg);
-                break;
-            }
-            case 'r':
-                runmode = atoi(optarg);
-                break;
-            case '?':
-                return usage_getdamage(stdout);
-
-            default:
-                fprintf(stderr, "Never here: %s %s\n", optarg, fname);
-                break;
-        }
+      switch (c) {
+      case 'f':
+	refName = strdup(optarg);
+	break;
+      case 'l':
+	minLength = atoi(optarg);
+	break;
+      case 'n':
+	nthreads = atoi(optarg);
+	break;
+      case 'p':
+	printLength = atoi(optarg);
+	break;
+      case 'S':
+	stopIfErrors = atoi(optarg);
+	break;
+      case 'o': {
+	free(onam);
+	onam = strdup(optarg);
+	break;
+      }
+      case 'r':
+	runmode = atoi(optarg);
+	break;
+      case '?':
+	return usage_getdamage(stdout);
+      default:
+	fprintf(stderr, "Never here: %s %s\n", optarg, fname);
+	break;
+      }
     }
     if (optind < argc)
         fname = strdup(argv[optind]);

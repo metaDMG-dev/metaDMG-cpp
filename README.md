@@ -70,7 +70,7 @@ gunzip nucl_gb.accession2taxid.gz;
 
 
 # Single genome analysis
-`./metaDMG-cpp getdamage -l 10 -p 5 --threads 8 input.bam`
+`./metaDMG-cpp getdamage --threads 8 -l 10 -p 5 input.bam`
 
 All options found below:
 
@@ -79,19 +79,19 @@ All options found below:
 
 Usage: ./metaDMG-cpp getdamage [options] <in.bam>|<in.sam>|<in.cram>
 
-Example: ./metaDMG-cpp getdamage -l 10 -p 5 --threads 8 ../data/subs.sam
+Example: ./metaDMG-cpp getdamage --threads 8 --minlength 10 --printlength 5 subs.sam
 Options:
+  -n/--threads	 Number of threads used for reading/writing
   -f/--fasta	 is required with CRAM
   -l/--minlength	 reads shorter than minlength will be discarded
   -p/--printlength	number of base pairs from read termini to estimate damage (default: 5)
   -o/--outname	output prefix
   -r/--runmode	runmode 1 means that damage patterns will be calculated for each chr/scaffold contig.
 		runmode 0 means one global estimate.
-  -@/--threads	 Number of threads used for reading/writing
 ```
 
 # Multiple genome analysis
-` ./metaDMG-cpp getdamage -l 10 -p 5 --threads 8 input.bam -r 1 `
+`./metaDMG-cpp getdamage --threads 8 --minlength 10 --printlength 5 input.bam`
 
 All options found below:
 
@@ -100,42 +100,42 @@ All options found below:
 
 Usage: ./metaDMG-cpp getdamage [options] <in.bam>|<in.sam>|<in.cram>
 
-Example: ./metaDMG-cpp getdamage -l 10 -p 5 --threads 8 input.bam
+Example: ./metaDMG-cpp getdamage --threads 8 --minlength 10 --printlength 5 input.bam
 Options:
-  -f/--fasta	 is required with CRAM
-  -l/--minlength	 reads shorter than minlength will be discarded
+  -n/--threads		Number of threads used for reading/writing
+  -f/--fasta		is required with CRAM
+  -l/--minlength	reads shorter than minlength will be discarded
   -p/--printlength	number of base pairs from read termini to estimate damage (default: 5)
-  -o/--outname	output prefix
-  -r/--runmode	runmode 1 means that damage patterns will be calculated for each chr/scaffold contig.
-		runmode 0 means one global estimate.
-  -@/--threads	 Number of threads used for reading/writing
+  -o/--outname		output prefix
+  -r/--runmode		runmode 1 means that damage patterns will be calculated for each chr/scaffold contig.
+			runmode 0 means one global estimate.
 ```
 
 # LCA analyses
 
-` ./metaDMG-cpp lca -names names.dmp.gz -nodes nodes.dmp.gz -acc2tax taxid_accssionNO.gz -simscorelow 0.95 -simscorehigh 1.0 -minmapq 30 -howmany 15 -bam input.bam`
+` ./metaDMG-cpp lca --threads 4 --bam input.bam --names names.dmp.gz --nodes nodes.dmp.gz --acc2tax taxid_accssionNO.gz --sim_score_low 0.95 --sim_score_high 1.0 --min_mapq 30 --how_many 15`
 
 All options found below:
 
 ```
 ./metaDMG-cpp lca 
 
-Usage: ./metaDMG-cpp lca [options] -names -nodes -acc2tax [-editdist[min/max] -simscore[low/high] -minmapq -discard] -bam <in.bam>|<in.sam>|<in.sam.gz>
+Usage: ./metaDMG-cpp lca --bam <in.bam>|<in.sam>|<in.sam.gz> --names --nodes --acc2tax [--edit_dist_[min/max] --sim_score_[low/high] --min_mapq --discard]
 
-Example ./metaDMG-cpp lca -names names.dmp.gz -nodes nodes.dmp.gz -acc2tax taxid_accssionNO.gz -simscorelow 0.95 -simscorehigh 1.0 -minmapq 30 -howmany 15 -bam input.bam
+Example ./metaDMG-cpp lca --bam input.bam --names names.dmp.gz --nodes nodes.dmp.gz --acc2tax taxid_accssionNO.gz --sim_score_low 0.95 --sim_score_high 1.0 --min_mapq 30 --how_many 15
 
 Options:
-  -simscorelow	number between 0-1
-  -simscorehigh	number between 0-1
-  -names 	/willerslev/users-shared/science-snm-willerslev-npl206/ngsLCA/ngsLCA/ncbi_tax_dump_files/names.dmp.gz 
-  -nodes 	/willerslev/users-shared/science-snm-willerslev-npl206/ngsLCA/ngsLCA/ncbi_tax_dump_files/nodes.dmp.gz 
-  -acc2tax 	/willerslev/users-shared/science-snm-willerslev-zsb202/soft/ngslca/accession2taxid/combined_taxid_accssionNO_20200425.gz 
-  -bam		input alignment file in bam, sam or sam.gz format
-  -outnames	output prefix
-  -lca_rank	family/genus/species 
-  -discard 
-  -minmapq	integer for minimum mapping quality
-  -howmany	integer for many positions
+  --bam			input alignment file in bam, sam or sam.gz format
+  --names 		names.dmp.gz 
+  --nodes 		nodes.dmp.gz 
+  --acc2tax 		combined_taxid_accssionNO_20200425.gz 
+  --sim_score_low	number between 0-1
+  --sim_score_high	number between 0-1
+  --lca_rank		family/genus/species 
+  --discard 
+  --min_mapq		integer for minimum mapping quality
+  --how_many		integer for many positions
+  --out 		output prefix
 ```
 
 
