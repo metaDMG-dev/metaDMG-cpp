@@ -288,19 +288,21 @@ void print_pars(FILE *fp, pars *p) {
     fprintf(fp, "\t-> --names\t%s\n", p->namesfile);
     fprintf(fp, "\t-> --nodes\t%s\n", p->nodesfile);
     fprintf(fp, "\t-> --acc2tax\t%s\n", p->acc2taxfile);
-    fprintf(fp, "\t-> --simscoreLow\t%f\n", p->simscoreLow);
-    fprintf(fp, "\t-> --simscoreHigh\t%f\n", p->simscoreHigh);
-    fprintf(fp, "\t-> --editdistMin\t%d\n", p->editdistMin);
-    fprintf(fp, "\t-> --editdistMax\t%d\n", p->editdistMax);
-    fprintf(fp, "\t-> --outnames\t%s\n", p->outnames);
-    fprintf(fp, "\t-> --minmapq\t%d\n", p->minmapq);
+    fprintf(fp, "\t-> --sim_score_low\t%f\n", p->simscoreLow);
+    fprintf(fp, "\t-> --sim_score_high\t%f\n", p->simscoreHigh);
+    fprintf(fp, "\t-> --edit_dist_min\t%d\n", p->editdistMin);
+    fprintf(fp, "\t-> --edit_dist_max\t%d\n", p->editdistMax);
+    fprintf(fp, "\t-> --out\t%s\n", p->outnames);
+    fprintf(fp, "\t-> --min_mapq\t%d\n", p->minmapq);
+    fprintf(fp, "\t-> --min_length\t%d\n", p->minlength);
     fprintf(fp, "\t-> --lca_rank\t%s\n", p->lca_rank);
-    fprintf(fp, "\t-> --norank2species\t%d\n", p->norank2species);
-    fprintf(fp, "\t-> --howmany\t%d\n", p->howmany);
+    fprintf(fp, "\t-> --no_rank2species\t%d\n", p->norank2species);
+    fprintf(fp, "\t-> --how_many\t%d\n", p->howmany);
     fprintf(fp, "\t-> --fix_ncbi\t%d\n", p->fixdb);
-    fprintf(fp, "\t-> --weighttype\t%d\n", p->weighttype);
-    fprintf(fp, "\t-> --tempfolder\t%d\n", p->tempfolder);
-    fprintf(fp, "\t-> --stopIfErrors\t%d\n", p->stopIfErrors);
+    fprintf(fp, "\t-> --weight_type\t%d\n", p->weighttype);
+    fprintf(fp, "\t-> --temp\t%d\n", p->tempfolder);
+    fprintf(fp, "\t-> --stop_if_errors\t%d\n", p->stopIfErrors);
+    fprintf(fp, "\t-> --threads\t%d\n", p->nthreads);
 }
 
 #ifdef __WITH_MAIN__

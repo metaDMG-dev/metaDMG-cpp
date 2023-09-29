@@ -698,7 +698,7 @@ int2node makeNodes(int2int &parent){
 int main_lca(int argc, char **argv) {
     htsFormat *dingding2 = (htsFormat *)calloc(1, sizeof(htsFormat));
     if (argc == 1) {
-        fprintf(stderr, "\t-> ./metaDMG-cpp lca -names -nodes -acc2tax [-editdist[min/max] -simscore[low/high] -minmapq -discard] -bam -lca_rank #version: %s -usedreads [0,1] -weighttype \n", METADAMAGE_VERSION);
+        fprintf(stderr, "\t-> ./metaDMG-cpp lca --names --nodes --acc2tax [-edit_dist_[min/max] --sim_score_[low/high] --min_mapq --bam --lca_rank #version: %s --used_reads [0,1] --weight_type [0,1] :%s \n", METADAMAGE_VERSION);
         return 0;
     }
     catchkill();
