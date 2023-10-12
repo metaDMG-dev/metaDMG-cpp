@@ -253,7 +253,7 @@ int do_lca(std::vector<int> &taxids, int2int &parent) {
     }
 }
 
-void print_chain1(kstring_t *kstr, int taxa, int2char &rank, int2char &name_map) {
+void print_chain1(kstring_t *kstr, int taxa, int2char &rank, int2char &name_map,char sep) {
     int2char::iterator it1 = name_map.find(taxa);
     int2char::iterator it2 = rank.find(taxa);
     if (it1 == name_map.end()) {
@@ -264,7 +264,7 @@ void print_chain1(kstring_t *kstr, int taxa, int2char &rank, int2char &name_map)
         fprintf(stderr, "taxa: %d %s doesnt exists will exit\n", taxa, it1->second);
         exit(1);
     }
-    ksprintf(kstr, "\t%d:%s:\"%s\"", taxa, it1->second, it2->second);
+    ksprintf(kstr, "%c%d:\"%s\":\"%s\"",sep, taxa, it1->second, it2->second);
 }
 
 void print_rank(FILE *fp, int taxa, int2char &rank) {
@@ -274,13 +274,20 @@ void print_rank(FILE *fp, int taxa, int2char &rank) {
 }
 
 void print_chain(kstring_t *kstr, int taxa, int2int &parent, int2char &rank, int2char &name_map) {
+  int first = 0;
+  char sep = '\t';
     while (1) {
-        print_chain1(kstr, taxa, rank, name_map);
+      print_chain1(kstr, taxa, rank, name_map,sep);
         int2int::iterator it = parent.find(taxa);
         assert(it != parent.end());
         if (taxa == it->second)  //<- catch root
             break;
         taxa = it->second;
+
+	if(sep=='\t'){
+	  if(++first>1)
+	    sep = ';';
+	}
     }
     ksprintf(kstr,"\n");
 }
@@ -464,7 +471,7 @@ void hts(gzFile fp, samFile *fp_in, int2int &i2i, int2int &parent, bam_hdr_t *hd
                 lca = do_lca(taxids, parent);
                 //	fprintf(stderr,"myq->l: %d\n",myq->l);
                 if (lca != -1) {
-                    gzprintf(fp, "%s:%s:%lu:%d:%f", last, seq, strlen(seq), size, gccontent(seq));
+                    gzprintf(fp, "%s\t%s\t%lu\t%d\t%f", last, seq, strlen(seq), size, gccontent(seq));
 		   
 		    print_chain(kstr, lca, parent, rank, name_map);
 		    gzwrite(fp,kstr->s,kstr->l);
@@ -582,7 +589,7 @@ void hts(gzFile fp, samFile *fp_in, int2int &i2i, int2int &parent, bam_hdr_t *hd
         lca = do_lca(taxids, parent);
         //    fprintf(stderr,"myq->l: %d lca: %d \n",myq->l,lca);
         if (lca != -1) {
-            gzprintf(fp, "%s:%s:%lu:%d:%f", last, seq, strlen(seq), size, gccontent(seq));
+            gzprintf(fp, "%s\t%s\t%lu\t%d\t%f", last, seq, strlen(seq), size, gccontent(seq));
             print_chain(kstr, lca, parent, rank, name_map);
 	    gzwrite(fp,kstr->s,kstr->l);
 	    kstr->l = 0;
@@ -759,7 +766,7 @@ int main_lca(int argc, char **argv) {
         if (sam_hdr_write(usedreads_sam, p->header) < 0)
             fprintf(stderr, "writing headers to %s", p->usedreads_sam);
     }
-
+    gzprintf(p->fp1,"queryid\tseq\tlen\tnaln\tgc\tlca\ttaxpath\n");
     hts(p->fp1, p->hts, *i2i, parent, p->header, rank, name_map, p->fp3, p->minmapq, p->discard, p->editdistMin, p->editdistMax, p->simscoreLow, p->simscoreHigh, p->minlength, lca_rank, p->outnames, p->howmany, usedreads_sam, p->skipnorank, tax2level, p->nthreads, p->weighttype);
 
     fprintf(stderr, "\t-> Number of species with reads that map uniquely: %lu\n", specWeight.size());

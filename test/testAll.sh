@@ -126,7 +126,7 @@ echo "========================"
 grep -v version ${LOG}|grep -v VERSION|grep -v tempfolder |grep -v walltime|grep -v taken|grep -v thread1 >output/logfile
 
 
-gunzip -c output/test3.lca.gz|sed 1d |md5sum -c files2.md5
+gunzip -c output/test3.lca.gz|sed 1d|cut -f1-6 |md5sum -c files2.md5
 if [[ $? -ne 0 ]]; then
     echo "Problem with md5sum for lca file"
     RVAL=$((1024+${RVAL}))
@@ -138,7 +138,7 @@ if [[ $? -ne 0 ]]; then
     RVAL=$((1024+${RVAL}))
 fi
      
-gunzip -c output/test3.bdamage.gz.uglyprint.stat.txt.gz|md5sum -c files4.md5
+gunzip -c output/test3.bdamage.gz.uglyprint.stat.txt.gz|cut -f1-10|md5sum -c files4.md5
 if [[ $? -ne 0 ]]; then
     echo "Problem with md5sum for uglyprint stat file"
     RVAL=$((1024+${RVAL}))
@@ -150,7 +150,7 @@ if [[ $? -ne 0 ]]; then
     RVAL=$((1024+${RVAL}))
 fi
      
-gunzip -c output/test4.bdamage.gz.uglyprint.stat.txt.gz|md5sum -c files6.md5
+gunzip -c output/test4.bdamage.gz.uglyprint.stat.txt.gz|cut -f1-10|md5sum -c files6.md5
 if [[ $? -ne 0 ]]; then
     echo "Problem with md5sum for uglyprint stat file"
     RVAL=$((1024+${RVAL}))

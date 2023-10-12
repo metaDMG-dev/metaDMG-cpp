@@ -1255,7 +1255,7 @@ int main_print_ugly(int argc, char **argv) {
     snprintf(buf, 1024, "%s.uglyprint.stat.txt.gz", infile_bdamage);
     fprintf(stderr, "\t-> Dumping file: \'%s\'\n", buf);
     fpfpfp = gzopen(buf, "wb");
-    gzprintf(fpfpfp, "#taxid\tname\trank\tnalign\tnreads\tmean_rlen\tvar_rlen\tmean_gc\tvar_gc\n");
+    gzprintf(fpfpfp, "#taxid\tname\trank\tnalign\tnreads\tmean_rlen\tvar_rlen\tmean_gc\tvar_gc\tlca\ttaxpath\n");
     std::map<int, mydata2> stats;
     if (infile_lcastat)
         stats = load_lcastat(infile_lcastat);
