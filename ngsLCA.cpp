@@ -785,6 +785,7 @@ int main_lca(int argc, char **argv) {
 
     if (usedreads_sam != NULL)
         sam_close(usedreads_sam);
+    fprintf(p->fp_lcadist,"taxid_id\tnreads\tmea_len\tvar_len\tmean_gc\tvar_gc\tlca\trank\n");
     if (p->fp_lcadist) {
         for (std::map<int, lcatriplet>::iterator it = lcastat.begin(); it != lcastat.end(); it++) {
             lcatriplet tmp = it->second;

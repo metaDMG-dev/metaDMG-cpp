@@ -1,12 +1,12 @@
 ec8cd6456d4468e200899993efa16bd7  output/test1.bdamage.gz
 fc5a724b1d87e0ef3749efa75ae1a1d0  output/test1.bdamage.gz.txt
 da99ce895941c26ef76556c0020f7654  output/test1.res.gz
-b9463ce26b70d29082223bd974e0446b  output/test1.stat
 e16fd4c2b8901ba9921b3fdd3b110823  output/test2.bdamage.gz
 c99b4cee656eb6fa61d6e61131a7c083  output/test2.bdamage.gz.txt
 cf42ce79672ae2b26a81c41b7eff6b57  output/test2.res.gz
-8988be730e68cce151310d6fad161297  output/test2.stat
 b52ad708bac84a7356b76b62d8657912  output/test3.bdamage.gz
-8c858b08b7d79e7cebff334ac5724ab0  output/test3.stat
 b52ad708bac84a7356b76b62d8657912  output/test4.bdamage.gz
-8c858b08b7d79e7cebff334ac5724ab0  output/test4.stat
+a6d72da50eb749970436351a95ee00f7  output/test1.stat
+daf1a66496c9d45fa5fda7c8929c01fd  output/test2.stat
+ce5f881ff0e8351044bdb6f2c50934f9  output/test3.stat
+ce5f881ff0e8351044bdb6f2c50934f9  output/test4.stat
