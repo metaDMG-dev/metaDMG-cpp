@@ -71,11 +71,19 @@ Each line consists of a number of items seperated by tabspace. First entry conta
   3 & {\sf length(seq)} & The length of the sequence\\
   4 & {\sf nAlignments} & The number of alignments used for inferring the lca\\
   5 & {\sf gc-content} & The GC content for the sequence\\\hline\hline
-  6 & {\sf taxid} & the taxomic id (integer)\\
-  7 & {\sf taxid} & the taxonomic name(string)\\
-  8 & {\sf ``taxlevel''} & the taxonomic level\\\hline\hline      
+  6 & {\sf lca taxid} & the taxomic id (integer)\\
+  7 & {\sf lca taxid} & the taxonomic name(string)\\
+  8 & {\sf lca ``taxlevel''} & the taxonomic level\\\hline\hline
+  9 & {\sf taxid} & the taxomic id (integer)\\
+  10 & {\sf taxid} & the taxonomic name(string)\\
+  11 & {\sf ``taxlevel''} & the taxonomic level\\\hline\hline
 \end{tabular}\label{tab2}
-\caption{Content of a .lca file. Note that 1) seperate between field[1-5] is colon, but the readID might also contain colon. 2) the quotes around field[8] is intentional since taxlevels might contain spaces. 3) Not that the number of tab seperated entries is different between reads since this is the number of nodes needed to traverse from lca to root}
+\caption{Content of a .lca file. Note that 1) seperate between
+  fields[1-6,8-9] is tab, readID might also contain colon. 2) the
+  quotes around field[7,8] is intentional since taxlevels and names
+  might contain spaces andor colons. 3) Number of tab seperated
+  entries is consistent across different reads, since seperator
+  between block 9-11 is semicolon. Seperator between 6-9,9-11 is colon}
 \end{table}
 \section{.stat}\label{sec:stat}
 Very simple tabseperated flatfile
