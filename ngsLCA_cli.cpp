@@ -27,7 +27,7 @@ pars *pars_init() {
     p->simscoreLow = 0;
     p->simscoreHigh = 1;
     p->fp1 = Z_NULL;
-    p->fp2 = p->fp3 = p->fp_lcadist = NULL;
+    p->fp2 = p->fp_lcadist = NULL;
     p->outnames = strdup("outnames");
     p->minmapq = 0;
     p->discard = 516;  // discard unmapped and read fail
@@ -49,7 +49,7 @@ pars *pars_init() {
 void pars_free(pars *p) {
     gzclose(p->fp1);
     // fclose(p->fp2);
-    fclose(p->fp3);
+    //    fclose(p->fp3);
 
     if (p->header)
         sam_hdr_destroy(p->header);
@@ -234,7 +234,7 @@ pars *get_pars(int argc, char **argv) {
             p->nthreads = atoi(val);
         else if (!strcasecmp("--weight_type", key))
             p->weighttype = atoi(val);
-	else if (!strcasecmp("--stop_if_errors", key))
+	else if (!strcasecmp("--stop_if_errors", key)||!strcasecmp("-S", key))
             p->stopIfErrors = atoi(val);
         else if (!strcasecmp("--temp", key)) {
             free(p->tempfolder);
@@ -267,11 +267,12 @@ pars *get_pars(int argc, char **argv) {
     snprintf(buf, 1024, "%s.wlca", p->outnames);
     fprintf(stderr, "\t-> Will output lca weight in file:\t\t\'%s\'\n", buf);
     //  p->fp2 = fopen(buf,"wb");
-
+#if 0
     snprintf(buf, 1024, "%s.log", p->outnames);
     fprintf(stderr, "\t-> Will output log info (problems) in file:\t\'%s\'\n", buf);
     p->fp3 = fopen(buf, "wb");
     assert(p->fp3);
+#endif
     if (make_used_reads) {
         snprintf(buf, 1024, "%s.usedreads.sam", p->outnames);
         fprintf(stderr, "\t-> Will output the reads that are used for damage file:\t\'%s\'\n", buf);

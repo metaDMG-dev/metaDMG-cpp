@@ -408,7 +408,7 @@ std::vector<int> purge(std::vector<int> &taxids, std::vector<int> &editdist) {
     return tmpnewvec;
 }
 
-void hts(gzFile fp, samFile *fp_in, int2int &i2i, int2int &parent, bam_hdr_t *hdr, int2char &rank, int2char &name_map, FILE *log, int minmapq, int discard, int editMin, int editMax, double scoreLow, double scoreHigh, int minlength, int lca_rank, char *prefix, int howmany, samFile *fp_usedreads, int skipnorank, int2int &rank2level, int nthreads, int weighttype) {
+void hts(gzFile fp, samFile *fp_in, int2int &i2i, int2int &parent, bam_hdr_t *hdr, int2char &rank, int2char &name_map, int minmapq, int discard, int editMin, int editMax, double scoreLow, double scoreHigh, int minlength, int lca_rank, char *prefix, int howmany, samFile *fp_usedreads, int skipnorank, int2int &rank2level, int nthreads, int weighttype) {
     fprintf(stderr, "[%s] \t-> editMin:%d editmMax:%d scoreLow:%f scoreHigh:%f minlength:%d discard: %d prefix: %s howmany: %d skipnorank: %d weighttype: %d\n", __FUNCTION__, editMin, editMax, scoreLow, scoreHigh, minlength, discard, prefix, howmany, skipnorank, weighttype);
     assert(fp_in != NULL);
     damage *dmg = new damage(howmany, nthreads, 13);
@@ -562,7 +562,7 @@ void hts(gzFile fp, samFile *fp_in, int2int &i2i, int2int &parent, bam_hdr_t *hd
         if (it == i2i.end() || dingdong == -1) {
             int2int::iterator it2missing = i2i_missing.find(chr);
             if (it2missing == i2i_missing.end()) {
-                fprintf(log, "\t-> problem finding chrid:%d chrname:%s\n", chr, hdr->target_name[chr]);
+                fprintf(stderr, "[log] \t-> problem finding chrid:%d chrname:%s\n", chr, hdr->target_name[chr]);
                 i2i_missing[chr] = 1;
             } else
                 it2missing->second = it2missing->second + 1;
@@ -767,12 +767,12 @@ int main_lca(int argc, char **argv) {
             fprintf(stderr, "writing headers to %s", p->usedreads_sam);
     }
     gzprintf(p->fp1,"queryid\tseq\tlen\tnaln\tgc\tlca\ttaxpath\n");
-    hts(p->fp1, p->hts, *i2i, parent, p->header, rank, name_map, p->fp3, p->minmapq, p->discard, p->editdistMin, p->editdistMax, p->simscoreLow, p->simscoreHigh, p->minlength, lca_rank, p->outnames, p->howmany, usedreads_sam, p->skipnorank, tax2level, p->nthreads, p->weighttype);
+    hts(p->fp1, p->hts, *i2i, parent, p->header, rank, name_map, p->minmapq, p->discard, p->editdistMin, p->editdistMax, p->simscoreLow, p->simscoreHigh, p->minlength, lca_rank, p->outnames, p->howmany, usedreads_sam, p->skipnorank, tax2level, p->nthreads, p->weighttype);
 
     fprintf(stderr, "\t-> Number of species with reads that map uniquely: %lu\n", specWeight.size());
 
     for (int2int::iterator it = errmap.begin(); it != errmap.end(); it++)
-        fprintf(p->fp3, "err\t%d\t%d\n", it->first, it->second);
+        fprintf(stderr, "[log] err\t%d\t%d\n", it->first, it->second);
 #if 0
   for(int2int::iterator it=i2i_missing.begin();it!=i2i_missing.end();it++)
     fprintf(p->fp3,"missingtaxid \t%d\t%d\t%s\n",it->first,it->second,p->header[it->first]);

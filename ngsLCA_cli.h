@@ -25,7 +25,7 @@ typedef struct {
     gzFile fp1;
     FILE *fp_lcadist;
     FILE *fp2;
-    FILE *fp3;
+  //    FILE *fp3; //this is the logfile that fgv thinkgs sholld be removed
     int minmapq;
     int discard;  // or bitoperation with the flag of the read
     int minlength;
