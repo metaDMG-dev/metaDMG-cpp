@@ -23,6 +23,7 @@
 #include "version.h"     // for METADAMAGE_VERSION
 #include "dfit_optim.h"
 #include "pval.h"
+#include "dfit_helppage.h"
 
 extern htsFormat *dingding2;
 
@@ -229,9 +230,22 @@ mydataD getval_full(std::map<int, mydataD> &retmap, int2intvec &child, int taxid
 mydata2 getval_stats(std::map<int, mydata2> &retmap, int2intvec &child, int taxid) ;
 
 int main_dfit(int argc, char **argv) {
+    /*
     fprintf(stderr, "./metaDMG-cpp dfit file.bdamage.gz -names file.gz -nodes trestructure.gz -lcastat fil.gz -bam file.bam -showfits int -nopt int -nbootstrap int -seed int -doCI int -CI float -lib <ds,ss> -out file\n");
-    if (argc <= 1)
-        return 0;
+    fprintf(stderr, "-------------\n Estimate damage patterns with beta-binomial model\n");
+    fprintf(stderr, "\tEstimate damage patterns for each chr/scaffold contig (local mode), using lca stats\n");
+    fprintf(stderr, "\t\t./metaDMG-cpp dfit file.bdamage.gz -names file.gz -nodes trestructure.gz -lcastat fil.gz -bam file.bam -showfits int -nopt int -nbootstrap int -seed int -doCI int -CI float -lib <ds,ss> -out file\n");
+    fprintf(stderr, "\tEstimate one global damage pattern \n");
+    fprintf(stderr, "-------------\n Estimate damage patterns with binomial model\n");
+    fprintf(stderr, "\tEstimate damage patterns for each chr/scaffold contig (local mode), using lca stats\n");
+    fprintf(stderr, "\t\t./metaDMG-cpp dfit file.bdamage.gz -names file.gz -nodes trestructure.gz -lcastat fil.gz -bam file.bam -showfits int -nopt int -nbootstrap int -seed int -doCI int -CI float -lib <ds,ss> -out file\n");
+    fprintf(stderr, "\tEstimate one global damage pattern \n");
+    fprintf(stderr, "\t\t./metaDMG-cpp dfit metaDMG-cpp/metaDMG-cpp dfit Pitch6getDMG.bdamage.gz -doboot 1 -nbootstrap 5 -nopt 10 -showfits 0\n");
+    */
+    if (argc <= 1){
+      HelpPage(stderr);
+      return 0;
+    }
     char *infile_bdamage = NULL;
     char *infile_nodes = NULL;
     char *infile_names = NULL;
@@ -250,33 +264,35 @@ int main_dfit(int argc, char **argv) {
     int doCI = 2;
 
     while (*(++argv)) {
-        if (strcasecmp("-names", *argv) == 0)
+        if (strcasecmp("-h", *argv) == 0)
+          HelpPage(stderr);
+        else if (strcasecmp("--names", *argv) == 0)
             infile_names = strdup(*(++argv));
-        else if (strcasecmp("-nodes", *argv) == 0)
+        else if (strcasecmp("--nodes", *argv) == 0)
             infile_nodes = strdup(*(++argv));
-        else if (strcasecmp("-lcastat", *argv) == 0)
+        else if (strcasecmp("--lcastat", *argv) == 0)
             infile_lcastat = strdup(*(++argv));
-        else if (strcasecmp("-bam", *argv) == 0)
+        else if (strcasecmp("--bam", *argv) == 0)
             infile_bam = strdup(*(++argv));
-        else if (strcasecmp("-out", *argv) == 0)
+        else if (strcasecmp("--out", *argv) == 0)
             outfile_name = strdup(*(++argv));
-        else if (strcasecmp("-nopt", *argv) == 0)
+        else if (strcasecmp("--nopt", *argv) == 0)
           nopt = atoi(*(++argv));
-        else if (strcasecmp("-sigtype", *argv) == 0)
+        else if (strcasecmp("--sigtype", *argv) == 0)
           sigtype = atoi(*(++argv));
-        else if (strcasecmp("-showfits", *argv) == 0)
+        else if (strcasecmp("--showfits", *argv) == 0)
           showfits = atoi(*(++argv));
-        else if (strcasecmp("-nbootstrap", *argv) == 0)
+        else if (strcasecmp("--nbootstrap", *argv) == 0)
           nbootstrap = atoi(*(++argv));
-        else if (strcasecmp("-doboot", *argv) == 0)
+        else if (strcasecmp("--doboot", *argv) == 0)
           doboot = atoi(*(++argv));
-        else if (strcasecmp("-seed", *argv) == 0)
+        else if (strcasecmp("--seed", *argv) == 0)
           seed = atoi(*(++argv));
-        else if (strcasecmp("-CI", *argv) == 0)
+        else if (strcasecmp("--CI", *argv) == 0)
           CI = atof(*(++argv));
-        else if (strcasecmp("-doCI", *argv) == 0)
+        else if (strcasecmp("--doCI", *argv) == 0)
           doCI = atof(*(++argv));
-        else if (strcasecmp("-lib", *argv) == 0)
+        else if (strcasecmp("--lib", *argv) == 0)
             lib_prep = strdup(*(++argv));
         else
           infile_bdamage = strdup(*argv);
@@ -303,8 +319,8 @@ int main_dfit(int argc, char **argv) {
       exit(1);
     }
     
-    fprintf(stderr, "infile_names: %s infile_bdamage: %s nodes: %s lca_stat: %s infile_bam: %s showfits: %d nopt: %d outname: %s sigtype: %d nbootstrap: %d", infile_names, infile_bdamage, infile_nodes, infile_lcastat, infile_bam,showfits,nopt,outfile_name,sigtype,nbootstrap);
-    fprintf(stderr, "#VERSION:%s\n", METADAMAGE_VERSION);
+    //fprintf(stderr, "infile_names: %s infile_bdamage: %s nodes: %s lca_stat: %s infile_bam: %s showfits: %d nopt: %d outname: %s sigtype: %d nbootstrap: %d", infile_names, infile_bdamage, infile_nodes, infile_lcastat, infile_bam,showfits,nopt,outfile_name,sigtype,nbootstrap);
+    //fprintf(stderr, "#VERSION:%s\n", METADAMAGE_VERSION);
     if(outfile_name==NULL)
       outfile_name = strdup(infile_bdamage);
     char buf[1024];
@@ -321,7 +337,7 @@ int main_dfit(int argc, char **argv) {
     if(doboot>0){
       snprintf(bootbuf, 1024, "%s.boot.stat.txt.gz", outfile_name);
       bootfp = bgzf_open(bootbuf, "wb");    
-      ksprintf(bootkstr,"id\tA\tq\tc\tphi\n");
+      ksprintf(bootkstr,"id\tA_b\tq_b\tc_b\tphi_b\n");
     }
 
     // map of taxid -> taxid
@@ -393,7 +409,7 @@ int main_dfit(int argc, char **argv) {
 	      ksprintf(kstr,"\tfwdx%d\tfwdxConf%d",i,i);
       }
       for(int i=0;i<howmany;i++)
-	      ksprintf(kstr,"\tbwdx%d\tbwtdxConf%d",i,i);
+	      ksprintf(kstr,"\tbwdx%d\tbwdxConf%d",i,i);
       ksprintf(kstr,"\n");
     }
     else{
@@ -411,7 +427,7 @@ int main_dfit(int argc, char **argv) {
 	      ksprintf(kstr,"\tfwK%d\tfwN%d\tfwdx%d\tfwf%d\tfwdxConf%d",i,i,i,i,i);
       }
       for(int i=0;i<howmany;i++)
-	      ksprintf(kstr,"\tbwK%d\tbwN%d\tbwdx%d\tbwf%d\tbwtdxConf%d",i,i,i,i,i);
+	      ksprintf(kstr,"\tbwK%d\tbwN%d\tbwdx%d\tbwf%d\tbwdxConf%d",i,i,i,i,i);
       ksprintf(kstr,"\n");
     }
 
@@ -630,10 +646,10 @@ int main_dfit(int argc, char **argv) {
     }
   }
   else if(showfits == 1){
-    fprintf(stderr,"INSIDE THE 1 loop 2\n");
+    /*fprintf(stderr,"INSIDE THE 1 loop 2\n");
     for(int i=0; i<20;i++){
       std::cout << i <<": " << stats[i] << std::endl;
-    }
+    }*/
     if(nbootstrap > 1){
       for(int i=0;i<6;i++){
         if(i == 0){
@@ -647,12 +663,12 @@ int main_dfit(int argc, char **argv) {
       }
       ksprintf(kstr,"\t%f\t%f\t%f\t%f\t%f\t%f\t%f\t%f",CI_val[0][0],CI_val[0][1],CI_val[1][0],CI_val[1][1],CI_val[2][0],CI_val[2][1],CI_val[3][0],CI_val[3][1]);
     }
-    fprintf(stderr,"-----------------\n");
+    //fprintf(stderr,"-----------------\n");
     int nrows = (int) dat[0][0];
 	  int ncycle = nrows/2;
 	  double *dx = stats+2;
 	  double *dx_conf = stats+2+nrows;
-    std::cout << stats[3] << std::endl;
+    //std::cout << stats[3] << std::endl;
     // beginning positions fwK0	fwN0	fwdx0	fwdxConf0
 	  for(int i=0;i<ncycle;i++){
       if(isnan(dx_conf[i])){dx_conf[i] = 0.0;}
@@ -669,10 +685,10 @@ int main_dfit(int argc, char **argv) {
     }
 	}
   else if(showfits == 2){
-    fprintf(stderr,"INSIDE THE 2 loop 2\n");
+    /*fprintf(stderr,"INSIDE THE 2 loop 2\n");
     for(int i=0; i<20;i++){
       std::cout << i <<": " << stats[i] << std::endl;
-    }
+    }*/
     if(nbootstrap > 1){
       for(int i=0;i<6;i++){
         if(i == 0){
@@ -687,7 +703,7 @@ int main_dfit(int argc, char **argv) {
       ksprintf(kstr,"\t%f\t%f\t%f\t%f\t%f\t%f\t%f\t%f",CI_val[0][0],CI_val[0][1],CI_val[1][0],CI_val[1][1],CI_val[2][0],CI_val[2][1],CI_val[3][0],CI_val[3][1]);
     }
 
-    fprintf(stderr,"-----------------\n");
+    //fprintf(stderr,"-----------------\n");
     int nrows = (int) dat[0][0];
 	  int ncycle = nrows/2;
 	  double *dx = stats+2;
