@@ -18,20 +18,13 @@ For all analyses output is a binary '.bdamage.gz' file, that can be accessed wit
 # Installation
 
 ### Dependencies
-metaDMG-cpp requires HTSlib - a common library used for handling high-throughput sequencing data.
-eigen3 and gsl.
+`metaDMG-cpp` requires `HTSlib`, a common library used for handling high-throughput sequencing data, `eigen3` and `gsl`.
 
 On ubuntu these can be installed with:
 ```
 sudo apt install libgsl-dev libeigen3-dev
 ```
 
-To install HTSlib do:
-```
-git clone https://github.com/SAMtools/htslib
-cd htslib
-make
-```
 ### Installing and compiling metaDMG
 To install metaDMG-cpp do:
 ```
@@ -40,8 +33,15 @@ cd metaDMG-cpp
 make HTTSRC=../htslib
 ```
 
+### To install HTSlib:
+```
+git submodule update --init --recursive
+cd htslib
+make
+```
+
 ## Updating to latest version
-For installing latest updates in the directory metaDMG-cpp do:
+For installing latest updates:
 ```
 make clean
 git pull https://github.com/metaDMG-dev/metaDMG-cpp.git
@@ -49,11 +49,8 @@ git pull https://github.com/metaDMG-dev/metaDMG-cpp.git
 
 ## Installing metaDMG using Conda
 ```
-conda create -n metaDMG htslib eigen cxx-compiler c-compiler gsl
+conda create -c bioconda -n metaDMG metadmg
 conda activate metaDMG
-git clone https://github.com/metaDMG-dev/metaDMG-cpp.git
-cd metaDMG
-make clean && make -j 8 HTSSRC=systemwide
 ```
 
 # Taxonomic resource files
