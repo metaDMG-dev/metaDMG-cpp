@@ -63,7 +63,7 @@ CMD="${PRG} dfit output/test_lca.bdamage.gz --names data/names.dmp.gz --nodes da
 ${CMD} >> ${LOG} 2>&1
 if [[ $? -ne 0 ]]; then
     echo "Problem running command: ${CMD}"
-    RVAL=$((32+RVAL))
+    RVAL=$((64+RVAL))
 fi
 
 
@@ -72,21 +72,21 @@ CMD="${PRG} print output/test_getdamage_local.bdamage.gz "
 ${CMD} 1>output/test_getdamage_local.bdamage.gz.txt 2>>${LOG}
 if [[ $? -ne 0 ]]; then
     echo "Problem running command: ${CMD}"
-    RVAL=$((64+RVAL))
+    RVAL=$((128+RVAL))
 fi
 
 CMD="${PRG} print output/test_getdamage_global.bdamage.gz"
 ${CMD} 1>output/test_getdamage_global.bdamage.gz.txt 2>>${LOG}
 if [[ $? -ne 0 ]]; then
     echo "Problem running command: ${CMD}"
-    RVAL=$((128+RVAL))
+    RVAL=$((256+RVAL))
 fi
 
 CMD="${PRG} print_ugly output/test_lca.bdamage.gz"
 ${CMD} >> ${LOG} 2>&1
 if [[ $? -ne 0 ]]; then
     echo "Problem running command: ${CMD}"
-    RVAL=$((256+RVAL))
+    RVAL=$((512+RVAL))
 fi
 
 ln -sf test_lca.bdamage.gz output/test_lca2.bdamage.gz
@@ -95,7 +95,7 @@ CMD="${PRG} print_ugly output/test_lca2.bdamage.gz -names data/names.dmp.gz -nod
 ${CMD} >> ${LOG} 2>&1
 if [[ $? -ne 0 ]]; then
     echo "Problem running command: ${CMD}"
-    RVAL=$((512+RVAL))
+    RVAL=$((1024+RVAL))
 fi
 rm output/test_lca2.bdamage.gz output/test_lca2.stat
 
@@ -111,9 +111,7 @@ fi
 echo "=====RVAL:${RVAL}======="
 
 if [[ ${RVAL} -ne 0 ]];then
-    echo "====Prunedlog==="
-    cat output/logfile
-    echo "====Purelog==="
+    echo "====StartOfLog==="
     cat ${LOG}
     echo "====EndOfLog==="
     exit 1 #exit codes are capped at 255
