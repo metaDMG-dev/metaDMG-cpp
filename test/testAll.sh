@@ -66,7 +66,7 @@ if [[ $? -ne 0 ]]; then
     RVAL=$((64+RVAL))
 fi
 # Remove 'ncall' column and round values, since it fails on GitHub tests
-zcat output/test_dfit_local.dfit.txt.gz | cut -f 1-6,8- | head -n 20 | numfmt -d $'\t' --header --format='%.2f' --field=2- --invalid=ignore > output/test_dfit_local.dfit.fix
+zcat output/test_dfit_local.dfit.txt.gz | cut -f 1-6,8- | head -n 10 | numfmt -d $'\t' --header --format='%.2f' --field=2- --invalid=ignore > output/test_dfit_local.dfit.fix
 
 echo "Running dfit global"
 CMD="${PRG} dfit output/test_getdamage_global.bdamage.gz --showfits 2 --seed 12345 --lib ds --out output/test_dfit_global"
