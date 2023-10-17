@@ -216,7 +216,7 @@ int main_getdamage(int argc, char **argv) {
       case 'h':
 	return usage_getdamage(stdout);
       default:
-	fprintf(stderr, "Never here: %s %s\n", optarg, fname);
+	fprintf(stderr, "Never here: %s\n", optarg);
 	break;
       }
     }
