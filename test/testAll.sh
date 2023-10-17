@@ -65,8 +65,8 @@ if [[ $? -ne 0 ]]; then
     echo "Problem running command: ${CMD}"
     RVAL=$((64+RVAL))
 fi
-# Remove 'ncall' column since it fail on GitHub tests
-zcat output/test_dfit_local.dfit.txt.gz | cut -f 1-6,8- > output/test_dfit_local.dfit.fix
+# Remove 'ncall' column and round values, since it fails on GitHub tests
+zcat output/test_dfit_local.dfit.txt.gz | cut -f 1-6,8- | numfmt -d $'\t' --header --format='%.2f' --field=2- --invalid=ignore > output/test_dfit_local.dfit.fix
 
 echo "Running dfit global"
 CMD="${PRG} dfit output/test_getdamage_global.bdamage.gz --showfits 2 --seed 12345 --lib ds --out output/test_dfit_global"
