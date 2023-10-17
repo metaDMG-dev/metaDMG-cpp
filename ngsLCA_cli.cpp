@@ -306,7 +306,7 @@ void print_pars(FILE *fp, pars *p) {
     fprintf(fp, "\t-> --threads\t%d\n", p->nthreads);
     fprintf(fp, "\t-> --weight_type\t%d\n", p->weighttype);
     fprintf(fp, "\t-> --ignore_errors\t%d\n", p->ignore_errors);
-    fprintf(fp, "\t-> --temp\t%d\n", p->tempfolder);
+    fprintf(fp, "\t-> --temp\t%s\n", p->tempfolder);
 }
 
 #ifdef __WITH_MAIN__

@@ -730,7 +730,7 @@ int main_dfit(int argc, char **argv) {
 	  ksprintf(kstr,"\n");
     }
     if(bgzf_write(fpfpfp,kstr->s,kstr->l) == 0){
-      fprintf(stderr, "\t-> Cannot write to %s\n", fpfpfp);
+      fprintf(stderr, "\t-> Cannot write to output BGZ file\n");
       exit(1);
     }
     kstr->l = 0;
@@ -783,7 +783,7 @@ int main_dfit(int argc, char **argv) {
     }
     if(doboot>0){
       if(bgzf_write(bootfp,bootkstr->s,bootkstr->l) == 0){
-	fprintf(stderr, "\t-> Cannot write to %s\n", fpfpfp);
+	fprintf(stderr, "\t-> Cannot write to output BGZ file\n");
 	exit(1);
       }
       bootkstr->l = 0;
@@ -792,7 +792,7 @@ int main_dfit(int argc, char **argv) {
     //cleanup
     if(fpfpfp){
       if(bgzf_write(fpfpfp,kstr->s,kstr->l) == 0){
-	fprintf(stderr, "\t-> Cannot write to %s\n", fpfpfp);
+	fprintf(stderr, "\t-> Cannot write to output BGZ file\n");
 	exit(1);
       }
       bgzf_close(fpfpfp);
