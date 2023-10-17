@@ -1264,6 +1264,9 @@ int main_print_ugly(int argc, char **argv) {
         stats = load_lcastat(infile_lcastat);
     getval_stats(stats, child, 1);  // this will do everything
     for (std::map<int, mydata2>::iterator it = stats.begin(); 1 && it != stats.end(); it++) {
+        // Skip header
+        if (it == stats.begin())
+            continue;
         std::map<int, mydataD>::iterator itold = retmap.find(it->first);
         int nalign = -1;
         if (itold == retmap.end()) {

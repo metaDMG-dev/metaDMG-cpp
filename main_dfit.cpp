@@ -754,7 +754,10 @@ int main_dfit(int argc, char **argv) {
       fprintf(stderr, "\t-> pre: %f post:%f grownbyfactor: %f\n", presize, postsize, postsize / presize);
     }
     for (std::map<int, mydata2>::iterator it = stats.begin(); it != stats.end(); it++) {
-      std::map<int, mydataD>::iterator itold = retmap.find(it->first);
+        // Skip header
+        if (it == stats.begin())
+	  continue;
+        std::map<int, mydataD>::iterator itold = retmap.find(it->first);
         int nalign = -1;
         if (itold == retmap.end()) {
             fprintf(stderr, "\t-> Problem finding taxid: %d\n", it->first);

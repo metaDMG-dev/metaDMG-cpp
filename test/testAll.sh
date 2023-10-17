@@ -34,16 +34,16 @@ fi
 
 mkdir -p output
 
-echo "Running getdamage local"
-CMD="${PRG} getdamage -r 0 ${BAM} -o output/test_getdamage_local"
+echo "Running getdamage global"
+CMD="${PRG} getdamage -r 0 ${BAM} -o output/test_getdamage_global"
 ${CMD} >> ${LOG} 2>&1
 if [[ $? -ne 0 ]]; then
     echo "Problem running command: ${CMD}"
     RVAL=$((8+RVAL))
 fi
 
-echo "Running getdamage global"
-CMD="${PRG} getdamage -r 1 ${BAM} -o output/test_getdamage_global"
+echo "Running getdamage local"
+CMD="${PRG} getdamage -r 1 ${BAM} -o output/test_getdamage_local"
 ${CMD} >> ${LOG} 2>&1
 if [[ $? -ne 0 ]]; then
     echo "Problem running command: ${CMD}"
@@ -58,8 +58,16 @@ if [[ $? -ne 0 ]]; then
     RVAL=$((32+RVAL))
 fi
 
-echo "Running dfit"
-CMD="${PRG} dfit output/test_lca.bdamage.gz --names data/names.dmp.gz --nodes data/nodes.dmp.gz --showfits 2 --nopt 2 --nbootstrap 2 --seed 12345 --lib ds --out output/test_dfit"
+echo "Running dfit local"
+CMD="${PRG} dfit output/test_lca.bdamage.gz --names data/names.dmp.gz --nodes data/nodes.dmp.gz --lcastat output/test_lca.stat --showfits 2 --nopt 2 --nbootstrap 2 --seed 12345 --lib ds --out output/test_dfit_local"
+${CMD} >> ${LOG} 2>&1
+if [[ $? -ne 0 ]]; then
+    echo "Problem running command: ${CMD}"
+    RVAL=$((64+RVAL))
+fi
+
+echo "Running dfit global"
+CMD="${PRG} dfit output/test_getdamage_global.bdamage.gz --showfits 2 --seed 12345 --lib ds --out output/test_dfit_global"
 ${CMD} >> ${LOG} 2>&1
 if [[ $? -ne 0 ]]; then
     echo "Problem running command: ${CMD}"
