@@ -440,7 +440,7 @@ int main_dfit(int argc, char **argv) {
 	if(hdr!=NULL){
 	  ksprintf(kstr, "%s\t", sam_hdr_tid2name(hdr, it->first));
 	}
-  else{
+	else{
 	  if(name_map.size()==0)
 	    ksprintf(kstr,"%d\t",it->first);
 	  else{
@@ -653,9 +653,9 @@ int main_dfit(int argc, char **argv) {
     if(nbootstrap > 1){
       for(int i=0;i<6;i++){
         if(i == 0){
-          ksprintf(kstr,"%f",cistat[i]);
+          ksprintf(kstr,"\t%f",cistat[i]);
         }
-        if(i == 4){continue;}
+        else if(i == 4){continue;}
         else if(i == 5){continue;}
         else{
           ksprintf(kstr,"\t%f",cistat[i]);
@@ -692,9 +692,9 @@ int main_dfit(int argc, char **argv) {
     if(nbootstrap > 1){
       for(int i=0;i<6;i++){
         if(i == 0){
-          ksprintf(kstr,"%f",cistat[i]);
+          ksprintf(kstr,"\t%f",cistat[i]);
         }
-        if(i == 4){continue;}
+        else if(i == 4){continue;}
         else if(i == 5){continue;}
         else{
           ksprintf(kstr,"\t%f",cistat[i]);
