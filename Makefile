@@ -116,6 +116,8 @@ metaDMG-cpp: version.h $(OBJ)
 
 
 testclean:
+	rm test/acc2taxid.map.gzf570b1db7c.dedup.filtered.rname.bam.bin
+	rm test/data/f570b1db7c.dedup.filtered.rname.bam
 	rm -rf test/output test/logfile version.h 
 
 clean: testclean
@@ -123,7 +125,7 @@ clean: testclean
 	$(MAKE) -C misc clean
 
 test:
-	echo "Running unittest of metadamage"
+	echo "Running unit tests for metaDMG"
 	cd test;./testAll.sh 
 
 force:

@@ -38,7 +38,7 @@ typedef struct {
     int nthreads;
     int weighttype;
     char *tempfolder;
-   int stopIfErrors;
+    int ignore_errors;
 } pars;
 
 pars *get_pars(int argc, char **argv);

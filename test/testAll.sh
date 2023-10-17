@@ -5,11 +5,6 @@
 PRG=../metaDMG-cpp
 BAM1=./data/f570b1db7c.dedup.filtered.bam
 
-
-echo "--------------------"
-echo "Using PRG: '${PRG}' and BAMFILE: '${BAM1}'"
-echo "--------------------"
-
 LOG=${0}.log
 echo Using Logfile: ${LOG}
 rm -f ${LOG} *.bin #remove old logfile and binary tempfile
@@ -39,132 +34,81 @@ fi
 
 mkdir -p output
 
-echo "Validating getdamage local"
-CMD="${PRG} getdamage -r 0 ${BAM} -o output/test1"
-${CMD}  >> ${LOG} 2>&1
+echo "Running getdamage local"
+CMD="${PRG} getdamage -r 0 ${BAM} -o output/test_getdamage_local"
+${CMD} >> ${LOG} 2>&1
 if [[ $? -ne 0 ]]; then
     echo "Problem running command: ${CMD}"
     RVAL=$((8+RVAL))
 fi
 
-echo "Validating getdamage global"
-CMD="${PRG} getdamage -r 1 ${BAM} -o output/test2"
-${CMD}  >> ${LOG} 2>&1
+echo "Running getdamage global"
+CMD="${PRG} getdamage -r 1 ${BAM} -o output/test_getdamage_global"
+${CMD} >> ${LOG} 2>&1
 if [[ $? -ne 0 ]]; then
     echo "Problem running command: ${CMD}"
     RVAL=$((16+RVAL))
 fi
 
-echo "Validating lca"
-CMD="${PRG} lca --bam ${BAM} --names data/names.dmp.gz --nodes data/nodes.dmp.gz --acc2tax data/acc2taxid.map.gz --sim_score_low 0.9 --sim_score_high 1.0 --edit_dist_min 0 --edit_dist_max 10 --min_mapq 0 --how_many 35 --weight_type 1 --fix_ncbi 0 --out output/test3"
-${CMD}  >> ${LOG} 2>&1
+echo "Running lca"
+CMD="${PRG} lca --bam ${BAM} --names data/names.dmp.gz --nodes data/nodes.dmp.gz --acc2tax data/acc2taxid.map.gz --sim_score_low 0.9 --sim_score_high 1.0 --edit_dist_min 0 --edit_dist_max 10 --min_mapq 0 --how_many 35 --weight_type 1 --fix_ncbi 0 --out_prefix output/test_lca"
+${CMD} >> ${LOG} 2>&1
 if [[ $? -ne 0 ]]; then
     echo "Problem running command: ${CMD}"
     RVAL=$((32+RVAL))
 fi
 
-CMD="${PRG} print_ugly output/test3.bdamage.gz"
-${CMD}  >> ${LOG} 2>&1
-if [[ $? -ne 0 ]]; then
-    echo "Problem running command: ${CMD}"
-    RVAL=$((32+RVAL))
-fi
-##comment out the below
-if [ 1 -eq 0 ]; then
-CMD="${PRG} print_ugly output/test4.bdamage.gz -names test/data/names.dmp.gz -nodes test/data/nodes.dmp.gz -lcastat test/output/test4.stat"
-${CMD}  >> ${LOG} 2>&1
-if [[ $? -ne 0 ]]; then
-    echo "Problem running command: ${CMD}"
-    RVAL=$((32+RVAL))
-fi
-fi
-
-
-## below is for validating print_ugly with different parameters, should be updated with a print_ugly --out argument so it is not nescessary
-CMD="${PRG} lca --bam ${BAM} --names data/names.dmp.gz --nodes data/nodes.dmp.gz --acc2tax data/acc2taxid.map.gz --sim_score_low 0.9 --sim_score_high 1.0 --edit_dist_min 0 --edit_dist_max 10 --min_mapq 0 --how_many 35 --weight_type 1 --fix_ncbi 0 --out output/test4"
-${CMD}  >> ${LOG} 2>&1
+echo "Running dfit"
+CMD="${PRG} dfit output/test_lca.bdamage.gz --names data/names.dmp.gz --nodes data/nodes.dmp.gz --showfits 2 --nopt 2 --nbootstrap 2 --seed 12345 --lib ds --out output/test_dfit"
+${CMD} >> ${LOG} 2>&1
 if [[ $? -ne 0 ]]; then
     echo "Problem running command: ${CMD}"
     RVAL=$((32+RVAL))
 fi
 
 
-
-echo "Validating printoptions"
-
-CMD="${PRG} print output/test1.bdamage.gz "
-${CMD} 1>output/test1.bdamage.gz.txt 2>>${LOG}
+echo "Running printoptions"
+CMD="${PRG} print output/test_getdamage_local.bdamage.gz "
+${CMD} 1>output/test_getdamage_local.bdamage.gz.txt 2>>${LOG}
 if [[ $? -ne 0 ]]; then
     echo "Problem running command: ${CMD}"
     RVAL=$((64+RVAL))
 fi
 
-CMD="${PRG} print output/test2.bdamage.gz"
-${CMD} 1>output/test2.bdamage.gz.txt 2>>${LOG}
+CMD="${PRG} print output/test_getdamage_global.bdamage.gz"
+${CMD} 1>output/test_getdamage_global.bdamage.gz.txt 2>>${LOG}
 if [[ $? -ne 0 ]]; then
     echo "Problem running command: ${CMD}"
     RVAL=$((128+RVAL))
 fi
 
-CMD="${PRG} print_ugly output/test3.bdamage.gz"
-${CMD}  >> ${LOG} 2>&1
+CMD="${PRG} print_ugly output/test_lca.bdamage.gz"
+${CMD} >> ${LOG} 2>&1
 if [[ $? -ne 0 ]]; then
     echo "Problem running command: ${CMD}"
     RVAL=$((256+RVAL))
 fi
 
-CMD="${PRG} print_ugly output/test4.bdamage.gz -names data/names.dmp.gz -nodes data/nodes.dmp.gz -lcastat output/test4.stat "
-${CMD}  >> ${LOG} 2>&1
+ln -sf test_lca.bdamage.gz output/test_lca2.bdamage.gz
+ln -sf test_lca.stat output/test_lca2.stat
+CMD="${PRG} print_ugly output/test_lca2.bdamage.gz -names data/names.dmp.gz -nodes data/nodes.dmp.gz -lcastat output/test_lca2.stat "
+${CMD} >> ${LOG} 2>&1
 if [[ $? -ne 0 ]]; then
     echo "Problem running command: ${CMD}"
     RVAL=$((512+RVAL))
 fi
+rm output/test_lca2.bdamage.gz output/test_lca2.stat
 
 
-echo "Copying logfile and validating checksum"
+echo "Validating checksums"
 echo "========================"
-grep -v version ${LOG}|grep -v VERSION|grep -v tempfolder |grep -v walltime|grep -v taken|grep -v thread1 >output/logfile
-
-
-gunzip -c output/test3.lca.gz|sed 1d|cut -f1-6 |md5sum -c files2.md5
-if [[ $? -ne 0 ]]; then
-    echo "Problem with md5sum for lca file"
-    RVAL=$((1024+${RVAL}))
-fi
-          
-gunzip -c output/test3.bdamage.gz.uglyprint.mismatch.txt.gz|md5sum -c files3.md5
-if [[ $? -ne 0 ]]; then
-    echo "Problem with md5sum for uglyprint mismatch file"
-    RVAL=$((1024+${RVAL}))
-fi
-     
-gunzip -c output/test3.bdamage.gz.uglyprint.stat.txt.gz|cut -f1-10|md5sum -c files4.md5
-if [[ $? -ne 0 ]]; then
-    echo "Problem with md5sum for uglyprint stat file"
-    RVAL=$((1024+${RVAL}))
-fi
-
-gunzip -c output/test4.bdamage.gz.uglyprint.mismatch.txt.gz|md5sum -c files5.md5
-if [[ $? -ne 0 ]]; then
-    echo "Problem with md5sum for uglyprint mismatch file"
-    RVAL=$((1024+${RVAL}))
-fi
-     
-gunzip -c output/test4.bdamage.gz.uglyprint.stat.txt.gz|cut -f1-10|md5sum -c files6.md5
-if [[ $? -ne 0 ]]; then
-    echo "Problem with md5sum for uglyprint stat file"
-    RVAL=$((1024+${RVAL}))
-fi
-
-#md5sum output/*|grep -v lca.gz >files.md5
-
-md5sum -c files.md5 
+gunzip -f output/*.gz
+md5sum -c output.md5 
 if [[ $? -ne 0 ]]; then
     echo "Problem with md5sums"
     RVAL=$((2048+${RVAL}))
 fi
 echo "=====RVAL:${RVAL}======="
-
 
 if [[ ${RVAL} -ne 0 ]];then
     echo "====Prunedlog==="

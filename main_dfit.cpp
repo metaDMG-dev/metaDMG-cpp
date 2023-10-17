@@ -729,7 +729,10 @@ int main_dfit(int argc, char **argv) {
 	}
 	  ksprintf(kstr,"\n");
     }
-    bgzf_write(fpfpfp,kstr->s,kstr->l);
+    if(bgzf_write(fpfpfp,kstr->s,kstr->l) == 0){
+      fprintf(stderr, "\t-> Cannot write to %s\n", fpfpfp);
+      exit(1);
+    }
     kstr->l = 0;
     bgzf_close(fpfpfp);
     fpfpfp = NULL;
@@ -776,13 +779,19 @@ int main_dfit(int argc, char **argv) {
         }
     }
     if(doboot>0){
-      bgzf_write(bootfp,bootkstr->s,bootkstr->l);
+      if(bgzf_write(bootfp,bootkstr->s,bootkstr->l) == 0){
+	fprintf(stderr, "\t-> Cannot write to %s\n", fpfpfp);
+	exit(1);
+      }
       bootkstr->l = 0;
       bgzf_close(bootfp);
     }
     //cleanup
     if(fpfpfp){
-      bgzf_write(fpfpfp,kstr->s,kstr->l);
+      if(bgzf_write(fpfpfp,kstr->s,kstr->l) == 0){
+	fprintf(stderr, "\t-> Cannot write to %s\n", fpfpfp);
+	exit(1);
+      }
       bgzf_close(fpfpfp);
     }
     for(int2char::iterator it=name_map.begin();it!=name_map.end();it++)

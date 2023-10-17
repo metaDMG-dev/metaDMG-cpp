@@ -1,0 +1,16 @@
+4ee3ccb656ed23348570d0665f2a615c  output/test_dfit.dfit.txt
+71308047bbc8f703fdd65c798de91cfa  output/test_getdamage_global.bdamage
+c99b4cee656eb6fa61d6e61131a7c083  output/test_getdamage_global.bdamage.gz.txt
+d95e54a3886b9f411bde8d96de4af32e  output/test_getdamage_global.res
+daf1a66496c9d45fa5fda7c8929c01fd  output/test_getdamage_global.stat
+783c885b2ee8ac6469ab070b972e73d8  output/test_getdamage_local.bdamage
+fc5a724b1d87e0ef3749efa75ae1a1d0  output/test_getdamage_local.bdamage.gz.txt
+f0882ca11587cea63aa120d1a64c8d14  output/test_getdamage_local.res
+a6d72da50eb749970436351a95ee00f7  output/test_getdamage_local.stat
+2f9906d519b7d8cdde084d9d65bdd68d  output/test_lca2.bdamage.gz.uglyprint.mismatch.txt
+0d8cdfd07c34e1573f97d19cf3a8b29c  output/test_lca2.bdamage.gz.uglyprint.stat.txt
+443b35425bc868259fde18dbe86011e3  output/test_lca.bdamage
+dec67e168d2f8857d896b65619c2fa75  output/test_lca.bdamage.gz.uglyprint.mismatch.txt
+a208a36da6ecbea8429d704b08081479  output/test_lca.bdamage.gz.uglyprint.stat.txt
+abe75921b7dcc90461954a4ae4fd4985  output/test_lca.lca
+ce5f881ff0e8351044bdb6f2c50934f9  output/test_lca.stat
