@@ -116,4 +116,6 @@ if [[ ${RVAL} -ne 0 ]];then
     echo "====EndOfLog==="
     exit 1 #exit codes are capped at 255
 fi
+
+head output/test_dfit.dfit.txt
 exit 0
