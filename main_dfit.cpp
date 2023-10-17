@@ -274,7 +274,7 @@ int main_dfit(int argc, char **argv) {
             infile_lcastat = strdup(*(++argv));
         else if (strcasecmp("--bam", *argv) == 0)
             infile_bam = strdup(*(++argv));
-        else if (strcasecmp("--out", *argv) == 0)
+        else if (strcasecmp("--out", *argv) == 0 || strcasecmp("--out_prefix", *argv) == 0)
             outfile_name = strdup(*(++argv));
         else if (strcasecmp("--nopt", *argv) == 0)
           nopt = atoi(*(++argv));

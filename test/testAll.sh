@@ -91,7 +91,7 @@ fi
 
 ln -sf test_lca.bdamage.gz output/test_lca2.bdamage.gz
 ln -sf test_lca.stat output/test_lca2.stat
-CMD="${PRG} print_ugly output/test_lca2.bdamage.gz -names data/names.dmp.gz -nodes data/nodes.dmp.gz -lcastat output/test_lca2.stat "
+CMD="${PRG} print_ugly output/test_lca2.bdamage.gz -names data/names.dmp.gz -nodes data/nodes.dmp.gz -lcastat output/test_lca2.stat"
 ${CMD} >> ${LOG} 2>&1
 if [[ $? -ne 0 ]]; then
     echo "Problem running command: ${CMD}"
@@ -117,5 +117,4 @@ if [[ ${RVAL} -ne 0 ]];then
     exit 1 #exit codes are capped at 255
 fi
 
-head output/test_dfit.dfit.txt
 exit 0
