@@ -35,7 +35,7 @@ fi
 mkdir -p output
 
 echo "Running getdamage global"
-CMD="${PRG} getdamage -r 0 ${BAM} -o output/test_getdamage_global"
+CMD="${PRG} getdamage --run_mode 0 --min_length 35 --print_length 5 --out_prefix output/test_getdamage_global ${BAM}"
 ${CMD} >> ${LOG} 2>&1
 if [[ $? -ne 0 ]]; then
     echo "Problem running command: ${CMD}"
@@ -43,7 +43,7 @@ if [[ $? -ne 0 ]]; then
 fi
 
 echo "Running getdamage local"
-CMD="${PRG} getdamage -r 1 ${BAM} -o output/test_getdamage_local"
+CMD="${PRG} getdamage -r 1 -l 35 -p 5 -o output/test_getdamage_local ${BAM}"
 ${CMD} >> ${LOG} 2>&1
 if [[ $? -ne 0 ]]; then
     echo "Problem running command: ${CMD}"
@@ -79,7 +79,7 @@ fi
 zcat output/test_dfit_global.dfit.txt.gz | cut -f 1-6,8- > output/test_dfit_global.dfit.fix
 
 echo "Running printoptions"
-CMD="${PRG} print output/test_getdamage_local.bdamage.gz "
+CMD="${PRG} print output/test_getdamage_local.bdamage.gz"
 ${CMD} 1>output/test_getdamage_local.bdamage.gz.txt 2>>${LOG}
 if [[ $? -ne 0 ]]; then
     echo "Problem running command: ${CMD}"
