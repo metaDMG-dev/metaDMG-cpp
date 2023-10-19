@@ -116,8 +116,8 @@ metaDMG-cpp: version.h $(OBJ)
 
 
 testclean:
-	rm test/acc2taxid.map.gzf570b1db7c.dedup.filtered.rname.bam.bin
-	rm test/data/f570b1db7c.dedup.filtered.rname.bam
+	rm -f test/acc2taxid.map.gzf570b1db7c.dedup.filtered.rname.bam.bin
+	rm -f test/data/f570b1db7c.dedup.filtered.rname.bam
 	rm -rf test/output test/logfile version.h 
 
 clean: testclean

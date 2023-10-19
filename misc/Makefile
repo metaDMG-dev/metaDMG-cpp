@@ -40,7 +40,7 @@ PROGRAMS_MISC = MAP dfit_optim
 all: $(PROGRAMS) $(PROGRAMS_MISC)
 
 kmath.o: bfgs.cpp bfgs.h
-	$(CC) $(FLAGS) -c bfgs.cpp 
+	$(CC) $(FLAGS) -c bfgs.cpp
 
 Likelihood.o: Likelihood.cpp
 	$(CC) $(FLAGS) -c Likelihood.cpp

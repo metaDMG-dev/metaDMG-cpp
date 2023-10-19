@@ -178,11 +178,11 @@ int main_getdamage(int argc, char **argv) {
     int ignore_errors = 0;
     // fix thesepro
     static struct option lopts[] = {
-        {"threads", optional_argument, 0, 'n'},
+        {"threads", required_argument, 0, 'n'},
         {"fasta", required_argument, 0, 'f'},
-        {"min_length", optional_argument, 0, 'l'},
-        {"print_length", optional_argument, 0, 'p'},
-        {"run_mode", optional_argument, 0, 'r'},
+        {"min_length", required_argument, 0, 'l'},
+        {"print_length", required_argument, 0, 'p'},
+        {"run_mode", required_argument, 0, 'r'},
 	{"ignore_errors", no_argument, &ignore_errors, 1},
         {"out_prefix", required_argument, 0, 'o'},
         {"help", no_argument, 0, 'h'},
@@ -193,25 +193,24 @@ int main_getdamage(int argc, char **argv) {
                             "n:f:l:p:r:o:h",
                             lopts, NULL)) >= 0) {
       switch (c) {
+      case 'n':
+	nthreads = atoi(optarg);
+	break;
       case 'f':
 	refName = strdup(optarg);
 	break;
       case 'l':
 	minLength = atoi(optarg);
 	break;
-      case 'n':
-	nthreads = atoi(optarg);
-	break;
       case 'p':
 	printLength = atoi(optarg);
 	break;
-      case 'o': {
-	free(onam);
-	onam = strdup(optarg);
-	break;
-      }
       case 'r':
 	runmode = atoi(optarg);
+	break;
+      case 'o':
+	free(onam);
+	onam = strdup(optarg);
 	break;
       case 'h':
 	return usage_getdamage(stdout);
@@ -222,7 +221,7 @@ int main_getdamage(int argc, char **argv) {
     }
     if (optind < argc)
         fname = strdup(argv[optind]);
-    fprintf(stderr, "./metaDMG-cpp refName: %s min_length: %d print_length: %d run_mode: %d out_prefix: %s nthreads: %d \tignore_errors: %d\n", refName, minLength, printLength, runmode, onam, nthreads,ignore_errors);
+    fprintf(stderr, "\t-> ./metaDMG-cpp refName: %s min_length: %d print_length: %d run_mode: %d out_prefix: %s nthreads: %d ignore_errors: %d\n", refName, minLength, printLength, runmode, onam, nthreads, ignore_errors);
     if (fname == NULL) {
         usage_getdamage(stderr);
         return 0;
