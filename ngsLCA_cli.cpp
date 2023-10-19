@@ -42,7 +42,7 @@ pars *pars_init() {
     p->nthreads = 4;
     p->weighttype = 0;
     p->tempfolder = strdup("");
-    p->stopIfErrors = 1;
+    p->ignore_errors = 0;
     return p;
 }
 
@@ -92,8 +92,11 @@ void *read_header_thread(void *ptr) {
     fprintf(stderr, "\t-> [thread1] Will read header\n");
     p->hts = hts_open(p->htsfile, "r");
     p->header = sam_hdr_read(p->hts);
-    if(p->stopIfErrors&&checkIfSorted(p->header->text))
-      exit(1);
+    if(checkIfSorted(p->header->text)){
+      fprintf(stderr, "Input alignment file is not sorted.");
+      if(!p->ignore_errors)
+	exit(1);
+    }
     assert(p->header);
     fprintf(stderr, "\t-> [thread1] Done reading header: %.2f sec, header contains: %d \n", (float)(time(NULL) - t), p->header->n_targets);
     pthread_mutex_unlock(&mutex1);
@@ -234,8 +237,8 @@ pars *get_pars(int argc, char **argv) {
             p->nthreads = atoi(val);
         else if (!strcasecmp("--weight_type", key))
             p->weighttype = atoi(val);
-	else if (!strcasecmp("--stop_if_errors", key)||!strcasecmp("-S", key))
-            p->stopIfErrors = atoi(val);
+	else if (!strcasecmp("--ignore_errors", key)||!strcasecmp("-i", key))
+	  p->ignore_errors++;
         else if (!strcasecmp("--temp", key)) {
             free(p->tempfolder);
             p->tempfolder = strdup(val);
@@ -289,21 +292,21 @@ void print_pars(FILE *fp, pars *p) {
     fprintf(fp, "\t-> --names\t%s\n", p->namesfile);
     fprintf(fp, "\t-> --nodes\t%s\n", p->nodesfile);
     fprintf(fp, "\t-> --acc2tax\t%s\n", p->acc2taxfile);
-    fprintf(fp, "\t-> --sim_score_low\t%f\n", p->simscoreLow);
-    fprintf(fp, "\t-> --sim_score_high\t%f\n", p->simscoreHigh);
     fprintf(fp, "\t-> --edit_dist_min\t%d\n", p->editdistMin);
     fprintf(fp, "\t-> --edit_dist_max\t%d\n", p->editdistMax);
-    fprintf(fp, "\t-> --out\t%s\n", p->outnames);
     fprintf(fp, "\t-> --min_mapq\t%d\n", p->minmapq);
     fprintf(fp, "\t-> --min_length\t%d\n", p->minlength);
+    fprintf(fp, "\t-> --sim_score_low\t%f\n", p->simscoreLow);
+    fprintf(fp, "\t-> --sim_score_high\t%f\n", p->simscoreHigh);
+    fprintf(fp, "\t-> --out_prefix\t%s\n", p->outnames);
     fprintf(fp, "\t-> --lca_rank\t%s\n", p->lca_rank);
-    fprintf(fp, "\t-> --no_rank2species\t%d\n", p->norank2species);
-    fprintf(fp, "\t-> --how_many\t%d\n", p->howmany);
     fprintf(fp, "\t-> --fix_ncbi\t%d\n", p->fixdb);
-    fprintf(fp, "\t-> --weight_type\t%d\n", p->weighttype);
-    fprintf(fp, "\t-> --temp\t%d\n", p->tempfolder);
-    fprintf(fp, "\t-> --stop_if_errors\t%d\n", p->stopIfErrors);
+    fprintf(fp, "\t-> --how_many\t%d\n", p->howmany);
+    fprintf(fp, "\t-> --no_rank2species\t%d\n", p->norank2species);
     fprintf(fp, "\t-> --threads\t%d\n", p->nthreads);
+    fprintf(fp, "\t-> --weight_type\t%d\n", p->weighttype);
+    fprintf(fp, "\t-> --ignore_errors\t%d\n", p->ignore_errors);
+    fprintf(fp, "\t-> --temp\t%s\n", p->tempfolder);
 }
 
 #ifdef __WITH_MAIN__

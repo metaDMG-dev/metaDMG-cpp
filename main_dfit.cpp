@@ -274,7 +274,7 @@ int main_dfit(int argc, char **argv) {
             infile_lcastat = strdup(*(++argv));
         else if (strcasecmp("--bam", *argv) == 0)
             infile_bam = strdup(*(++argv));
-        else if (strcasecmp("--out", *argv) == 0)
+        else if (strcasecmp("--out", *argv) == 0 || strcasecmp("--out_prefix", *argv) == 0)
             outfile_name = strdup(*(++argv));
         else if (strcasecmp("--nopt", *argv) == 0)
           nopt = atoi(*(++argv));
@@ -440,7 +440,7 @@ int main_dfit(int argc, char **argv) {
 	if(hdr!=NULL){
 	  ksprintf(kstr, "%s\t", sam_hdr_tid2name(hdr, it->first));
 	}
-  else{
+	else{
 	  if(name_map.size()==0)
 	    ksprintf(kstr,"%d\t",it->first);
 	  else{
@@ -653,9 +653,9 @@ int main_dfit(int argc, char **argv) {
     if(nbootstrap > 1){
       for(int i=0;i<6;i++){
         if(i == 0){
-          ksprintf(kstr,"%f",cistat[i]);
+          ksprintf(kstr,"\t%f",cistat[i]);
         }
-        if(i == 4){continue;}
+        else if(i == 4){continue;}
         else if(i == 5){continue;}
         else{
           ksprintf(kstr,"\t%f",cistat[i]);
@@ -692,9 +692,9 @@ int main_dfit(int argc, char **argv) {
     if(nbootstrap > 1){
       for(int i=0;i<6;i++){
         if(i == 0){
-          ksprintf(kstr,"%f",cistat[i]);
+          ksprintf(kstr,"\t%f",cistat[i]);
         }
-        if(i == 4){continue;}
+        else if(i == 4){continue;}
         else if(i == 5){continue;}
         else{
           ksprintf(kstr,"\t%f",cistat[i]);
@@ -729,7 +729,10 @@ int main_dfit(int argc, char **argv) {
 	}
 	  ksprintf(kstr,"\n");
     }
-    bgzf_write(fpfpfp,kstr->s,kstr->l);
+    if(bgzf_write(fpfpfp,kstr->s,kstr->l) == 0){
+      fprintf(stderr, "\t-> Cannot write to output BGZ file\n");
+      exit(1);
+    }
     kstr->l = 0;
     bgzf_close(fpfpfp);
     fpfpfp = NULL;
@@ -751,7 +754,10 @@ int main_dfit(int argc, char **argv) {
       fprintf(stderr, "\t-> pre: %f post:%f grownbyfactor: %f\n", presize, postsize, postsize / presize);
     }
     for (std::map<int, mydata2>::iterator it = stats.begin(); it != stats.end(); it++) {
-      std::map<int, mydataD>::iterator itold = retmap.find(it->first);
+        // Skip header
+        if (it == stats.begin())
+	  continue;
+        std::map<int, mydataD>::iterator itold = retmap.find(it->first);
         int nalign = -1;
         if (itold == retmap.end()) {
             fprintf(stderr, "\t-> Problem finding taxid: %d\n", it->first);
@@ -776,13 +782,19 @@ int main_dfit(int argc, char **argv) {
         }
     }
     if(doboot>0){
-      bgzf_write(bootfp,bootkstr->s,bootkstr->l);
+      if(bgzf_write(bootfp,bootkstr->s,bootkstr->l) == 0){
+	fprintf(stderr, "\t-> Cannot write to output BGZ file\n");
+	exit(1);
+      }
       bootkstr->l = 0;
       bgzf_close(bootfp);
     }
     //cleanup
     if(fpfpfp){
-      bgzf_write(fpfpfp,kstr->s,kstr->l);
+      if(bgzf_write(fpfpfp,kstr->s,kstr->l) == 0){
+	fprintf(stderr, "\t-> Cannot write to output BGZ file\n");
+	exit(1);
+      }
       bgzf_close(fpfpfp);
     }
     for(int2char::iterator it=name_map.begin();it!=name_map.end();it++)

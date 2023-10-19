@@ -28,13 +28,14 @@ typedef std::map<int, char *> int2char;
 int usage_getdamage(FILE *fp) {
     fprintf(fp, "\nUsage: metadamage getdamage [options] <in.bam>|<in.sam>|<in.cram>\n");
     fprintf(fp, "\nExample: ./metaDMG-cpp getdamage -l 10 -p 5 --threads 8 ../data/subs.sam\nOptions:\n");
-    fprintf(fp, "  -f/--fasta\t is required with CRAM\n");
-    fprintf(fp, "  -l/--minlength\t reads shorter than minlength will be discarded\n");
-    fprintf(fp, "  -p/--printlength\t use this number of positions from 5' and 3'\n");
-    fprintf(fp, "  -r/--runmode\t runmode 1 means that damage patterns will be calculated for each chr/scaffold contig.\n\t\t runmode 0 means one global estimate.\n");
-    fprintf(fp, "  -@/--threads\t Number of threads used for reading/writing\n");
-    fprintf(fp, "  -o/--outname\t Number of threads used for reading/writing\n");
-    return 0;
+    fprintf(fp, "  -n/--threads\t\t number of threads used for reading/writing (default: 4)\n");
+    fprintf(fp, "  -f/--fasta\t\t reference genome (required with CRAM)\n");
+    fprintf(fp, "  -l/--min_length\t minimum read length (default: 35)\n");
+    fprintf(fp, "  -p/--print_length\t number of base pairs from read termini to estimate damage (default: 5)\n");
+    fprintf(fp, "  -r/--run_mode\t\t 0: global estimate (default)\n\t\t\t 1: damage patterns will be calculated for each chr/scaffold contig\n");
+    fprintf(fp, "  -i/--ignore_errors\t continue analyses even if there are errors.\n");
+    fprintf(fp, "  -o/--out_prefix\t output prefix (default: meta)\n");
+    return 1;
 }
 
 double *getval(std::map<int, double *> &retmap, int2intvec &child, int taxid, int howmany) {
@@ -174,22 +175,22 @@ int main_getdamage(int argc, char **argv) {
     htsFile *fp = NULL;
     char *onam = strdup("meta");
     int nthreads = 4;
-    int stopIfErrors = 1;
+    int ignore_errors = 0;
     // fix thesepro
     static struct option lopts[] = {
-        {"fasta", 1, 0, 'f'},
-        {"min_length", 1, 0, 'l'},
-        {"threads", 1, 0, 'n'},
-        {"print_length", 1, 0, 'p'},
-        {"out_prefix", 1, 0, 'o'},
-        {"help", 0, 0, '?'},
-        {"run_mode", 1, 0, 'r'},
-	{"stop_if_error", 1, 0, 'S'},
+        {"threads", optional_argument, 0, 'n'},
+        {"fasta", required_argument, 0, 'f'},
+        {"min_length", optional_argument, 0, 'l'},
+        {"print_length", optional_argument, 0, 'p'},
+        {"run_mode", optional_argument, 0, 'r'},
+	{"ignore_errors", no_argument, &ignore_errors, 1},
+        {"out_prefix", required_argument, 0, 'o'},
+        {"help", no_argument, 0, 'h'},
         {NULL, 0, NULL, 0}};
 
     int c;
     while ((c = getopt_long(argc, argv,
-                            "f:l:p:r:o:@:S:",
+                            "n:f:l:p:r:o:h",
                             lopts, NULL)) >= 0) {
       switch (c) {
       case 'f':
@@ -204,9 +205,6 @@ int main_getdamage(int argc, char **argv) {
       case 'p':
 	printLength = atoi(optarg);
 	break;
-      case 'S':
-	stopIfErrors = atoi(optarg);
-	break;
       case 'o': {
 	free(onam);
 	onam = strdup(optarg);
@@ -215,16 +213,16 @@ int main_getdamage(int argc, char **argv) {
       case 'r':
 	runmode = atoi(optarg);
 	break;
-      case '?':
+      case 'h':
 	return usage_getdamage(stdout);
       default:
-	fprintf(stderr, "Never here: %s %s\n", optarg, fname);
+	fprintf(stderr, "Never here: %s\n", optarg);
 	break;
       }
     }
     if (optind < argc)
         fname = strdup(argv[optind]);
-    fprintf(stderr, "./metaDMG-cpp refName: %s minLength: %d printLength: %d runmode: %d outname: %s nthreads: %d \tstopIfErrors: %d\n", refName, minLength, printLength, runmode, onam, nthreads,stopIfErrors);
+    fprintf(stderr, "./metaDMG-cpp refName: %s min_length: %d print_length: %d run_mode: %d out_prefix: %s nthreads: %d \tignore_errors: %d\n", refName, minLength, printLength, runmode, onam, nthreads,ignore_errors);
     if (fname == NULL) {
         usage_getdamage(stderr);
         return 0;
@@ -245,8 +243,11 @@ int main_getdamage(int argc, char **argv) {
     bam1_t *b = bam_init1();
     bam_hdr_t *hdr = sam_hdr_read(fp);
     int checkIfSorted(char *str);
-    if(stopIfErrors&&checkIfSorted(hdr->text))
-      return 1;
+    if(checkIfSorted(hdr->text)){
+      fprintf(stderr, "Input alignment file is not sorted.");
+      if(!ignore_errors)
+	return 1;
+    }
     int ret;
     damage *dmg = new damage(printLength, nthreads, 0);
     int skipper[4] = {3, 3, 3, 3};
@@ -1263,6 +1264,9 @@ int main_print_ugly(int argc, char **argv) {
         stats = load_lcastat(infile_lcastat);
     getval_stats(stats, child, 1);  // this will do everything
     for (std::map<int, mydata2>::iterator it = stats.begin(); 1 && it != stats.end(); it++) {
+        // Skip header
+        if (it == stats.begin())
+            continue;
         std::map<int, mydataD>::iterator itold = retmap.find(it->first);
         int nalign = -1;
         if (itold == retmap.end()) {
@@ -1345,10 +1349,10 @@ int main(int argc, char **argv) {
         fprintf(stderr, "./metaDMG-cpp print2 [many options] bdamage.gz\n");
         fprintf(stderr, "./metaDMG-cpp print_all [many options] bdamage.gz\n");
         fprintf(stderr, "./metaDMG-cpp print_ugly [many options] bdamage.gz\n");
-	    fprintf(stderr, "./metaDMG-cpp dfit [many options] bdamage.gz\n");
+	fprintf(stderr, "./metaDMG-cpp dfit [many options] bdamage.gz\n");
         return 0;
     }
-    fprintf(stderr, "#");
+    fprintf(stderr, "\t-> ");
     for (int i = 0; i < argc; i++)
         fprintf(stderr, "%s ", argv[i]);
     fprintf(stderr, "\n");

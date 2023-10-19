@@ -717,10 +717,6 @@ int main_lca(int argc, char **argv) {
 
     pars *p = get_pars(--argc, ++argv);
     print_pars(stderr, p);
-    gzprintf(p->fp1, "# ./metaDMG-cpp lca ");
-    for (int i = 0; i < argc; i++)
-        gzprintf(p->fp1, " %s", argv[i]);
-    gzprintf(p->fp1, " #version: %s\n", METADAMAGE_VERSION);
 
     // map of bamref ->taxid
     int2int *i2i = NULL;
@@ -785,8 +781,8 @@ int main_lca(int argc, char **argv) {
 
     if (usedreads_sam != NULL)
         sam_close(usedreads_sam);
-    fprintf(p->fp_lcadist,"taxid_id\tnreads\tmea_len\tvar_len\tmean_gc\tvar_gc\tlca\trank\n");
     if (p->fp_lcadist) {
+        fprintf(p->fp_lcadist,"taxid_id\tnreads\tmea_len\tvar_len\tmean_gc\tvar_gc\tlca\trank\n");
         for (std::map<int, lcatriplet>::iterator it = lcastat.begin(); it != lcastat.end(); it++) {
             lcatriplet tmp = it->second;
             fprintf(p->fp_lcadist, "%d\t%d\t%f\t%f\t%f\t%f", it->first, tmp.nalignments, mean(tmp.readlengths), var(tmp.readlengths), mean(tmp.gccontents), var(tmp.gccontents));
