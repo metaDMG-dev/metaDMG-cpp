@@ -761,7 +761,6 @@ int main_dfit(int argc, char **argv) {
         int nalign = -1;
         if (itold == retmap.end()) {
             fprintf(stderr, "\t-> Problem finding taxid: %d\n", it->first);
-	    exit(1);
         } else
             nalign = itold->second.nreads;
         char *myrank = NULL;
