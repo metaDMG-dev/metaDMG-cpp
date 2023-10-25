@@ -17,9 +17,10 @@
 #define bam_is_failed(b) (bam_is_qcfailed(b) || bam_is_rmdup(b) || bam_is_supp(b))
 
 typedef struct {
-    size_t nreads;
-    float **mm5pF;
-    float **mm3pF;
+  size_t nreads;
+  float **mm5pF;
+  float **mm3pF;
+  size_t *rlens;
 } triple;
 
 class damage {
