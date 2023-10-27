@@ -3,5 +3,6 @@
 #include <cstdio>
 // -h or -v
 int HelpPage(FILE *fp);
+int HelpPageSimple(FILE *fp);
 
 #endif

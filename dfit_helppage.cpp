@@ -8,11 +8,51 @@
 #include <math.h>
 #include "dfit_helppage.h"
 
+int HelpPageSimple(FILE *fp){
+  fprintf(fp,"Simple helppage damage estimation using numerical optimization\n");
+  fprintf(fp,"Estimates damage in either local, global or lca mode depending on the bdamage input format\n");
+  fprintf(fp,"Dfit command performs either optimization of beta-binomial (default --nbootstrap = 0) or binomial model (--nbootstrap > 2)\n\n");
+
+  fprintf(fp,"Local mode: \t  damage estimated for each reference/chromosome in the BAM file\n");
+  fprintf(fp,"Global mode: \t  one damage estimate for whole BAM file\n");
+  fprintf(fp,"lca mode: \t  damage estimated over the lca tree at different ranks\n\n");
+
+  fprintf(fp,"\n--help \t\t\t\t Print extended help page to see all options.\n\n");
+
+  fprintf(stderr, "./metaDMG-cpp dfit file.bdamage.gz --names file.gz --nodes trestructure.gz --lcastat fil.gz --bam file.bam --showfits int --nopt int --nbootstrap int --seed int --doCI int --CI float --lib <ds,ss> --out file\n");
+
+  fprintf(fp,"\n------------ Required ------------- \n");
+  fprintf(fp,"file.bdamage.gz contains the misincorporation matrix, in global mode from getdamage command either global or local mode or from lca command\n");
+  fprintf(fp,"e..g ./metaDMG-cpp dfit file.bdamage.gz\n");
+
+  fprintf(fp,"\n------------ Optional ------------- \n");
+  fprintf(fp,"--showfits: \t\t\t Verbose parameter, stored in the .dfit.txt.gz, default = 0, see documentation or extendend helppage --help, for full description of columns\n");
+  fprintf(fp,"--nopt \t\t\t\t Number of optimization calls (default: 10).\n");
+  fprintf(fp,"--lib \t\t\t\t double stranded (ds) use C>T (forward) and G>A (reverse); single stranded (ss) use C>T for both forward and reverse (default ds)\n");
+  fprintf(fp,"--nbootstrap: \t\t\t Number of bootstrap iterations, default = 0, i.e. optimization of beta-binomial model\n");
+
+  fprintf(stderr, "\n---------- Examples ----------\n");
+  fprintf(stderr, "\t Local mode binomial:\n \t\t ./metaDMG-cpp getdamage Pitch6.bam -l 10 -p 15 -r 1 -o Pitch6getDMG\n \t\t ./metaDMG-cpp dfit Pitch6getDMG.bdamage.gz --showfits 1\n");
+  fprintf(stderr, "\t Global mode binomial:\n \t\t ./metaDMG-cpp getdamage Pitch6.bam -l 10 -p 15 -r 0 -o Pitch6getDMG\n \t\t ./metaDMG-cpp dfit Pitch6getDMG.bdamage.gz --nbootstrap 2 --showfits 2\n");
+  fprintf(stderr, "\t Lca mode beta-binomial:\n \t\t ./metaDMG-cpp lca --names names.dmp --nodes nodes.dmp --acc2tax acc2taxid.map.gz --weight_type 1 --fix_ncbi 0 --bam Pitch6.bam --out Pitch6lcatest \n \t\t ./metaDMG-cpp dfit Pitch6lcatest.bdamage.gz --names names.dmp --nodes nodes.dmp --lcastat Pitch6lcatest.stat --showfits 0\n");
+
+  exit(1);
+  return 0;
+}
+
 int HelpPage(FILE *fp){
-  fprintf(fp,"Global or Taxid damage estimation \n\n");
+  fprintf(fp,"Extended helppage damage estimation using numerical optimization\n");
+  fprintf(fp,"Estimates damage in either local, global or lca mode depending on the bdamage input format\n");
+  fprintf(fp,"Dfit command performs either optimization of beta-binomial (default --nbootstrap = 0) or binomial model (--nbootstrap > 2)\n\n");
+
+  fprintf(fp,"Local mode: \t  damage estimated for each reference/chromosome in the BAM file\n");
+  fprintf(fp,"Global mode: \t  one damage estimate for whole BAM file\n");
+  fprintf(fp,"lca mode: \t  damage estimated over the lca tree at different ranks\n\n");
+
+  fprintf(fp,"\n--help \t\t\t\t Print extended help page to see all options.\n\n");
+
   fprintf(stderr, "./metaDMG-cpp dfit file.bdamage.gz --names file.gz --nodes trestructure.gz --lcastat fil.gz --bam file.bam --showfits int --nopt int --nbootstrap int --seed int --doCI int --CI float --lib <ds,ss> --out file\n");
   
-  fprintf(fp,"\n-h   \t\t\t\t Print help page.\n");
   fprintf(fp,"\n------------ Required ------------- \n");
   fprintf(fp,"./metaDMG-cpp dfit file.bdamage.gz \t bdamage file contains the misincorporation matrix, in global mode from getdamage command or local mode from lca command\n");
   fprintf(fp,"\n------------ Optional ------------- \n");
@@ -21,8 +61,10 @@ int HelpPage(FILE *fp){
   fprintf(fp,"\n--out \t\t\t\t Prefix for output name.\n");
   fprintf(fp,"\n--lib \t\t\t\t double stranded (ds) use C>T (forward) and G>A (reverse); single stranded (ss) use C>T for both forward and reverse (default ds)\n");
   fprintf(fp,"\n--nbootstrap \t\t\t number of bootstrap iterations. default: 1 -> use Beta-binomial model, -nbootstrap >1 use Binomial model ");
+  fprintf(fp,"\n--bam \t\t\t\t In local mode - convert the internal id numbering from bdamage.gz to the reference in the bam header\n");
+
   fprintf(fp,"\n\n---- Optimization model specific ---- \n");
-  fprintf(stderr, "\n------  Beta-binomial model ------\n");
+  fprintf(stderr, "\n\n------  Beta-binomial model ------\n\n");
   fprintf(fp,"--showfits: \t\t\t Verbose parameter, stored in the .dfit.txt.gz, default = 0, see documentation for full description of columns\n");
   fprintf(fp,"\t--showfits 0\t\t [id;A;q;c;phi;llh;ncall;sigmaD;Zfit] \n");
   fprintf(fp,"\t\t\t\t id:contig; A:amplitute of damage; q:decrease in damage; c:offset (background noise); phi:variance between Beta-binomial and binomial model\n");
@@ -36,7 +78,8 @@ int HelpPage(FILE *fp){
   fprintf(fp,"\t\t\t\t fwKi;fwNi;fwdxi;fwf0;fwdxConfi;..;fwKi;fwNi;fwdxi;fwfi;fwdxConfi..;\n\t\t\t\t\t bwKi;bwNi;bwdxi;bwfi;bwdxConfi;..;bwKn;bwNn;bwdxn;fwfn;bwdxConfn]\n");
   fprintf(fp,"\t\t\t\t fwKi: Number of transitions forward strand (C>T); fwNi: Number reference counts forward strand (C); fwfi: C>T frequency based on forward strand from bdamage file\n");
   fprintf(fp,"\t\t\t\t bwKi: Number of transitions reverse strand (G>A); bwNi: Number reference counts reverse strand (G); bwfi: C>T frequency based on reverse strand from bdamage file\n");
-  fprintf(stderr, "\n---------- Binomial model ----------\n");
+  
+  fprintf(stderr, "\n\n---------- Binomial model ----------\n\n");
   fprintf(fp,"--showfits: \t\t\t Verbose parameter, stored in the .dfit.txt.gz, default = 0\n");
   fprintf(fp,"\t--showfits 0\t\t [id;A;q;c;phi;llh;ncall;sigmaD;Zfit;A_b;q_b;c_b;phi_b;A_CI_l;A_CI_h;q_CI_l;q_CI_h;c_CI_l;c_CI_h;phi_CI_l;phi_CI_h] \n");
   fprintf(fp,"\t\t\t\t\t id;A;q;c;phi;llh;ncall;sigmaD;Zfit estimates from beta-binomial (see above)\n");
@@ -57,8 +100,9 @@ int HelpPage(FILE *fp){
   fprintf(fp,"--showfits: \t\t\t Verbose parameter, stored in the .dfit.txt.gz, default = 0\n");
 
   fprintf(stderr, "\n---------- Examples ----------\n");
+  fprintf(stderr, "\t Local mode binomial:\n \t\t ./metaDMG-cpp getdamage Pitch6.bam -l 10 -p 15 -r 1 -o Pitch6getDMG\n \t\t ./metaDMG-cpp dfit Pitch6getDMG.bdamage.gz --showfits 1\n");
   fprintf(stderr, "\t Global mode binomial:\n \t\t ./metaDMG-cpp getdamage Pitch6.bam -l 10 -p 15 -r 0 -o Pitch6getDMG\n \t\t ./metaDMG-cpp dfit Pitch6getDMG.bdamage.gz --nbootstrap 2 --showfits 2\n");
-  fprintf(stderr, "\t local mode beta-binomial:\n \t\t ./metaDMG-cpp lca --names names.dmp --nodes nodes.dmp --acc2tax acc2taxid.map.gz --weight_type 1 --fix_ncbi 0 --bam Pitch6.bam --out Pitch6lcatest \n \t\t ./metaDMG-cpp dfit Pitch6lcatest.bdamage.gz --names names.dmp --nodes nodes.dmp --lcastat Pitch6lcatest.stat --showfits 0\n");
+  fprintf(stderr, "\t Lca mode beta-binomial:\n \t\t ./metaDMG-cpp lca --names names.dmp --nodes nodes.dmp --acc2tax acc2taxid.map.gz --weight_type 1 --fix_ncbi 0 --bam Pitch6.bam --out Pitch6lcatest \n \t\t ./metaDMG-cpp dfit Pitch6lcatest.bdamage.gz --names names.dmp --nodes nodes.dmp --lcastat Pitch6lcatest.stat --showfits 0\n");
 
     
   

@@ -99,36 +99,104 @@ Very simple tabseperated flatfile
 \end{enumerate}
 \clearpage
 \section{.dfit.txt.gz}
-This output format was added 8d28d337 Sun Jul 23.  Depending on
-runmode and parameters supplied to the program. It will contain the
-per file, the per reference or the per species estimate of damage.
+This output format was added 8d28d337 Sun Jul 23.  
+The output format will be heavily dependent on the provided runmode and supplied parameters. It might contain the
+per file, the per reference or the per species estimate of damage.\\ \noindent
+Only the columns described in \textit{showfits 0} remains the same across the runmode, with the \textit{showfits 1} or \textit{showfits 2} describes the unique columns and order which is appended to the \textit{showfits 0} columns.\\ \noindent
+\textbf{Non-boostrapping optimization:} \\ \noindent
 
 \begin{table}[h]
 \begin{tabular}{rll}
   \hline
-  {\bf Col} & {\bf Brief description} \\
+  {\bf Column name} & {\bf Brief description} \\
   \hline
-  1 & {\sf id} & identifier see paragraph for details\\
-  2 & {\sf A} & Dfit statistic. Damage at position one, taking into account offset\\
-  3 & {\sf q} & per cycle decrease\\
-  4 & {\sf c} & background substitution rate or noise baseline\\ 
-  4 & {\sf $\phi$} & \\
-  5 & {\sf llh} & Likelihood for our MLE\\
-  6 & {\sf nopt} & Number of function calls used for obtaining our MLE\\
-  7 & {\sf Zfit} & Z value\\
-  8 & {\sf Zconf} & significance\\\hline\hline
-  9 & {\sf $K_i$} & Number of CT og AG observations\\
-  10 & {\sf $N_i$} & Count of either CA,CC,CG,CT or AA,AG,AC,AT observations\\
-  11 & {\sf $Dx_i$} & Fitted value of cycle specific damage\\
-  13 &{\sf $Dconf_i$ }& Confidence interval for the cycle specfic damage\\\hline\hline     
+  {\sf } & \textit{--showfits} 0 \\ \hline  
+  {\sf id} & identifier see paragraph for details\\
+  {\sf A} & Dfit statistic. Damage at position one, taking into account offset\\
+  {\sf q} & per cycle decrease\\
+  {\sf c} & background substitution rate or noise baseline\\ 
+  {\sf $\phi$} & Variance between beta-binomial and binomial model\\
+  {\sf llh} & Likelihood for our MLE\\
+  {\sf ncall} & Number of optimization calls used for obtaining our MLE\\
+  {\sf $\sigma_D$} & Z value\\
+  {\sf Zfit} & significance\\\hline 
+  {\sf } & \textit{--showfits} 1, \textit{i} signifies position inferred from \textit{.bdamage.gz}\\ \hline  
+  {\sf $fwdxi$} & damage estimates forward strand \\
+  {\sf $fwdConfi$} & forward strand confidence interval $\pm$\\
+  {\sf $bwdxi$} & damage estimates backward strand\\
+  {\sf $bwdConfi$} & backward strand confidence interval $\pm$\\ \hline
+  {\sf } & \textit{--showfits} 2, \textit{i} signifies position inferred from \textit{.bdamage.gz} \\ \hline  
+  {\sf $fwKi$} & Number of deamination substitution (C$\rightarrow$T) observations forward strand \\
+  {\sf $fwNi$} & Total number of  C for forward strand\\
+  {\sf $fwdxi$} & Damage estimates forward strand \\
+  {\sf $fwfi$} & Calculated damage frequency $fwKi$/$fwNi$\\
+  {\sf $fwdConfi$} & forward strand confidence interval $\pm$\\
+  {\sf $bwKi$} & Number of deamination substitution (G$\rightarrow$A for ds, C$\rightarrow$T for ss) observations forward strand \\
+  {\sf $bwNi$} & Total number of G for forward strand (ds) and C (ss)\\
+  {\sf $bwdxi$} & Damage estimates backward strand \\
+  {\sf $bwfi$} & Calculated damage frequency $fwKi$/$fwNi$\\
+  {\sf $bwdConfi$} & backward strand confidence interval $\pm$\\ \hline
 \end{tabular}\label{tab3}
 \caption{Content of a .dfit.txt.gz file. Note that entry nine to 13 is
   repeated for each cycle first of the 5\' and then from the 3\'. With
   the total number of times repeated is given by \ref{tab1}.} 
 \end{table}
-Depending on which parameters that was supplied to both
+\pagebreak
+\noindent
+\textbf{Boostrapping optimization:} \\ \noindent
+Providing \textit{-nbootstrap} $>$ 1 numerical optimizations of the binomial distribution will also be conducted using bootstrapping methods
+\begin{table}[h]
+\begin{tabular}{rll}
+  \hline
+  {\bf Column name} & {\bf Brief description} \\
+  \hline
+  {\sf } & \textit{--showfits} 0 \\ \hline  
+  {\sf id} & identifier see paragraph for details\\
+  {\sf A} & Dfit statistic. Damage at position one, taking into account offset\\
+  {\sf q} & per cycle decrease\\
+  {\sf c} & background substitution rate or noise baseline\\ 
+  {\sf $\phi$} & Variance between beta-binomial and binomial model\\
+  {\sf llh} & Likelihood for our MLE\\
+  {\sf ncall} & Number of optimization calls used for obtaining our MLE\\
+  {\sf $\sigma_D$} & Z value\\
+  {\sf Zfit} & significance\\
+  {\sf A\_b} & Dfit statistic from bootstrap estimate. Damage at position one, taking into account offset\\
+  {\sf q\_b} & per cycle decrease from bootstrap estimate\\
+  {\sf c\_b} & background substitution rate or noise baseline from bootstrap estimate\\ 
+  {\sf $\phi$\_b} & Variance between beta-binomial and binomial model from bootstrap estimate\\
+  {\sf A\_CI\_l} & Lower bound of CI for A estimate calculated from all bootstrap values \\
+  {\sf A\_CI\_h} & Upper bound of CI for A estimate calculated from all bootstrap values \\
+  {\sf q\_CI\_l} & Lower bound of CI for q estimate calculated from all bootstrap values \\
+  {\sf q\_CI\_h} & Upper bound of CI for q estimate calculated from all bootstrap values \\
+  {\sf c\_CI\_l} & Lower bound of CI for c estimate calculated from all bootstrap values \\
+  {\sf c\_CI\_h} & Upper bound of CI for c estimate calculated from all bootstrap values \\
+  {\sf $\phi$\_CI\_l} & Lower bound of CI for $\phi$ estimate calculated from all bootstrap values \\
+  {\sf $\phi$\_CI\_h} & Upper bound of CI for $\phi$ estimate calculated from all bootstrap values \\ \hline
+  {\sf } & \textit{--showfits} 1, \textit{i} signifies position inferred from \textit{.bdamage.gz}\\ \hline  
+  {\sf $fwdxi$} & damage estimates forward strand \\
+  {\sf $fwdConfi$} & forward strand confidence interval $\pm$\\
+  {\sf $bwdxi$} & damage estimates backward strand\\
+  {\sf $bwdConfi$} & backward strand confidence interval $\pm$\\ \hline
+  {\sf } & \textit{--showfits} 2, \textit{i} signifies position inferred from \textit{.bdamage.gz} \\ \hline  
+  {\sf $fwKi$} & Number of deamination substitution (C$\rightarrow$T) observations forward strand \\
+  {\sf $fwNi$} & Total number of  C for forward strand\\
+  {\sf $fwdxi$} & Damage estimates forward strand \\
+  {\sf $fwfi$} & Calculated damage frequency $fwKi$/$fwNi$\\
+  {\sf $fwdConfi$} & forward strand confidence interval $\pm$\\
+  {\sf $bwKi$} & Number of deamination substitution (G$\rightarrow$A for ds, C$\rightarrow$T for ss) observations forward strand \\
+  {\sf $bwNi$} & Total number of G for forward strand (ds) and C (ss)\\
+  {\sf $bwdxi$} & Damage estimates backward strand \\
+  {\sf $bwfi$} & Calculated damage frequency $fwKi$/$fwNi$\\
+  {\sf $bwdConfi$} & backward strand confidence interval $\pm$\\ \hline
+\end{tabular}\label{tab4}
+\caption{Content of a .dfit.txt.gz file. Note that entry nine to 13 is
+  repeated for each cycle first of the 5\' and then from the 3\'. With
+  the total number of times repeated is given by \ref{tab1}.} 
+\end{table}
+
+Depending on which parameters and runmode (local,global or lca)that was supplied to both
 \emph{getdamage} and \emph{dfit}, the content of the id will be
-different. If a bamfile is supplied (with -bam) then each line will be
+different. If a bamfile is supplied (with --bam) then each line will be
 the information associated with the different refids in the bam file
 and the id will be the referenceids from the bam file. The case
 scenario for this would be either obtaining perchromosome estimates of
@@ -136,17 +204,19 @@ damage or per reference damage which could be relevant for metagenomic
 studies. If user are computing the damagesignal in the context of the
 lca. Then the id column will contain the taxid. If -names has been
 supplied to the dfit program, then the id column will the
-taxid:\emph{scientific name} . If -nodes has not been defined the
+taxid:\emph{scientific name}. If -nodes has not been defined the
 dfit.txt.gz will only contain information for the observed
 references. If -nodes has been defined the program will aggregate the
 summary statitics for the internal nodes.
-
 \section{.dfit.stat.txt.gz}
 This output format was added 8d28d337 Sun Jul 23.  Depending on
 runmode and parameters supplied to the program. It will contain the
 per file, the per reference or the per species estimate of the
 statistic. This format extends \ref{sec:stat} to include the internal
 nodes.
+
+\section{.boot.stat.txt.gz}
+Providing \textit{dfit} command with \textit{nbootstrap $>$ 1} and \textit{doboot 1} the boostrapping values (id,A\_b,q\_b,c\_b,$\phi$\_b) are stored in separate file
 \end{document}
 
 %%% Local Variables:

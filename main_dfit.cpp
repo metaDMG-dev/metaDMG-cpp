@@ -243,7 +243,7 @@ int main_dfit(int argc, char **argv) {
     fprintf(stderr, "\t\t./metaDMG-cpp dfit metaDMG-cpp/metaDMG-cpp dfit Pitch6getDMG.bdamage.gz -doboot 1 -nbootstrap 5 -nopt 10 -showfits 0\n");
     */
     if (argc <= 1){
-      HelpPage(stderr);
+      HelpPageSimple(stderr);
       return 0;
     }
     char *infile_bdamage = NULL;
@@ -265,6 +265,8 @@ int main_dfit(int argc, char **argv) {
 
     while (*(++argv)) {
         if (strcasecmp("-h", *argv) == 0)
+          HelpPageSimple(stderr);
+        else if (strcasecmp("--help", *argv) == 0)
           HelpPage(stderr);
         else if (strcasecmp("--names", *argv) == 0)
             infile_names = strdup(*(++argv));
