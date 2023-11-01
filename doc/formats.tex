@@ -26,6 +26,7 @@ This document describe some of the internal formats used by the metadamage softw
 \item .stat
 \item .dfit.txt.gz
 \item .dfit.stat.txt.gz
+\item .rlens.gz
 \end{itemize}
 
 \section{bdamage format}
@@ -214,7 +215,20 @@ statistic. This format extends section \ref{sec:stat} to include the internal
 nodes.
 
 \section{.boot.stat.txt.gz}
-Providing \textit{dfit} command with \textit{nbootstrap $>$ 1} and \textit{doboot 1} the boostrapping values (id,A\_b,q\_b,c\_b,$\phi$\_b) are stored in separate file
+Providing \textit{dfit} command with \textit{nbootstrap $>$ 1} and
+\textit{doboot 1} the boostrapping values
+(id,A\_b,q\_b,c\_b,$\phi$\_b) are stored in separate file
+
+\section{.rlens.gz}
+Readlength distribution. Distribution is count of alignments of
+specific readlengths. Depending on runmode there might be multiple
+groups as taxid/refs and there will be group specific
+distributions. Distributions for different groups are split by
+newlines. First entry on each line is the identifer
+(chromosomename,taxid). The remaining entries are the number of times
+we have observed an alignment of length (columnnumber). Notice that
+the first 30 column of counts is likely to be zero since reads shorter
+than 30basepairs are normally discarded.
 \end{document}
 
 %%% Local Variables:
