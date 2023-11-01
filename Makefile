@@ -85,7 +85,7 @@ PROGRAMS = metaDMG-cpp
 
 all: $(PROGRAMS) misc
 
-PACKAGE_VERSION  = 0.3.1
+PACKAGE_VERSION  = 0.4
 
 ifneq "$(wildcard .git)" ""
 PACKAGE_VERSION := $(shell git describe --always --dirty)
