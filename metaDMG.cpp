@@ -304,7 +304,7 @@ int main_getdamage(int argc, char **argv) {
 
     FILE *fpstat = NULL;
     assert(((fpstat = fopen(buf, "wb"))) != NULL);
-    fprintf(fpstat,"taxid_id\tnreads\tmea_len\tvar_len\tmean_gc\tvar_gc\tlca\trank\n");
+    fprintf(fpstat,"taxid\tnreads\tmea_len\tvar_len\tmean_gc\tvar_gc\tlca\trank\n");
     for (std::map<int, std::vector<float> >::iterator it = gcconts.begin(); it != gcconts.end(); it++) {
         std::map<int, triple>::iterator it2 = dmg->assoc.find(it->first);
         assert(it2 != dmg->assoc.end());
