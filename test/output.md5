@@ -1,5 +1,5 @@
 e03e377dc454bf6c70fe255ec293ab93  output/test_dfit_global.dfit.fix
-5d0894429598f79b976d0f16df8c17f5  output/test_dfit_local.dfit.stat.txt
+b1a8733838016424ba793cf4a32e38d6  output/test_dfit_local.dfit.stat.txt
 e3fbf6eb3e1be979f06bfb55554195bc  output/test_dfit_local.dfit.fix
 71308047bbc8f703fdd65c798de91cfa  output/test_getdamage_local.bdamage
 c99b4cee656eb6fa61d6e61131a7c083  output/test_getdamage_local.bdamage.gz.txt
@@ -10,9 +10,9 @@ fc5a724b1d87e0ef3749efa75ae1a1d0  output/test_getdamage_global.bdamage.gz.txt
 f0882ca11587cea63aa120d1a64c8d14  output/test_getdamage_global.res
 7e2d05365143cd0fde70256fac00a010  output/test_getdamage_global.stat
 2f9906d519b7d8cdde084d9d65bdd68d  output/test_lca2.bdamage.gz.uglyprint.mismatch.txt
-0d8cdfd07c34e1573f97d19cf3a8b29c  output/test_lca2.bdamage.gz.uglyprint.stat.txt
+b1a8733838016424ba793cf4a32e38d6  output/test_lca2.bdamage.gz.uglyprint.stat.txt
 443b35425bc868259fde18dbe86011e3  output/test_lca.bdamage
 dec67e168d2f8857d896b65619c2fa75  output/test_lca.bdamage.gz.uglyprint.mismatch.txt
-a208a36da6ecbea8429d704b08081479  output/test_lca.bdamage.gz.uglyprint.stat.txt
-abe75921b7dcc90461954a4ae4fd4985  output/test_lca.lca
+f36fbe6d34e268afcd7556cce09eb97e  output/test_lca.bdamage.gz.uglyprint.stat.txt
+0b4921502e1e44cdd2b2e765b4f00326  output/test_lca.lca
 caf50bb495f772b5b7588cc41a5ce275  output/test_lca.stat

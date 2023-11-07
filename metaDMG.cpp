@@ -1257,7 +1257,7 @@ int main_print_ugly(int argc, char **argv) {
     snprintf(buf, 1024, "%s.uglyprint.stat.txt.gz", infile_bdamage);
     fprintf(stderr, "\t-> Dumping file: \'%s\'\n", buf);
     fpfpfp = gzopen(buf, "wb");
-    gzprintf(fpfpfp, "#taxid\tname\trank\tnalign\tnreads\tmean_rlen\tvar_rlen\tmean_gc\tvar_gc\tlca\ttaxpath\n");
+    gzprintf(fpfpfp, "#taxid\tname\trank\tnalign\tnreads\tmean_rlen\tvar_rlen\tmean_gc\tvar_gc\tlca\ttaxa_path\n");
     std::map<int, mydata2> stats;
     if (infile_lcastat)
         stats = load_lcastat(infile_lcastat);
@@ -1282,8 +1282,8 @@ int main_print_ugly(int argc, char **argv) {
             itc = name_map.find(it->first);
             if (itc != name_map.end())
                 myname = itc->second;
-            gzprintf(fpfpfp, "%d\t\"%s\"\t\"%s\"\t%d\t%d\t%f\t%f\t%f\t%f\t", it->first, myname, myrank, nalign, it->second.nreads, it->second.data[0], it->second.data[1], it->second.data[2], it->second.data[3]);
-	   
+            gzprintf(fpfpfp, "%d\t\"%s\"\t\"%s\"\t%d\t%d\t%f\t%f\t%f\t%f", it->first, myname, myrank, nalign, it->second.nreads, it->second.data[0], it->second.data[1], it->second.data[2], it->second.data[3]);
+
 	    print_chain(kstr, it->first, parent, rank, name_map);
 	    gzwrite(fpfpfp,kstr->s,kstr->l);
 	    kstr->l = 0;

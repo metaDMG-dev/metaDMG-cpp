@@ -742,7 +742,7 @@ int main_dfit(int argc, char **argv) {
       snprintf(buf, 1024, "%s.dfit.stat.txt.gz", outfile_name);
       fprintf(stderr, "\t-> Dumping file: \'%s\'\n", buf);
       fpfpfp = bgzf_open(buf, "wb");
-      ksprintf(kstr, "#taxid\tname\trank\tnalign\tnreads\tmean_rlen\tvar_rlen\tmean_gc\tvar_gc\n");
+      ksprintf(kstr, "#taxid\tname\trank\tnalign\tnreads\tmean_rlen\tvar_rlen\tmean_gc\tvar_gc\tlca\ttaxa_path\n");
     }
     std::map<int, mydata2> stats;
     if (infile_lcastat){
@@ -774,11 +774,11 @@ int main_dfit(int argc, char **argv) {
             itc = name_map.find(it->first);
             if (itc != name_map.end())
                 myname = itc->second;
-            ksprintf(kstr, "%d\t\"%s\"\t\"%s\"\t%d\t%d\t%f\t%f\t%f\t%f\t", it->first, myname, myrank, nalign, it->second.nreads, it->second.data[0], it->second.data[1], it->second.data[2], it->second.data[3]);
+            ksprintf(kstr, "%d\t\"%s\"\t\"%s\"\t%d\t%d\t%f\t%f\t%f\t%f", it->first, myname, myrank, nalign, it->second.nreads, it->second.data[0], it->second.data[1], it->second.data[2], it->second.data[3]);
 	    if(child.size()>0)
 	      print_chain(kstr, it->first, parent, rank, name_map);
 	    else
-	      ksprintf(kstr,"\n");
+	      ksprintf(kstr,"NA\tNA\n");
             //      fprintf(stderr,"%d->(%d,%f,%f,%f,%f)\n",it->first,it->second.nreads,it->second.data[0],it->second.data[1],it->second.data[2],it->second.data[3]);
         }
     }

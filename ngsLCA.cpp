@@ -276,20 +276,21 @@ void print_rank(FILE *fp, int taxa, int2char &rank) {
 void print_chain(kstring_t *kstr, int taxa, int2int &parent, int2char &rank, int2char &name_map) {
   int first = 0;
   char sep = '\t';
-    while (1) {
-      print_chain1(kstr, taxa, rank, name_map,sep);
-        int2int::iterator it = parent.find(taxa);
-        assert(it != parent.end());
-        if (taxa == it->second)  //<- catch root
-            break;
-        taxa = it->second;
+  print_chain1(kstr, taxa, rank, name_map,sep);
+  while (1) {
+    print_chain1(kstr, taxa, rank, name_map,sep);
+    int2int::iterator it = parent.find(taxa);
+    assert(it != parent.end());
+    if (taxa == it->second)  //<- catch root
+      break;
+    taxa = it->second;
 
-	if(sep=='\t'){
-	  if(++first>1)
-	    sep = ';';
-	}
+    if(sep=='\t'){
+      if(++first > 0)
+	sep = ';';
     }
-    ksprintf(kstr,"\n");
+  }
+  ksprintf(kstr,"\n");
 }
 
 int isuniq(std::vector<int> &vec) {
@@ -762,7 +763,7 @@ int main_lca(int argc, char **argv) {
         if (sam_hdr_write(usedreads_sam, p->header) < 0)
             fprintf(stderr, "writing headers to %s", p->usedreads_sam);
     }
-    gzprintf(p->fp1,"queryid\tseq\tlen\tnaln\tgc\tlca\ttaxpath\n");
+    gzprintf(p->fp1,"queryid\tseq\tlen\tnaln\tgc\tlca\ttaxa_path\n");
     hts(p->fp1, p->hts, *i2i, parent, p->header, rank, name_map, p->minmapq, p->discard, p->editdistMin, p->editdistMax, p->simscoreLow, p->simscoreHigh, p->minlength, lca_rank, p->outnames, p->howmany, usedreads_sam, p->skipnorank, tax2level, p->nthreads, p->weighttype);
 
     fprintf(stderr, "\t-> Number of species with reads that map uniquely: %lu\n", specWeight.size());
