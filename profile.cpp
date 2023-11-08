@@ -390,6 +390,8 @@ void damage::bwrite(char *fname, bam_hdr_t *hdr) {
 	  
     }
     assert(bgzf_write(fp,kstr2000.s,kstr2000.l)==kstr2000.l);
+    if(kstr2000.l>0)
+      free(kstr2000.s);
     kstr2000.l  = 0;
     bgzf_close(fp);
 }

@@ -286,9 +286,11 @@ int main_getdamage(int argc, char **argv) {
 	  tmp2.push_back(mylen);
 	  seqlens[whichref] = tmp2;
         } else {
+	  if(it->second.size()<1000000)
             it->second.push_back(mygc);
-            it = seqlens.find(whichref);
-            assert(it != seqlens.end());
+	  it = seqlens.find(whichref);
+	  assert(it != seqlens.end());
+	  if(it->second.size()<1000000)
             it->second.push_back(mylen);
         }
     }
