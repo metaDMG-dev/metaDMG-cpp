@@ -1151,7 +1151,7 @@ int main_print_all(int argc, char **argv) {
 }
 
 int main_print_ugly(int argc, char **argv) {
-    fprintf(stderr, "./metaDMG-cpp print_ugly file.bdamage.gz -names file.gz -nodes trestructure.gz -lcastat fil.gz\n");
+    fprintf(stderr, "./metaDMG-cpp print_ugly file.bdamage.gz --names file.gz --nodes trestructure.gz --lcastat file.gz --out_prefix out\n");
     if (argc <= 1)
         return 0;
     char *infile_bdamage = NULL;
@@ -1159,19 +1159,26 @@ int main_print_ugly(int argc, char **argv) {
     char *infile_names = NULL;
     char *infile_lcastat = NULL;
     char *infile_bam = NULL;
+    char *out_prefix = NULL;
     int howmany;
 
     while (*(++argv)) {
-        if (strcasecmp("-names", *argv) == 0)
+        if (strcasecmp("--names", *argv) == 0)
             infile_names = strdup(*(++argv));
-        else if (strcasecmp("-nodes", *argv) == 0)
+        else if (strcasecmp("--nodes", *argv) == 0)
             infile_nodes = strdup(*(++argv));
-        else if (strcasecmp("-lcastat", *argv) == 0)
+        else if (strcasecmp("--lcastat", *argv) == 0)
             infile_lcastat = strdup(*(++argv));
-        else if (strcasecmp("-bam", *argv) == 0)
+        else if (strcasecmp("--bam", *argv) == 0)
             infile_bam = strdup(*(++argv));
+        else if (strcasecmp("--out_prefix", *argv) == 0)
+            out_prefix = strdup(*(++argv));
         else
             infile_bdamage = strdup(*argv);
+    }
+    // Use input file name as default prefix
+    if (out_prefix == NULL) {
+      out_prefix = strdup(infile_bdamage);
     }
 
     htsFile *samfp = NULL;
@@ -1187,7 +1194,7 @@ int main_print_ugly(int argc, char **argv) {
     fprintf(stderr, "infile_names: %s infile_bdamage: %s nodes: %s lca_stat: %s infile_bam: %s", infile_names, infile_bdamage, infile_nodes, infile_lcastat, infile_bam);
     fprintf(stderr, "#VERSION:%s\n", METADAMAGE_VERSION);
     char buf[1024];
-    snprintf(buf, 1024, "%s.uglyprint.mismatch.txt.gz", infile_bdamage);
+    snprintf(buf, 1024, "%s.uglyprint.mismatch.txt.gz", out_prefix);
     fprintf(stderr, "\t-> Dumping file: \'%s\'\n", buf);
     gzFile fpfpfp = gzopen(buf, "wb");
     gzprintf(fpfpfp, "#taxidStr\tdirection\tposition\tAA\tAC\tAG\tAT\tCA\tCC\tCG\tCT\tGA\tGC\tGG\tGT\tTA\tTC\tTG\tTT\n");
@@ -1256,7 +1263,7 @@ int main_print_ugly(int argc, char **argv) {
         }
     }
     gzclose(fpfpfp);
-    snprintf(buf, 1024, "%s.uglyprint.stat.txt.gz", infile_bdamage);
+    snprintf(buf, 1024, "%s.uglyprint.stat.txt.gz", out_prefix);
     fprintf(stderr, "\t-> Dumping file: \'%s\'\n", buf);
     fpfpfp = gzopen(buf, "wb");
     gzprintf(fpfpfp, "#taxid\tname\trank\tnalign\tnreads\tmean_rlen\tvar_rlen\tmean_gc\tvar_gc\tlca\ttaxa_path\n");

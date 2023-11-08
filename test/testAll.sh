@@ -93,22 +93,19 @@ if [[ $? -ne 0 ]]; then
     RVAL=$((256+RVAL))
 fi
 
-CMD="${PRG} print_ugly output/test_lca.bdamage.gz"
+CMD="${PRG} print_ugly output/test_lca.bdamage.gz --out_prefix output/test_lca"
 ${CMD} >> ${LOG} 2>&1
 if [[ $? -ne 0 ]]; then
     echo "Problem running command: ${CMD}"
     RVAL=$((512+RVAL))
 fi
 
-ln -sf test_lca.bdamage.gz output/test_lca2.bdamage.gz
-ln -sf test_lca.stat output/test_lca2.stat
-CMD="${PRG} print_ugly output/test_lca2.bdamage.gz -names data/names.dmp.gz -nodes data/nodes.dmp.gz -lcastat output/test_lca2.stat"
+CMD="${PRG} print_ugly output/test_lca.bdamage.gz --names data/names.dmp.gz --nodes data/nodes.dmp.gz --lcastat output/test_lca.stat --out_prefix output/test_lca_taxa"
 ${CMD} >> ${LOG} 2>&1
 if [[ $? -ne 0 ]]; then
     echo "Problem running command: ${CMD}"
     RVAL=$((1024+RVAL))
 fi
-rm output/test_lca2.bdamage.gz output/test_lca2.stat
 
 
 echo "Validating checksums"
