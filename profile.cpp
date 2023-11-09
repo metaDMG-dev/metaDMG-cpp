@@ -536,7 +536,7 @@ std::map<int, double *> load_bdamage3(const char *fname, int howmany) {
     BGZF *bgfp = NULL;
 
     if (((bgfp = bgzf_open(infile, "r"))) == NULL) {
-        fprintf(stderr, "Could not open input BAM file: %s\n", infile);
+        fprintf(stderr, "Could not open input BDamage file: %s\n", infile);
         exit(0);
     }
 
@@ -638,7 +638,7 @@ std::map<int, mydataD> load_bdamage_full(const char *fname, int &printlength) {
     BGZF *bgfp = NULL;
 
     if (((bgfp = bgzf_open(infile, "r"))) == NULL) {
-        fprintf(stderr, "Could not open input BAM file: %s\n", infile);
+        fprintf(stderr, "Could not open input BDamage file: %s\n", infile);
         exit(0);
     }
 
