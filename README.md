@@ -105,9 +105,9 @@ Options:
   --no_rank2species
   --skip_no_rank
   --weight_type
-  --ignore_errors       continue analyses even if there are errors
+  -i/--ignore_errors       continue analyses even if there are errors 1 or stop when error 0 (default)
   --temp                temp prefix
-  --out_prefix 		output prefix
+  -o/--out_prefix 		output prefix
 ```
 
 # metaDMG print
