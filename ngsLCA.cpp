@@ -776,7 +776,7 @@ int main_lca(int argc, char **argv) {
 #endif
     // p->header points to bam_hdr_t what is expected here?
     for (int2int::iterator it = specWeight.begin(); 0 && it != specWeight.end(); it++)
-        fprintf(p->fp2, "%d\t%s\t%d\n", it->first, name_map[it->first], it->second);
+      fprintf(p->fp2, "%d\t%s\t%d\n", it->first, name_map[it->first], it->second);
 
     fprintf(stderr, "\t-> [ALL done] walltime used =  %.2f sec\n", (float)(time(NULL) - t2));
 
@@ -784,6 +784,12 @@ int main_lca(int argc, char **argv) {
         sam_close(usedreads_sam);
     if (p->fp_lcadist) {
         fprintf(p->fp_lcadist,"taxid\tnreads\tmea_len\tvar_len\tmean_gc\tvar_gc\tlca\trank\n");
+	fprintf(stderr,"How many entries in lcastat map. : %lu\n",lcastat.size());
+	std::map<int, lcatriplet>::iterator it2000 = lcastat.find(757959);
+	if(it2000==lcastat.end())
+	  fprintf(stderr,"The chosen taxid does not exist\n");
+	else
+	  fprintf(stderr,"The chosen taxid does exist\n");
         for (std::map<int, lcatriplet>::iterator it = lcastat.begin(); it != lcastat.end(); it++) {
             lcatriplet tmp = it->second;
             fprintf(p->fp_lcadist, "%d\t%d\t%f\t%f\t%f\t%f", it->first, tmp.nalignments, mean(tmp.readlengths), var(tmp.readlengths), mean(tmp.gccontents), var(tmp.gccontents));

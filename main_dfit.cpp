@@ -249,7 +249,6 @@ int main_dfit(int argc, char **argv) {
     char *infile_bdamage = NULL;
     char *infile_nodes = NULL;
     char *infile_names = NULL;
-    char *infile_lcastat = NULL;
     char *infile_bam = NULL;
     char *outfile_name = NULL;
     char *lib_prep = NULL;
@@ -272,8 +271,6 @@ int main_dfit(int argc, char **argv) {
             infile_names = strdup(*(++argv));
         else if (strcasecmp("--nodes", *argv) == 0)
             infile_nodes = strdup(*(++argv));
-        else if (strcasecmp("--lcastat", *argv) == 0)
-            infile_lcastat = strdup(*(++argv));
         else if (strcasecmp("--bam", *argv) == 0)
             infile_bam = strdup(*(++argv));
         else if (strcasecmp("--out", *argv) == 0 || strcasecmp("--out_prefix", *argv) == 0)
@@ -433,6 +430,7 @@ int main_dfit(int argc, char **argv) {
       ksprintf(kstr,"\n");
     }
 
+    // SO HERE IS THE LCA PART!?
     for (std::map<int, mydataD>::iterator it = retmap.begin(); it != retmap.end(); it++) {
         int taxid = it->first;
         mydataD md = it->second;
@@ -737,28 +735,11 @@ int main_dfit(int argc, char **argv) {
     }
     kstr->l = 0;
     bgzf_close(fpfpfp);
-    fpfpfp = NULL;
-    if(infile_lcastat){
-      snprintf(buf, 1024, "%s.dfit.stat.txt.gz", outfile_name);
-      fprintf(stderr, "\t-> Dumping file: \'%s\'\n", buf);
-      fpfpfp = bgzf_open(buf, "wb");
-      ksprintf(kstr, "#taxid\tname\trank\tnalign\tnreads\tmean_rlen\tvar_rlen\tmean_gc\tvar_gc\tlca\ttaxa_path\n");
-    }
-    std::map<int, mydata2> stats;
-    if (infile_lcastat){
-      stats = load_lcastat(infile_lcastat);
-	    presize = stats.size();
-    }
-    if(child.size()>0)
-      getval_stats(stats, child, 1);  // this will do everything
-    if(stats.size()>0){
-      postsize = stats.size();
-      fprintf(stderr, "\t-> pre: %f post:%f grownbyfactor: %f\n", presize, postsize, postsize / presize);
-    }
-    for (std::map<int, mydata2>::iterator it = stats.begin(); it != stats.end(); it++) {
+    
+    /*for (std::map<int, mydata2>::iterator it = stats.begin(); it != stats.end(); it++) {
         // Skip header
         if (it == stats.begin())
-	  continue;
+	        continue;
         std::map<int, mydataD>::iterator itold = retmap.find(it->first);
         int nalign = -1;
         if (itold == retmap.end()) {
@@ -781,7 +762,7 @@ int main_dfit(int argc, char **argv) {
 	      ksprintf(kstr,"NA\tNA\n");
             //      fprintf(stderr,"%d->(%d,%f,%f,%f,%f)\n",it->first,it->second.nreads,it->second.data[0],it->second.data[1],it->second.data[2],it->second.data[3]);
         }
-    }
+    }*/
     if(doboot>0){
       if(bgzf_write(bootfp,bootkstr->s,bootkstr->l) == 0){
 	fprintf(stderr, "\t-> Cannot write to output BGZ file\n");
@@ -790,14 +771,7 @@ int main_dfit(int argc, char **argv) {
       bootkstr->l = 0;
       bgzf_close(bootfp);
     }
-    //cleanup
-    if(fpfpfp){
-      if(bgzf_write(fpfpfp,kstr->s,kstr->l) == 0){
-	fprintf(stderr, "\t-> Cannot write to output BGZ file\n");
-	exit(1);
-      }
-      bgzf_close(fpfpfp);
-    }
+
     for(int2char::iterator it=name_map.begin();it!=name_map.end();it++)
       free(it->second);
     for(int2char::iterator it=rank.begin();it!=rank.end();it++)
@@ -809,10 +783,6 @@ int main_dfit(int argc, char **argv) {
       delete [] md.bwD;
     }
 
-    for( std::map<int, mydata2>::iterator it = stats.begin();it!=stats.end();it++){
-      mydata2 md = it->second;
-      delete [] md.data;
-    }
     free(kstr->s);
     delete kstr;
     
@@ -828,8 +798,6 @@ int main_dfit(int argc, char **argv) {
       free(infile_names);
     if(infile_bam)
       free(infile_bam);
-    if(infile_lcastat)
-      free(infile_lcastat);
     
   gettimeofday(&end_time, NULL);
   long seconds = end_time.tv_sec - start_time.tv_sec;

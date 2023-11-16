@@ -1270,12 +1270,9 @@ int main_print_ugly(int argc, char **argv) {
     gzprintf(fpfpfp, "#taxid\tname\trank\tnalign\tnreads\tmean_rlen\tvar_rlen\tmean_gc\tvar_gc\tlca\ttaxa_path\n");
     std::map<int, mydata2> stats;
     if (infile_lcastat)
-        stats = load_lcastat(infile_lcastat);
+        stats = load_lcastat(infile_lcastat,1);
     getval_stats(stats, child, 1);  // this will do everything
     for (std::map<int, mydata2>::iterator it = stats.begin(); 1 && it != stats.end(); it++) {
-        // Skip header
-        if (it == stats.begin())
-            continue;
         std::map<int, mydataD>::iterator itold = retmap.find(it->first);
         int nalign = -1;
         if (itold == retmap.end()) {

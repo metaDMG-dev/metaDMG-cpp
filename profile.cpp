@@ -349,7 +349,12 @@ void damage::write(char *fname, bam_hdr_t *hdr) {
     free(kstr.s);
 }
 void damage::bwrite(char *fname, bam_hdr_t *hdr) {
-    // fprintf(stderr,"Dumping asso.size(): %lu\n",assoc.size());
+  std::map<int, triple>::iterator it2000 = assoc.find(757959);
+  if(it2000==assoc.end())
+    fprintf(stderr,"skildpadder The chosen taxid does not exist\n");
+  else
+    fprintf(stderr,"skildpadder The chosen taxid does exist\n");
+  // fprintf(stderr,"Dumping asso.size(): %lu\n",assoc.size());
 
     char onam[1024];
     snprintf(onam, 1024, "%s.bdamage.gz", fname);
@@ -684,7 +689,7 @@ std::map<int, mydataD> load_bdamage_full(const char *fname, int &printlength) {
     return retmap;
 }
 
-std::map<int, mydata2> load_lcastat(const char *fname) {
+std::map<int, mydata2> load_lcastat(const char *fname,int skipfirstline) {
     //  fprintf(stderr,"./metadamage print file.bdamage.gz [-names file.gz -bam file.bam]\n");
     const char *infile = fname;
     //  fprintf(stderr,"infile: %s howmany: %d \n",infile,howmany);
@@ -698,8 +703,12 @@ std::map<int, mydata2> load_lcastat(const char *fname) {
 
     std::map<int, mydata2> retmap;
     char buffer[4096];
+    int atline = 0;
     while (fgets(buffer, 4096, fp)) {
-        int taxid = atoi(strtok(buffer, "\t\n "));
+      atline++;
+      if(skipfirstline>0&&atline==1)
+	continue;
+      int taxid = atoi(strtok(buffer, "\t\n "));
         mydata2 md;
         md.nreads = atoi(strtok(NULL, "\t\n "));
         md.data = new double[4];
