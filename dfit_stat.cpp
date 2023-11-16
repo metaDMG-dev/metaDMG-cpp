@@ -14,6 +14,7 @@
 #include <math.h>
 #include <gsl/gsl_cdf.h>
 #include <algorithm> // for std::sort
+#include <cassert>
 
 #include <iostream>
 #include "profile.h"
@@ -29,6 +30,52 @@ extern htsFormat *dingding2;
 
 mydataD getval_full(std::map<int, mydataD> &retmap, int2intvec &child, int taxid, int howmany);
 mydata2 getval_stats(std::map<int, mydata2> &retmap, int2intvec &child, int taxid) ;
+
+void to_root(int from,int to,std::map<int,mydata2> &stats,int2int &parent,int nreads){
+  fprintf(stderr,"from: %d to: %d nreads:%d\n",from,to,nreads);
+  mydata2 &md1 = stats.find(from)->second;
+  
+  std::map<int,mydata2>::iterator it=stats.find(to);
+  if(it==stats.end()){
+    mydata2 mdmis;
+    mdmis.nreads = md1.nreads;
+
+    mdmis.data = new double[4];
+    for(int iii=0;iii<4;iii++)
+      mdmis.data[iii] = md1.data[iii];
+
+    stats[to] = mdmis;
+  }else{
+    mydata2 &md2 = stats.find(to)->second;
+    md2.data[0] = ((double) md1.data[0]*md1.nreads+md2.data[0]*md2.nreads)/((double) md1.nreads+md2.nreads);
+    md2.data[2] = ((double) md1.data[2]*md1.nreads+md2.data[2]*md2.nreads)/((double) md1.nreads+md2.nreads);
+    md2.nreads += nreads;
+  }
+
+  int newto = parent.find(to)->second;
+  
+  if(newto!=to)
+    to_root(to,newto,stats,parent,nreads);
+  
+}
+
+void aggr_stat2000(std::map<int, mydata2> &stats,int2int &parent){
+  std::map<int,int> dasmap;
+  for(std::map<int,mydata2>::iterator it = stats.begin();it!=stats.end();it++)
+    dasmap[it->first] = it->second.nreads;
+  fprintf(stderr,"dasmap.size(): %lu stats.size():%lu\n",dasmap.size(), stats.size());
+
+  for(std::map<int,int>::iterator itt=dasmap.begin();itt!=dasmap.end();itt++){
+  //  for(int i=0;i<dasvector.size();i++){
+    int focal_taxid = itt->first;
+    int2int::iterator it = parent.find(focal_taxid);
+    assert(it!=parent.end());
+    int target = it->second;
+    to_root(focal_taxid,target,stats,parent,itt->second);
+  }
+  
+}
+
 
 int main_stat(int argc, char **argv) {
     if (argc <= 1){
@@ -83,7 +130,7 @@ int main_stat(int argc, char **argv) {
 
     std::map<int, mydataD> retmap = load_bdamage_full(infile_bdamage, howmany);
     fprintf(stderr, "\t-> Number of entries in damage pattern file: %lu printlength(howmany):%d\n", retmap.size(), howmany);
-
+    
     int2char name_map;
 
     if (infile_names)
@@ -95,21 +142,26 @@ int main_stat(int argc, char **argv) {
     float postsize = retmap.size();
     fprintf(stderr, "\t-> pre: %f post:%f grownbyfactor: %f\n", presize, postsize, postsize / presize);
 
-    // SO HERE IS THE LCA PART!?
     for (std::map<int, mydataD>::iterator it = retmap.begin(); it != retmap.end(); it++) {
         int taxid = it->first;
         mydataD md = it->second;
         if (it->second.nreads == 0)
-            continue;
+	  continue;
+	//	fprintf(stderr,"retmap taxid:%d nreads: %d\n",it->first,it->second.nreads);
     }
 
     std::map<int, mydata2> stats;
     if (infile_lcastat){
       stats = load_lcastat(infile_lcastat,1);
-	    presize = stats.size();
+      presize = stats.size();
     }
-    if(child.size()>0)
+    
+#if 0
+    if(child.size()>0)//this will not work if we have data at internal nodes 
       getval_stats(stats, child, 1);  // this will do everything
+#endif
+    aggr_stat2000(stats,parent);
+    //    exit(0);
     if(stats.size()>0){
       postsize = stats.size();
       fprintf(stderr, "\t-> pre: %f post:%f grownbyfactor: %f\n", presize, postsize, postsize / presize);
