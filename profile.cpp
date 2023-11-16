@@ -349,12 +349,6 @@ void damage::write(char *fname, bam_hdr_t *hdr) {
     free(kstr.s);
 }
 void damage::bwrite(char *fname, bam_hdr_t *hdr) {
-  std::map<int, triple>::iterator it2000 = assoc.find(757959);
-  if(it2000==assoc.end())
-    fprintf(stderr,"skildpadder The chosen taxid does not exist\n");
-  else
-    fprintf(stderr,"skildpadder The chosen taxid does exist\n");
-  // fprintf(stderr,"Dumping asso.size(): %lu\n",assoc.size());
 
     char onam[1024];
     snprintf(onam, 1024, "%s.bdamage.gz", fname);
