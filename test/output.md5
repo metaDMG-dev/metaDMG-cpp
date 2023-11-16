@@ -1,5 +1,4 @@
 e03e377dc454bf6c70fe255ec293ab93  output/test_dfit_global.dfit.fix
-b1a8733838016424ba793cf4a32e38d6  output/test_dfit_local.dfit.stat.txt
 e3fbf6eb3e1be979f06bfb55554195bc  output/test_dfit_local.dfit.fix
 71308047bbc8f703fdd65c798de91cfa  output/test_getdamage_local.bdamage
 c99b4cee656eb6fa61d6e61131a7c083  output/test_getdamage_local.bdamage.gz.txt

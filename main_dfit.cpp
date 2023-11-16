@@ -227,7 +227,6 @@ void make_dfit_format_bootstrap2(mydataD &md,double **dat,int howmany,int seed){
 }
 
 mydataD getval_full(std::map<int, mydataD> &retmap, int2intvec &child, int taxid, int howmany);
-mydata2 getval_stats(std::map<int, mydata2> &retmap, int2intvec &child, int taxid) ;
 
 int main_dfit(int argc, char **argv) {
     /*
@@ -249,6 +248,7 @@ int main_dfit(int argc, char **argv) {
     char *infile_bdamage = NULL;
     char *infile_nodes = NULL;
     char *infile_names = NULL;
+    char *infile_lcastat = NULL;
     char *infile_bam = NULL;
     char *outfile_name = NULL;
     char *lib_prep = NULL;
@@ -430,7 +430,6 @@ int main_dfit(int argc, char **argv) {
       ksprintf(kstr,"\n");
     }
 
-    // SO HERE IS THE LCA PART!?
     for (std::map<int, mydataD>::iterator it = retmap.begin(); it != retmap.end(); it++) {
         int taxid = it->first;
         mydataD md = it->second;
@@ -735,43 +734,31 @@ int main_dfit(int argc, char **argv) {
     }
     kstr->l = 0;
     bgzf_close(fpfpfp);
+    fpfpfp = NULL;
+    if(infile_lcastat){
+      snprintf(buf, 1024, "%s.dfit.stat.txt.gz", outfile_name);
+      fprintf(stderr, "\t-> Dumping file: \'%s\'\n", buf);
+      fpfpfp = bgzf_open(buf, "wb");
+      ksprintf(kstr, "#taxid\tname\trank\tnalign\tnreads\tmean_rlen\tvar_rlen\tmean_gc\tvar_gc\tlca\ttaxa_path\n");
+    }
     
-    /*for (std::map<int, mydata2>::iterator it = stats.begin(); it != stats.end(); it++) {
-        // Skip header
-        if (it == stats.begin())
-	        continue;
-        std::map<int, mydataD>::iterator itold = retmap.find(it->first);
-        int nalign = -1;
-        if (itold == retmap.end()) {
-            fprintf(stderr, "\t-> Problem finding taxid: %d\n", it->first);
-        } else
-            nalign = itold->second.nreads;
-        char *myrank = NULL;
-        char *myname = NULL;
-        if (it->second.nreads > 0) {
-            int2char::iterator itc = rank.find(it->first);
-            if (itc != rank.end())
-                myrank = itc->second;
-            itc = name_map.find(it->first);
-            if (itc != name_map.end())
-                myname = itc->second;
-            ksprintf(kstr, "%d\t\"%s\"\t\"%s\"\t%d\t%d\t%f\t%f\t%f\t%f", it->first, myname, myrank, nalign, it->second.nreads, it->second.data[0], it->second.data[1], it->second.data[2], it->second.data[3]);
-	    if(child.size()>0)
-	      print_chain(kstr, it->first, parent, rank, name_map);
-	    else
-	      ksprintf(kstr,"NA\tNA\n");
-            //      fprintf(stderr,"%d->(%d,%f,%f,%f,%f)\n",it->first,it->second.nreads,it->second.data[0],it->second.data[1],it->second.data[2],it->second.data[3]);
-        }
-    }*/
+
     if(doboot>0){
       if(bgzf_write(bootfp,bootkstr->s,bootkstr->l) == 0){
-	fprintf(stderr, "\t-> Cannot write to output BGZ file\n");
-	exit(1);
+        fprintf(stderr, "\t-> Cannot write to output BGZ file\n");
+        exit(1);
       }
       bootkstr->l = 0;
       bgzf_close(bootfp);
     }
-
+    //cleanup
+    if(fpfpfp){
+      if(bgzf_write(fpfpfp,kstr->s,kstr->l) == 0){
+        fprintf(stderr, "\t-> Cannot write to output BGZ file\n");
+        exit(1);
+      }
+      bgzf_close(fpfpfp);
+    }
     for(int2char::iterator it=name_map.begin();it!=name_map.end();it++)
       free(it->second);
     for(int2char::iterator it=rank.begin();it!=rank.end();it++)
@@ -798,7 +785,7 @@ int main_dfit(int argc, char **argv) {
       free(infile_names);
     if(infile_bam)
       free(infile_bam);
-    
+
   gettimeofday(&end_time, NULL);
   long seconds = end_time.tv_sec - start_time.tv_sec;
   long microseconds = end_time.tv_usec - start_time.tv_usec;
