@@ -39,6 +39,7 @@ typedef struct {
     int weighttype;
     char *tempfolder;
     int ignore_errors;
+  int reallyDump;
 } pars;
 
 pars *get_pars(int argc, char **argv);

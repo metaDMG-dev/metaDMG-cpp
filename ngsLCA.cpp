@@ -710,7 +710,7 @@ int2node makeNodes(int2int &parent){
 int main_lca(int argc, char **argv) {
     htsFormat *dingding2 = (htsFormat *)calloc(1, sizeof(htsFormat));
     if (argc == 1) {
-        fprintf(stderr, "\t-> ./metaDMG-cpp lca --names --nodes --acc2tax [-edit_dist_[min/max] --sim_score_[low/high] --min_mapq --bam --lca_rank #version: %s --used_reads [0,1] --weight_type [0,1] :%s \n", METADAMAGE_VERSION);
+        fprintf(stderr, "\t-> ./metaDMG-cpp lca --names --nodes --acc2tax [-edit_dist_[min/max] --sim_score_[low/high] --min_mapq --bam --lca_rank  --used_reads [0,1] --weight_type [0,1] #%s \n", METADAMAGE_VERSION);
         return 0;
     }
     catchkill();
@@ -730,7 +730,7 @@ int main_lca(int argc, char **argv) {
     int2int *i2i = NULL;
     //  fprintf(stderr,"p->header: %p\n",p->header);
     if (p->header)
-        i2i = (int2int *)bamRefId2tax(p->header, p->acc2taxfile, p->htsfile, errmap, p->tempfolder);
+      i2i = (int2int *)bamRefId2tax(p->header, p->acc2taxfile, p->htsfile, errmap, p->tempfolder,p->reallyDump);
 
     // map of taxid -> taxid
     int2int parent;

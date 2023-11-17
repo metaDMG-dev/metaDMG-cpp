@@ -43,6 +43,7 @@ pars *pars_init() {
     p->weighttype = 0;
     p->tempfolder = strdup("");
     p->ignore_errors = 0;
+    p->reallyDump = 0;
     return p;
 }
 
@@ -237,6 +238,8 @@ pars *get_pars(int argc, char **argv) {
             p->nthreads = atoi(val);
         else if (!strcasecmp("--weight_type", key))
             p->weighttype = atoi(val);
+	else if (!strcasecmp("--reallyDump", key))
+	   p->reallyDump = atoi(val);
 	else if (!strcasecmp("--ignore_errors", key)||!strcasecmp("-i", key))
 	  p->ignore_errors++;
         else if (!strcasecmp("--temp", key)) {

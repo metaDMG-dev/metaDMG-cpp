@@ -230,18 +230,19 @@ void parse_nodes2(int2int &parent, int2intvec &child) {
 
 // bamfile is only used for making smaller filedump (using the filename)
 int SIG_COND = 1;
-int2int *bamRefId2tax(bam_hdr_t *hdr, char *acc2taxfile, char *bamfile, int2int &errmap, char *tempfolder) {
+int2int *bamRefId2tax(bam_hdr_t *hdr, char *acc2taxfile, char *bamfile, int2int &errmap, char *tempfolder,int reallyDump) {
     fprintf(stderr, "\t-> Starting to extract (acc->taxid) from binary file: \'%s\'\n", acc2taxfile);
     fflush(stderr);
     int dodump = !fexists4(tempfolder, basename(acc2taxfile), basename(bamfile), ".bin");
 
-    fprintf(stderr, "\t-> Checking if bimnary file exists. dodump=%d \n", dodump);
+    fprintf(stderr, "\t-> Checking if binary file exists. dodump=%d \n", dodump);
 
     time_t t = time(NULL);
     BGZF *fp = NULL;
-    if (dodump)
-        fp = getbgzf4(tempfolder, basename(acc2taxfile), basename(bamfile), ".bin", "wb", 4);
-    else
+    if (dodump){
+      if(reallyDump)
+	fp = getbgzf4(tempfolder, basename(acc2taxfile), basename(bamfile), ".bin", "wb", 4);
+    }else
         fp = getbgzf4(tempfolder, basename(acc2taxfile), basename(bamfile), ".bin", "rb", 4);
     // this contains refname(as int) -> taxid
     int2int *am = new int2int;
@@ -272,8 +273,10 @@ int2int *bamRefId2tax(bam_hdr_t *hdr, char *acc2taxfile, char *bamfile, int2int 
             int valinbam = bam_name2id(hdr, key);
             if (valinbam == -1)
                 continue;
-            assert(bgzf_write(fp, &valinbam, sizeof(int)) == sizeof(int));
-            assert(bgzf_write(fp, &val, sizeof(int)) == sizeof(int));
+	    if(fp!=NULL){
+	      assert(bgzf_write(fp, &valinbam, sizeof(int)) == sizeof(int));
+	      assert(bgzf_write(fp, &val, sizeof(int)) == sizeof(int));
+	    }
             // fprintf(stderr,"key: %s val: %d valinbam:%d\n",key,val,valinbam);
 
             if (am->find(valinbam) != am->end())
