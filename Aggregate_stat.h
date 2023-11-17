@@ -1,1 +1,1 @@
-int main_stat(int argc, char **argv);
+int main_aggregate(int argc, char **argv);

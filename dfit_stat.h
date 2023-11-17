@@ -1,1 +1,0 @@
-int main_stat(int argc, char **argv);

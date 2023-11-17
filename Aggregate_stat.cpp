@@ -91,7 +91,7 @@ void aggr_stat2000(std::map<int, mydata2> &stats,int2int &parent){
   
 }
 
-int main_stat(int argc, char **argv) {
+int main_aggregate(int argc, char **argv) {
     if (argc <= 1){
       fprintf(stderr,"help\n");
       return 0;

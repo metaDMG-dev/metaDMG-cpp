@@ -1384,7 +1384,7 @@ int main(int argc, char **argv) {
     if (!strcmp(argv[0], "dfit"))
       main_dfit(argc, argv);
     if (!strcmp(argv[0], "aggregate"))
-      main_stat(argc, argv);
+      main_aggregate(argc, argv);
     if (!strcmp(argv[0], "print2"))
         main_print2(argc, argv);
     if (!strcmp(argv[0], "merge"))
