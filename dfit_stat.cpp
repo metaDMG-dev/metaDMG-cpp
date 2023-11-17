@@ -47,8 +47,21 @@ void to_root(int from,int to,std::map<int,mydata2> &stats,int2int &parent,int nr
     stats[to] = mdmis;
   }else{
     mydata2 &md2 = stats.find(to)->second;
-    md2.data[0] = ((double) md1.data[0]*md1.nreads+md2.data[0]*md2.nreads)/((double) md1.nreads+md2.nreads);
-    md2.data[2] = ((double) md1.data[2]*md1.nreads+md2.data[2]*md2.nreads)/((double) md1.nreads+md2.nreads);
+    md2.data[0] = ((double) md1.data[0]*md1.nreads+md2.data[0]*md2.nreads)/((double) md1.nreads+md2.nreads); //weighted mean of read length
+    if((double) md1.data[1] != 0){//pooled variance of GC
+      md2.data[1] = (((double) md1.data[1]-1)*md1.data[1]+((double) md2.data[1]-1)*md1.data[1])/((double)md1.data[1]+md2.data[1]-2)
+    }
+    else{
+      continue; //wont update the variance if equal to zero when transversing up the tree
+    }
+
+    md2.data[2] = ((double) md1.data[2]*md1.nreads+md2.data[2]*md2.nreads)/((double) md1.nreads+md2.nreads); //weighted mean of GC
+    if((double) md1.data[2] != 0){ //Pooled variance of GC
+      md2.data[3] = (((double) md1.data[3]-1)*md1.data[3]+((double) md2.data[3]-1)*md1.data[3])/((double)md1.data[3]+md2.data[3]-2)
+    }
+    else{
+      continue;
+    }
     md2.nreads += nreads;
   }
 
