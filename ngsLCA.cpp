@@ -490,9 +490,12 @@ void hts(gzFile fp, samFile *fp_in, int2int &i2i, int2int &parent, bam_hdr_t *hd
                     // lca_rank is integer and is different from minus one
                     int2int::iterator myit = rank2level.find(lca);
                     assert(myit != rank2level.end());
-                    if (myit->second != -1 && (myit->second <= lca_rank)) {
+		    
+		    if (myit->second != -1 && (myit->second <= lca_rank)) {
                         adder(lca, strlen(seq), gccontent(seq));
+			fprintf(stderr,"Looping through alignments we have :%d \n",myq->l);
                         for (int i = 0; i < myq->l; i++) {
+			  
                             int2int::iterator it2k = i2i.find(myq->ary[i]->core.tid);
                             assert(it2k != i2i.end());
                             int2char::iterator ititit = rank.find(it2k->second);
@@ -607,6 +610,7 @@ void hts(gzFile fp, samFile *fp_in, int2int &i2i, int2int &parent, bam_hdr_t *hd
             if (myit->second != -1 && (myit->second <= lca_rank)) {
                 adder(lca, strlen(seq), gccontent(seq));
                 //      if(correct_rank(lca_rank,lca,rank,norank2species)){
+		fprintf(stderr,"Looping through alignments we have :%d \n",myq->l);
                 for (int i = 0; i < myq->l; i++) {
                     // dmg->damage_analysis(myq->ary[i],myq->ary[i]->core.tid);
                     int2int::iterator ittt = i2i.find(myq->ary[i]->core.tid);
@@ -718,7 +722,10 @@ int main_lca(int argc, char **argv) {
 
     pars *p = get_pars(--argc, ++argv);
     print_pars(stderr, p);
-
+    gzprintf(p->fp1,"#./metaDMG-cpp lca ");
+    for(int i=0;i<argc;i++)
+      gzprintf(p->fp1,"%s ",argv[i]);
+    gzprintf(p->fp1,"\n");
     // map of bamref ->taxid
     int2int *i2i = NULL;
     //  fprintf(stderr,"p->header: %p\n",p->header);
@@ -784,12 +791,6 @@ int main_lca(int argc, char **argv) {
         sam_close(usedreads_sam);
     if (p->fp_lcadist) {
         fprintf(p->fp_lcadist,"taxid\tnreads\tmea_len\tvar_len\tmean_gc\tvar_gc\tlca\trank\n");
-	fprintf(stderr,"How many entries in lcastat map. : %lu\n",lcastat.size());
-	std::map<int, lcatriplet>::iterator it2000 = lcastat.find(757959);
-	if(it2000==lcastat.end())
-	  fprintf(stderr,"The chosen taxid does not exist\n");
-	else
-	  fprintf(stderr,"The chosen taxid does exist\n");
         for (std::map<int, lcatriplet>::iterator it = lcastat.begin(); it != lcastat.end(); it++) {
             lcatriplet tmp = it->second;
             fprintf(p->fp_lcadist, "%d\t%d\t%f\t%f\t%f\t%f", it->first, tmp.nalignments, mean(tmp.readlengths), var(tmp.readlengths), mean(tmp.gccontents), var(tmp.gccontents));

@@ -32,7 +32,7 @@ mydataD getval_full(std::map<int, mydataD> &retmap, int2intvec &child, int taxid
 mydata2 getval_stats(std::map<int, mydata2> &retmap, int2intvec &child, int taxid) ;
 
 void to_root(int from,int to,std::map<int,mydata2> &stats,int2int &parent,int nreads){
-  fprintf(stderr,"from: %d to: %d nreads:%d\n",from,to,nreads);
+  //  fprintf(stderr,"from: %d to: %d nreads:%d\n",from,to,nreads);
   mydata2 &md1 = stats.find(from)->second;
   
   std::map<int,mydata2>::iterator it=stats.find(to);
@@ -78,7 +78,7 @@ void aggr_stat2000(std::map<int, mydata2> &stats,int2int &parent){
   std::map<int,int> dasmap;
   for(std::map<int,mydata2>::iterator it = stats.begin();it!=stats.end();it++)
     dasmap[it->first] = it->second.nreads;
-  fprintf(stderr,"dasmap.size(): %lu stats.size():%lu\n",dasmap.size(), stats.size());
+  //fprintf(stderr,"dasmap.size(): %lu stats.size():%lu\n",dasmap.size(), stats.size());
 
   for(std::map<int,int>::iterator itt=dasmap.begin();itt!=dasmap.end();itt++){
   //  for(int i=0;i<dasvector.size();i++){

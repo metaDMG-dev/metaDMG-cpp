@@ -285,7 +285,7 @@ inline void increaseCounters(const bam1_t *b, const char *reconstructedReference
 }
 
 int damage::damage_analysis(bam1_t *b, int which, float incval) {
-    //  fprintf(stderr,"\t-> incval: %f\n",incval);
+  //  fprintf(stderr,"\t-> incval: %f\n",incval);
   if (assoc.find(which) == assoc.end()) {
     triple val = {0, getmatrix(MAXLENGTH, 16), getmatrix(MAXLENGTH, 16),new size_t[200]};
     for(int i=0;i<200;i++)
@@ -297,6 +297,7 @@ int damage::damage_analysis(bam1_t *b, int which, float incval) {
   }
     std::map<int, triple>::iterator it = assoc.find(which);
     it->second.nreads++;
+    //    fprintf(stderr,"[%s] it->first:%d it->second.nreads:%d\n",__FUNCTION__,it->first,it->second.nreads);
     assert(b->core.l_qseq<200);
     it->second.rlens[b->core.l_qseq] =  it->second.rlens[b->core.l_qseq] + 1; 
     if (b->core.l_qseq - 10 > temp_len) {
