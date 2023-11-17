@@ -16,7 +16,7 @@
 
 #include "main_pmd.h"    // for main_pmd
 #include "main_dfit.h"   // for main_pmd
-#include "dfit_stat.h"   // for main_pmd
+#include "Aggregate_stat.h"   // for main_pmd
 #include "ngsLCA.h"      // for mean, var, gccontent, print_chain
 #include "profile.h"     // for mydataD, mydata2, load_bdamage3, (anonym...
 #include "regression.h"  // for main_regression
@@ -1383,7 +1383,7 @@ int main(int argc, char **argv) {
         main_print_ugly(argc, argv);
     if (!strcmp(argv[0], "dfit"))
       main_dfit(argc, argv);
-    if (!strcmp(argv[0], "dfit_stat"))
+    if (!strcmp(argv[0], "aggregate"))
       main_stat(argc, argv);
     if (!strcmp(argv[0], "print2"))
         main_print2(argc, argv);
