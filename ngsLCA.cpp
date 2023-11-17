@@ -493,7 +493,7 @@ void hts(gzFile fp, samFile *fp_in, int2int &i2i, int2int &parent, bam_hdr_t *hd
 		    
 		    if (myit->second != -1 && (myit->second <= lca_rank)) {
                         adder(lca, strlen(seq), gccontent(seq));
-			fprintf(stderr,"Looping through alignments we have :%d \n",myq->l);
+			            //fprintf(stderr,"Looping through alignments we have :%d \n",myq->l);
                         for (int i = 0; i < myq->l; i++) {
 			  
                             int2int::iterator it2k = i2i.find(myq->ary[i]->core.tid);
@@ -610,7 +610,7 @@ void hts(gzFile fp, samFile *fp_in, int2int &i2i, int2int &parent, bam_hdr_t *hd
             if (myit->second != -1 && (myit->second <= lca_rank)) {
                 adder(lca, strlen(seq), gccontent(seq));
                 //      if(correct_rank(lca_rank,lca,rank,norank2species)){
-		fprintf(stderr,"Looping through alignments we have :%d \n",myq->l);
+		        //fprintf(stderr,"Looping through alignments we have :%d \n",myq->l);
                 for (int i = 0; i < myq->l; i++) {
                     // dmg->damage_analysis(myq->ary[i],myq->ary[i]->core.tid);
                     int2int::iterator ittt = i2i.find(myq->ary[i]->core.tid);

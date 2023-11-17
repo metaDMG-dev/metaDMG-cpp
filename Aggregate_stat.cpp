@@ -31,6 +31,19 @@ extern htsFormat *dingding2;
 mydataD getval_full(std::map<int, mydataD> &retmap, int2intvec &child, int taxid, int howmany);
 mydata2 getval_stats(std::map<int, mydata2> &retmap, int2intvec &child, int taxid) ;
 
+int HelpPageAggregate(FILE *fp){
+  fprintf(fp,"Aggregation of lca produced statistics (mean length, variance length, mean GC, variance GC) when transversing up the nodes of the tree structure\n");
+
+  fprintf(stderr, "\t\t./metaDMG-cpp aggregate file.bdamage.gz --names file.gz --nodes trestructure.gz --lcastat file.stat --out filename\n");
+  fprintf(fp,"\n--help \t\t\t\t Print extended help page to see all options.\n\n");
+  fprintf(fp,"\n--names \t\t\t\t names.dmp.gz\n\n");
+  fprintf(fp,"\n--nodes \t\t\t\t nodes.dmp.gz\n\n");
+  fprintf(fp,"\n--lca \t\t\t\t lcaout.stat lca produced statistics\n\n");
+
+  exit(1);
+  return 0;
+}
+
 void to_root(int from,int to,std::map<int,mydata2> &stats,int2int &parent,int nreads){
   //  fprintf(stderr,"from: %d to: %d nreads:%d\n",from,to,nreads);
   mydata2 &md1 = stats.find(from)->second;
@@ -49,21 +62,27 @@ void to_root(int from,int to,std::map<int,mydata2> &stats,int2int &parent,int nr
   else{
     mydata2 &md2 = stats.find(to)->second;
     md2.data[0] = ((double) md1.data[0]*md1.nreads+md2.data[0]*md2.nreads)/((double) md1.nreads+md2.nreads); //weighted mean of read length
-    if((double) md1.data[1] != 0){//pooled variance of GC
-      md2.data[1] = (((double) md1.data[1]-1)*md1.data[1]+((double) md2.data[1]-1)*md1.data[1])/((double)md1.data[1]+md2.data[1]-2);
+    md2.data[2] = ((double) md1.data[2]*md1.nreads+md2.data[2]*md2.nreads)/((double) md1.nreads+md2.nreads); //weighted mean of gc
+    
+    double variance1;
+    int nreads1;
+    double variance2;
+    int nreads2;
+    if(((double) md1.nreads+md2.nreads)>2){//pooled variance of length and GC
+      /*variance1 = ((double) md1.nreads-1)*md1.data[1];
+      nreads1 += md1.nreads;
+      variance2 = ((double) md2.nreads-1)*md2.data[1];
+      nreads2 += md2.nreads;
+      md2.data[1] = (variance1 + variance2) / (nreads1 + nreads2 - 2);
+      md2.data[3] = (variance1 + variance2) / (nreads1 + nreads2 - 2);*/
+      md2.data[1] = (((double) md1.nreads-1)*md1.data[1]+((double) md2.nreads-1)*md2.data[1])/((double)md1.nreads+md2.nreads-2);
+      md2.data[3] = (((double) md1.nreads-1)*md1.data[3]+((double) md2.nreads-1)*md2.data[3])/((double)md1.nreads+md2.nreads-2);;
     }
     else{
       md2.data[1] = md2.data[1];
+      md2.data[3] = md2.data[3];
     }
 
-    if((double) md1.data[2] != 0){//pooled variance of GC
-      md2.data[2] = (((double) md1.data[2]-1)*md1.data[2]+((double) md2.data[2]-1)*md1.data[2])/((double)md1.data[2]+md2.data[2]-2);
-    }
-    else{
-      md2.data[2] = md2.data[2];
-    }
-    md2.data[3] = ((double) md1.data[3]*md1.nreads+md2.data[3]*md2.nreads)/((double) md1.nreads+md2.nreads); //weighted mean of read length
-    
     md2.nreads += nreads;
   }
 
@@ -106,19 +125,19 @@ int main_aggregate(int argc, char **argv) {
     while (*(++argv)) {
         if (strcasecmp("-h", *argv) == 0)
           fprintf(stderr,"help\n");
-        else if (strcasecmp("--names", *argv) == 0)
+        else if (strcasecmp("--names", *argv) == 0 || strcasecmp("-names", *argv) == 0)
             infile_names = strdup(*(++argv));
-        else if (strcasecmp("--nodes", *argv) == 0)
+        else if (strcasecmp("--nodes", *argv) == 0 || strcasecmp("-nodes", *argv) == 0)
             infile_nodes = strdup(*(++argv));
-        else if (strcasecmp("--lcastat", *argv) == 0)
+        else if (strcasecmp("-lca", *argv) == 0|| strcasecmp("--lcastat", *argv) == 0|| strcasecmp("-lcastat", *argv) == 0)
             infile_lcastat = strdup(*(++argv));
-        else if (strcasecmp("--out", *argv) == 0 || strcasecmp("--out_prefix", *argv) == 0)
+        else if (strcasecmp("-o", *argv) == 0 || strcasecmp("--out", *argv) == 0 || strcasecmp("--out_prefix", *argv) == 0)
             outfile_name = strdup(*(++argv));
         else
           infile_bdamage = strdup(*argv);
     }
     if(infile_nodes&&!infile_names){
-      fprintf(stderr,"\t-> -names file.txt.gz must be defined with -nodes is defined\n");
+      fprintf(stderr,"\t-> --names file.txt.gz must be defined with --nodes is defined\n");
       exit(1);
     }
     
