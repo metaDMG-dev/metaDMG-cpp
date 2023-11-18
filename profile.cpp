@@ -381,8 +381,8 @@ void damage::bwrite(char *fname, bam_hdr_t *hdr) {
             continue;
 	ksprintf(&kstr2000,"%d",it->first);
 	for(int i=0;i<200-1;i++)
-	  ksprintf(&kstr2000,"\t%d",it->second.rlens[i]);
-	ksprintf(&kstr2000,"\t%d\n",it->second.rlens[199]);
+	  ksprintf(&kstr2000,"\t%lu",it->second.rlens[i]);
+	ksprintf(&kstr2000,"\t%lu\n",it->second.rlens[199]);
 	if(kstr2000.l>1000000){
 	  assert(bgzf_write(fp,kstr2000.s,kstr2000.l)==kstr2000.l);
 	  kstr2000.l  = 0;
