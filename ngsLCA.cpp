@@ -50,6 +50,7 @@ char2int setlevels(int norank2species, char *key, int &value) {
     int values[48] = {36, 37, 35, 34, 33, 32, 31, 30, 29, 28, 27, 26, 25, 24, 23, 22, 21, 20, 19, 18, 17, 16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1};
     char2int c2i;
     value = -1;
+    char *spec = strdup("species");
     for (int i = 0; i < 48; i++) {
         c2i[strdup(names[i])] = values[i];
         if (strcmp(key, names[i]) == 0) {
@@ -61,11 +62,12 @@ char2int setlevels(int norank2species, char *key, int &value) {
         exit(0);
     }
     if (norank2species) {
-        char2int::iterator it = c2i.find("species");
-        assert(it != c2i.end());
-        c2i[strdup("no rank")] = it->second;
+      char2int::iterator it = c2i.find(spec);
+      assert(it != c2i.end());
+      c2i[strdup("no rank")] = it->second;
     }
     fprintf(stderr, "\t-> Number of entries with level information: %lu \n", c2i.size());
+    free(spec);
     return c2i;
 }
 

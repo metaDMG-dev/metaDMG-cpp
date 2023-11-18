@@ -323,21 +323,21 @@ const char** getColumnNames(int* colnumber) {
     curr_it += NUMROWS / 2;
     for (int i = 0; i < NUMROWS/2; i++) {
         char Dx_buff_rev[10];
-        sprintf(Dx_buff_rev, "Dx-%d", i + 1);
+        snprintf(Dx_buff_rev,10, "Dx-%d", i + 1);
         columnNames[curr_it+i+1] = strdup(Dx_buff_rev);
     }
     
     curr_it += NUMROWS / 2;
     for (int i = 0; i < NUMROWS/2; i++) {
         char Dx_std_buff_fwd[10];
-        sprintf(Dx_std_buff_fwd, "Dx_std+%d", i + 1);
+        snprintf(Dx_std_buff_fwd,10, "Dx_std+%d", i + 1);
         columnNames[curr_it+i+1] = strdup(Dx_std_buff_fwd);
     }
 
     curr_it += NUMROWS / 2;
     for (int i = 0; i < NUMROWS/2; i++) {
         char Dx_std_buff_rev[10];
-        sprintf(Dx_std_buff_rev, "Dx_std-%d", i + 1);
+        snprintf(Dx_std_buff_rev,10, "Dx_std-%d", i + 1);
         columnNames[curr_it+i+1] = strdup(Dx_std_buff_rev);
     }
     curr_it += NUMROWS / 2;

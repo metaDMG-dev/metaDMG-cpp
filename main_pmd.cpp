@@ -162,7 +162,7 @@ void parse_sequencingdata(char *refName, char *fname, int mapped_only, int se_on
 
     if (refName) {
         char *ref = (char *)malloc(10 + strlen(refName) + 1);
-        sprintf(ref, "reference=%s", refName);
+        snprintf(ref,10 + strlen(refName) + 1, "reference=%s", refName);
         hts_opt_add((hts_opt **)&dingding3->specific, ref);
         free(ref);
     }
