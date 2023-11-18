@@ -19,7 +19,9 @@
 #include "Aggregate_stat.h"   // for main_pmd
 #include "ngsLCA.h"      // for mean, var, gccontent, print_chain
 #include "profile.h"     // for mydataD, mydata2, load_bdamage3, (anonym...
+#ifdef __REGRESSION__
 #include "regression.h"  // for main_regression
+#endif
 #include "shared.h"      // for parse_names, parse_nodes
 #include "types.h"       // for int2intvec, int2int
 #include "version.h"     // for METADAMAGE_VERSION
@@ -1343,7 +1345,9 @@ int main(int argc, char **argv) {
     time_t t2 = time(NULL);
 
     if (argc == 1) {
+#ifdef __REGRESSION__
         fprintf(stderr, "./metaDMG-cpp regression [other options]\n");
+#endif
         fprintf(stderr, "./metaDMG-cpp pmd [other options]\n");
         fprintf(stderr, "./metaDMG-cpp getdamage file.bam\n");
         fprintf(stderr, "./metaDMG-cpp mergedamage files.damage.*.gz\n");
@@ -1365,8 +1369,10 @@ int main(int argc, char **argv) {
     fflush(stderr);
     argc--;
     ++argv;
+#ifdef __REGRESSION__
     if (!strcmp(argv[0], "regression"))
         return main_regression(argc, argv);
+#endif
     if (!strcmp(argv[0], "pmd"))
         return main_pmd(argc, argv);
     if (!strcmp(argv[0], "pmd"))

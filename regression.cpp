@@ -1,6 +1,7 @@
 #include "regression.h"
-
-
+//compile with -D__REGRESSION__
+//also c++ -I /opt/homebrew/Cellar/eigen/3.4.0_1/include/ -c -I/Users/fvr124/metaDMG-cpp/htslib   regression.cpp -std=c++14  -D__REGRESSION__
+#ifdef __REGRESSION__
 #include <gsl/gsl_vector_double.h>  // for gsl_vector
                                     // for std
 #include <cstdlib>                  // for size_t
@@ -1624,3 +1625,5 @@ int main_regression(int argc, char **argv) {
 
     return 0;
 }
+
+#endif

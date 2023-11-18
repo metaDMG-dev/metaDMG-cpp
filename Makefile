@@ -1,3 +1,6 @@
+# make FLAGS=-D__REGRESSION__
+#c++ -I /opt/homebrew/Cellar/eigen/3.4.0_1/include/ -c -I/Users/fvr124/metaDMG-cpp/htslib   regression.cpp -std=c++14  -D__REGRESSION__
+
 CC  ?= gcc
 CXX ?= g++
 
