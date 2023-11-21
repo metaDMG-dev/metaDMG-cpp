@@ -231,7 +231,7 @@ mydata2 getval_stats(std::map<int, mydata2> &retmap, int2intvec &child, int taxi
 
 
 void make_dfit_header(kstring_t *kstr,int showfits,int nbootstrap,int howmany ){
-
+ 
     if(showfits==0){
       //fprintf(stderr,"INSIDE THE FIRST SHOWFITS loop 0 \n");
       // Without bootstrap
@@ -282,177 +282,29 @@ void make_dfit_header(kstring_t *kstr,int showfits,int nbootstrap,int howmany ){
 
 }
 
-
-int main_dfit(int argc, char **argv) {
-    /*
-    fprintf(stderr, "./metaDMG-cpp dfit file.bdamage.gz -names file.gz -nodes trestructure.gz -lcastat fil.gz -bam file.bam -showfits int -nopt int -nbootstrap int -seed int -doCI int -CI float -lib <ds,ss> -out file\n");
-    fprintf(stderr, "-------------\n Estimate damage patterns with beta-binomial model\n");
-    fprintf(stderr, "\tEstimate damage patterns for each chr/scaffold contig (local mode), using lca stats\n");
-    fprintf(stderr, "\t\t./metaDMG-cpp dfit file.bdamage.gz -names file.gz -nodes trestructure.gz -lcastat fil.gz -bam file.bam -showfits int -nopt int -nbootstrap int -seed int -doCI int -CI float -lib <ds,ss> -out file\n");
-    fprintf(stderr, "\tEstimate one global damage pattern \n");
-    fprintf(stderr, "-------------\n Estimate damage patterns with binomial model\n");
-    fprintf(stderr, "\tEstimate damage patterns for each chr/scaffold contig (local mode), using lca stats\n");
-    fprintf(stderr, "\t\t./metaDMG-cpp dfit file.bdamage.gz -names file.gz -nodes trestructure.gz -lcastat fil.gz -bam file.bam -showfits int -nopt int -nbootstrap int -seed int -doCI int -CI float -lib <ds,ss> -out file\n");
-    fprintf(stderr, "\tEstimate one global damage pattern \n");
-    fprintf(stderr, "\t\t./metaDMG-cpp dfit metaDMG-cpp/metaDMG-cpp dfit Pitch6getDMG.bdamage.gz -doboot 1 -nbootstrap 5 -nopt 10 -showfits 0\n");
-    */
-    if (argc <= 1){
-      HelpPageSimple(stderr);
-      return 0;
-    }
-    char *infile_bdamage = NULL;
-    char *infile_nodes = NULL;
-    char *infile_names = NULL;
-    char *infile_bam = NULL;
-    char *outfile_name = NULL;
-    char *lib_prep = NULL;
-    int howmany;//this is the cycle
-    int showfits=0;
-    int nopt = 10;
-    int sigtype = 1;
-    int nbootstrap = 1;
-    int doboot = 0;
-    int seed = time(NULL); 
-    double CI = 0.95;
-    int doCI = 2;
-
-    while (*(++argv)) {
-        if (strcasecmp("-h", *argv) == 0)
-          HelpPageSimple(stderr);
-        else if (strcasecmp("--help", *argv) == 0)
-          HelpPage(stderr);
-        else if (strcasecmp("--names", *argv) == 0)
-            infile_names = strdup(*(++argv));
-        else if (strcasecmp("--nodes", *argv) == 0)
-            infile_nodes = strdup(*(++argv));
-        else if (strcasecmp("--bam", *argv) == 0)
-            infile_bam = strdup(*(++argv));
-        else if (strcasecmp("--out", *argv) == 0 || strcasecmp("--out_prefix", *argv) == 0)
-            outfile_name = strdup(*(++argv));
-        else if (strcasecmp("--nopt", *argv) == 0)
-          nopt = atoi(*(++argv));
-        else if (strcasecmp("--sigtype", *argv) == 0)
-          sigtype = atoi(*(++argv));
-        else if (strcasecmp("--showfits", *argv) == 0)
-          showfits = atoi(*(++argv));
-        else if (strcasecmp("--nbootstrap", *argv) == 0)
-          nbootstrap = atoi(*(++argv));
-        else if (strcasecmp("--doboot", *argv) == 0)
-          doboot = atoi(*(++argv));
-        else if (strcasecmp("--seed", *argv) == 0)
-          seed = atoi(*(++argv));
-        else if (strcasecmp("--CI", *argv) == 0)
-          CI = atof(*(++argv));
-        else if (strcasecmp("--doCI", *argv) == 0)
-          doCI = atof(*(++argv));
-        else if (strcasecmp("--lib", *argv) == 0)
-            lib_prep = strdup(*(++argv));
-        else
-          infile_bdamage = strdup(*argv);
-    }
-    if(infile_nodes&&!infile_names){
-      fprintf(stderr,"\t-> -names file.txt.gz must be defined with -nodes is defined\n");
-      exit(1);
-    }
-    clock_t t = clock();
-    struct timeval start_time, end_time;
-    gettimeofday(&start_time, NULL);
-
-    htsFile *samfp = NULL;
-    sam_hdr_t *hdr = NULL;
-    if (infile_bam) {
-        if ((samfp = sam_open_format(infile_bam, "r", dingding2)) == NULL) {
-            fprintf(stderr, "[%s] nonexistant file: %s\n", __FUNCTION__, infile_bam);
-            exit(1);
-        }
-        hdr = sam_hdr_read(samfp);
-    }
-    if(infile_bam!=NULL&&infile_nodes!=NULL){
-      fprintf(stderr,"\t-> Potential issue, supplying both -bam and -nodes might not be meaningfull\n");
-      exit(1);
-    }
+void slave_block(std::map<int, mydataD> &retmap,int howmany,sam_hdr_t *hdr,int2char &name_map,int libprep,int nopt,int nbootstrap,double CI, int doCI,int sigtype,int seed,int doboot,kstring_t *kstr,kstring_t *bootkstr,int showfits){
+ 
+  double **dat = new double*[4];
+  dat[0] = new double[2+2*howmany];
+  dat[1] = new double [2*howmany];
+  dat[2] = new double [2*howmany];
+  dat[3] = new double [2*howmany];
+  for (std::map<int, mydataD>::iterator it = retmap.begin(); it != retmap.end(); it++) {
+    int taxid = it->first;
+    mydataD md = it->second;
+    if (it->second.nreads == 0)
+      continue;
     
-    //fprintf(stderr, "infile_names: %s infile_bdamage: %s nodes: %s lca_stat: %s infile_bam: %s showfits: %d nopt: %d outname: %s sigtype: %d nbootstrap: %d", infile_names, infile_bdamage, infile_nodes, infile_lcastat, infile_bam,showfits,nopt,outfile_name,sigtype,nbootstrap);
-    //fprintf(stderr, "#VERSION:%s\n", METADAMAGE_VERSION);
-    if(outfile_name==NULL)
-      outfile_name = strdup(infile_bdamage);
-    char buf[1024];
-    snprintf(buf, 1024, "%s.dfit.txt.gz", outfile_name);
-    fprintf(stderr, "\t-> Dumping file: \'%s\'\n", buf);
-    BGZF *fpfpfp = bgzf_open(buf, "wb");
-    kstring_t *kstr = new kstring_t;
-    kstr->s = NULL; kstr->l = kstr->m = 0;
-
-    char bootbuf[1024];
-    BGZF *bootfp;
-    kstring_t *bootkstr = new kstring_t;
-    bootkstr->s = NULL; bootkstr->l = bootkstr->m = 0;
-    if(doboot>0){
-      snprintf(bootbuf, 1024, "%s.boot.stat.txt.gz", outfile_name);
-      bootfp = bgzf_open(bootbuf, "wb");    
-      ksprintf(bootkstr,"id\tA_b\tq_b\tc_b\tphi_b\n");
+    if(hdr!=NULL){
+      ksprintf(kstr, "%s\t", sam_hdr_tid2name(hdr, it->first));
     }
-
-    // map of taxid -> taxid
-    int2int parent;
-    // map of taxid -> rank
-    int2char rank;
-    // map of parent -> child taxids
-    int2intvec child;
-
-    if (infile_nodes != NULL)
-        parse_nodes(infile_nodes, rank, parent, child, 1);
-
-    std::map<int, mydataD> retmap = load_bdamage_full(infile_bdamage, howmany);
-    fprintf(stderr, "\t-> Number of entries in damage pattern file: %lu printlength(howmany):%d\n", retmap.size(), howmany);
-
-    int2char name_map;
-
-    if (infile_names)
-        name_map = parse_names(infile_names);
-
-    float presize = retmap.size();
-    if(child.size()>0)
-      getval_full(retmap, child, 1, howmany);  // this will do everything
-    float postsize = retmap.size();
-    fprintf(stderr, "\t-> pre: %f post:%f grownbyfactor: %f\n", presize, postsize, postsize / presize);
-
-    int libprep = 0;
-
-    if (lib_prep != NULL){
-      if(strcasecmp(lib_prep, "ds")==0){
-        libprep = 0;
-      }
-      else if(strcasecmp(lib_prep, "ss")==0){
-        libprep = 1;
-      }
-    }
-
-    //prepare matrix to be passed to optimization
-   
-    fprintf(stderr,"\t-> Will do optimization of %lu different taxids/chromosomes/scaffolds\n",retmap.size());
-    make_dfit_header(kstr,showfits,nbootstrap,howmany);
-    double **dat = new double*[4];
-    dat[0] = new double[2+2*howmany];
-    dat[1] = new double [2*howmany];
-    dat[2] = new double [2*howmany];
-    dat[3] = new double [2*howmany];
-    for (std::map<int, mydataD>::iterator it = retmap.begin(); it != retmap.end(); it++) {
-      int taxid = it->first;
-      mydataD md = it->second;
-      if (it->second.nreads == 0)
-	continue;
-      
-      if(hdr!=NULL){
-	ksprintf(kstr, "%s\t", sam_hdr_tid2name(hdr, it->first));
-      }
+    else{
+      if(name_map.size()==0)
+	ksprintf(kstr,"%d\t",it->first);
       else{
-	if(name_map.size()==0)
-	  ksprintf(kstr,"%d\t",it->first);
-	else{
-	  int2char::iterator nit = name_map.find(it->first);
-	  if(nit==name_map.end()){
-	    fprintf(stderr,"\t-> Problem finding taxid: %d in names database: %s\n",it->first,infile_names);
+	int2char::iterator nit = name_map.find(it->first);
+	if(nit==name_map.end()){
+	  fprintf(stderr,"\t-> Problem finding taxid: %d \n",it->first);
 	    exit(1);
 	  }
 	  ksprintf(kstr,"%d:%s\t",it->first,nit->second);
@@ -539,7 +391,7 @@ int main_dfit(int argc, char **argv) {
 	      else{
 		int2char::iterator nit = name_map.find(it->first);
 		if(nit==name_map.end()){
-		  fprintf(stderr,"\t-> Problem finding taxid: %d in names database: %s\n",it->first,infile_names);
+		  fprintf(stderr,"\t-> Problem finding taxid: %ds\n",it->first);
 		  exit(1);
 		}
 		ksprintf(bootkstr,"%d:%s",it->first,nit->second);
@@ -734,6 +586,172 @@ int main_dfit(int argc, char **argv) {
 	}
       }
       ksprintf(kstr,"\n");
+    }
+}
+
+
+
+int main_dfit(int argc, char **argv) {
+    /*
+    fprintf(stderr, "./metaDMG-cpp dfit file.bdamage.gz -names file.gz -nodes trestructure.gz -lcastat fil.gz -bam file.bam -showfits int -nopt int -nbootstrap int -seed int -doCI int -CI float -lib <ds,ss> -out file\n");
+    fprintf(stderr, "-------------\n Estimate damage patterns with beta-binomial model\n");
+    fprintf(stderr, "\tEstimate damage patterns for each chr/scaffold contig (local mode), using lca stats\n");
+    fprintf(stderr, "\t\t./metaDMG-cpp dfit file.bdamage.gz -names file.gz -nodes trestructure.gz -lcastat fil.gz -bam file.bam -showfits int -nopt int -nbootstrap int -seed int -doCI int -CI float -lib <ds,ss> -out file\n");
+    fprintf(stderr, "\tEstimate one global damage pattern \n");
+    fprintf(stderr, "-------------\n Estimate damage patterns with binomial model\n");
+    fprintf(stderr, "\tEstimate damage patterns for each chr/scaffold contig (local mode), using lca stats\n");
+    fprintf(stderr, "\t\t./metaDMG-cpp dfit file.bdamage.gz -names file.gz -nodes trestructure.gz -lcastat fil.gz -bam file.bam -showfits int -nopt int -nbootstrap int -seed int -doCI int -CI float -lib <ds,ss> -out file\n");
+    fprintf(stderr, "\tEstimate one global damage pattern \n");
+    fprintf(stderr, "\t\t./metaDMG-cpp dfit metaDMG-cpp/metaDMG-cpp dfit Pitch6getDMG.bdamage.gz -doboot 1 -nbootstrap 5 -nopt 10 -showfits 0\n");
+    */
+    if (argc <= 1){
+      HelpPageSimple(stderr);
+      return 0;
+    }
+    char *infile_bdamage = NULL;
+    char *infile_nodes = NULL;
+    char *infile_names = NULL;
+    char *infile_bam = NULL;
+    char *outfile_name = NULL;
+    char *lib_prep = NULL;
+    int howmany;//this is the cycle
+    int showfits=0;
+    int nopt = 10;
+    int sigtype = 1;
+    int nbootstrap = 1;
+    int doboot = 0;
+    int seed = time(NULL); 
+    double CI = 0.95;
+    int doCI = 2;
+
+    while (*(++argv)) {
+        if (strcasecmp("-h", *argv) == 0)
+          HelpPageSimple(stderr);
+        else if (strcasecmp("--help", *argv) == 0)
+          HelpPage(stderr);
+        else if (strcasecmp("--names", *argv) == 0)
+            infile_names = strdup(*(++argv));
+        else if (strcasecmp("--nodes", *argv) == 0)
+            infile_nodes = strdup(*(++argv));
+        else if (strcasecmp("--bam", *argv) == 0)
+            infile_bam = strdup(*(++argv));
+        else if (strcasecmp("--out", *argv) == 0 || strcasecmp("--out_prefix", *argv) == 0)
+            outfile_name = strdup(*(++argv));
+        else if (strcasecmp("--nopt", *argv) == 0)
+          nopt = atoi(*(++argv));
+        else if (strcasecmp("--sigtype", *argv) == 0)
+          sigtype = atoi(*(++argv));
+        else if (strcasecmp("--showfits", *argv) == 0)
+          showfits = atoi(*(++argv));
+        else if (strcasecmp("--nbootstrap", *argv) == 0)
+          nbootstrap = atoi(*(++argv));
+        else if (strcasecmp("--doboot", *argv) == 0)
+          doboot = atoi(*(++argv));
+        else if (strcasecmp("--seed", *argv) == 0)
+          seed = atoi(*(++argv));
+        else if (strcasecmp("--CI", *argv) == 0)
+          CI = atof(*(++argv));
+        else if (strcasecmp("--doCI", *argv) == 0)
+          doCI = atoi(*(++argv));
+        else if (strcasecmp("--lib", *argv) == 0)
+            lib_prep = strdup(*(++argv));
+        else
+          infile_bdamage = strdup(*argv);
+    }
+    if(infile_nodes&&!infile_names){
+      fprintf(stderr,"\t-> -names file.txt.gz must be defined with -nodes is defined\n");
+      exit(1);
+    }
+    clock_t t = clock();
+    struct timeval start_time, end_time;
+    gettimeofday(&start_time, NULL);
+
+    htsFile *samfp = NULL;
+    sam_hdr_t *hdr = NULL;
+    if (infile_bam) {
+        if ((samfp = sam_open_format(infile_bam, "r", dingding2)) == NULL) {
+            fprintf(stderr, "[%s] nonexistant file: %s\n", __FUNCTION__, infile_bam);
+            exit(1);
+        }
+        hdr = sam_hdr_read(samfp);
+    }
+    if(infile_bam!=NULL&&infile_nodes!=NULL){
+      fprintf(stderr,"\t-> Potential issue, supplying both -bam and -nodes might not be meaningfull\n");
+      exit(1);
+    }
+    
+    //fprintf(stderr, "infile_names: %s infile_bdamage: %s nodes: %s lca_stat: %s infile_bam: %s showfits: %d nopt: %d outname: %s sigtype: %d nbootstrap: %d", infile_names, infile_bdamage, infile_nodes, infile_lcastat, infile_bam,showfits,nopt,outfile_name,sigtype,nbootstrap);
+    //fprintf(stderr, "#VERSION:%s\n", METADAMAGE_VERSION);
+    if(outfile_name==NULL)
+      outfile_name = strdup(infile_bdamage);
+    char buf[1024];
+    snprintf(buf, 1024, "%s.dfit.txt.gz", outfile_name);
+    fprintf(stderr, "\t-> Dumping file: \'%s\'\n", buf);
+    BGZF *fpfpfp = bgzf_open(buf, "wb");
+   
+
+    char bootbuf[1024];
+    BGZF *bootfp;
+    kstring_t *bootkstr = new kstring_t;
+    bootkstr->s = NULL; bootkstr->l = bootkstr->m = 0;
+    if(doboot>0){
+      snprintf(bootbuf, 1024, "%s.boot.stat.txt.gz", outfile_name);
+      bootfp = bgzf_open(bootbuf, "wb");    
+      ksprintf(bootkstr,"id\tA_b\tq_b\tc_b\tphi_b\n");
+    }
+
+    // map of taxid -> taxid
+    int2int parent;
+    // map of taxid -> rank
+    int2char rank;
+    // map of parent -> child taxids
+    int2intvec child;
+
+    if (infile_nodes != NULL)
+        parse_nodes(infile_nodes, rank, parent, child, 1);
+
+    std::map<int, mydataD> retmap = load_bdamage_full(infile_bdamage, howmany);
+    fprintf(stderr, "\t-> Number of entries in damage pattern file: %lu printlength(howmany):%d\n", retmap.size(), howmany);
+
+    int2char name_map;
+
+    if (infile_names)
+        name_map = parse_names(infile_names);
+
+    float presize = retmap.size();
+    if(child.size()>0)
+      getval_full(retmap, child, 1, howmany);  // this will do everything
+    float postsize = retmap.size();
+    fprintf(stderr, "\t-> pre: %f post:%f grownbyfactor: %f\n", presize, postsize, postsize / presize);
+
+    int libprep = 0;
+
+    if (lib_prep != NULL){
+      if(strcasecmp(lib_prep, "ds")==0){
+        libprep = 0;
+      }
+      else if(strcasecmp(lib_prep, "ss")==0){
+        libprep = 1;
+      }
+    }
+
+    //prepare matrix to be passed to optimization
+    kstring_t *kstr = new kstring_t;
+    kstr->s = NULL; kstr->l = kstr->m = 0;
+    fprintf(stderr,"\t-> Will do optimization of %lu different taxids/chromosomes/scaffolds\n",retmap.size());
+    make_dfit_header(kstr,showfits,nbootstrap,howmany);
+
+
+    {//loop over threads, for now we have no threads
+      kstring_t *kstr_block = new kstring_t;
+      kstr_block->s = NULL; kstr_block->l = kstr_block->m = 0;
+
+      kstring_t *bootkstr_block = new kstring_t;
+      bootkstr_block->s = NULL; bootkstr_block->l = bootkstr_block->m = 0;
+      slave_block(retmap,howmany,hdr,name_map,libprep,nopt,nbootstrap,CI,doCI,sigtype,seed,doboot,kstr_block,bootkstr_block,showfits);
+
+      ksprintf(kstr,"%s",kstr_block->s);
+      ksprintf(bootkstr,"%s",bootkstr_block->s);
     }
     
     if(bgzf_write(fpfpfp,kstr->s,kstr->l) == 0){
