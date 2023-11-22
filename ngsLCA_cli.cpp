@@ -229,6 +229,8 @@ pars *get_pars(int argc, char **argv) {
             p->discard = atoi(val);
         else if (!strcasecmp("--how_many", key))
             p->howmany = atoi(val);
+	 else if (!strcasecmp("--maxreads", key))
+            p->maxreads = atol(val);
         else if (!strcasecmp("--used_reads", key))
             make_used_reads = atoi(val);
         else if (!strcasecmp("--no_rank2species", key))
