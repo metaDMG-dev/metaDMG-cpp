@@ -431,8 +431,8 @@ void hts(gzFile fp, samFile *fp_in, int2int &i2i, int2int &parent, bam_hdr_t *hd
     int inc = 0;
     kstring_t *kstr = new kstring_t;
     kstr->s = NULL;kstr->l = kstr->m =0;
-    size_t nreads = 0;
-    while (sam_read1(fp_in, hdr, aln) >= 0){//&&(maxreads!=-1&&nreads<maxreads)) {
+    long nreads = 0;
+    while ((sam_read1(fp_in, hdr, aln) >= 0)&&(maxreads!=-1&&nreads<maxreads)) {
         if (bam_is_unmapped(aln)) {
             // fprintf(stderr,"skipping: %s unmapped \n",bam_get_qname(b));
             continue;
@@ -635,6 +635,7 @@ void hts(gzFile fp, samFile *fp_in, int2int &i2i, int2int &parent, bam_hdr_t *hd
             }
         }
     }
+    fprintf(stderr,"maxreads: %ld nreads: %ld\n",maxreads,nreads);
     dmg->bwrite(prefix, hdr);
 
     specs.clear();
