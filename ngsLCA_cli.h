@@ -40,6 +40,7 @@ typedef struct {
     char *tempfolder;
     int ignore_errors;
   int reallyDump;
+  long maxreads;
 } pars;
 
 pars *get_pars(int argc, char **argv);

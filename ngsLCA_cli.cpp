@@ -44,6 +44,7 @@ pars *pars_init() {
     p->tempfolder = strdup("");
     p->ignore_errors = 0;
     p->reallyDump = 0;
+    p->maxreads = -1;
     return p;
 }
 

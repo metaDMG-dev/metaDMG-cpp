@@ -411,8 +411,8 @@ std::vector<int> purge(std::vector<int> &taxids, std::vector<int> &editdist) {
     return tmpnewvec;
 }
 
-void hts(gzFile fp, samFile *fp_in, int2int &i2i, int2int &parent, bam_hdr_t *hdr, int2char &rank, int2char &name_map, int minmapq, int discard, int editMin, int editMax, double scoreLow, double scoreHigh, int minlength, int lca_rank, char *prefix, int howmany, samFile *fp_usedreads, int skipnorank, int2int &rank2level, int nthreads, int weighttype) {
-    fprintf(stderr, "[%s] \t-> editMin:%d editmMax:%d scoreLow:%f scoreHigh:%f minlength:%d discard: %d prefix: %s howmany: %d skipnorank: %d weighttype: %d\n", __FUNCTION__, editMin, editMax, scoreLow, scoreHigh, minlength, discard, prefix, howmany, skipnorank, weighttype);
+void hts(gzFile fp, samFile *fp_in, int2int &i2i, int2int &parent, bam_hdr_t *hdr, int2char &rank, int2char &name_map, int minmapq, int discard, int editMin, int editMax, double scoreLow, double scoreHigh, int minlength, int lca_rank, char *prefix, int howmany, samFile *fp_usedreads, int skipnorank, int2int &rank2level, int nthreads, int weighttype,long maxreads) {
+  fprintf(stderr, "[%s] \t-> editMin:%d editmMax:%d scoreLow:%f scoreHigh:%f minlength:%d discard: %d prefix: %s howmany: %d skipnorank: %d weighttype: %d maxreads: %ld\n", __FUNCTION__, editMin, editMax, scoreLow, scoreHigh, minlength, discard, prefix, howmany, skipnorank, weighttype,maxreads);
     assert(fp_in != NULL);
     damage *dmg = new damage(howmany, nthreads, 13);
     bam1_t *aln = bam_init1();  // initialize an alignment
@@ -431,7 +431,8 @@ void hts(gzFile fp, samFile *fp_in, int2int &i2i, int2int &parent, bam_hdr_t *hd
     int inc = 0;
     kstring_t *kstr = new kstring_t;
     kstr->s = NULL;kstr->l = kstr->m =0;
-    while (sam_read1(fp_in, hdr, aln) >= 0) {
+    size_t nreads = 0;
+    while (sam_read1(fp_in, hdr, aln) >= 0&&(maxreads!=-1&&nreads<maxreads)) {
         if (bam_is_unmapped(aln)) {
             // fprintf(stderr,"skipping: %s unmapped \n",bam_get_qname(b));
             continue;
@@ -470,7 +471,7 @@ void hts(gzFile fp, samFile *fp_in, int2int &i2i, int2int &parent, bam_hdr_t *hd
                 assert(size == myq->l);
                 if (editMin == -1 && editMax == -1)
                     taxids = purge(taxids, editdist);
-
+		nreads++;
                 lca = do_lca(taxids, parent);
                 //	fprintf(stderr,"myq->l: %d\n",myq->l);
                 if (lca != -1) {
@@ -592,6 +593,7 @@ void hts(gzFile fp, samFile *fp_in, int2int &i2i, int2int &parent, bam_hdr_t *hd
             taxids = purge(taxids, editdist);
 
         //  fprintf(stderr,"ntaxids: %lu\n",taxids.size());
+	nreads++;
         lca = do_lca(taxids, parent);
         //    fprintf(stderr,"myq->l: %d lca: %d \n",myq->l,lca);
         if (lca != -1) {
@@ -773,7 +775,7 @@ int main_lca(int argc, char **argv) {
             fprintf(stderr, "writing headers to %s", p->usedreads_sam);
     }
     gzprintf(p->fp1,"queryid\tseq\tlen\tnaln\tgc\tlca\ttaxa_path\n");
-    hts(p->fp1, p->hts, *i2i, parent, p->header, rank, name_map, p->minmapq, p->discard, p->editdistMin, p->editdistMax, p->simscoreLow, p->simscoreHigh, p->minlength, lca_rank, p->outnames, p->howmany, usedreads_sam, p->skipnorank, tax2level, p->nthreads, p->weighttype);
+    hts(p->fp1, p->hts, *i2i, parent, p->header, rank, name_map, p->minmapq, p->discard, p->editdistMin, p->editdistMax, p->simscoreLow, p->simscoreHigh, p->minlength, lca_rank, p->outnames, p->howmany, usedreads_sam, p->skipnorank, tax2level, p->nthreads, p->weighttype,p->maxreads);
 
     fprintf(stderr, "\t-> Number of species with reads that map uniquely: %lu\n", specWeight.size());
 
