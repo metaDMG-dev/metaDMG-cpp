@@ -35,10 +35,11 @@ int HelpPageAggregate(FILE *fp){
   fprintf(fp,"Aggregation of lca produced statistics (mean length, variance length, mean GC, variance GC) when transversing up the nodes of the tree structure\n");
 
   fprintf(stderr, "\t\t./metaDMG-cpp aggregate file.bdamage.gz --names file.gz --nodes trestructure.gz --lcastat file.stat --out filename\n");
-  fprintf(fp,"\n--help \t\t\t\t Print extended help page to see all options.\n\n");
-  fprintf(fp,"\n--names \t\t\t\t names.dmp.gz\n\n");
-  fprintf(fp,"\n--nodes \t\t\t\t nodes.dmp.gz\n\n");
-  fprintf(fp,"\n--lca \t\t\t\t lcaout.stat lca produced statistics\n\n");
+  fprintf(fp,"--help \t\t Print extended help page to see all options.\n");
+  fprintf(fp,"--names \t names.dmp.gz\n");
+  fprintf(fp,"--nodes \t nodes.dmp.gz\n");
+  fprintf(fp,"--lca \t\t lcaout.stat lca produced statistics\n");
+  fprintf(fp,"--out \t\t Suffix of outputname with the predetermined prefix (.aggregate.stat.txt.gz)\n");
 
   exit(1);
   return 0;
@@ -112,7 +113,7 @@ void aggr_stat2000(std::map<int, mydata2> &stats,int2int &parent){
 
 int main_aggregate(int argc, char **argv) {
     if (argc <= 1){
-      fprintf(stderr,"help\n");
+      HelpPageAggregate(stderr);
       return 0;
     }
     char *infile_bdamage = NULL;
@@ -123,8 +124,8 @@ int main_aggregate(int argc, char **argv) {
     int howmany;//this is the cycle
 
     while (*(++argv)) {
-        if (strcasecmp("-h", *argv) == 0)
-          fprintf(stderr,"help\n");
+        if (strcasecmp("-h", *argv) == 0 || strcasecmp("--help", *argv) == 0)
+            HelpPageAggregate(stderr);
         else if (strcasecmp("--names", *argv) == 0 || strcasecmp("-names", *argv) == 0)
             infile_names = strdup(*(++argv));
         else if (strcasecmp("--nodes", *argv) == 0 || strcasecmp("-nodes", *argv) == 0)

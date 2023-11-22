@@ -187,7 +187,6 @@ A simple help page is printed with
 While an extended and full helppage is printed with --help and shown below.
 
 ```
-	-> metaDMG version: v0.4-5-g6895f24 (htslib: 1.17-28-ge13611a9) build(Nov 15 2023 11:34:10)
 	-> ./metaDMG-cpp dfit --help 
 Extended helppage damage estimation using numerical optimization
 Estimates damage in either local, global or lca mode depending on the bdamage input format
@@ -263,7 +262,6 @@ lca mode: 	  damage estimated over the lca tree at different ranks
 --doCI: 			 Confidence interval type <0,1>
 	0: 				 Mean and Standard Deviation-Based CI Calculation
 	1: 				 Percentile CI Calculation
---showfits: 			 Verbose parameter, stored in the .dfit.txt.gz, default = 0
 
 ---------- Examples ----------
 	 Local mode binomial:
@@ -274,10 +272,21 @@ lca mode: 	  damage estimated over the lca tree at different ranks
  		 ./metaDMG-cpp dfit Pitch6getDMG.bdamage.gz --nbootstrap 2 --showfits 2
 	 Lca mode beta-binomial:
  		 ./metaDMG-cpp lca --names names.dmp --nodes nodes.dmp --acc2tax acc2taxid.map.gz --weight_type 1 --fix_ncbi 0 --bam Pitch6.bam --out Pitch6lcatest 
- 		 ./metaDMG-cpp dfit Pitch6lcatest.bdamage.gz --names names.dmp --nodes nodes.dmp --lcastat Pitch6lcatest.stat --showfits 0
+ 		 ./metaDMG-cpp dfit Pitch6lcatest.bdamage.gz --names names.dmp --nodes nodes.dmp --showfits 0
 
 ```
 # metaDMG aggregate  
 Aggregating the lca statistics when transversing throuh the tree structure, creating files with prefix .aggregate.stat.txt.gz
 
 `./metaDMG-cpp aggregate file.bdamage.gz --lcastat lca.stat --names names.dmp --nodes nodes.dmp --out file` 
+
+```
+	-> ./metaDMG-cpp aggregate -h 
+    Aggregation of lca produced statistics (mean length, variance length, mean GC, variance GC) when transversing up the nodes of the tree structure
+		./metaDMG-cpp aggregate file.bdamage.gz --names file.gz --nodes trestructure.gz --lcastat file.stat --out filename
+--help 		 Print extended help page to see all options.
+--names 	 names.dmp.gz
+--nodes 	 nodes.dmp.gz
+--lca 		 lcaout.stat lca produced statistics
+--out 		 Suffix of outputname with the predetermined prefix (.aggregate.stat.txt.gz)
+```
