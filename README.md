@@ -162,15 +162,20 @@ Options:
 # metaDMG dfit  
 Performing numerical optimization of the deamination frequencies based on the mismatch matrix (.bdamage.gz) to estimate four parameters: A,q,c,phi. Either applying a beta-binomial distribution or binomial distribution as the choice for likelihood model.
 
-A: Amplitute of damage on position one.
+A: Amplitude of damage on position one.
+
 q: Relative decrease of damage per position.
+
 c: Background noise, equivalent to sequencing errors.
+
 phi: signifies the uncertainty of beta-binomial model, with larger values indicating the probability of deamination is reduced to binomial distribution.
 
 The optimization can be performed in three modes, all of which depends on the input parameters and information stored within the .bdamage.gz file, 
 
-global: with one damage estimate for entire BAM file, 
-local: damage estimate for all chromosomes/contigs/scaffolds present in BAM header, 
+global: with one damage estimate for entire BAM file. 
+
+local: damage estimate for all chromosomes/contigs/scaffolds present in BAM header.
+
 lca: damage estimates of the nodes within the lca tree structure.
 
 `./metaDMG-cpp dfit file.bdamage.gz ` 
@@ -272,3 +277,7 @@ lca mode: 	  damage estimated over the lca tree at different ranks
  		 ./metaDMG-cpp dfit Pitch6lcatest.bdamage.gz --names names.dmp --nodes nodes.dmp --lcastat Pitch6lcatest.stat --showfits 0
 
 ```
+# metaDMG aggregate  
+Aggregating the lca statistics when transversing throuh the tree structure, creating files with prefix .aggregate.stat.txt.gz
+
+`./metaDMG-cpp aggregate file.bdamage.gz --lcastat lca.stat --names names.dmp --nodes nodes.dmp --out file` 
