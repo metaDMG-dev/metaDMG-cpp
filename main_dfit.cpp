@@ -35,6 +35,23 @@ static int compare (const void * a, const void * b)
   else return 0;  
 }
 
+typedef struct{
+  std::map<int, mydataD> *retmap;
+  int howmany;
+  sam_hdr_t *hdr;
+  int2char *name_map;
+  int libprep;
+  int nopt;
+  int nbootstrap;
+  double CI; int doCI;
+  int sigtype;
+  int seed;
+  int doboot;
+  kstring_t *kstr;
+  kstring_t *bootkstr;
+  int showfits;
+}ding;
+
 void make_bootstrap_data(double **in,double **out,int howmany,int seedval){
   srand48(seedval);
 
@@ -280,6 +297,14 @@ void make_dfit_header(kstring_t *kstr,int showfits,int nbootstrap,int howmany ){
       ksprintf(kstr,"\n");
     }
 
+}
+
+void slave_block(std::map<int, mydataD> &retmap,int howmany,sam_hdr_t *hdr,int2char &name_map,int libprep,int nopt,int nbootstrap,double CI, int doCI,int sigtype,int seed,int doboot,kstring_t *kstr,kstring_t *bootkstr,int showfits);
+
+void *slaveslave(void *ptr){
+  ding *dng = (ding *)ptr;
+  slave_block(*(dng->retmap),dng->howmany,dng->hdr,*dng->name_map,dng->libprep,dng->nopt,dng->nbootstrap,dng->CI,dng->doCI,dng->sigtype,dng->seed,dng->doboot,dng->kstr,dng->bootkstr,dng->showfits);//<-fill in the rest from the struct
+  return NULL;
 }
 
 void slave_block(std::map<int, mydataD> &retmap,int howmany,sam_hdr_t *hdr,int2char &name_map,int libprep,int nopt,int nbootstrap,double CI, int doCI,int sigtype,int seed,int doboot,kstring_t *kstr,kstring_t *bootkstr,int showfits){
@@ -620,7 +645,8 @@ int main_dfit(int argc, char **argv) {
     int sigtype = 1;
     int nbootstrap = 1;
     int doboot = 0;
-    int seed = time(NULL); 
+    int seed = time(NULL);
+    int nthreads = 1;
     double CI = 0.95;
     int doCI = 2;
 
@@ -655,6 +681,8 @@ int main_dfit(int argc, char **argv) {
           doCI = atoi(*(++argv));
         else if (strcasecmp("--lib", *argv) == 0)
             lib_prep = strdup(*(++argv));
+	else if (strcasecmp("--nthreads", *argv) == 0)
+            nthreads = atoi(*(++argv));
         else
           infile_bdamage = strdup(*argv);
     }
@@ -743,15 +771,61 @@ int main_dfit(int argc, char **argv) {
 
 
     {//loop over threads, for now we have no threads
-      kstring_t *kstr_block = new kstring_t;
-      kstr_block->s = NULL; kstr_block->l = kstr_block->m = 0;
+      if(nthreads==1){
+	kstring_t *kstr_block = new kstring_t;
+	kstr_block->s = NULL; kstr_block->l = kstr_block->m = 0;
+	
+	kstring_t *bootkstr_block = new kstring_t;
+	bootkstr_block->s = NULL; bootkstr_block->l = bootkstr_block->m = 0;
+	slave_block(retmap,howmany,hdr,name_map,libprep,nopt,nbootstrap,CI,doCI,sigtype,seed,doboot,kstr_block,bootkstr_block,showfits);
+	
+	ksprintf(kstr,"%s",kstr_block->s);
+	ksprintf(bootkstr,"%s",bootkstr_block->s);
+      }else{
+	std::map<int, mydataD> *ary = new std::map<int, mydataD>[nthreads];
+	int cnt = 0;
+	for (std::map<int, mydataD>::iterator it = retmap.begin(); it != retmap.end(); it++){
+	  ary[cnt % nthreads] [it->first] = it->second;
+	  cnt++;
+	}
+	
+	ding *dings = new ding[nthreads];
+	for(int i=0;i<nthreads;i++){
+	  
+	  dings[i].retmap = &(ary[i]);
+	  dings[i].howmany = howmany;
+	  dings[i].hdr = hdr;
+	  dings[i].name_map = &name_map;
+	  dings[i].libprep = libprep;
+	  dings[i].nopt = nopt;
+	  dings[i].nbootstrap = nbootstrap;
+	  dings[i].CI = CI;
+	  dings[i].doCI = doCI;
+	  dings[i].sigtype = sigtype;
+	  dings[i].seed = seed;
+	  dings[i].doboot = doboot;
 
-      kstring_t *bootkstr_block = new kstring_t;
-      bootkstr_block->s = NULL; bootkstr_block->l = bootkstr_block->m = 0;
-      slave_block(retmap,howmany,hdr,name_map,libprep,nopt,nbootstrap,CI,doCI,sigtype,seed,doboot,kstr_block,bootkstr_block,showfits);
+	  kstring_t *kstr = new kstring_t;
+	  kstr->s = NULL; kstr->l = kstr->m = 0;
+	  dings[i].kstr = kstr;
+	  kstring_t *bootkstr = new kstring_t;
+	  bootkstr->s = NULL; bootkstr->l = bootkstr->m = 0;
+	  dings[i].bootkstr = bootkstr;
+	  dings[i].showfits = showfits;
+	}
+	pthread_t mythreads[nthreads];
+	for(int i=0;i<nthreads;i++)
+	  pthread_create(&mythreads[i],NULL,slaveslave, &dings[i]);
+	
+	for(int i=0;i<nthreads;i++)
+	  pthread_join(mythreads[i],NULL);
+	  
+	for(int i=0;i<nthreads;i++){
+	    ksprintf(kstr,"%s",dings[i].kstr->s);
+	    ksprintf(bootkstr,"%s",dings[i].bootkstr->s);
+	  }
 
-      ksprintf(kstr,"%s",kstr_block->s);
-      ksprintf(bootkstr,"%s",bootkstr_block->s);
+      }
     }
     
     if(bgzf_write(fpfpfp,kstr->s,kstr->l) == 0){

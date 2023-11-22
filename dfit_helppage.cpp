@@ -30,6 +30,7 @@ int HelpPageSimple(FILE *fp){
   fprintf(fp,"--nopt \t\t\t\t Number of optimization calls (default: 10).\n");
   fprintf(fp,"--lib \t\t\t\t double stranded (ds) use C>T (forward) and G>A (reverse); single stranded (ss) use C>T for both forward and reverse (default ds)\n");
   fprintf(fp,"--nbootstrap: \t\t\t Number of bootstrap iterations, default = 0, i.e. optimization of beta-binomial model\n");
+  fprintf(fp,"--nthreads: \t\t\t Number of threads, default = 1, i.e. no threading\n");
 
   fprintf(stderr, "\n---------- Examples ----------\n");
   fprintf(stderr, "\t Local mode binomial:\n \t\t ./metaDMG-cpp getdamage Pitch6.bam -l 10 -p 15 -r 1 -o Pitch6getDMG\n \t\t ./metaDMG-cpp dfit Pitch6getDMG.bdamage.gz --showfits 1\n");
