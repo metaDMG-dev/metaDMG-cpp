@@ -1359,7 +1359,9 @@ int main(int argc, char **argv) {
         fprintf(stderr, "./metaDMG-cpp print2 [many options] bdamage.gz\n");
         fprintf(stderr, "./metaDMG-cpp print_all [many options] bdamage.gz\n");
         fprintf(stderr, "./metaDMG-cpp print_ugly [many options] bdamage.gz\n");
-	fprintf(stderr, "./metaDMG-cpp dfit [many options] bdamage.gz\n");
+	    fprintf(stderr, "./metaDMG-cpp dfit [many options] bdamage.gz\n");
+        fprintf(stderr, "./metaDMG-cpp aggregate [many options] bdamage.gz\n");
+
         return 0;
     }
     fprintf(stderr, "\t-> ");
