@@ -787,49 +787,48 @@ int main_dfit(int argc, char **argv) {
       delete bootkstr_block;
       }
       else{
-	std::map<int, mydataD> *ary = new std::map<int, mydataD>[nthreads];
-	int cnt = 0;
-	for (std::map<int, mydataD>::iterator it = retmap.begin(); it != retmap.end(); it++){
-	  ary[cnt % nthreads] [it->first] = it->second;
-	  cnt++;
-	}
+        std::map<int, mydataD> *ary = new std::map<int, mydataD>[nthreads];
+        int cnt = 0;
+        for (std::map<int, mydataD>::iterator it = retmap.begin(); it != retmap.end(); it++){
+          ary[cnt % nthreads] [it->first] = it->second;
+          cnt++;
+        }
 	
-	ding *dings = new ding[nthreads];
-	for(int i=0;i<nthreads;i++){
-	  
-	  dings[i].retmap = &(ary[i]);
-	  dings[i].howmany = howmany;
-	  dings[i].hdr = hdr;
-	  dings[i].name_map = &name_map;
-	  dings[i].libprep = libprep;
-	  dings[i].nopt = nopt;
-	  dings[i].nbootstrap = nbootstrap;
-	  dings[i].CI = CI;
-	  dings[i].doCI = doCI;
-	  dings[i].sigtype = sigtype;
-	  dings[i].seed = seed;
-	  dings[i].doboot = doboot;
+	      ding *dings = new ding[nthreads];
+        for(int i=0;i<nthreads;i++){
+          dings[i].retmap = &(ary[i]);
+          dings[i].howmany = howmany;
+          dings[i].hdr = hdr;
+          dings[i].name_map = &name_map;
+          dings[i].libprep = libprep;
+          dings[i].nopt = nopt;
+          dings[i].nbootstrap = nbootstrap;
+          dings[i].CI = CI;
+          dings[i].doCI = doCI;
+          dings[i].sigtype = sigtype;
+          dings[i].seed = (seed+i)*100;
+          dings[i].doboot = doboot;
+          //fprintf(stderr,"INITIATED THREAD WHAT %d WITH SEED VALUE WHAT %d WITH SPECIFIC SEED %d \n",i,seed,dings[i].seed);
 
-	  kstring_t *kstr = new kstring_t;
-	  kstr->s = NULL; kstr->l = kstr->m = 0;
-	  dings[i].kstr = kstr;
-	  kstring_t *bootkstr = new kstring_t;
-	  bootkstr->s = NULL; bootkstr->l = bootkstr->m = 0;
-	  dings[i].bootkstr = bootkstr;
-	  dings[i].showfits = showfits;
-	}
-	pthread_t mythreads[nthreads];
-	for(int i=0;i<nthreads;i++)
-	  pthread_create(&mythreads[i],NULL,slaveslave, &dings[i]);
-	
-	for(int i=0;i<nthreads;i++)
-	  pthread_join(mythreads[i],NULL);
-	  
-	for(int i=0;i<nthreads;i++){
-	    ksprintf(kstr,"%s",dings[i].kstr->s);
-	    ksprintf(bootkstr,"%s",dings[i].bootkstr->s);
-	  }
-
+          kstring_t *kstr = new kstring_t;
+          kstr->s = NULL; kstr->l = kstr->m = 0;
+          dings[i].kstr = kstr;
+          kstring_t *bootkstr = new kstring_t;
+          bootkstr->s = NULL; bootkstr->l = bootkstr->m = 0;
+          dings[i].bootkstr = bootkstr;
+          dings[i].showfits = showfits;
+        }
+        pthread_t mythreads[nthreads];
+        for(int i=0;i<nthreads;i++)
+          pthread_create(&mythreads[i],NULL,slaveslave, &dings[i]);
+        
+        for(int i=0;i<nthreads;i++)
+          pthread_join(mythreads[i],NULL);
+          
+        for(int i=0;i<nthreads;i++){
+          ksprintf(kstr,"%s",dings[i].kstr->s);
+          ksprintf(bootkstr,"%s",dings[i].bootkstr->s);
+        }
       }
     }
     
