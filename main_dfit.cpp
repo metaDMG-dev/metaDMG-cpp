@@ -24,6 +24,7 @@
 #include "dfit_optim.h"
 #include "pval.h"
 #include "dfit_helppage.h"
+#include "mrand.h"
 
 extern htsFormat *dingding2;
 
@@ -46,14 +47,14 @@ typedef struct{
   double CI; int doCI;
   int sigtype;
   int seed;
+  int rng_type;
   int doboot;
   kstring_t *kstr;
   kstring_t *bootkstr;
   int showfits;
 }ding;
 
-void make_bootstrap_data(double **in,double **out,int howmany,int seedval){
-  srand48(seedval);
+void make_bootstrap_data(double **in,double **out,int howmany,mrand_t *rand_alloc){
 
   double *xcol_in = in[0];
   double *kvec_in = in[1];
@@ -71,7 +72,7 @@ void make_bootstrap_data(double **in,double **out,int howmany,int seedval){
     kvec_out[p] = nvec_out[p] = 0;
     for(int i =0;i<(int)nvec_in[p];i++){
       nvec_out[p] +=1;
-      if(drand48()<prob)
+      if(mrand_pop(rand_alloc)<prob)
 	      kvec_out[p] +=1;
     }
     //   fprintf(stderr,"k: %f n: %f\n",kvec_out[p],nvec_out[p]);
@@ -133,8 +134,7 @@ void make_dfit_format(mydataD &md,double **dat,int howmany,int libprep){
   |dat[2]| = 2*howmany; nvec
   |dat[3]| = 2*howmany; freq(k) = kvec/nvec
  */
-void make_dfit_format_bootstrap(mydataD &md,double **dat,int howmany,int seed){
-  srand48(seed);
+void make_dfit_format_bootstrap(mydataD &md,double **dat,int howmany,mrand_t *rand_alloc){
   dat[0][0] = 2*howmany;
   dat[0][1] = 0;
 
@@ -153,8 +153,8 @@ void make_dfit_format_bootstrap(mydataD &md,double **dat,int howmany,int seed){
     dat[2][i] = 0;//initialize kcol to zero, a few lines down we will sum over all C*
 
     for(int f=0;f<tsum[0]+tsum[1]+tsum[2]+tsum[3];f++){
-      if(drand48()<prob1){//if reference is c
-        if(drand48()<prob2)//if observertion is t
+      if(mrand_pop(rand_alloc)<prob1){//if reference is c
+        if(mrand_pop(rand_alloc)<prob2)//if observertion is t
           dat[1][i] += 1;
 	
 	      dat[2][i] += 1;//we are at ref=c, so increment the nvec
@@ -177,8 +177,8 @@ void make_dfit_format_bootstrap(mydataD &md,double **dat,int howmany,int seed){
     double prob2 =((double) md.bwD[i*16+8])/tsum[2];//ga over sum of g*
     dat[2][howmany+i] = 0;//initialize kcol to zero, a few lines dows we will sum over all G*
     for(int f=0;f<tsum[0]+tsum[1]+tsum[2]+tsum[3];f++){
-      if(drand48()<prob1){//if reference is g
-        if(drand48()<prob2)//if observertion is a
+      if(mrand_pop(rand_alloc)<prob1){//if reference is g
+        if(mrand_pop(rand_alloc)<prob2)//if observertion is a
           dat[1][howmany+i] += 1;
         
         dat[2][howmany+i] += 1;//we are at ref=g, so increment the nvec
@@ -193,7 +193,6 @@ void make_dfit_format_bootstrap(mydataD &md,double **dat,int howmany,int seed){
 void make_dfit_format_bootstrap2(mydataD &md,double **dat,int howmany,int seed){
   static std::random_device rd;
   static std::mt19937 gen(rd());
-
   
   srand48(seed);
   dat[0][0] = 2*howmany;
@@ -299,16 +298,16 @@ void make_dfit_header(kstring_t *kstr,int showfits,int nbootstrap,int howmany ){
   }
 }
 
-void slave_block(std::map<int, mydataD> &retmap,int howmany,sam_hdr_t *hdr,int2char &name_map,int libprep,int nopt,int nbootstrap,double CI, int doCI,int sigtype,int seed,int doboot,kstring_t *kstr,kstring_t *bootkstr,int showfits);
+void slave_block(std::map<int, mydataD> &retmap,int howmany,sam_hdr_t *hdr,int2char &name_map,int libprep,int nopt,int nbootstrap,double CI, int doCI,int sigtype,int seed,int rng_type,int doboot,kstring_t *kstr,kstring_t *bootkstr,int showfits);
 
 void *slaveslave(void *ptr){
   ding *dng = (ding *)ptr;
-  slave_block(*(dng->retmap),dng->howmany,dng->hdr,*dng->name_map,dng->libprep,dng->nopt,dng->nbootstrap,dng->CI,dng->doCI,dng->sigtype,dng->seed,dng->doboot,dng->kstr,dng->bootkstr,dng->showfits);//<-fill in the rest from the struct
+  slave_block(*(dng->retmap),dng->howmany,dng->hdr,*dng->name_map,dng->libprep,dng->nopt,dng->nbootstrap,dng->CI,dng->doCI,dng->sigtype,dng->seed,dng->rng_type,dng->doboot,dng->kstr,dng->bootkstr,dng->showfits);//<-fill in the rest from the struct
   return NULL;
 }
 
-void slave_block(std::map<int, mydataD> &retmap,int howmany,sam_hdr_t *hdr,int2char &name_map,int libprep,int nopt,int nbootstrap,double CI, int doCI,int sigtype,int seed,int doboot,kstring_t *kstr,kstring_t *bootkstr,int showfits){
-  
+void slave_block(std::map<int, mydataD> &retmap,int howmany,sam_hdr_t *hdr,int2char &name_map,int libprep,int nopt,int nbootstrap,double CI, int doCI,int sigtype,int seed,int rng_type,int doboot,kstring_t *kstr,kstring_t *bootkstr,int showfits){
+  mrand_t *rand_alloc = mrand_alloc(rng_type,seed);
   int npars = 4;
 
   double **dat = new double*[npars];
@@ -342,7 +341,7 @@ void slave_block(std::map<int, mydataD> &retmap,int howmany,sam_hdr_t *hdr,int2c
     make_dfit_format(md,dat,howmany,libprep);
     //fprintf(stderr,"after make_dfit_format\n");
     double pars[6] = {0.1,0.1,0.01,1000};//last one will contain the llh,and the ncall for the objective function
-    optimoptim(pars,dat,nopt);
+    optimoptim(pars,dat,nopt,rand_alloc);
       
     double pars_b[6] = {0.1,0.1,0.01,1000};//last one will contain the llh,and the ncall for the objective function
     
@@ -383,15 +382,21 @@ void slave_block(std::map<int, mydataD> &retmap,int howmany,sam_hdr_t *hdr,int2c
 	
       //fprintf(stdout,"Bootstrap estimates\n");
       for(int b=0;b<nbootstrap;b++){
-        if(sigtype==2)
-          make_dfit_format_bootstrap(md,bootdata,howmany,(seed+b));//<-this makes a new dat that has been resampled
-        if(sigtype==3)
-          make_dfit_format_bootstrap2(md,bootdata,howmany,(seed+b));//<-this makes a new dat that has been resampled
-        else if(sigtype==1)
-          make_bootstrap_data(dat,bootdata,howmany,(int)(seed+b));
+        if(sigtype==1){
+          mrand_t *rand_alloc_boot = mrand_alloc(rng_type,seed+b);
+          make_bootstrap_data(dat,bootdata,howmany,rand_alloc_boot); //(int)(seed+b)
+        }
+        else if(sigtype==2){
+          mrand_t *rand_alloc_boot = mrand_alloc(rng_type,seed+b);
+          make_dfit_format_bootstrap(md,bootdata,howmany,rand_alloc_boot);//<-this makes a new dat that has been resampled
+        }
+        else if(sigtype==3){
+          make_dfit_format_bootstrap2(md,bootdata,howmany,(int)(seed+b));//<-this makes a new dat that has been resampled
+        }
         
         pars_b[0] = 0.1;pars_b[1]=0.1,pars_b[2]=0.01,pars_b[3]=1000,pars_b[4]=0,pars_b[5]=0;
-        optimoptim(pars_b,bootdata,nopt);
+        optimoptim(pars_b,bootdata,nopt,rand_alloc);
+
         for(int ii=0;ii<npars;ii++){
           bootcidata[b][ii] = pars_b[ii];
         }
@@ -648,7 +653,7 @@ int main_dfit(int argc, char **argv) {
     int nthreads = 1;
     double CI = 0.95;
     int doCI = 2;
-
+    int rng_type = -1;
     while (*(++argv)) {
         if (strcasecmp("-h", *argv) == 0)
           HelpPageSimple(stderr);
@@ -674,6 +679,9 @@ int main_dfit(int argc, char **argv) {
           doboot = atoi(*(++argv));
         else if (strcasecmp("--seed", *argv) == 0)
           seed = atoi(*(++argv));
+        else if(strcasecmp("-rng",*argv)==0 || strcasecmp("--rand",*argv)==0){
+          rng_type = atoi(*(++argv));
+        }
         else if (strcasecmp("--CI", *argv) == 0)
           CI = atof(*(++argv));
         else if (strcasecmp("--doCI", *argv) == 0)
@@ -689,6 +697,20 @@ int main_dfit(int argc, char **argv) {
       fprintf(stderr,"\t-> -names file.txt.gz must be defined with -nodes is defined\n");
       exit(1);
     }
+
+    // pseudo random number generator specific to OS.
+    if (rng_type == -1){
+      #if defined(__linux__) || defined(__unix__)
+        rng_type = 0;
+      #elif defined(__APPLE__) || defined(__MACH__)
+        rng_type = 3;
+        //when 0 it will have problems with drand48 reentrant, will default to erand48 (MacroRandType 3)
+      #else
+      #   error "Unknown compiler"
+      #endif
+    }
+
+
     clock_t t = clock();
     struct timeval start_time, end_time;
     gettimeofday(&start_time, NULL);
@@ -776,7 +798,7 @@ int main_dfit(int argc, char **argv) {
       
       kstring_t *bootkstr_block = new kstring_t;
       bootkstr_block->s = NULL; bootkstr_block->l = bootkstr_block->m = 0;
-      slave_block(retmap,howmany,hdr,name_map,libprep,nopt,nbootstrap,CI,doCI,sigtype,seed,doboot,kstr_block,bootkstr_block,showfits);
+      slave_block(retmap,howmany,hdr,name_map,libprep,nopt,nbootstrap,CI,doCI,sigtype,seed,rng_type,doboot,kstr_block,bootkstr_block,showfits);
       
       ksprintf(kstr,"%s",kstr_block->s);
       ksprintf(bootkstr,"%s",bootkstr_block->s);
@@ -807,8 +829,10 @@ int main_dfit(int argc, char **argv) {
           dings[i].doCI = doCI;
           dings[i].sigtype = sigtype;
           dings[i].seed = (seed+i)*100;
+          dings[i].rng_type = rng_type;
           dings[i].doboot = doboot;
-          //fprintf(stderr,"INITIATED THREAD WHAT %d WITH SEED VALUE WHAT %d WITH SPECIFIC SEED %d \n",i,seed,dings[i].seed);
+          fprintf(stderr, "\t-> Initiating thread %d with thread specific seed %d inferred from global seed %d with pseudo-random number generator type  %d\n",i,dings[i].seed/100,seed,rng_type);
+          //fprintf(stderr,"INITIATED THREAD WHAT %d WITH SEED VALUE WHAT %d WITH SPECIFIC SEED %d and seedtype %d \n",i,seed,dings[i].seed,rng_type);
 
           kstring_t *kstr = new kstring_t;
           kstr->s = NULL; kstr->l = kstr->m = 0;

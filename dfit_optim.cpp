@@ -7,6 +7,7 @@
 #include <iostream>
 #include "dfit_optim.h"
 #include "bfgs.h"
+#include "mrand.h"
 
 double **read1_ugly_matrix(const char *fname){
   fprintf(stderr,"\t-> Reading file: \'%s\'\n",fname);
@@ -126,14 +127,16 @@ double optim1(double *invec,double **dat){
   return lik;
 }
 
-double optimoptim(double *invec,double **dat,int nopt){
+double optimoptim(double *invec,double **dat,int nopt,mrand_t *rand_alloc){
+  //mrand_t *rand_alloc = mrand_alloc(rng_type,loc_seedval);
+
   double llhs=optim1(invec,dat);
   double pars[6];
   for(int i=0;i<nopt;i++){
-    pars[0] = drand48()*0.8+0.1;
-    pars[1] = drand48();
-    pars[2] = drand48()*0.1+0.01;
-    pars[3] = drand48()*10;
+    pars[0] = mrand_pop(rand_alloc)*0.8+0.1;
+    pars[1] = mrand_pop(rand_alloc);
+    pars[2] = mrand_pop(rand_alloc)*0.1+0.01;
+    pars[3] = mrand_pop(rand_alloc)*10;
     
     double lik = optim1(pars,dat);
     if(lik>llhs){

@@ -63,6 +63,12 @@ int HelpPage(FILE *fp){
   fprintf(fp,"\n--lib \t\t\t\t double stranded (ds) use C>T (forward) and G>A (reverse); single stranded (ss) use C>T for both forward and reverse (default ds)\n");
   fprintf(fp,"\n--nbootstrap \t\t\t number of bootstrap iterations. default: 1 -> use Beta-binomial model, -nbootstrap >1 use Binomial model ");
   fprintf(fp,"\n--bam \t\t\t\t In local mode - convert the internal id numbering from bdamage.gz to the reference in the bam header\n");
+  fprintf(fp,"\n-rng | --rand: \t\t\t Pseudo-random number generator, OS specific\n");
+  fprintf(fp,"\t\t <0,1,2,3> \n"); 
+  fprintf(fp,"\t\t 0 :  \t\t\t drand48_r, default for linux or unix, not available for MacOS.\n"); 
+  fprintf(fp,"\t\t 1 :  \t\t\t std::uniform_int_distribution\n"); 
+  fprintf(fp,"\t\t 2 :  \t\t\t rand_r\n"); 
+  fprintf(fp,"\t\t 3 :  \t\t\t erand48, default for MacOS.\n"); 
 
   fprintf(fp,"\n\n---- Optimization model specific ---- \n");
   fprintf(stderr, "\n\n------  Beta-binomial model ------\n\n");
