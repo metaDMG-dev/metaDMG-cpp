@@ -58,7 +58,7 @@ if [[ $? -ne 0 ]]; then
     RVAL=$((32+RVAL))
 fi
 
-echo "Running dfit local"
+echo "Running dfit local (single threaded)"
 CMD="${PRG} dfit output/test_lca.bdamage.gz --names data/names.dmp.gz --nodes data/nodes.dmp.gz --showfits 2 --nopt 2 --nbootstrap 2 --seed 12345 --lib ds --out output/test_dfit_local"
 ${CMD} >> ${LOG} 2>&1
 if [[ $? -ne 0 ]]; then
@@ -67,6 +67,16 @@ if [[ $? -ne 0 ]]; then
 fi
 # Remove 'ncall' column and round values, since it fails on GitHub tests
 zcat output/test_dfit_local.dfit.txt.gz | cut -f 1-6,8- | head -n 10 | numfmt -d $'\t' --header --format='%.2f' --field=2- --invalid=ignore > output/test_dfit_local.dfit.fix
+
+echo "Running dfit local (10 threaded)"
+CMD="${PRG} dfit output/test_lca.bdamage.gz --nthreads 10 --names data/names.dmp.gz --nodes data/nodes.dmp.gz --showfits 2 --nopt 2 --nbootstrap 2 --seed 12345 --lib ds --out output/test_dfit_local_10threads"
+${CMD} >> ${LOG} 2>&1
+if [[ $? -ne 0 ]]; then
+    echo "Problem running command: ${CMD}"
+    RVAL=$((64+RVAL))
+fi
+# Remove 'ncall' column and round values, since it fails on GitHub tests
+zcat output/test_dfit_local_10threads.dfit.txt.gz | cut -f 1-6,8- | head -n 10 | numfmt -d $'\t' --header --format='%.2f' --field=2- --invalid=ignore | sort -r > output/test_dfit_local_10threads.dfit.fix
 
 echo "Running dfit global"
 CMD="${PRG} dfit output/test_getdamage_global.bdamage.gz --showfits 2 --seed 12345 --lib ds --out output/test_dfit_global"
