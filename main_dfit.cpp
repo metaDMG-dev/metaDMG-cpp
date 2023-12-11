@@ -252,10 +252,10 @@ void make_dfit_header(kstring_t *kstr,int showfits,int nbootstrap,int howmany ){
     //fprintf(stderr,"INSIDE THE FIRST SHOWFITS loop 0 \n");
     // Without bootstrap
     if(nbootstrap < 2){
-      ksprintf(kstr,"id\tA\tq\tc\tphi\tllh\tncall\tsigmaD\tZfit\n");
+      ksprintf(kstr,"taxid\tA\tq\tc\tphi\tllh\tncall\tsigmaD\tZfit\n");
     }
     else{
-      ksprintf(kstr,"id\tA\tq\tc\tphi\tllh\tncall\tsigmaD\tZfit\tA_b\tq_b\tc_b\tphi_b\tA_CI_l\tA_CI_h\tq_CI_l\tq_CI_h\tc_CI_l\tc_CI_h\tphi_CI_l\tphi_CI_h\n");
+      ksprintf(kstr,"taxid\tA\tq\tc\tphi\tllh\tncall\tsigmaD\tZfit\tA_b\tq_b\tc_b\tphi_b\tA_CI_l\tA_CI_h\tq_CI_l\tq_CI_h\tc_CI_l\tc_CI_h\tphi_CI_l\tphi_CI_h\n");
     }
   }
   else if(showfits==1){
@@ -263,10 +263,10 @@ void make_dfit_header(kstring_t *kstr,int showfits,int nbootstrap,int howmany ){
     // With bootstrap
       
     if(nbootstrap < 2){
-      ksprintf(kstr,"id\tA\tq\tc\tphi\tllh\tncall\tsigmaD\tZfit");
+      ksprintf(kstr,"taxid\tA\tq\tc\tphi\tllh\tncall\tsigmaD\tZfit");
     }
     else{
-      ksprintf(kstr,"id\tA\tq\tc\tphi\tllh\tncall\tsigmaD\tZfit\tA_b\tq_b\tc_b\tphi_b\tA_CI_l\tA_CI_h\tq_CI_l\tq_CI_h\tc_CI_l\tc_CI_h\tphi_CI_l\tphi_CI_h");
+      ksprintf(kstr,"taxid\tA\tq\tc\tphi\tllh\tncall\tsigmaD\tZfit\tA_b\tq_b\tc_b\tphi_b\tA_CI_l\tA_CI_h\tq_CI_l\tq_CI_h\tc_CI_l\tc_CI_h\tphi_CI_l\tphi_CI_h");
     }
     // And fwd + bwd dx and Conf information
     for(int i=0;i<howmany;i++){
@@ -282,10 +282,10 @@ void make_dfit_header(kstring_t *kstr,int showfits,int nbootstrap,int howmany ){
     //fprintf(stderr,"INSIDE THE FIRST SHOWFITS loop 2 \n");
     // With bootstrap
     if(nbootstrap < 2){
-      ksprintf(kstr,"id\tA\tq\tc\tphi\tllh\tncall\tsigmaD\tZfit");
+      ksprintf(kstr,"taxid\tA\tq\tc\tphi\tllh\tncall\tsigmaD\tZfit");
     }
     else{
-      ksprintf(kstr,"id\tA\tq\tc\tphi\tllh\tncall\tsigmaD\tZfit\tA_b\tq_b\tc_b\tphi_b\tA_CI_l\tA_CI_h\tq_CI_l\tq_CI_h\tc_CI_l\tc_CI_h\tphi_CI_l\tphi_CI_h");
+      ksprintf(kstr,"taxid\tA\tq\tc\tphi\tllh\tncall\tsigmaD\tZfit\tA_b\tq_b\tc_b\tphi_b\tA_CI_l\tA_CI_h\tq_CI_l\tq_CI_h\tc_CI_l\tc_CI_h\tphi_CI_l\tphi_CI_h");
     }
     // And fwd + bwd k, N, dx, f and Conf information
     for(int i=0;i<howmany;i++){
@@ -326,16 +326,7 @@ void slave_block(std::map<int, mydataD> &retmap,int howmany,sam_hdr_t *hdr,int2c
       ksprintf(kstr, "%s\t", sam_hdr_tid2name(hdr, it->first));
     }
     else{
-      if(name_map.size()==0)
       ksprintf(kstr,"%d\t",it->first);
-          else{
-      int2char::iterator nit = name_map.find(it->first);
-      if(nit==name_map.end()){
-        fprintf(stderr,"\t-> Problem finding taxid: %d \n",it->first);
-          exit(1);
-        }
-        ksprintf(kstr,"%d:%s\t",it->first,nit->second);
-      }
     }
     
     make_dfit_format(md,dat,howmany,libprep);
@@ -746,7 +737,7 @@ int main_dfit(int argc, char **argv) {
     if(doboot>0){
       snprintf(bootbuf, 1024, "%s.boot.stat.txt.gz", outfile_name);
       bootfp = bgzf_open(bootbuf, "wb");    
-      ksprintf(bootkstr,"id\tA_b\tq_b\tc_b\tphi_b\n");
+      ksprintf(bootkstr,"taxid\tA_b\tq_b\tc_b\tphi_b\n");
     }
 
     // map of taxid -> taxid
