@@ -150,7 +150,7 @@ int main_aggregate(int argc, char **argv) {
     BGZF *fpfpfp = bgzf_open(buf, "wb");
     kstring_t *kstr = new kstring_t;
     kstr->s = NULL; kstr->l = kstr->m = 0;
-    ksprintf(kstr, "#taxid\tname\trank\tnalign\tnreads\tmean_rlen\tvar_rlen\tmean_gc\tvar_gc\tlca\ttaxa_path\n");
+    ksprintf(kstr, "taxid\tname\trank\tnalign\tnreads\tmean_rlen\tvar_rlen\tmean_gc\tvar_gc\tlca\ttaxa_path\n");
 
     // map of taxid -> taxid
     int2int parent;

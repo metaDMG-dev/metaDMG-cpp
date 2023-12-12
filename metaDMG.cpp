@@ -443,11 +443,11 @@ int main_print(int argc, char **argv) {
 
     if (ctga == 0) {
         if (hdr != NULL)
-            fprintf(stdout, "#Reference\tNalignments\tDirection\tPos\tAA\tAC\tAG\tAT\tCA\tCC\tCG\tCT\tGA\tGC\tGG\tGT\tTA\tTC\tTG\tTT\n");
+            fprintf(stdout, "Reference\tNalignments\tDirection\tPos\tAA\tAC\tAG\tAT\tCA\tCC\tCG\tCT\tGA\tGC\tGG\tGT\tTA\tTC\tTG\tTT\n");
         else if (infile_names != NULL)
-            fprintf(stdout, "#FunkyName\tNalignments\tDirection\tPos\tAA\tAC\tAG\tAT\tCA\tCC\tCG\tCT\tGA\tGC\tGG\tGT\tTA\tTC\tTG\tTT\n");
+            fprintf(stdout, "FunkyName\tNalignments\tDirection\tPos\tAA\tAC\tAG\tAT\tCA\tCC\tCG\tCT\tGA\tGC\tGG\tGT\tTA\tTC\tTG\tTT\n");
         else
-            fprintf(stdout, "#taxid\tNalignments\tDirection\tPos\tAA\tAC\tAG\tAT\tCA\tCC\tCG\tCT\tGA\tGC\tGG\tGT\tTA\tTC\tTG\tTT\n");
+            fprintf(stdout, "taxid\tNalignments\tDirection\tPos\tAA\tAC\tAG\tAT\tCA\tCC\tCG\tCT\tGA\tGC\tGG\tGT\tTA\tTC\tTG\tTT\n");
     } else {
     }
 
@@ -680,11 +680,11 @@ int main_print2(int argc, char **argv) {
     int ref_nreads[2];
     char *type_name = NULL;
     if (hdr != NULL)
-        type_name = strdup("#Reference");
+        type_name = strdup("Reference");
     else if (acc2tax != NULL)
-        type_name = strdup("#FunkyName");
+        type_name = strdup("FunkyName");
     else
-        type_name = strdup("#taxid");
+        type_name = strdup("taxid");
 
     if (ctga == 0) {
         fprintf(stdout, "%s\tNalignments\tDirection\tPos\tAA\tAC\tAG\tAT\tCA\tCC\tCG\tCT\tGA\tGC\tGG\tGT\tTA\tTC\tTG\tTT\n", type_name);
@@ -1200,7 +1200,7 @@ int main_print_ugly(int argc, char **argv) {
     snprintf(buf, 1024, "%s.uglyprint.mismatch.gz", out_prefix);
     fprintf(stderr, "\t-> Dumping file: \'%s\'\n", buf);
     gzFile fpfpfp = gzopen(buf, "wb");
-    gzprintf(fpfpfp, "#taxidStr\tdirection\tposition\tAA\tAC\tAG\tAT\tCA\tCC\tCG\tCT\tGA\tGC\tGG\tGT\tTA\tTC\tTG\tTT\n");
+    gzprintf(fpfpfp, "taxidStr\tdirection\tposition\tAA\tAC\tAG\tAT\tCA\tCC\tCG\tCT\tGA\tGC\tGG\tGT\tTA\tTC\tTG\tTT\n");
     // map of taxid -> taxid
     int2int parent;
     // map of taxid -> rank
@@ -1269,7 +1269,7 @@ int main_print_ugly(int argc, char **argv) {
     snprintf(buf, 1024, "%s.uglyprint.stat.gz", out_prefix);
     fprintf(stderr, "\t-> Dumping file: \'%s\'\n", buf);
     fpfpfp = gzopen(buf, "wb");
-    gzprintf(fpfpfp, "#taxid\tname\trank\tnalign\tnreads\tmean_rlen\tvar_rlen\tmean_gc\tvar_gc\tlca\ttaxa_path\n");
+    gzprintf(fpfpfp, "taxid\tname\trank\tnalign\tnreads\tmean_rlen\tvar_rlen\tmean_gc\tvar_gc\tlca\ttaxa_path\n");
     std::map<int, mydata2> stats;
     if (infile_lcastat)
         stats = load_lcastat(infile_lcastat,1);
