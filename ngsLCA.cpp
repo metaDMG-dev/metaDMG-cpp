@@ -790,17 +790,17 @@ int main_lca(int argc, char **argv) {
 #endif
     // p->header points to bam_hdr_t what is expected here?
     for (int2int::iterator it = specWeight.begin(); 0 && it != specWeight.end(); it++)
-      fprintf(p->fp2, "%d\t%s\t%d\n", it->first, name_map[it->first], it->second);
+      gzprintf(p->fp2, "%d\t%s\t%d\n", it->first, name_map[it->first], it->second);
 
     fprintf(stderr, "\t-> [ALL done] walltime used =  %.2f sec\n", (float)(time(NULL) - t2));
 
     if (usedreads_sam != NULL)
         sam_close(usedreads_sam);
     if (p->fp_lcadist) {
-        fprintf(p->fp_lcadist,"taxid\tnreads\tmea_len\tvar_len\tmean_gc\tvar_gc\tlca\trank\n");
+        gzprintf(p->fp_lcadist,"taxid\tnreads\tmea_len\tvar_len\tmean_gc\tvar_gc\tlca\trank\n");
         for (std::map<int, lcatriplet>::iterator it = lcastat.begin(); it != lcastat.end(); it++) {
             lcatriplet tmp = it->second;
-            fprintf(p->fp_lcadist, "%d\t%d\t%f\t%f\t%f\t%f", it->first, tmp.nalignments, mean(tmp.readlengths), var(tmp.readlengths), mean(tmp.gccontents), var(tmp.gccontents));
+            gzprintf(p->fp_lcadist, "%d\t%d\t%f\t%f\t%f\t%f", it->first, tmp.nalignments, mean(tmp.readlengths), var(tmp.readlengths), mean(tmp.gccontents), var(tmp.gccontents));
             int2char::iterator it1 = name_map.find(it->first);
             int2char::iterator it2 = rank.find(it->first);
             char *namnam, *rankrank;
@@ -809,10 +809,10 @@ int main_lca(int argc, char **argv) {
                 namnam = it1->second;
             if (it2 != rank.end())
                 rankrank = it2->second;
-            fprintf(p->fp_lcadist, "\t\"%s\"\t\"%s\"\n", namnam, rankrank);
+            gzprintf(p->fp_lcadist, "\t\"%s\"\t\"%s\"\n", namnam, rankrank);
         }
     }
-    fclose(p->fp_lcadist);
+
     for (int2char::iterator it = name_map.begin(); it != name_map.end(); it++)
         free(it->second);
     for (int2char::iterator it = rank.begin(); it != rank.end(); it++)

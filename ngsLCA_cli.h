@@ -23,8 +23,8 @@ typedef struct {
     int skipnorank;
     char *outnames;
     gzFile fp1;
-    FILE *fp_lcadist;
-    FILE *fp2;
+    gzFile fp_lcadist;
+    gzFile fp2;
   //    FILE *fp3; //this is the logfile that fgv thinkgs sholld be removed
     int minmapq;
     int discard;  // or bitoperation with the flag of the read

@@ -26,8 +26,7 @@ pars *pars_init() {
     p->editdistMax = 10;
     p->simscoreLow = 0;
     p->simscoreHigh = 1;
-    p->fp1 = Z_NULL;
-    p->fp2 = p->fp_lcadist = NULL;
+    p->fp1 = p->fp2 = p->fp_lcadist = Z_NULL;
     p->outnames = strdup("outnames");
     p->minmapq = 0;
     p->discard = 516;  // discard unmapped and read fail
@@ -50,8 +49,9 @@ pars *pars_init() {
 
 void pars_free(pars *p) {
     gzclose(p->fp1);
-    // fclose(p->fp2);
-    //    fclose(p->fp3);
+    gzclose(p->fp2);
+    gzclose(p->fp_lcadist);
+    //gzclose(p->fp3);
 
     if (p->header)
         sam_hdr_destroy(p->header);
@@ -268,14 +268,14 @@ pars *get_pars(int argc, char **argv) {
     fprintf(stderr, "\t-> Will output lca results in file:\t\t\'%s\'\n", buf);
     p->fp1 = gzopen(buf, "wb");
     assert(p->fp1);
-    snprintf(buf, 1024, "%s.stat", p->outnames);
+    snprintf(buf, 1024, "%s.stat.gz", p->outnames);
     fprintf(stderr, "\t-> Will output lca distribution in file:\t\t\'%s\'\n", buf);
     p->fp_lcadist = NULL;
-    p->fp_lcadist = fopen(buf, "wb");
+    p->fp_lcadist = gzopen(buf, "wb");
     assert(p->fp_lcadist);
-    snprintf(buf, 1024, "%s.wlca", p->outnames);
+    snprintf(buf, 1024, "%s.wlca.gz", p->outnames);
     fprintf(stderr, "\t-> Will output lca weight in file:\t\t\'%s\'\n", buf);
-    //  p->fp2 = fopen(buf,"wb");
+    //  p->fp2 = gzopen(buf,"wb");
 #if 0
     snprintf(buf, 1024, "%s.log", p->outnames);
     fprintf(stderr, "\t-> Will output log info (problems) in file:\t\'%s\'\n", buf);

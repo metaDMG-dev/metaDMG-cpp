@@ -110,7 +110,7 @@ if [[ $? -ne 0 ]]; then
     RVAL=$((512+RVAL))
 fi
 
-CMD="${PRG} print_ugly output/test_lca.bdamage.gz --names data/names.dmp.gz --nodes data/nodes.dmp.gz --lcastat output/test_lca.stat --out_prefix output/test_lca_taxa"
+CMD="${PRG} print_ugly output/test_lca.bdamage.gz --names data/names.dmp.gz --nodes data/nodes.dmp.gz --lcastat output/test_lca.stat.gz --out_prefix output/test_lca_taxa"
 ${CMD} >> ${LOG} 2>&1
 if [[ $? -ne 0 ]]; then
     echo "Problem running command: ${CMD}"

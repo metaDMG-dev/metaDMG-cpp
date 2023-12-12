@@ -39,7 +39,7 @@ int HelpPageAggregate(FILE *fp){
   fprintf(fp,"--names \t names.dmp.gz\n");
   fprintf(fp,"--nodes \t nodes.dmp.gz\n");
   fprintf(fp,"--lca \t\t lcaout.stat lca produced statistics\n");
-  fprintf(fp,"--out \t\t Suffix of outputname with the predetermined prefix (.aggregate.stat.txt.gz)\n");
+  fprintf(fp,"--out \t\t Suffix of outputname with the predetermined prefix (.stat.gz)\n");
 
   exit(1);
   return 0;
@@ -145,7 +145,7 @@ int main_aggregate(int argc, char **argv) {
     if(outfile_name==NULL)
       outfile_name = strdup(infile_bdamage);
     char buf[1024];
-    snprintf(buf, 1024, "%s.aggregate.stat.txt.gz", outfile_name);
+    snprintf(buf, 1024, "%s.stat.gz", outfile_name);
     fprintf(stderr, "\t-> Dumping file: \'%s\'\n", buf);
     BGZF *fpfpfp = bgzf_open(buf, "wb");
     kstring_t *kstr = new kstring_t;

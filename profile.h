@@ -3,6 +3,7 @@
 #include <htslib/sam.h>  // for bam1_t, bam_hdr_t, BAM_FDUP, BAM_FPAIRED
 #include <stdio.h>       // for FILE
 #include <stdlib.h>      // for calloc, free, NULL, size_t
+#include <zlib.h>        // for gzFile
 
 #include <map>     // for map
 #include <vector>  // for vector

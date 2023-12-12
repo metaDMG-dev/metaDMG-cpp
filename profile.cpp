@@ -686,20 +686,19 @@ std::map<int, mydataD> load_bdamage_full(const char *fname, int &printlength) {
 
 std::map<int, mydata2> load_lcastat(const char *fname,int skipfirstline) {
     //  fprintf(stderr,"./metadamage print file.bdamage.gz [-names file.gz -bam file.bam]\n");
-    const char *infile = fname;
-    //  fprintf(stderr,"infile: %s howmany: %d \n",infile,howmany);
+    //  fprintf(stderr,"fname: %s howmany: %d \n",fname,howmany);
 
-    FILE *fp = NULL;
+    gzFile fp = Z_NULL;
 
-    if (((fp = fopen(infile, "r"))) == NULL) {
-        fprintf(stderr, "Could not open input lcastat file: %s\n", infile);
+    if (((fp = gzopen(fname, "r"))) == NULL) {
+        fprintf(stderr, "Could not open input lcastat file: %s\n", fname);
         exit(1);
     }
 
     std::map<int, mydata2> retmap;
     char buffer[4096];
     int atline = 0;
-    while (fgets(buffer, 4096, fp)) {
+    while (gzgets(fp, buffer, 4096)) {
       atline++;
       if(skipfirstline>0&&atline==1)
 	continue;
@@ -714,7 +713,7 @@ std::map<int, mydata2> load_lcastat(const char *fname,int skipfirstline) {
     }
 
     if (fp)
-        fclose(fp);
+        gzclose(fp);
 
     fprintf(stderr, "\t-> Done loading lcastat file It contains: %lu\n", retmap.size());
     for (std::map<int, mydata2>::iterator it = retmap.begin(); 0 && it != retmap.end(); it++)
