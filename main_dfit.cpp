@@ -685,7 +685,7 @@ int main_dfit(int argc, char **argv) {
           infile_bdamage = strdup(*argv);
     }
     if(infile_nodes&&!infile_names){
-      fprintf(stderr,"\t-> -names file.txt.gz must be defined with -nodes is defined\n");
+      fprintf(stderr,"\t-> -names file.gz must be defined with -nodes is defined\n");
       exit(1);
     }
 
@@ -725,7 +725,7 @@ int main_dfit(int argc, char **argv) {
     if(outfile_name==NULL)
       outfile_name = strdup(infile_bdamage);
     char buf[1024];
-    snprintf(buf, 1024, "%s.dfit.txt.gz", outfile_name);
+    snprintf(buf, 1024, "%s.dfit.gz", outfile_name);
     fprintf(stderr, "\t-> Dumping file: \'%s\'\n", buf);
     BGZF *fpfpfp = bgzf_open(buf, "wb");
    
@@ -735,7 +735,7 @@ int main_dfit(int argc, char **argv) {
     kstring_t *bootkstr = new kstring_t;
     bootkstr->s = NULL; bootkstr->l = bootkstr->m = 0;
     if(doboot>0){
-      snprintf(bootbuf, 1024, "%s.boot.stat.txt.gz", outfile_name);
+      snprintf(bootbuf, 1024, "%s.boot.stat.gz", outfile_name);
       bootfp = bgzf_open(bootbuf, "wb");    
       ksprintf(bootkstr,"taxid\tA_b\tq_b\tc_b\tphi_b\n");
     }

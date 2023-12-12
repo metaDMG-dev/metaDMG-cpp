@@ -58,6 +58,14 @@ if [[ $? -ne 0 ]]; then
     RVAL=$((32+RVAL))
 fi
 
+echo "Running aggregate"
+CMD="${PRG} aggregate output/test_lca.bdamage.gz --nodes data/nodes.dmp.gz --names data/names.dmp.gz --lcastat output/test_lca.stat.gz --out_prefix output/test_aggregate"
+${CMD} >> ${LOG} 2>&1
+if [[ $? -ne 0 ]]; then
+    echo "Problem running command: ${CMD}"
+    RVAL=$((64+RVAL))
+fi
+
 echo "Running dfit local (single threaded)"
 CMD="${PRG} dfit output/test_lca.bdamage.gz --names data/names.dmp.gz --nodes data/nodes.dmp.gz --showfits 2 --nopt 2 --nbootstrap 2 --seed 12345 --lib ds --out output/test_dfit_local"
 ${CMD} >> ${LOG} 2>&1
@@ -66,38 +74,38 @@ if [[ $? -ne 0 ]]; then
     RVAL=$((64+RVAL))
 fi
 # Remove 'ncall' column and round values, since it fails on GitHub tests
-zcat output/test_dfit_local.dfit.txt.gz | cut -f 1-6,8- | head -n 10 | numfmt -d $'\t' --header --format='%.2f' --field=2- --invalid=ignore > output/test_dfit_local.dfit.fix
+zcat output/test_dfit_local.dfit.gz | cut -f 1-6,8- | head -n 10 | numfmt -d $'\t' --header --format='%.2f' --field=2- --invalid=ignore > output/test_dfit_local.dfit.fix
 
 echo "Running dfit local (10 threaded)"
 CMD="${PRG} dfit output/test_lca.bdamage.gz --nthreads 10 --names data/names.dmp.gz --nodes data/nodes.dmp.gz --showfits 2 --nopt 2 --nbootstrap 2 --seed 12345 --lib ds --out output/test_dfit_local_10threads"
 ${CMD} >> ${LOG} 2>&1
 if [[ $? -ne 0 ]]; then
     echo "Problem running command: ${CMD}"
-    RVAL=$((64+RVAL))
+    RVAL=$((128+RVAL))
 fi
 # Remove 'ncall' column and round values, since it fails on GitHub tests
-zcat output/test_dfit_local_10threads.dfit.txt.gz | cut -f 1-6,8- | head -n 10 | numfmt -d $'\t' --header --format='%.2f' --field=2- --invalid=ignore | sort -r > output/test_dfit_local_10threads.dfit.fix
+zcat output/test_dfit_local_10threads.dfit.gz | cut -f 1-6,8- | head -n 10 | numfmt -d $'\t' --header --format='%.2f' --field=2- --invalid=ignore | sort -r > output/test_dfit_local_10threads.dfit.fix
 
 echo "Running dfit global"
 CMD="${PRG} dfit output/test_getdamage_global.bdamage.gz --showfits 2 --seed 12345 --lib ds --out output/test_dfit_global"
 ${CMD} >> ${LOG} 2>&1
 if [[ $? -ne 0 ]]; then
     echo "Problem running command: ${CMD}"
-    RVAL=$((64+RVAL))
+    RVAL=$((128+RVAL))
 fi
 # Remove 'ncall' column since it fail on GitHub tests
-zcat output/test_dfit_global.dfit.txt.gz | cut -f 1-6,8- > output/test_dfit_global.dfit.fix
+zcat output/test_dfit_global.dfit.gz | cut -f 1-6,8- > output/test_dfit_global.dfit.fix
 
 echo "Running printoptions"
 CMD="${PRG} print output/test_getdamage_local.bdamage.gz"
-${CMD} 1>output/test_getdamage_local.bdamage.gz.txt 2>>${LOG}
+${CMD} 1>output/test_getdamage_local.bdamage.tsv 2>>${LOG}
 if [[ $? -ne 0 ]]; then
     echo "Problem running command: ${CMD}"
-    RVAL=$((128+RVAL))
+    RVAL=$((256+RVAL))
 fi
 
 CMD="${PRG} print output/test_getdamage_global.bdamage.gz"
-${CMD} 1>output/test_getdamage_global.bdamage.gz.txt 2>>${LOG}
+${CMD} 1>output/test_getdamage_global.bdamage.tsv 2>>${LOG}
 if [[ $? -ne 0 ]]; then
     echo "Problem running command: ${CMD}"
     RVAL=$((256+RVAL))

@@ -1197,7 +1197,7 @@ int main_print_ugly(int argc, char **argv) {
     fprintf(stderr, "infile_names: %s infile_bdamage: %s nodes: %s lca_stat: %s infile_bam: %s", infile_names, infile_bdamage, infile_nodes, infile_lcastat, infile_bam);
     fprintf(stderr, "#VERSION:%s\n", METADAMAGE_VERSION);
     char buf[1024];
-    snprintf(buf, 1024, "%s.uglyprint.mismatch.txt.gz", out_prefix);
+    snprintf(buf, 1024, "%s.uglyprint.mismatch.gz", out_prefix);
     fprintf(stderr, "\t-> Dumping file: \'%s\'\n", buf);
     gzFile fpfpfp = gzopen(buf, "wb");
     gzprintf(fpfpfp, "#taxidStr\tdirection\tposition\tAA\tAC\tAG\tAT\tCA\tCC\tCG\tCT\tGA\tGC\tGG\tGT\tTA\tTC\tTG\tTT\n");
@@ -1266,7 +1266,7 @@ int main_print_ugly(int argc, char **argv) {
         }
     }
     gzclose(fpfpfp);
-    snprintf(buf, 1024, "%s.uglyprint.stat.txt.gz", out_prefix);
+    snprintf(buf, 1024, "%s.uglyprint.stat.gz", out_prefix);
     fprintf(stderr, "\t-> Dumping file: \'%s\'\n", buf);
     fpfpfp = gzopen(buf, "wb");
     gzprintf(fpfpfp, "#taxid\tname\trank\tnalign\tnreads\tmean_rlen\tvar_rlen\tmean_gc\tvar_gc\tlca\ttaxa_path\n");
