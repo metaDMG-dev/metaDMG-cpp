@@ -290,10 +290,10 @@ void make_dfit_header(kstring_t *kstr,int showfits,int nbootstrap,int howmany ){
     // And fwd + bwd k, N, dx, f and Conf information
     for(int i=0;i<howmany;i++){
       //fprintf(stderr,"\t asfafs %d\n",i);
-	    ksprintf(kstr,"\tfwK%d\tfwN%d\tfwdx%d\tfwf%d\tfwdxConf%d",i,i,i,i,i);
+	    ksprintf(kstr,"\tfwK%d\tfwN%d\tfwf%d\tfwdx%d\tfwdxConf%d",i,i,i,i,i);
     }
     for(int i=0;i<howmany;i++)
-	    ksprintf(kstr,"\tbwK%d\tbwN%d\tbwdx%d\tbwf%d\tbwdxConf%d",i,i,i,i,i);
+	    ksprintf(kstr,"\tbwK%d\tbwN%d\tbwf%d\tbwdx%d\tbwdxConf%d",i,i,i,i,i);
     ksprintf(kstr,"\n");
   }
 }

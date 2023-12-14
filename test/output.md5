@@ -1,7 +1,7 @@
 441b0ab9e87686b2aa77ffd2e63d5e85  output/test_aggregate.stat
-56ad2ac5d3a2561e70a07668363f47c9  output/test_dfit_global.dfit.fix
-3ab898cbdb348e3bd2f328385f07e6dd  output/test_dfit_local_10threads.dfit.fix
-f73a1738c0ef7412c805bd3eaa7c3bc5  output/test_dfit_local.dfit.fix
+13ce6ac60c336f443583e6803b45c73b  output/test_dfit_global.dfit.fix
+02fbfa58f5f7ec835f5f58621b14e5b0  output/test_dfit_local_10threads.dfit.fix
+d5ec49a8685897936d18ecff68586bec  output/test_dfit_local.dfit.fix
 71308047bbc8f703fdd65c798de91cfa  output/test_getdamage_local.bdamage
 93ec5114d069f984ccaaa5079c15db1e  output/test_getdamage_local.bdamage.tsv
 d95e54a3886b9f411bde8d96de4af32e  output/test_getdamage_local.res
