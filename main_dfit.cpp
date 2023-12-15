@@ -781,6 +781,14 @@ int main_dfit(int argc, char **argv) {
     fprintf(stderr,"\t-> Will do optimization of %lu different taxids/chromosomes/scaffolds\n",retmap.size());
     make_dfit_header(kstr,showfits,nbootstrap,howmany);
 
+    if(retmap.size() < 1){
+      fprintf(stderr,"\t-> Warning the provided bdamage file has less than 1 mismatch matrix\n");
+      exit(1);
+    }
+    if(retmap.size() < nthreads){
+      fprintf(stderr,"\t-> Warning the provided number of threads %d are greater than the number of mismatch matrices provided within the bdamage file (%d), number of threads are reduced to %d.\n",nthreads,retmap.size(),retmap.size());
+      nthreads = retmap.size();
+    }
 
     {//loop over threads, for now we have no threads
       if(nthreads==1){
