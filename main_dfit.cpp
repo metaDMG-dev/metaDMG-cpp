@@ -786,7 +786,7 @@ int main_dfit(int argc, char **argv) {
       exit(1);
     }
     if(retmap.size() < nthreads){
-      fprintf(stderr,"\t-> Warning the provided number of threads %d are greater than the number of mismatch matrices provided within the bdamage file (%d), number of threads are reduced to %d.\n",nthreads,retmap.size(),retmap.size());
+      fprintf(stderr,"\t-> Warning the provided number of threads %d are greater than the number of mismatch matrices provided within the bdamage file (%ld), number of threads are reduced to %ld.\n",nthreads,retmap.size(),retmap.size());
       nthreads = retmap.size();
     }
 

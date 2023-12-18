@@ -376,6 +376,10 @@ void damage::bwrite(char *fname, bam_hdr_t *hdr) {
     kstring_t kstr2000;
     kstr2000.s = NULL;
     kstr2000.l = kstr2000.m = 0;
+    ksprintf(&kstr2000,"id");
+    for(int i=0;i<200;i++)
+      ksprintf(&kstr2000,"\trlen%d",i);
+    ksprintf(&kstr2000,"\n");
     for (std::map<int, triple>::iterator it = assoc.begin(); it != assoc.end(); it++) {
         if (it->second.nreads == 0)  // should never happen
             continue;
