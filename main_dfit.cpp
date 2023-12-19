@@ -751,7 +751,13 @@ int main_dfit(int argc, char **argv) {
         parse_nodes(infile_nodes, rank, parent, child, 1);
 
     std::map<int, mydataD> retmap = load_bdamage_full(infile_bdamage, howmany);
-    fprintf(stderr, "\t-> Number of entries in damage pattern file: %lu printlength(howmany):%d\n", retmap.size(), howmany);
+    fprintf(stderr, "\t-> %lu mismatch matrices read for %d base pairs\n", retmap.size(), howmany);
+
+    if(retmap.size() < 1){
+      fprintf(stderr,"\t-> Warning: bdamage file has less than 1 mismatch matrix\n");
+    }
+    if(retmap.size() < nthreads)
+      nthreads = retmap.size();
 
     int2char name_map;
 
@@ -759,7 +765,7 @@ int main_dfit(int argc, char **argv) {
         name_map = parse_names(infile_names);
 
     float presize = retmap.size();
-    if(child.size()>0)
+    if(child.size()>0 && presize>0)
       getval_full(retmap, child, 1, howmany);  // this will do everything
     float postsize = retmap.size();
     fprintf(stderr, "\t-> pre: %f post:%f grownbyfactor: %f\n", presize, postsize, postsize / presize);
@@ -780,15 +786,6 @@ int main_dfit(int argc, char **argv) {
     kstr->s = NULL; kstr->l = kstr->m = 0;
     fprintf(stderr,"\t-> Will do optimization of %lu different taxids/chromosomes/scaffolds\n",retmap.size());
     make_dfit_header(kstr,showfits,nbootstrap,howmany);
-
-    if(retmap.size() < 1){
-      fprintf(stderr,"\t-> Warning the provided bdamage file has less than 1 mismatch matrix\n");
-      exit(1);
-    }
-    if(retmap.size() < nthreads){
-      fprintf(stderr,"\t-> Warning the provided number of threads %d are greater than the number of mismatch matrices provided within the bdamage file (%ld), number of threads are reduced to %ld.\n",nthreads,retmap.size(),retmap.size());
-      nthreads = retmap.size();
-    }
 
     {//loop over threads, for now we have no threads
       if(nthreads==1){
