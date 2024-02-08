@@ -296,4 +296,4 @@ lca mode: 	  damage estimated over the lca tree at different ranks
 	 Lca mode beta-binomial:
  		 ./metaDMG-cpp lca --names names.dmp --nodes nodes.dmp --acc2tax acc2taxid.map.gz --weight_type 1 --fix_ncbi 0 --bam Pitch6.bam --out Pitch6lcatest 
  		 ./metaDMG-cpp dfit Pitch6lcatest.bdamage.gz --names names.dmp --nodes nodes.dmp --showfits 0
-
+```
