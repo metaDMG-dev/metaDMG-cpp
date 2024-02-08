@@ -3,17 +3,17 @@
 
 # Introduction
 
-metaDMG-cpp is a fast and efficient method for estimating mutation and damage rates in ancient DNA data. It relies on a commonly used alignment files formats bam/sam/sam.gz and can calculate degree of damage from read data mapped against a single as well as multiple genomes. It is especially relevant for data where data have been mapped against multiple reference genomes or to speed up analysis for damage estimation for a single genome.
+metaDMG-cpp is a fast and efficient method for estimating mutation and damage rates in ancient DNA data, especially from ancient metagenomes. It relies on commonly used alignment file formats bam/sam/sam.gz and can calculate the degree of damage from read data mapped against a single as well as multiple genomes. It is especially relevant for data where data have been mapped against multiple reference genomes or to speed up analysis for damage estimation for a single genome.
 
-Possible modes for running. Program is utilizing mdz field of the aux part of reads and is therefore reference free.
+There bisaclly 3 possible modes for running metaDMG. In all cases the program utilises the MD:Z field of the aux part of reads and is therefore reference-free.
 
-1. Basic single genome analysis with one overall global estimate. Similar to mapdamage1.0 and mapdamage2.0.
+1. Basic single genome analysis with one overall global estimate. Similar to the mapdamage2.0 programme (./metaDMG-cpp getdamage --run_mode 0).
 
-2. Basic eDNA or metagenomic (e.g. multiple genome) analyses. Output is a damage estimate per reference, taxonomic name or accession no.
+2. Basic metagenomes (e.g. multiple genome alignments) analyses. Output is a damage estimate per reference, taxonomic name or accession no that includes all alignments without an LCA analysis (./metaDMG-cpp getdamage --run_mode 1).
 
-3. Integrating a Least Common Ancestor algorithm gives the opportunity to retrieve    specificity of alignments for the analyses.
+3. Integrating a the Least Common Ancestor algorithm (ngsLCA) which gives the opportunity to retrieve damage estimates for alignments classified to the given taxonomic levels (./metaDMG-cpp lca).
 
-For all analyses output is a binary '.bdamage.gz' file, that can be accessed with the 'metadamage print' functionality.
+For all analyses the output is a binary '.bdamage.gz' file, which contains substitution matrix that can be accessed read with the (./metadDMG printugly)' functionality.
 
 # Installation
 
@@ -54,7 +54,7 @@ conda activate metaDMG
 ```
 
 # Taxonomic resource files
-metaDMG-cpp can perform damage estimations on internal nodes within a taxonomy (e.g. species, genus and family level). In order to traverse up a taxonomic tree the program needs three files in NCBI taxonomy format. These can either be a custom taxonomy or simply rely on the NCBI taxonomy.
+metaDMG-cpp lca counts substitutions between read and reference on internal nodes within a taxonomy (e.g. species, genus and family level). To traverse up a taxonomic tree the program needs three files in NCBI taxonomy format. These can either be a custom taxonomy built as the NCBI taxonomy or simply rely on the NCBI taxonomy, or it can  be a combination. NOTE the taxonomy file shall reflect the version of the database you are using. 
 ``` 
 # Downloading resource files for program from NCBI
 mkdir ncbi_tax_dmp;
@@ -67,6 +67,9 @@ gunzip nucl_gb.accession2taxid.gz;
 
 
 # Damage analysis
+Calculations of substitution matrices (wihtout any LCA analysis), either at a:
+	- global mode (--run_mode 0) e.g. one matrix for the whole alignment file. Which is useful for single taxa analysis or if you want a global estimate for a metagenome. 
+ 	- local mode  (--run_mode 1) e.g. a matrix for each reference with alignments. Which can be useful for microbial analysis and simulation of ancient metagenomes. 
 ```
 ./metaDMG-cpp getdamage [options] <in.bam>|<in.sam>|<in.cram>
 
@@ -74,14 +77,15 @@ Options:
   -n/--threads	        number of threads used for reading/writing (default: 4)
   -f/--fasta	        reference genome (required with CRAM)
   -l/--min_length	reads shorter than minlength will be discarded (default: 35)
-  -p/--print_length	number of base pairs from read termini to estimate damage (default: 5)
-  -r/--run_mode	        0: global estimate (default)
-                        1: damage patterns will be calculated for each chr/scaffold contig.
+  -p/--print_length	number of positions along the read termini that are used to estimate the damage (default: 5)
+  -r/--run_mode	        0: **global**  (default)
+                        1: **local** damage patterns will be calculated for each chr/scaffold contig.
   -i/--ignore_errors    continue analyses even if there are errors
   -o/--out_prefix	output prefix (default: meta)
 ```
 
 # LCA analyses
+Calculations, where each read, is classified to a given taxonomic level (based on the similarity of the alignments as specified below, we recommend --sim_score_low 0.95 --sim_score_high 1.0).  
 ```
 ./metaDMG-cpp lca [options]
 
@@ -95,12 +99,12 @@ Options:
   --edit_dist_max	maximum read edit distance
   --min_mapq		minimum mapping quality
   --min_length		minimum read length
-  --sim_score_low	number between 0-1
+  --sim_score_low	number between 0-1 
   --sim_score_high	number between 0-1
   --fix_ncbi		
   --discard
-  --how_many		integer for many positions
-  --lca_rank		family/genus/species
+  --how_many		integer for number of positions OBS rasmus will change this to --print_length 
+  --lca_rank		such as family/genus/species
   --used_reads
   --no_rank2species
   --skip_no_rank
@@ -110,8 +114,27 @@ Options:
   -o/--out_prefix 		output prefix
 ```
 
-# metaDMG print
 
+# metaDMG aggregate  
+Aggregating the lca statistics when transversing through the tree structure, creating files with prefix .aggregate.stat.txt.gz
+
+`./metaDMG-cpp aggregate file.bdamage.gz --lcastat lca.stat --names names.dmp --nodes nodes.dmp --out file` 
+
+```
+	-> ./metaDMG-cpp aggregate -h 
+    Aggregation of lca produced statistics (mean length, variance length, mean GC, variance GC) when transversing up the nodes of the tree structure
+		./metaDMG-cpp aggregate file.bdamage.gz --names file.gz --nodes trestructure.gz --lcastat file.stat --out filename
+--help 		 Print extended help page to see all options.
+--names 	 names.dmp.gz
+--nodes 	 nodes.dmp.gz
+--lca 		 lcaout.stat lca produced statistics
+--out 		 Suffix of outputname with the predetermined prefix (.aggregate.stat.txt.gz)
+```
+
+
+
+# metaDMG print
+```
 `./metaDMG-cpp print file.bdamage.gz [-names file.gz -bam file.bam -ctga -countout] infile: (null) inbam: (null) names: (null) search: -1 ctga: 0 `
 
 All options found below:
@@ -274,19 +297,3 @@ lca mode: 	  damage estimated over the lca tree at different ranks
  		 ./metaDMG-cpp lca --names names.dmp --nodes nodes.dmp --acc2tax acc2taxid.map.gz --weight_type 1 --fix_ncbi 0 --bam Pitch6.bam --out Pitch6lcatest 
  		 ./metaDMG-cpp dfit Pitch6lcatest.bdamage.gz --names names.dmp --nodes nodes.dmp --showfits 0
 
-```
-# metaDMG aggregate  
-Aggregating the lca statistics when transversing throuh the tree structure, creating files with prefix .aggregate.stat.txt.gz
-
-`./metaDMG-cpp aggregate file.bdamage.gz --lcastat lca.stat --names names.dmp --nodes nodes.dmp --out file` 
-
-```
-	-> ./metaDMG-cpp aggregate -h 
-    Aggregation of lca produced statistics (mean length, variance length, mean GC, variance GC) when transversing up the nodes of the tree structure
-		./metaDMG-cpp aggregate file.bdamage.gz --names file.gz --nodes trestructure.gz --lcastat file.stat --out filename
---help 		 Print extended help page to see all options.
---names 	 names.dmp.gz
---nodes 	 nodes.dmp.gz
---lca 		 lcaout.stat lca produced statistics
---out 		 Suffix of outputname with the predetermined prefix (.aggregate.stat.txt.gz)
-```
