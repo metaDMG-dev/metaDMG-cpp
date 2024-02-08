@@ -134,7 +134,7 @@ Aggregating the lca statistics when transversing through the tree structure, cre
 
 
 # metaDMG print
-```
+
 `./metaDMG-cpp print file.bdamage.gz [-names file.gz -bam file.bam -ctga -countout] infile: (null) inbam: (null) names: (null) search: -1 ctga: 0 `
 
 All options found below:
