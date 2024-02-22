@@ -5,22 +5,22 @@
 
 metaDMG-cpp is a fast and efficient method for estimating mutation and damage rates in ancient DNA data, especially from ancient metagenomes. It relies on commonly used alignment file formats bam/sam/sam.gz and can calculate the degree of damage from read data mapped against a single as well as multiple genomes. It is especially relevant for data where data have been mapped against multiple reference genomes or to speed up analysis for damage estimation for a single genome.
 
-There bisaclly 3 possible modes for running metaDMG. In all cases the program utilises the MD:Z field of the aux part of reads and is therefore reference-free.
+There are three possible modes for running metaDMG. In all cases, the program utilises the MD:Z field of the aux part of reads and is therefore reference-free.
 
 1. Basic single genome analysis with one overall global estimate. Similar to the mapdamage2.0 programme (./metaDMG-cpp getdamage --run_mode 0).
 
 2. Basic metagenomes (e.g. multiple genome alignments) analyses. Output is a damage estimate per reference, taxonomic name or accession no that includes all alignments without an LCA analysis (./metaDMG-cpp getdamage --run_mode 1).
 
-3. Integrating a the Least Common Ancestor algorithm (ngsLCA) which gives the opportunity to retrieve damage estimates for alignments classified to the given taxonomic levels (./metaDMG-cpp lca).
+3. Integrating a Least Common Ancestor algorithm (ngsLCA) which allows retrieving damage estimates for alignments classified to the given taxonomic levels (./metaDMG-cpp lca).
 
-For all analyses the output is a binary '.bdamage.gz' file, which contains substitution matrix that can be accessed read with the (./metadDMG printugly)' functionality.
+For all analyses, the output is a binary '.bdamage.gz' file, which contains a substitution matrix that can be accessed and read with the (./metadDMG print)' functionality.
 
 # Installation
 
 ### Dependencies
 `metaDMG-cpp` requires `HTSlib`, a common library used for handling high-throughput sequencing data, `eigen3` and `gsl`.
 
-On ubuntu these can be installed with:
+On Ubuntu these can be installed with:
 ```
 sudo apt install libgsl-dev libeigen3-dev
 ```
@@ -56,7 +56,7 @@ conda activate metaDMG
 # Taxonomic resource files
 metaDMG-cpp lca counts substitutions between read and reference on internal nodes within a taxonomy (e.g. species, genus and family level). To traverse up a taxonomic tree the program needs three files in NCBI taxonomy format. These can either be a custom taxonomy built as the NCBI taxonomy or simply rely on the NCBI taxonomy, or it can  be a combination. NOTE the taxonomy file shall reflect the version of the database you are using. 
 ``` 
-# Downloading resource files for program from NCBI
+# Downloading resource files for the program from NCBI
 mkdir ncbi_tax_dmp;
 cd ncbi_tax_dmp/;
 wget https://ftp.ncbi.nlm.nih.gov/pub/taxonomy/new_taxdump/new_taxdump.zip;
@@ -67,7 +67,7 @@ gunzip nucl_gb.accession2taxid.gz;
 
 
 # Damage analysis
-Calculations of substitution matrices (wihtout any LCA analysis), either at a:
+Calculations of substitution matrices (without any LCA analysis), either at a:
 	- global mode (--run_mode 0) e.g. one matrix for the whole alignment file. Which is useful for single taxa analysis or if you want a global estimate for a metagenome. 
  	- local mode  (--run_mode 1) e.g. a matrix for each reference with alignments. Which can be useful for microbial analysis and simulation of ancient metagenomes. 
 ```
@@ -172,14 +172,10 @@ Usage: ./metaDMG-cpp merge file.lca file.bdamage.gz [-names names.dmp.gz -bam <i
 
 Example
 Options:
--howmany #integer for many positions ?? Thorfinn is this also working for the merge module? Or only at the LCA module? 
--nodes #needs taxonomic paths to calculate damage higher than species level /willerslev/users-shared/science-snm-willerslev-npl206/ngsLCA/ngsLCA/ncbi_tax_dump_files/nodes.dmp.gz
+-howmany #integer for many positions.
+-nodes #needs taxonomic paths to calculate damage higher than species level /ncbi_tax_dump_files/nodes.dmp.gz
 -names #NCBI names.dmp file - option that prints taxonomic names to output  
 ```
-
-# metaDMG mergedamage
-
-# metaDMG index
 
  
 # metaDMG dfit  
