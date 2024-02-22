@@ -13,7 +13,7 @@ There are three possible modes for running metaDMG. In all cases, the program ut
 
 3. Integrating a Least Common Ancestor algorithm (ngsLCA) which allows retrieving damage estimates for alignments classified to the given taxonomic levels (./metaDMG-cpp lca).
 
-For all analyses, the output is a binary '.bdamage.gz' file, which contains a substitution matrix that can be accessed and read with the (./metadDMG print)' functionality.
+For all analyses, the output is a binary '.bdamage.gz' file, which contains a substitution matrix that can be accessed and read with the (./metaDMG print)' functionality.
 
 # Installation
 
