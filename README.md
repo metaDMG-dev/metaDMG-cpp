@@ -54,9 +54,10 @@ conda activate metaDMG
 ```
 
 # Taxonomic resource files
-metaDMG-cpp lca counts substitutions between read and reference on internal nodes within a taxonomy (e.g. species, genus and family level). To traverse up a taxonomic tree the program needs three files in NCBI taxonomy format. These can either be a custom taxonomy built as the NCBI taxonomy or simply rely on the NCBI taxonomy, or it can  be a combination. NOTE the taxonomy file shall reflect the version of the database you are using. 
+./metaDMG-cpp lca counts substitutions between read and reference on internal nodes within a taxonomy (e.g. species, genus and family level). To traverse up a taxonomic tree the program needs three files in NCBI taxonomy format. These can either be a custom taxonomy built as the NCBI taxonomy or simply rely on the NCBI taxonomy, or it can  be a combination. NOTE the taxonomy file shall reflect the version of the database you are using. 
+
+**Downloading resource files for the program from NCBI**
 ``` 
-# Downloading resource files for the program from NCBI
 mkdir ncbi_tax_dmp;
 cd ncbi_tax_dmp/;
 wget https://ftp.ncbi.nlm.nih.gov/pub/taxonomy/new_taxdump/new_taxdump.zip;
