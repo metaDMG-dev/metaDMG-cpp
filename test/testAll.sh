@@ -77,7 +77,7 @@ fi
 zcat output/test_dfit_local.dfit.gz | cut -f 1-6,8- | head -n 10 | numfmt -d $'\t' --header --format='%.2f' --field=2- --invalid=ignore > output/test_dfit_local.dfit.fix
 
 echo "Running dfit local (10 threaded)"
-CMD="${PRG} dfit output/test_lca.bdamage.gz --nthreads 10 --names data/names.dmp.gz --nodes data/nodes.dmp.gz --showfits 2 --nopt 2 --nbootstrap 2 --seed 12345 --lib ds --out output/test_dfit_local_10threads"
+CMD="${PRG} dfit output/test_lca.bdamage.gz --threads 10 --names data/names.dmp.gz --nodes data/nodes.dmp.gz --showfits 2 --nopt 2 --nbootstrap 2 --seed 12345 --lib ds --out output/test_dfit_local_10threads"
 ${CMD} >> ${LOG} 2>&1
 if [[ $? -ne 0 ]]; then
     echo "Problem running command: ${CMD}"
