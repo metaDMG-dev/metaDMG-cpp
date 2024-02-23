@@ -670,9 +670,8 @@ int main_dfit(int argc, char **argv) {
           doboot = atoi(*(++argv));
         else if (strcasecmp("--seed", *argv) == 0)
           seed = atoi(*(++argv));
-        else if(strcasecmp("-rng",*argv)==0 || strcasecmp("--rand",*argv)==0){
+        else if(strcasecmp("--rand", *argv) ==0)
           rng_type = atoi(*(++argv));
-        }
         else if (strcasecmp("--CI", *argv) == 0)
           CI = atof(*(++argv));
         else if (strcasecmp("--doCI", *argv) == 0)
@@ -685,7 +684,7 @@ int main_dfit(int argc, char **argv) {
           infile_bdamage = strdup(*argv);
     }
     if(infile_nodes&&!infile_names){
-      fprintf(stderr,"\t-> -names file.gz must be defined with -nodes is defined\n");
+      fprintf(stderr,"\t-> --names file.gz must be defined with --nodes is defined\n");
       exit(1);
     }
 

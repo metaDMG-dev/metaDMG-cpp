@@ -63,7 +63,7 @@ int HelpPage(FILE *fp){
   fprintf(fp,"\n--lib \t\t\t\t double stranded (ds) use C>T (forward) and G>A (reverse); single stranded (ss) use C>T for both forward and reverse (default ds)\n");
   fprintf(fp,"\n--nbootstrap \t\t\t number of bootstrap iterations. default: 1 -> use Beta-binomial model, -nbootstrap >1 use Binomial model ");
   fprintf(fp,"\n--bam \t\t\t\t In local mode - convert the internal id numbering from bdamage.gz to the reference in the bam header\n");
-  fprintf(fp,"\n-rng | --rand: \t\t\t Pseudo-random number generator, OS specific\n");
+  fprintf(fp,"\n--rand: \t\t\t Pseudo-random number generator, OS specific\n");
   fprintf(fp,"\t\t <0,1,2,3> \n"); 
   fprintf(fp,"\t\t 0 :  \t\t\t drand48_r, default for linux or unix, not available for MacOS.\n"); 
   fprintf(fp,"\t\t 1 :  \t\t\t std::uniform_int_distribution\n"); 
@@ -109,10 +109,8 @@ int HelpPage(FILE *fp){
   fprintf(stderr, "\n---------- Examples ----------\n");
   fprintf(stderr, "\t Local mode binomial:\n \t\t ./metaDMG-cpp getdamage Pitch6.bam -l 10 -p 15 -r 1 -o Pitch6getDMG\n \t\t ./metaDMG-cpp dfit Pitch6getDMG.bdamage.gz --showfits 1\n");
   fprintf(stderr, "\t Global mode binomial:\n \t\t ./metaDMG-cpp getdamage Pitch6.bam -l 10 -p 15 -r 0 -o Pitch6getDMG\n \t\t ./metaDMG-cpp dfit Pitch6getDMG.bdamage.gz --nbootstrap 2 --showfits 2\n");
-  fprintf(stderr, "\t Lca mode beta-binomial:\n \t\t ./metaDMG-cpp lca --names names.dmp --nodes nodes.dmp --acc2tax acc2taxid.map.gz --weight_type 1 --fix_ncbi 0 --bam Pitch6.bam --out Pitch6lcatest \n \t\t ./metaDMG-cpp dfit Pitch6lcatest.bdamage.gz --names names.dmp --nodes nodes.dmp --lcastat Pitch6lcatest.stat --showfits 0\n");
+  fprintf(stderr, "\t Lca mode beta-binomial:\n \t\t ./metaDMG-cpp lca --names names.dmp --nodes nodes.dmp --acc2tax acc2taxid.map.gz --weight_type 1 --fix_ncbi 0 --bam Pitch6.bam --out Pitch6lcatest \n \t\t ./metaDMG-cpp dfit Pitch6lcatest.bdamage.gz --names names.dmp --nodes nodes.dmp --showfits 0\n");
 
-    
-  
   exit(1);
   return 0;
 }

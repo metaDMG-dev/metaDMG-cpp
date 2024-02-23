@@ -219,26 +219,36 @@ lca mode: 	  damage estimated over the lca tree at different ranks
 
 --help 				 Print extended help page to see all options.
 
-./metaDMG-cpp dfit file.bdamage.gz --names file.gz --nodes trestructure.gz --lcastat fil.gz --bam file.bam --showfits int --nopt int --nbootstrap int --seed int --doCI int --CI float --lib <ds,ss> --out file
+./metaDMG-cpp dfit file.bdamage.gz --names file.gz --nodes trestructure.gz --bam file.bam --showfits int --nopt int --nbootstrap int --seed int --doCI int --CI float --lib <ds,ss> --out file
 
 ------------ Required ------------- 
 ./metaDMG-cpp dfit file.bdamage.gz 	 bdamage file contains the misincorporation matrix, in global mode from getdamage command or local mode from lca command
 
 ------------ Optional ------------- 
 
+--names       #NCBI names.dmp file - option that prints taxonomic names to output  
+
+--nodes       #needs taxonomic paths to calculate damage higher than species level
+
+--bam 				In local mode - convert the internal id numbering from bdamage.gz to the reference in the bam header
+
+--out 				 Prefix for output name
+
 --nopt 				 Number of optimization calls (default: 10).
 
 --seed 				 Seed value for random number generators (default: computer time).
 
---out 				 Prefix for output name.
+--rand 				 Type of random number generator <0,1,2,3> 
+	0: 				 drand48_r, default for linux or unix, not available for MacOS
+	1: 				 std::uniform_int_distribution
+	2: 				 rand_r
+	3: 				 erand48, default for MacOS.
+
+--nthreads:			 Number of threads, default = 1, i.e. no threading
 
 --lib 				 double stranded (ds) use C>T (forward) and G>A (reverse); single stranded (ss) use C>T for both forward and reverse (default ds)
 
---nbootstrap 			 number of bootstrap iterations. default: 1 -> use Beta-binomial model, -nbootstrap >1 use Binomial model 
---bam 				In local mode - convert the internal id numbering from bdamage.gz to the reference in the bam header
---nodes       #needs taxonomic paths to calculate damage higher than species level
---names       #NCBI names.dmp file - option that prints taxonomic names to output  
---acc2tax 		accesion to taxid table
+--nbootstrap		 number of bootstrap iterations. default: 1 -> use Beta-binomial model, -nbootstrap >1 use Binomial model 
 
 ---- Optimization model specific ---- 
 
