@@ -30,7 +30,7 @@ int HelpPageSimple(FILE *fp){
   fprintf(fp,"--nopt \t\t\t\t Number of optimization calls (default: 10).\n");
   fprintf(fp,"--lib \t\t\t\t double stranded (ds) use C>T (forward) and G>A (reverse); single stranded (ss) use C>T for both forward and reverse (default ds)\n");
   fprintf(fp,"--nbootstrap: \t\t\t Number of bootstrap iterations, default = 0, i.e. optimization of beta-binomial model\n");
-  fprintf(fp,"--nthreads: \t\t\t Number of threads, default = 1, i.e. no threading\n");
+  fprintf(fp,"--threads: \t\t\t Number of threads, default = 1, i.e. no threading\n");
 
   fprintf(stderr, "\n---------- Examples ----------\n");
   fprintf(stderr, "\t Local mode binomial:\n \t\t ./metaDMG-cpp getdamage Pitch6.bam -l 10 -p 15 -r 1 -o Pitch6getDMG\n \t\t ./metaDMG-cpp dfit Pitch6getDMG.bdamage.gz --showfits 1\n");
@@ -63,6 +63,7 @@ int HelpPage(FILE *fp){
   fprintf(fp,"\n--lib \t\t\t\t double stranded (ds) use C>T (forward) and G>A (reverse); single stranded (ss) use C>T for both forward and reverse (default ds)\n");
   fprintf(fp,"\n--nbootstrap \t\t\t number of bootstrap iterations. default: 1 -> use Beta-binomial model, -nbootstrap >1 use Binomial model ");
   fprintf(fp,"\n--bam \t\t\t\t In local mode - convert the internal id numbering from bdamage.gz to the reference in the bam header\n");
+  fprintf(fp,"\n--threads \t\t\t\t  Number of threads, default = 1, i.e. no threading\n");
   fprintf(fp,"\n--rand: \t\t\t Pseudo-random number generator, OS specific\n");
   fprintf(fp,"\t\t <0,1,2,3> \n"); 
   fprintf(fp,"\t\t 0 :  \t\t\t drand48_r, default for linux or unix, not available for MacOS.\n"); 

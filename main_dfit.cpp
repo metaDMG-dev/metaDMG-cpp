@@ -678,7 +678,7 @@ int main_dfit(int argc, char **argv) {
           doCI = atoi(*(++argv));
         else if (strcasecmp("--lib", *argv) == 0)
             lib_prep = strdup(*(++argv));
-	      else if (strcasecmp("--nthreads", *argv) == 0)
+	      else if (strcasecmp("--threads", *argv) == 0)
             nthreads = atoi(*(++argv));
         else
           infile_bdamage = strdup(*argv);

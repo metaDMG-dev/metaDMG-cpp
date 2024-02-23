@@ -244,7 +244,7 @@ lca mode: 	  damage estimated over the lca tree at different ranks
 	2: 				 rand_r
 	3: 				 erand48, default for MacOS.
 
---nthreads:			 Number of threads, default = 1, i.e. no threading
+--threads:			 Number of threads, default = 1, i.e. no threading
 
 --lib 				 double stranded (ds) use C>T (forward) and G>A (reverse); single stranded (ss) use C>T for both forward and reverse (default ds)
 
