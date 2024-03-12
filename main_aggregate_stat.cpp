@@ -1,7 +1,7 @@
 /*
   16 july, this file contains functionality from the print_ugly function and codeparts in the misc.
   The function will implement the ML estimate of the dfit from metaDMG-cpp bioxarhive paper.
-  
+  //tsk,rh 12march 2024
  */
 
 #include <random>
@@ -31,14 +31,15 @@ extern htsFormat *dingding2;
 mydataD getval_full(std::map<int, mydataD> &retmap, int2intvec &child, int taxid, int howmany);
 mydata2 getval_stats(std::map<int, mydata2> &retmap, int2intvec &child, int taxid) ;
 
-int HelpPageAggregate(FILE *fp){
+int helppage_aggregate(FILE *fp){
   fprintf(fp,"Aggregation of lca produced statistics (mean length, variance length, mean GC, variance GC) when transversing up the nodes of the tree structure\n");
 
   fprintf(stderr, "\t\t./metaDMG-cpp aggregate file.bdamage.gz --names file.gz --nodes trestructure.gz --lcastat file.stat --out filename\n");
   fprintf(fp,"--help \t\t Print extended help page to see all options.\n");
   fprintf(fp,"--names \t names.dmp.gz\n");
   fprintf(fp,"--nodes \t nodes.dmp.gz\n");
-  fprintf(fp,"--lca \t\t lcaout.stat lca produced statistics\n");
+  fprintf(fp,"--lcastat \t\t lcaout.stat lca produced statistics\n");
+  fprintf(fp,"[--dfit] \t\t output from dfit function. Optional\n");
   fprintf(fp,"--out \t\t Suffix of outputname with the predetermined prefix (.stat.gz)\n");
 
   exit(1);
@@ -94,6 +95,40 @@ void to_root(int from,int to,std::map<int,mydata2> &stats,int2int &parent,int nr
   
 }
 
+std::map<int,char *> read_dfit(char *fname){
+  //  fprintf(stderr,"fname: %s\n",fname);
+  std::map<int, char *> ret;
+  
+  BGZF *fpfpfp = NULL;
+  fpfpfp = bgzf_open(fname, "rb");
+  assert(fpfpfp!=NULL);
+  kstring_t *kstr = new kstring_t;
+  kstr->s=NULL;kstr->l=kstr->m = 0;
+  while(bgzf_getline(fpfpfp,'\n',kstr)){
+    if(kstr->l==0)
+      break;
+    //    fprintf(stderr,"%s len:%d",kstr->s,kstr->l);
+    char *taxid = kstr->s;
+    char *firsttab = strchr(kstr->s,'\t');
+    char *sectab = firsttab+1;
+    firsttab[0] = '\0';
+    //    fprintf(stderr,"taxid: %d\nstr: %s\n",atoi(taxid),kstr->s);
+    if(ret.size()==0)
+      ret[-1] = strdup(sectab);
+    else
+      ret[atoi(taxid)] = strdup(sectab);
+    //    if(ret.size()>3)       break;
+    kstr->l = 0;
+    
+  }
+  fprintf(stderr,"\t-> Done reading file: \"%s\", contains: %lu taxid\n",fname,ret.size());
+  free(kstr->s);
+  delete kstr;
+  bgzf_close(fpfpfp);
+  return ret;
+}
+
+
 void aggr_stat2000(std::map<int, mydata2> &stats,int2int &parent){
   std::map<int,int> dasmap;
   for(std::map<int,mydata2>::iterator it = stats.begin();it!=stats.end();it++)
@@ -113,7 +148,7 @@ void aggr_stat2000(std::map<int, mydata2> &stats,int2int &parent){
 
 int main_aggregate(int argc, char **argv) {
     if (argc <= 1){
-      HelpPageAggregate(stderr);
+      helppage_aggregate(stderr);
       return 0;
     }
     char *infile_bdamage = NULL;
@@ -121,15 +156,18 @@ int main_aggregate(int argc, char **argv) {
     char *infile_names = NULL;
     char *infile_lcastat = NULL;
     char *outfile_name = NULL;
+    char *infile_dfit = NULL;
     int howmany;//this is the cycle
 
     while (*(++argv)) {
         if (strcasecmp("-h", *argv) == 0 || strcasecmp("--help", *argv) == 0)
-            HelpPageAggregate(stderr);
+            helppage_aggregate(stderr);
         else if (strcasecmp("--names", *argv) == 0 || strcasecmp("-names", *argv) == 0)
             infile_names = strdup(*(++argv));
         else if (strcasecmp("--nodes", *argv) == 0 || strcasecmp("-nodes", *argv) == 0)
             infile_nodes = strdup(*(++argv));
+	else if (strcasecmp("--dfit", *argv) == 0 || strcasecmp("-dfit", *argv) == 0)
+	  infile_dfit = strdup(*(++argv));
         else if (strcasecmp("-lca", *argv) == 0|| strcasecmp("--lcastat", *argv) == 0|| strcasecmp("-lcastat", *argv) == 0)
             infile_lcastat = strdup(*(++argv));
         else if (strcasecmp("-o", *argv) == 0 || strcasecmp("--out", *argv) == 0 || strcasecmp("--out_prefix", *argv) == 0)
@@ -141,17 +179,18 @@ int main_aggregate(int argc, char **argv) {
       fprintf(stderr,"\t-> --names file.txt.gz must be defined with --nodes is defined\n");
       exit(1);
     }
-    
+    fprintf(stderr,"aggregate infile_bdamage: %s infile_names: %s infile_nodes: %s infile_lcastat: %s infile_dfit: %s outfile_name: %s\n",infile_bdamage,infile_names,infile_nodes,infile_lcastat,infile_dfit,outfile_name);
     if(outfile_name==NULL)
       outfile_name = strdup(infile_bdamage);
+    fprintf(stderr,"aggregate infile_bdamage: %s infile_names: %s infile_nodes: %s infile_lcastat: %s infile_dfit: %s outfile_name: %s\n",infile_bdamage,infile_names,infile_nodes,infile_lcastat,infile_dfit,outfile_name);
     char buf[1024];
     snprintf(buf, 1024, "%s.stat.gz", outfile_name);
     fprintf(stderr, "\t-> Dumping file: \'%s\'\n", buf);
     BGZF *fpfpfp = bgzf_open(buf, "wb");
     kstring_t *kstr = new kstring_t;
     kstr->s = NULL; kstr->l = kstr->m = 0;
-    ksprintf(kstr, "taxid\tname\trank\tnalign\tnreads\tmean_rlen\tvar_rlen\tmean_gc\tvar_gc\tlca\ttaxa_path\n");
-
+  
+    
     // map of taxid -> taxid
     int2int parent;
     // map of taxid -> rank
@@ -189,7 +228,20 @@ int main_aggregate(int argc, char **argv) {
       stats = load_lcastat(infile_lcastat,1);
       presize = stats.size();
     }
+    ksprintf(kstr, "taxid\tname\trank\tnalign\tnreads\tmean_rlen\tvar_rlen\tmean_gc\tvar_gc\tlca\ttaxa_path");
     
+    std::map<int, char *> dfit_int_char;
+    if(infile_dfit!=NULL){
+      dfit_int_char = read_dfit(infile_dfit);
+      //      fprintf(stderr,"Donedone\n");
+    }
+    if(dfit_int_char.size()>0){
+      std::map<int, char *>::iterator it = dfit_int_char.find(-1);
+      assert(it!=dfit_int_char.end());
+      ksprintf(kstr,"\t%s",it->second);
+    }
+    ksprintf(kstr,"\n");
+
 #if 0
     if(child.size()>0)//this will not work if we have data at internal nodes 
       getval_stats(stats, child, 1);  // this will do everything
@@ -202,6 +254,7 @@ int main_aggregate(int argc, char **argv) {
     }
     for (std::map<int, mydata2>::iterator it = stats.begin(); it != stats.end(); it++) {
       std::map<int, mydataD>::iterator itold = retmap.find(it->first);
+      std::map<int, char*>::iterator itchar = dfit_int_char.find(it->first);
         int nalign = -1;
         if (itold == retmap.end()) {
             fprintf(stderr, "\t-> Problem finding taxid: %d\n", it->first);
@@ -218,10 +271,13 @@ int main_aggregate(int argc, char **argv) {
                 myname = itc->second;
             ksprintf(kstr, "%d\t\"%s\"\t\"%s\"\t%d\t%d\t%f\t%f\t%f\t%f", it->first, myname, myrank, nalign, it->second.nreads, it->second.data[0], it->second.data[1], it->second.data[2], it->second.data[3]);
 	    if(child.size()>0)
-	      print_chain(kstr, it->first, parent, rank, name_map);
+	      print_chain(kstr, it->first, parent, rank, name_map,0);
 	    else
-	      ksprintf(kstr,"NA\tNA\n");
+	      ksprintf(kstr,"NA\tNA");
             //      fprintf(stderr,"%d->(%d,%f,%f,%f,%f)\n",it->first,it->second.nreads,it->second.data[0],it->second.data[1],it->second.data[2],it->second.data[3]);
+	    if(itchar!=dfit_int_char.end())
+	      ksprintf(kstr,"\t%s",itchar->second);
+	    ksprintf(kstr,"\n");
         }
     }
     //cleanup

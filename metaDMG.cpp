@@ -1293,7 +1293,7 @@ int main_print_ugly(int argc, char **argv) {
                 myname = itc->second;
             gzprintf(fpfpfp, "%d\t\"%s\"\t\"%s\"\t%d\t%d\t%f\t%f\t%f\t%f", it->first, myname, myrank, nalign, it->second.nreads, it->second.data[0], it->second.data[1], it->second.data[2], it->second.data[3]);
 
-	    print_chain(kstr, it->first, parent, rank, name_map);
+	    print_chain(kstr, it->first, parent, rank, name_map,1);
 	    gzwrite(fpfpfp,kstr->s,kstr->l);
 	    kstr->l = 0;
             //      fprintf(stderr,"%d->(%d,%f,%f,%f,%f)\n",it->first,it->second.nreads,it->second.data[0],it->second.data[1],it->second.data[2],it->second.data[3]);

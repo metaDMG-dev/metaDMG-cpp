@@ -275,7 +275,7 @@ void print_rank(FILE *fp, int taxa, int2char &rank) {
     fprintf(stderr, "taxa: %d rank %s\n", taxa, it2->second);
 }
 
-void print_chain(kstring_t *kstr, int taxa, int2int &parent, int2char &rank, int2char &name_map) {
+void print_chain(kstring_t *kstr, int taxa, int2int &parent, int2char &rank, int2char &name_map,int donewline) {
   int first = 0;
   char sep = '\t';
   print_chain1(kstr, taxa, rank, name_map,sep);
@@ -292,7 +292,8 @@ void print_chain(kstring_t *kstr, int taxa, int2int &parent, int2char &rank, int
 	sep = ';';
     }
   }
-  ksprintf(kstr,"\n");
+  if(donewline)
+    ksprintf(kstr,"\n");
 }
 
 int isuniq(std::vector<int> &vec) {
@@ -479,7 +480,7 @@ void hts(gzFile fp, samFile *fp_in, int2int &i2i, int2int &parent, bam_hdr_t *hd
                 if (lca != -1) {
                     gzprintf(fp, "%s\t%s\t%lu\t%d\t%f", last, seq, strlen(seq), size, gccontent(seq));
 		   
-		    print_chain(kstr, lca, parent, rank, name_map);
+		    print_chain(kstr, lca, parent, rank, name_map,1);
 		    gzwrite(fp,kstr->s,kstr->l);
 		    kstr->l =0;
 
@@ -600,7 +601,7 @@ void hts(gzFile fp, samFile *fp_in, int2int &i2i, int2int &parent, bam_hdr_t *hd
         //    fprintf(stderr,"myq->l: %d lca: %d \n",myq->l,lca);
         if (lca != -1) {
             gzprintf(fp, "%s\t%s\t%lu\t%d\t%f", last, seq, strlen(seq), size, gccontent(seq));
-            print_chain(kstr, lca, parent, rank, name_map);
+            print_chain(kstr, lca, parent, rank, name_map,1);
 	    gzwrite(fp,kstr->s,kstr->l);
 	    kstr->l = 0;
             if (isuniq(specs)) {
