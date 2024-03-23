@@ -47,7 +47,7 @@ make clean
 git pull https://github.com/metaDMG-dev/metaDMG-cpp.git
 ```
 
-## Installing metaDMG using Conda
+## Installing metaDMG using Conda. Please note this is an older and not up-to-date version of metaDMG-cpp
 ```
 conda create -c bioconda -n metaDMG metadmg
 conda activate metaDMG
@@ -116,21 +116,6 @@ Options:
 ```
 
 
-# metaDMG aggregate  
-Aggregating the lca statistics when transversing through the tree structure, creating files with prefix .aggregate.stat.txt.gz
-
-`./metaDMG-cpp aggregate file.bdamage.gz --lcastat lca.stat --names names.dmp --nodes nodes.dmp --out file` 
-
-```
-	-> ./metaDMG-cpp aggregate -h 
-    Aggregation of lca produced statistics (mean length, variance length, mean GC, variance GC) when transversing up the nodes of the tree structure
-		./metaDMG-cpp aggregate file.bdamage.gz --names file.gz --nodes trestructure.gz --lcastat file.stat --out filename
---help 		 Print extended help page to see all options.
---names 	 names.dmp.gz
---nodes 	 nodes.dmp.gz
---lca 		 lcaout.stat lca produced statistics
---out 		 Suffix of outputname with the predetermined prefix (.aggregate.stat.txt.gz)
-```
 
 
 
@@ -303,4 +288,20 @@ lca mode: 	  damage estimated over the lca tree at different ranks
 	 Lca mode beta-binomial:
  		 ./metaDMG-cpp lca --names names.dmp --nodes nodes.dmp --acc2tax acc2taxid.map.gz --weight_type 1 --fix_ncbi 0 --bam Pitch6.bam --out Pitch6lcatest 
  		 ./metaDMG-cpp dfit Pitch6lcatest.bdamage.gz --names names.dmp --nodes nodes.dmp --showfits 0
+```
+
+# metaDMG aggregate  
+Aggregating the lca statistics when transversing through the tree structure, creating files with prefix .aggregate.stat.txt.gz
+
+`./metaDMG-cpp aggregate file.bdamage.gz --lcastat lca.stat --names names.dmp --nodes nodes.dmp --out file --dfit ` 
+
+```
+	-> ./metaDMG-cpp aggregate -h 
+    Aggregation of lca produced statistics (mean length, variance length, mean GC, variance GC) when transversing up the nodes of the tree structure
+		./metaDMG-cpp aggregate file.bdamage.gz --names file.gz --nodes trestructure.gz --lcastat file.stat --out filename
+--help 		 Print extended help page to see all options.
+--names 	 names.dmp.gz
+--nodes 	 nodes.dmp.gz
+--lca 		 lcaout.stat lca produced statistics
+--out 		 Suffix of output name with the predetermined prefix (.aggregate.stat.txt.gz)
 ```
