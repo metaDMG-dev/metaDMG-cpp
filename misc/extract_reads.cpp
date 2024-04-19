@@ -33,35 +33,6 @@ char2int getkeys(const char *key,int value){
   return cmap;
 }
 
-//this is the old that should not be used
-void runextract_sam(char2int &cmap,const char *fname,int strict){
-  gzFile gz = Z_NULL;
-  if(((gz=gzopen(fname,"rb")))==Z_NULL){
-    fprintf(stderr,"\t-> Problem opening file: %s\n",fname);
-    return;
-  }
-  char buf[4096];
-  char orig[4096];
-  while(gzgets(gz,buf,4096)){
-    if(buf[0]=='@'){//header
-      fprintf(stdout,"%s",buf);
-      continue;
-    }
-    //fprintf(stderr,"Done reading header\n");
-    //noheader
-    char *orig = strncpy(orig,buf,4096);
-    char *tok = strtok(buf,"\t\n ");
-    tok = strtok(NULL,"\t\n ");
-    tok = strtok(NULL,"\t\n ");//this is now chr/contig in sam
-    if(cmap.find(tok)!=cmap.end()){
-      fprintf(stdout,"%s",orig);
-      continue;
-    }
-  }
-  gzclose(gz);
-
-}
-
 void runextract_taxid(int2int &keeplist,samFile *htsfp,bam_hdr_t *hdr,int strict,const char *outname){
   htsFormat *dingding2 =(htsFormat*) calloc(1,sizeof(htsFormat));
 
