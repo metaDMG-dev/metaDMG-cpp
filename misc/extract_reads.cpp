@@ -274,7 +274,7 @@ int main_bytaxid(int argc,char**argv){
   int2int *bam2tax;//pointer uhhhh
   int2int errmap;
   if(hdr||1)
-    bam2tax=(int2int*) bamRefId2tax(hdr,acc2tax,hts,errmap);
+    bam2tax=(int2int*) bamRefId2tax(hdr,acc2tax,hts,errmap,NULL,0);
   fprintf(stderr,"\t-> We have bam2tax.size(): %lu and errmap.size():%lu\n",bam2tax->size(),errmap.size());
   
 
