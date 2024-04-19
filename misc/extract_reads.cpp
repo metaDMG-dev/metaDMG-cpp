@@ -43,7 +43,7 @@ void runextract_taxid(int2int &keeplist,samFile *htsfp,bam_hdr_t *hdr,int strict
     fprintf(stderr,"Error opening file for writing: %s\n",outname);
     exit(0);
   }
-
+  
   queue *myq = init_queue(5000);//very large, should be enough.
   
   if (sam_hdr_write(outhts, hdr) < 0)
@@ -159,6 +159,44 @@ void runextract_readid(char2int &keeplist,samFile *htsfp,bam_hdr_t *hdr,const ch
   sam_close(outhts);
 }
 
+
+void runextract_refid(int2int &keeplist,samFile *htsfp,bam_hdr_t *hdr,const char *outname,char out_mode[5],int complement){
+  htsFormat *dingding2 =(htsFormat*) calloc(1,sizeof(htsFormat));
+
+  //open outputfile and write header
+  samFile *outhts = NULL;
+  if ((outhts = sam_open_format(outname,out_mode, dingding2)) == 0) {
+    fprintf(stderr,"Error opening file for writing: %s\n",outname);
+    exit(0);
+  }
+
+  if (sam_hdr_write(outhts, hdr) < 0)
+      fprintf(stderr,"Problem writing headers to %s", outname);
+
+  //now mainloop
+  bam1_t *aln = bam_init1();
+  
+  while(sam_read1(htsfp,hdr,aln) >= 0) {
+    int2int::iterator it = keeplist.find(aln->core.tid);
+    int isthere;
+    if(it==keeplist.end())
+      isthere=0;
+    else{
+      isthere=1;
+      it->second = it->second + 1;
+    }
+    if(complement==0&&isthere==1)
+      assert(sam_write1(outhts, hdr,aln)>=0);
+    else if(complement==1&&isthere==0)
+      assert(sam_write1(outhts, hdr,aln)>=0);
+    
+  }
+  
+  sam_hdr_destroy(hdr);
+  sam_close(htsfp);
+  sam_close(outhts);
+}
+
 //taxid is the root the one where will find all lower noded(further from the root)
 //child are the childnode structure
 //i2i contains all the taxids that is spanned by the taxid. This could be a vector but we use hash to check internal structure that we have no loops
@@ -179,12 +217,77 @@ void gettaxids_to_use(int taxid,int2intvec &child,int2int &i2i){
 
 }
 
+int main_byrefid(int argc,char**argv){
+  
+  if(argc==1){
+    fprintf(stderr,"./extract_reads byrefid -hts -key -outnames -type\n");
+    return 0;
+  }
+  argv++;
+  char *keyfile = NULL;
+  char *hts = NULL;
+  char *type = NULL;
+  char *outfile = strdup("tmp.sam");
+  char out_mode[5] = "wb";
+  int docomplement = 0;
+  while(*argv){
+    char *key=*argv;
+    char *val=*(++argv);
+    if(!strcasecmp("-hts",key)) hts=strdup(val);
+    else if(!strcasecmp("-key",key)) keyfile=strdup(val);
+    else if(!strcasecmp("-type",key)) {
+      type = strdup(val);
+      out_mode[1]=tolower(val[0]);
+    }
+    else if(!strcasecmp("-docomplement",key)) docomplement=atoi(val);
+    else if(!strcasecmp("-out",key)) outfile=strdup(val);
+    else{
+      fprintf(stderr,"\t Unknown parameter key:%s val:%s\n",key,val);
+      return 0;
+    }
+    ++argv;
+  }
+  
+  fprintf(stderr,"\t-> key: %s \n\t-> hts: %s \n\t-> type: %s \n\t-> outfile: %s\n",keyfile,hts,type,outfile);
+
+  //open inputfile and parse header
+  samFile *htsfp = hts_open(hts,"r");
+  bam_hdr_t *hdr = sam_hdr_read(htsfp); 
+
+  char2int cmap = getkeys(keyfile,0);
+  
+  int2int keeplist;
+  int VERB = 4;
+  size_t counter[2] = {0,0};//there, not there
+  for(char2int::iterator it=cmap.begin();it!=cmap.end();it++){
+    int tokeep = sam_hdr_name2tid(hdr,it->first);
+    if(tokeep>=0){
+      keeplist[tokeep] =1;
+      counter[0] = counter[0] +1;
+      //      fprintf(stderr,"%s\n",it->first);
+    }else{
+      if(VERB>0){
+	fprintf(stderr,"\t-> This id: %s does not exist in sam/bam/cramfile: %s\n",it->first,hts);
+	fprintf(stderr,"\t-> This info is only printed %d more times\n",VERB);
+	VERB--;
+      }
+      counter[1] = counter[1] +1;
+    }
+
+  }
+  fprintf(stderr,"\t-> Number of refids to use: %lu from -key \'%s\'\n\t-> Number of refids notused: %lu\n",keeplist.size(),keyfile,counter[1]);
+  runextract_refid(keeplist,htsfp,hdr,outfile,out_mode,docomplement);
+  
+  return 0;
+}
+
 int main_bytaxid(int argc,char**argv){
   
   if(argc==1){
     fprintf(stderr,"./extract_reads -hts -key -taxid -nodes -acc2txt -outnames -strict -type\n");
     return 0;
   }
+  fprintf(stderr,"\t-> 19april2024, i dont remember this functionality. Use at own risk\n");
   argv++;
   char *keyfile = NULL;
   char *hts = NULL;
@@ -327,16 +430,19 @@ int main_byreadid(int argc,char**argv){
 int main(int argc,char**argv){
   
   if(argc==1){
-    fprintf(stderr,"./extract_reads bytaxid -hts -key -taxid -nodes -acc2txt -out -strict -type\n");
-    fprintf(stderr,"./extract_reads byreadid -hts -key -out -type\n");
+    fprintf(stderr,"./extract_reads bytaxid -hts -key -taxid -nodes -acc2txt -out -strict -type [dev]\n");
+    fprintf(stderr,"./extract_reads byreadid -hts -key -out -type -docomplement\n");
+    fprintf(stderr,"./extract_reads byrefid -hts -key -out -type -docomplement\n");
     return 0;
   }
   if(strcasecmp(argv[1],"bytaxid")==0)
     return main_bytaxid(argc--,++argv);
   if(strcasecmp(argv[1],"byreadid")==0)
     return main_byreadid(argc--,++argv);
+   if(strcasecmp(argv[1],"byrefid")==0)
+    return main_byrefid(argc--,++argv);
 
-  fprintf(stderr,"\t-> Unknown options please use bytaxid or byreadid\n");
+  fprintf(stderr,"\t-> Unknown options please use bytaxid or byreadid or byrefid\n");
   
   return 0;
 }
