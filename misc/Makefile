@@ -34,7 +34,7 @@ INSTALL = install
 INSTALL_DIR = $(INSTALL) -dm0755
 INSTALL_PROGRAM = $(INSTALL) -Dm0755
 
-PROGRAMS = compressbam 
+PROGRAMS = compressbam extract_reads
 PROGRAMS_MISC = MAP dfit_optim
 
 all: $(PROGRAMS) $(PROGRAMS_MISC)
@@ -50,6 +50,9 @@ M3Load.o: M3Load.cpp
 
 compressbam: compressbam.cpp
 	$(CXX) $(FLAGS) compressbam.cpp -o compressbam $(LIBS)
+
+extract_reads: extract_reads.cpp ../shared.o
+	$(CXX) $(FLAGS) extract_reads.cpp -o extract_reads ../shared.o $(LIBS)
 
 MAP: MAP.cpp M3Load.o bfgs.o Likelihood.o
 	$(CXX) $(FLAGS) -std=c++11 MAP.cpp M3Load.o bfgs.o Likelihood.o -o MAP $(LIBS) -D__WITH_MAIN__
