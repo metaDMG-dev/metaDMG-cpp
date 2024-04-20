@@ -33,12 +33,42 @@ char2int getkeys(const char *key,int value){
   return cmap;
 }
 
-void runextract_taxid(int2int &keeplist,samFile *htsfp,bam_hdr_t *hdr,int strict,const char *outname){
+void doflush(queue *myq,int2int &keeplist,bam_hdr_t *hdr,samFile *outhts,int strict){
+  fprintf(stderr,"flush: %lu strictk:%d\n",myq->l,strict);
+  if(strict==1){//will only print specific match
+    for(int i=0;i<myq->l;i++){
+      int2int::iterator it=keeplist.find(myq->ary[i]->core.tid);
+      if(it!=keeplist.end())
+	assert(sam_write1(outhts, hdr,myq->ary[i])>=0);
+    }
+  }
+  if(strict==0){
+    //if writedata=0 then no aligments will be printed, otherwise all
+    int writedata = 0;
+    for(int i=0;i<myq->l;i++){
+      int2int::iterator it=keeplist.find(myq->ary[i]->core.tid);
+      if(it!=keeplist.end()){
+	writedata=1;
+	break;
+      }
+    }
+    if(writedata>0){
+      for(int i=0;i<myq->l;i++){
+	assert(sam_write1(outhts, hdr,myq->ary[i])>=0);
+      }
+    }
+  }
+  myq->l =0;
+}
+
+
+//strict=0 means only refids matching
+//strict=1 means all aln will be included, if there is a match for one of the alignments
+void runextract_int2int(int2int &keeplist,samFile *htsfp,bam_hdr_t *hdr,const char *outname,char out_mode[5],int strict){
   htsFormat *dingding2 =(htsFormat*) calloc(1,sizeof(htsFormat));
 
   //open outputfile and write header
   samFile *outhts = NULL;
-  char out_mode[5]="ws";
   if ((outhts = sam_open_format(outname,out_mode, dingding2)) == 0) {
     fprintf(stderr,"Error opening file for writing: %s\n",outname);
     exit(0);
@@ -54,33 +84,13 @@ void runextract_taxid(int2int &keeplist,samFile *htsfp,bam_hdr_t *hdr,int strict
   char *last=NULL;
   while(sam_read1(htsfp,hdr,aln) >= 0) {
     char *qname = bam_get_qname(aln);
-    int chr = aln->core.tid ; //contig name (chromosome)
     if(last==NULL)
       last=strdup(qname);
+    
     //change of qname
     if(strcmp(last,qname)!=0) {
-      if(strict==1){
-	for(int i=0;i<myq->l;i++){
-	  int2int::iterator it=keeplist.find(myq->ary[i]->core.tid);
-	  if(it!=keeplist.end())
-	    assert(sam_write1(outhts, hdr,myq->ary[i])>=0);
-	}
-      }else{
-	int writedata = 0;
-	for(int i=0;i<myq->l;i++){
-	  int2int::iterator it=keeplist.find(myq->ary[i]->core.tid);
-	  if(it!=keeplist.end()){
-	    writedata=1;
-	    break;
-	  }
-	}
-	if(writedata>0){
-	  for(int i=0;i<myq->l;i++){
-	    assert(sam_write1(outhts, hdr,myq->ary[i])>=0);
-	  }
-	}
-      }
-      myq->l =0;
+      doflush(myq,keeplist,hdr,outhts,strict);
+      myq->l = 0;
       last=strdup(qname);
     }
     assert(bam_copy1(myq->ary[myq->l],aln)!=NULL);
@@ -88,28 +98,9 @@ void runextract_taxid(int2int &keeplist,samFile *htsfp,bam_hdr_t *hdr,int strict
     if(myq->l==myq->m)
       expand_queue(myq);
   }
-  if(strict==1){
-    for(int i=0;i<myq->l;i++){
-      int2int::iterator it=keeplist.find(myq->ary[i]->core.tid);
-      if(it!=keeplist.end())
-	assert(sam_write1(outhts, hdr,myq->ary[i])>=0);
-    }
-  }else{
-    int writedata = 0;
-    for(int i=0;i<myq->l;i++){
-      int2int::iterator it=keeplist.find(myq->ary[i]->core.tid);
-      if(it!=keeplist.end()){
-	writedata=1;
-	break;
-      }
-    }
-    if(writedata>0){
-      for(int i=0;i<myq->l;i++){
-	assert(sam_write1(outhts, hdr,myq->ary[i])>=0);
-      }
-    }
-  }
-  
+  doflush(myq,keeplist,hdr,outhts,strict);
+  //  doflush(myq,strict,outhts);
+  myq->l = 0;
   sam_hdr_destroy(hdr);
   sam_close(htsfp);
   sam_close(outhts);
@@ -160,43 +151,6 @@ void runextract_readid(char2int &keeplist,samFile *htsfp,bam_hdr_t *hdr,const ch
 }
 
 
-void runextract_refid(int2int &keeplist,samFile *htsfp,bam_hdr_t *hdr,const char *outname,char out_mode[5],int complement){
-  htsFormat *dingding2 =(htsFormat*) calloc(1,sizeof(htsFormat));
-
-  //open outputfile and write header
-  samFile *outhts = NULL;
-  if ((outhts = sam_open_format(outname,out_mode, dingding2)) == 0) {
-    fprintf(stderr,"Error opening file for writing: %s\n",outname);
-    exit(0);
-  }
-
-  if (sam_hdr_write(outhts, hdr) < 0)
-      fprintf(stderr,"Problem writing headers to %s", outname);
-
-  //now mainloop
-  bam1_t *aln = bam_init1();
-  
-  while(sam_read1(htsfp,hdr,aln) >= 0) {
-    int2int::iterator it = keeplist.find(aln->core.tid);
-    int isthere;
-    if(it==keeplist.end())
-      isthere=0;
-    else{
-      isthere=1;
-      it->second = it->second + 1;
-    }
-    if(complement==0&&isthere==1)
-      assert(sam_write1(outhts, hdr,aln)>=0);
-    else if(complement==1&&isthere==0)
-      assert(sam_write1(outhts, hdr,aln)>=0);
-    
-  }
-  
-  sam_hdr_destroy(hdr);
-  sam_close(htsfp);
-  sam_close(outhts);
-}
-
 //taxid is the root the one where will find all lower noded(further from the root)
 //child are the childnode structure
 //i2i contains all the taxids that is spanned by the taxid. This could be a vector but we use hash to check internal structure that we have no loops
@@ -220,7 +174,7 @@ void gettaxids_to_use(int taxid,int2intvec &child,int2int &i2i){
 int main_byrefid(int argc,char**argv){
   
   if(argc==1){
-    fprintf(stderr,"./extract_reads byrefid -hts -key -outnames -type\n");
+    fprintf(stderr,"./extract_reads byrefid -hts -key -out -type -strict \n");
     return 0;
   }
   argv++;
@@ -229,7 +183,7 @@ int main_byrefid(int argc,char**argv){
   char *type = NULL;
   char *outfile = strdup("tmp.sam");
   char out_mode[5] = "wb";
-  int docomplement = 0;
+  int strict = 1;
   while(*argv){
     char *key=*argv;
     char *val=*(++argv);
@@ -239,7 +193,7 @@ int main_byrefid(int argc,char**argv){
       type = strdup(val);
       out_mode[1]=tolower(val[0]);
     }
-    else if(!strcasecmp("-docomplement",key)) docomplement=atoi(val);
+    else if(!strcasecmp("-strict",key)) strict=atoi(val);
     else if(!strcasecmp("-out",key)) outfile=strdup(val);
     else{
       fprintf(stderr,"\t Unknown parameter key:%s val:%s\n",key,val);
@@ -248,7 +202,7 @@ int main_byrefid(int argc,char**argv){
     ++argv;
   }
   
-  fprintf(stderr,"\t-> key: %s \n\t-> hts: %s \n\t-> type: %s \n\t-> outfile: %s\n",keyfile,hts,type,outfile);
+  fprintf(stderr,"\t-> key: %s \n\t-> hts: %s \n\t-> type: %s \n\t-> outfile: %s\n\t-> strict: %d\n",keyfile,hts,type,outfile,strict);
 
   //open inputfile and parse header
   samFile *htsfp = hts_open(hts,"r");
@@ -276,7 +230,7 @@ int main_byrefid(int argc,char**argv){
 
   }
   fprintf(stderr,"\t-> Number of refids to use: %lu from -key \'%s\'\n\t-> Number of refids notused: %lu\n",keeplist.size(),keyfile,counter[1]);
-  runextract_refid(keeplist,htsfp,hdr,outfile,out_mode,docomplement);
+  runextract_int2int(keeplist,htsfp,hdr,outfile,out_mode,strict);
   
   return 0;
 }
@@ -293,9 +247,10 @@ int main_bytaxid(int argc,char**argv){
   char *hts = NULL;
   char *names = NULL;
   char *nodefile = NULL;
+  char out_mode[5] = "wb";
   char *acc2tax = NULL;
   int strict = 0;
-  int type = 0;
+  char *type = NULL;
   char *outfile = strdup("tmp.sam");
   while(*argv){
     char *key=*argv;
@@ -308,7 +263,9 @@ int main_bytaxid(int argc,char**argv){
     else if(!strcasecmp("-acc2tax",key)) acc2tax=strdup(val);
     else if(!strcasecmp("-strict",key)) strict=atoi(val);
     else if(!strcasecmp("-out",key)) outfile=strdup(val);
-    else if(!strcasecmp("-type",key)) type=atoi(val);
+    else if(!strcasecmp("-type",key)) {
+      out_mode[1]=tolower(val[0]);
+      type=strdup(val);}
     else{
       fprintf(stderr,"\t Unknown parameter key:%s val:%s\n",key,val);
       return 0;
@@ -316,7 +273,7 @@ int main_bytaxid(int argc,char**argv){
     ++argv;
   }
   
-  fprintf(stderr,"\t-> key: %s \n\t-> hts: %s \n\t-> nodefile: %s \n\t-> acc2tax: %s \n\t-> names: %s \n\t-> strict: %d \n\t-> type: %d \n\t-> outfile: %s\n",keyfile,hts,nodefile, acc2tax, names,strict,type,outfile);
+  fprintf(stderr,"\t-> key: %s \n\t-> hts: %s \n\t-> nodefile: %s \n\t-> acc2tax: %s \n\t-> names: %s \n\t-> strict: %d \n\t-> type: %s \n\t-> outfile: %s\n",keyfile,hts,nodefile, acc2tax, names,strict,type,outfile);
 
   //open inputfile and parse header
   samFile *htsfp = hts_open(hts,"r");
@@ -375,7 +332,7 @@ int main_bytaxid(int argc,char**argv){
   }
   fprintf(stderr,"\t-> Number of refids to use: %lu\n",keeplist.size());
   
-  runextract_taxid(keeplist,htsfp,hdr,strict,outfile);
+  runextract_int2int(keeplist,htsfp,hdr,outfile,out_mode,strict);
   
   return 0;
 }
@@ -421,8 +378,6 @@ int main_byreadid(int argc,char**argv){
   fprintf(stderr,"\t-> number of refids to use: %lu\n",cmap.size());
   
   runextract_readid(cmap,htsfp,hdr,outfile,out_mode,docomplement);
-  
-  
   return 0;
 }
 
