@@ -34,7 +34,7 @@ char2int getkeys(const char *key,int value){
 }
 
 void doflush(queue *myq,int2int &keeplist,bam_hdr_t *hdr,samFile *outhts,int strict){
-  fprintf(stderr,"flush: %lu strictk:%d\n",myq->l,strict);
+  // fprintf(stderr,"flush: %lu strictk:%d\n",myq->l,strict);
   if(strict==1){//will only print specific match
     for(int i=0;i<myq->l;i++){
       int2int::iterator it=keeplist.find(myq->ary[i]->core.tid);
