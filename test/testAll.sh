@@ -75,6 +75,8 @@ if [[ $? -ne 0 ]]; then
     RVAL=$((64+RVAL))
 fi
 # Remove 'ncall' column and round values, since it fails on GitHub tests
+echo "Running test of output/test_dfit_local.dfit.gz by gzip -t  output/test_dfit_local.dfit.gz "
+gzip -t  output/test_dfit_local.dfit.gz
 zcat output/test_dfit_local.dfit.gz | cut -f 1-6,8- | head -n 10 | numfmt -d $'\t' --header --format='%.2f' --field=2- --invalid=ignore > output/test_dfit_local.dfit.fix
 
 echo "Running dfit local (10 threaded)"
