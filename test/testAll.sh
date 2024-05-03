@@ -33,10 +33,6 @@ if [[ $? -ne 0 ]]; then
     RVAL=$((4+RVAL))
 fi
 
-CHK="$(samtools view ./data/f570b1db7c.dedup.filtered.rname.bam|sort|md5sum|cut -f1 -d \" \")"
-echo ${CHK}
-exit 0;
-
 mkdir -p output
 
 echo "Running getdamage global"
