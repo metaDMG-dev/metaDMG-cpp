@@ -730,13 +730,18 @@ int main_dfit(int argc, char **argv) {
    
 
     char bootbuf[1024];
-    BGZF *bootfp;
+    BGZF *bootfp = NULL;
     kstring_t *bootkstr = new kstring_t;
     bootkstr->s = NULL; bootkstr->l = bootkstr->m = 0;
     if(doboot>0){
       snprintf(bootbuf, 1024, "%s.boot.stat.gz", outfile_name);
       bootfp = bgzf_open(bootbuf, "wb");    
       ksprintf(bootkstr,"taxid\tA_b\tq_b\tc_b\tphi_b\n");
+      if(bgzf_write(bootfp,bootkstr->s,bootkstr->l)!=bootkstr->l){
+	fprintf(stderr,"\t-> Problem writing boot file\n");
+	exit(0);
+      }
+      bootkstr->l = 0;
     }
 
     // map of taxid -> taxid
@@ -851,20 +856,22 @@ int main_dfit(int argc, char **argv) {
       }
     }
     
-    if(bgzf_write(fpfpfp,kstr->s,kstr->l) == 0){
-      fprintf(stderr, "\t-> Cannot write to output BGZ file\n");
+    if(bgzf_write(fpfpfp,kstr->s,kstr->l) != kstr->l){
+      fprintf(stderr, "\t-> Problems write to output BGZ file\n");
       exit(1);
     }
     kstr->l = 0;
+    bgzf_flush(fpfpfp);//<- is flush needed?
     bgzf_close(fpfpfp);
     
     
     if(doboot>0){
-      if(bgzf_write(bootfp,bootkstr->s,bootkstr->l) == 0){
-        fprintf(stderr, "\t-> Cannot write to output BGZ file\n");
+      if(bgzf_write(bootfp,bootkstr->s,bootkstr->l) != bootkstr->l){
+        fprintf(stderr, "\t-> Problemst write to output BGZ file\n");
         exit(1);
       }
       bootkstr->l = 0;
+      bgzf_flush(bootfp)//<- is flush needed?
       bgzf_close(bootfp);
     }
     
