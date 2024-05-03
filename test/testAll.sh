@@ -80,8 +80,7 @@ fi
 echo HEEJEJEJEJEJEJEJEJEJRUNNINGHEAD
 gunzip -c output/test_dfit_local.dfit.gz |head  |wc -c
 echo DONERUNNINGHEADHEEJEJEJEJEJEJEJEJEJRUNNINGTAIL
-gunzip -c output/test_dfit_local.dfit.gz |tail  |wc -c
-echo DONERUNNINNGTAIL
+gunzip -c output/test_dfit_local.dfit.gz |md5sum
 exit 1
 echo "Running dfit local (10 threaded)"
 CMD="${PRG} dfit output/test_lca.bdamage.gz --threads 10 --names data/names.dmp.gz --nodes data/nodes.dmp.gz --showfits 2 --nopt 2 --nbootstrap 2 --seed 12345 --lib ds --out output/test_dfit_local_10threads"
