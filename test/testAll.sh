@@ -32,7 +32,7 @@ if [[ $? -ne 0 ]]; then
     echo "Problem running command: ${CMD}"
     RVAL=$((4+RVAL))
 fi
-md5sum ./data/f570b1db7c.dedup.filtered.rname.bam
+samtools view ./data/f570b1db7c.dedup.filtered.rname.bam|sort|md5sum
 exit 0;
 mkdir -p output
 
