@@ -78,9 +78,9 @@ fi
 #zcat output/test_dfit_local.dfit.gz | cut -f 1-6,8- | head -n 10 | numfmt -d $'\t' --header --format='%.2f' --field=2- --invalid=ignore > output/test_dfit_local.dfit.fix
 
 echo HEEJEJEJEJEJEJEJEJEJ
-zcat output/test_dfit_local.dfit.gz 
+zcat output/test_dfit_local.dfit.gz |head
 echo MEEEEDDDDDDDDDDDDDDD
-zcat output/test_dfit_local.dfit.gz | cut -f 1-6,8-
+zcat output/test_dfit_local.dfit.gz | cut -f 1-6,8-|head
 echo DDDDIIIIIIIIIIIIIIGGGGGG
 zcat output/test_dfit_local.dfit.gz | cut -f 1-6,8- | head -n 10
 echo uddddddrrraaaaabdstegn
