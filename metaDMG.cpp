@@ -19,12 +19,13 @@
 #include "Aggregate_stat.h"   // for main_pmd
 #include "ngsLCA.h"      // for mean, var, gccontent, print_chain
 #include "profile.h"     // for mydataD, mydata2, load_bdamage3, (anonym...
-#ifdef __REGRESSION__
-#include "regression.h"  // for main_regression
-#endif
 #include "shared.h"      // for parse_names, parse_nodes
 #include "types.h"       // for int2intvec, int2int
 #include "version.h"     // for METADAMAGE_VERSION
+
+#ifdef __REGRESSION__
+#include "regression.h"  // for main_regression
+#endif
 
 htsFormat *dingding2 = (htsFormat *)calloc(1, sizeof(htsFormat));
 typedef std::map<int, char *> int2char;
