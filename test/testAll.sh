@@ -77,10 +77,11 @@ fi
 # Remove 'ncall' column and round values, since it fails on GitHub tests
 #zcat output/test_dfit_local.dfit.gz | cut -f 1-6,8- | head -n 10 | numfmt -d $'\t' --header --format='%.2f' --field=2- --invalid=ignore > output/test_dfit_local.dfit.fix
 
-echo HEEJEJEJEJEJEJEJEJEJ
-zcat output/test_dfit_local.dfit.gz |head  |wc -c
-echo HEEJEJEJEJEJEJEJEJEJ
-zcat output/test_dfit_local.dfit.gz |tail  |wc -c
+echo HEEJEJEJEJEJEJEJEJEJRUNNINGHEAD
+gunzip -c output/test_dfit_local.dfit.gz |head  |wc -c
+echo DONERUNNINGHEADHEEJEJEJEJEJEJEJEJEJRUNNINGTAIL
+gunzip -c output/test_dfit_local.dfit.gz |tail  |wc -c
+echo DONERUNNINNGTAIL
 exit 1
 echo "Running dfit local (10 threaded)"
 CMD="${PRG} dfit output/test_lca.bdamage.gz --threads 10 --names data/names.dmp.gz --nodes data/nodes.dmp.gz --showfits 2 --nopt 2 --nbootstrap 2 --seed 12345 --lib ds --out output/test_dfit_local_10threads"
