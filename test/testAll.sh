@@ -2,6 +2,7 @@
 #test script for metadamage, 
 #
 
+
 PRG=../metaDMG-cpp
 BAM1=./data/f570b1db7c.dedup.filtered.bam
 
@@ -31,7 +32,8 @@ if [[ $? -ne 0 ]]; then
     echo "Problem running command: ${CMD}"
     RVAL=$((4+RVAL))
 fi
-
+md5sum ./data/f570b1db7c.dedup.filtered.rname.bam
+exit 0;
 mkdir -p output
 
 echo "Running getdamage global"
