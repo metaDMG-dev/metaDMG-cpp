@@ -98,7 +98,13 @@ if [[ $? -ne 0 ]]; then
     RVAL=$((128+RVAL))
 fi
 # Remove 'ncall' column and round values, since it fails on GitHub tests
-zcat output/test_dfit_local_10threads.dfit.gz | cut -f 1-6,8- | head -n 10 | numfmt -d $'\t' --header --format='%.2f' --field=2- --invalid=ignore | sort -r > output/test_dfit_local_10threads.dfit.fix
+
+#zcat output/test_dfit_local_10threads.dfit.gz | cut -f 1-6,8- | head -n 10 | numfmt -d $'\t' --header --format='%.2f' --field=2- --invalid=ignore | sort -r > output/test_dfit_local_10threads.dfit.fix
+zcat output/test_dfit_local_10threads.dfit.gz > tmp.txt
+head -n 10 tmp.txt > tmp2.txt
+rm tmp.txt
+cut -f 1-6,8- tmp2.txt| numfmt -d $'\t' --header --format='%.2f' --field=2- --invalid=ignore > output/test_dfit_local_10threads.dfit.fix
+rm tmp2.txt
 
 echo "Running dfit global"
 CMD="${PRG} dfit output/test_getdamage_global.bdamage.gz --showfits 2 --seed 12345 --lib ds --out output/test_dfit_global"
