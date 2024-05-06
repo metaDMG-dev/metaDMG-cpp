@@ -82,7 +82,7 @@ echo -ne "Return value of test $?\nWill now run gunzip -c output/test_dfit_local
 
 
 zcat output/test_dfit_local.dfit.gz > tmp.txt
-cat tmp.txt | head -n 10 > tmp2.txt
+head -n 10 tmp.txt > tmp2.txt
 rm tmp.txt
 cut -f 1-6,8- tmp2.txt| numfmt -d $'\t' --header --format='%.2f' --field=2- --invalid=ignore > output/test_dfit_local.dfit.fix
 rm tmp2.txt
