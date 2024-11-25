@@ -12,6 +12,7 @@ typedef struct {
     char *nodesfile;
     char *namesfile;
     char *acc2taxfile;
+    char *filteredAcc2taxfile;
     // hts strucutures
     samFile *hts;
     bam_hdr_t *header;

@@ -18,6 +18,7 @@ pars *pars_init() {
     pars *p = (pars *)calloc(1, sizeof(pars));
     p->htsfile = strdup("CHL_155_12485.sort.bam");
     p->acc2taxfile = strdup("nucl_gb.accession2taxid.gz");
+    p->filteredAcc2taxfile = strdup("acc2tax.filt.gz");
     p->namesfile = strdup("names.dmp.gz");
     p->nodesfile = strdup("nodes.dmp.gz");
     p->hts = NULL;
@@ -205,6 +206,8 @@ pars *get_pars(int argc, char **argv) {
         } else if (!strcasecmp("--acc2tax", key)) {
             free(p->acc2taxfile);
             p->acc2taxfile = strdup(val);
+        } else if (!strcasecmp("--filtered_acc2tax", key)) {
+            p->filteredAcc2taxfile = strdup(val);
         } else if (!strcasecmp("--edit_dist_min", key))
             p->editdistMin = atoi(val);
         else if (!strcasecmp("--edit_dist_max", key))
@@ -313,6 +316,8 @@ void print_pars(FILE *fp, pars *p) {
     fprintf(fp, "\t-> --weight_type\t%d\n", p->weighttype);
     fprintf(fp, "\t-> --ignore_errors\t%d\n", p->ignore_errors);
     fprintf(fp, "\t-> --temp\t%s\n", p->tempfolder);
+    fprintf(fp, "\t-> --filtered_acc2tax\t%s\n", p->filteredAcc2taxfile);
+
 }
 
 #ifdef __WITH_MAIN__
