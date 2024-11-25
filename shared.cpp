@@ -228,9 +228,8 @@ void parse_nodes2(int2int &parent, int2intvec &child) {
     //    exit(0);
 }
 
-// bamfile is only used for making smaller filedump (using the filename)
 int SIG_COND = 1;
-int2int *bamRefId2tax(bam_hdr_t *hdr, char *acc2taxfile, char *bamfile, int2int &errmap, char *tempfolder,int reallyDump) {
+int2int *bamRefId2tax(bam_hdr_t *hdr, char *acc2taxfile, char *bamfile, int2int &errmap, char *tempfolder, int reallyDump, char *filteredAcc2taxfile) {
     fprintf(stderr, "\t-> Starting to extract (acc->taxid) from binary file: \'%s\'\n", acc2taxfile);
     fflush(stderr);
     int dodump = !fexists4(tempfolder, basename(acc2taxfile), basename(bamfile), ".bin");
@@ -239,49 +238,63 @@ int2int *bamRefId2tax(bam_hdr_t *hdr, char *acc2taxfile, char *bamfile, int2int 
 
     time_t t = time(NULL);
     BGZF *fp = NULL;
-    if (dodump){
-      if(reallyDump)
-	fp = getbgzf4(tempfolder, basename(acc2taxfile), basename(bamfile), ".bin", "wb", 4);
-    }else
+    if (dodump) {
+        if (reallyDump)
+            fp = getbgzf4(tempfolder, basename(acc2taxfile), basename(bamfile), ".bin", "wb", 4);
+    } else {
         fp = getbgzf4(tempfolder, basename(acc2taxfile), basename(bamfile), ".bin", "rb", 4);
-    // this contains refname(as int) -> taxid
+    }
+    // This contains refname(as int) -> taxid
     int2int *am = new int2int;
+
+    // Open the filtered output file if specified
+    gzFile filteredFile = Z_NULL;
+    if (filteredAcc2taxfile != nullptr) {
+        filteredFile = gzopen(filteredAcc2taxfile, "wb");
+        if (!filteredFile) {
+            fprintf(stderr, "Error opening file '%s' for writing\n", filteredAcc2taxfile);
+            exit(1);
+        }
+        gzprintf(filteredFile, "BAM_Reference\tTaxID\n"); // Write header
+    }
 
     if (dodump) {
         char buf[4096];
         int at = 0;
-        char buf2[4096];
 
         kstring_t *kstr = (kstring_t *)malloc(sizeof(kstring_t));
         kstr->l = kstr->m = 0;
         kstr->s = NULL;
         BGZF *fp2 = getbgzf(acc2taxfile, "rb", 2);
-        bgzf_getline(fp2, '\n', kstr);  // skip header
+        bgzf_getline(fp2, '\n', kstr);  // Skip header
         kstr->l = 0;
         while (SIG_COND && bgzf_getline(fp2, '\n', kstr)) {
             if (kstr->l == 0)
                 break;
-            // fprintf(stderr,"at: %d = '%s\'\n",at,kstr->s);
-            if (!((at++ % 100000)))
-                if (isatty(fileno(stderr)))
-                    fprintf(stderr, "\r\t-> At linenr: %d in \'%s\'      ", at, acc2taxfile);
+            if (!((at++ % 100000)) && isatty(fileno(stderr)))
+                fprintf(stderr, "\r\t-> At linenr: %d in \'%s\'      ", at, acc2taxfile);
             char *tok = strtok(kstr->s, "\t\n ");
             char *key = strtok(NULL, "\t\n ");
             tok = strtok(NULL, "\t\n ");
             int val = atoi(tok);
-            // fprintf(stderr,"key: %d val: %d\n",key,val);exit(0);
             int valinbam = bam_name2id(hdr, key);
+
             if (valinbam == -1)
                 continue;
-	    if(fp!=NULL){
-	      assert(bgzf_write(fp, &valinbam, sizeof(int)) == sizeof(int));
-	      assert(bgzf_write(fp, &val, sizeof(int)) == sizeof(int));
-	    }
-            // fprintf(stderr,"key: %s val: %d valinbam:%d\n",key,val,valinbam);
+
+            if (fp != NULL) {
+                assert(bgzf_write(fp, &valinbam, sizeof(int)) == sizeof(int));
+                assert(bgzf_write(fp, &val, sizeof(int)) == sizeof(int));
+            }
 
             if (am->find(valinbam) != am->end())
                 fprintf(stderr, "\t-> Duplicate entries found \'%s\'\n", key);
             (*am)[valinbam] = val;
+
+            // Write to the filtered file if specified
+            if (filteredFile != Z_NULL) {
+                gzprintf(filteredFile, "%s\t%d\n", key, val);
+            }
             kstr->l = 0;
         }
         bgzf_close(fp2);
@@ -290,11 +303,23 @@ int2int *bamRefId2tax(bam_hdr_t *hdr, char *acc2taxfile, char *bamfile, int2int 
         while (bgzf_read(fp, &valinbam, sizeof(int))) {
             assert(bgzf_read(fp, &val, sizeof(int)) == sizeof(int));
             (*am)[valinbam] = val;
+
+            // Write to the filtered file if specified
+            if (filteredFile != Z_NULL) {
+                const char *refname = hdr->target_name[valinbam];
+                gzprintf(filteredFile, "%s\t%d\n", refname, val);
+            }
         }
     }
 
+    // Close the filtered file if it was opened
+    if (filteredFile != Z_NULL) {
+        gzclose(filteredFile);
+        fprintf(stderr, "\n\t-> Filtered acc2taxfile saved to '%s'\n", filteredAcc2taxfile);
+    }
+
     bgzf_close(fp);
-    fprintf(stderr, "\t-> Number of entries to use from accesion to taxid: %lu, time taken: %.2f sec\n", am->size(), (float)(time(NULL) - t));
+    fprintf(stderr, "\t-> Number of entries to use from accession to taxid: %lu, time taken: %.2f sec\n", am->size(), (float)(time(NULL) - t));
     return am;
 }
 
