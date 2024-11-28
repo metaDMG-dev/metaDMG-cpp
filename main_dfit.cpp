@@ -79,12 +79,27 @@ void make_bootstrap_data(double **in,double **out,int howmany,mrand_t *rand_allo
   }
 }
 
+void print_dat(double **dat, int howmany, int libprep) {
+    int rows = 4;  // [metadata, kvec, nvec, freq]
+    int cols = 2 * howmany; 
+    printf("printing d:\n");
+    for (int r = 0; r < rows; ++r) {
+        printf("Row %d: ", r);
+        for (int c = 0; c < cols; ++c) {
+            printf("%f ", dat[r][c]);
+        }
+        printf("\n");
+    }
+    printf("\n");
+}
+
 //aa,ac,ag,at,ca,cc,cg,ct,ga
 //ct and ga has index 7,8 when zero indexed
 void make_dfit_format(mydataD &md,double **dat,int howmany,int libprep){
   /*
   for double-stranded lib prep we would observe both C>T and G>A
-  for single-stranded lib prep we would only observe C>T
+  for single-stranded lib prep we would only observe C>T (at both ends)
+  for a mixture of libraries we want to look at just C>T
 
   Therefore the columns extracted from the MisMatchMatrix will differ
   */
@@ -95,7 +110,7 @@ void make_dfit_format(mydataD &md,double **dat,int howmany,int libprep){
     col_3p = 7; //only ct for ss
   }
 
-  dat[0][0] = 2*howmany;
+  dat[0][0] = 2 * howmany; // Adjust size if using just 5'
   dat[0][1] = 0;
   for(int i=0;i<howmany;i++){
     dat[0][i+2] =i;//plug in position
@@ -109,17 +124,20 @@ void make_dfit_format(mydataD &md,double **dat,int howmany,int libprep){
     dat[3][i] = (double) dat[1][i]/dat[2][i];
 
   }
-  // In the 3' end, for ds we use the GA col (8), for ss we use CA col (7)
-  for(int i=0;i<howmany;i++){
-    dat[0][howmany+i+2] =i;//plug in position
+  // if using a mix of libraries we don't care about the 3' end 
+  if (libprep!=2){
+    // In the 3' end, for ds we use the GA col (8), for ss we use CA col (7)
+    for(int i=0;i<howmany;i++){
+      dat[0][howmany+i+2] =i;//plug in position
 
-    dat[2][howmany+i] = 0;//initialize kcol to zero, a few lines dows we will sum over all G*
-    dat[1][howmany+i] = md.bwD[i*16+col_3p];//plugin ga at kcol
-    
-    for(int at=0;at<4;at++)
-      dat[2][howmany+i] = dat[2][howmany+i]+md.bwD[i*16+col_3p+at];
+      dat[2][howmany+i] = 0;//initialize kcol to zero, a few lines dows we will sum over all G*
+      dat[1][howmany+i] = md.bwD[i*16+col_3p];//plugin ga at kcol
+      
+      for(int at=0;at<4;at++)
+        dat[2][howmany+i] = dat[2][howmany+i]+md.bwD[i*16+col_3p+at];
 
-    dat[3][howmany+i] = (double) dat[1][howmany+i]/dat[2][howmany+i];
+      dat[3][howmany+i] = (double) dat[1][howmany+i]/dat[2][howmany+i];
+    }
   }
 
 }
@@ -134,8 +152,8 @@ void make_dfit_format(mydataD &md,double **dat,int howmany,int libprep){
   |dat[2]| = 2*howmany; nvec
   |dat[3]| = 2*howmany; freq(k) = kvec/nvec
  */
-void make_dfit_format_bootstrap(mydataD &md,double **dat,int howmany,mrand_t *rand_alloc){
-  dat[0][0] = 2*howmany;
+void make_dfit_format_bootstrap(mydataD &md,double **dat,int howmany,mrand_t *rand_alloc, int libprep){
+  dat[0][0] = 2 * howmany; // Adjust size for 'mix'
   dat[0][1] = 0;
 
   //do 5'
@@ -164,38 +182,40 @@ void make_dfit_format_bootstrap(mydataD &md,double **dat,int howmany,mrand_t *ra
     dat[3][i] = (double) dat[1][i]/dat[2][i];
   }
 
-  //do 3'
-  for(int i=0;i<howmany;i++){
-    dat[0][howmany+i+2] =i;
+  //do 3' if not mixture
+  if (libprep!=2){
 
-    double tsum[4] = {0,0,0,0};
-    for(int r=0;r<4;r++)
-      for(int o=0;o<4;o++)
-	      tsum[r] += md.bwD[i*16+r*4+o];
-    
-    double prob1 = tsum[2]/(tsum[0]+tsum[1]+tsum[2]+tsum[3]);//sum over all
-    double prob2 =((double) md.bwD[i*16+8])/tsum[2];//ga over sum of g*
-    dat[2][howmany+i] = 0;//initialize kcol to zero, a few lines dows we will sum over all G*
-    for(int f=0;f<tsum[0]+tsum[1]+tsum[2]+tsum[3];f++){
-      if(mrand_pop(rand_alloc)<prob1){//if reference is g
-        if(mrand_pop(rand_alloc)<prob2)//if observertion is a
-          dat[1][howmany+i] += 1;
-        
-        dat[2][howmany+i] += 1;//we are at ref=g, so increment the nvec
+    for(int i=0;i<howmany;i++){
+      dat[0][howmany+i+2] =i;
+
+      double tsum[4] = {0,0,0,0};
+      for(int r=0;r<4;r++)
+        for(int o=0;o<4;o++)
+  	      tsum[r] += md.bwD[i*16+r*4+o];
+      
+      double prob1 = tsum[2]/(tsum[0]+tsum[1]+tsum[2]+tsum[3]);//sum over all
+      double prob2 =((double) md.bwD[i*16+8])/tsum[2];//ga over sum of g*
+      dat[2][howmany+i] = 0;//initialize kcol to zero, a few lines dows we will sum over all G*
+      for(int f=0;f<tsum[0]+tsum[1]+tsum[2]+tsum[3];f++){
+        if(mrand_pop(rand_alloc)<prob1){//if reference is g
+          if(mrand_pop(rand_alloc)<prob2)//if observertion is a
+            dat[1][howmany+i] += 1;
+          
+          dat[2][howmany+i] += 1;//we are at ref=g, so increment the nvec
+        }
       }
+
+      dat[3][howmany+i] = (double) dat[1][howmany+i]/dat[2][howmany+i];
     }
-
-    dat[3][howmany+i] = (double) dat[1][howmany+i]/dat[2][howmany+i];
   }
-
 }
 
-void make_dfit_format_bootstrap2(mydataD &md,double **dat,int howmany,int seed){
+void make_dfit_format_bootstrap2(mydataD &md,double **dat,int howmany,int seed, int libprep){
   static std::random_device rd;
   static std::mt19937 gen(rd());
   
   srand48(seed);
-  dat[0][0] = 2*howmany;
+  dat[0][0] =  2 * howmany; // Adjust size for 'mix'
   dat[0][1] = 0;
 
   //do 5'
@@ -218,28 +238,29 @@ void make_dfit_format_bootstrap2(mydataD &md,double **dat,int howmany,int seed){
     dat[3][i] = (double) dat[1][i]/dat[2][i];
   }
 
-  //do 3'
-  for(int i=0;i<howmany;i++){
-    dat[0][howmany+i+2] =i;
+  //do 3' if not mixture
+  if (libprep!=2){
+    for(int i=0;i<howmany;i++){
+      dat[0][howmany+i+2] =i;
 
-    double tsum[4] = {0,0,0,0};
-    for(int r=0;r<4;r++)
-      for(int o=0;o<4;o++)
-	      tsum[r] += md.bwD[i*16+r*4+o];
-    
-    double prob1 = tsum[2]/(tsum[0]+tsum[1]+tsum[2]+tsum[3]);//sum over all
-    double prob2 =((double) md.bwD[i*16+8])/tsum[2];//ga over sum of g*
+      double tsum[4] = {0,0,0,0};
+      for(int r=0;r<4;r++)
+        for(int o=0;o<4;o++)
+  	      tsum[r] += md.bwD[i*16+r*4+o];
+      
+      double prob1 = tsum[2]/(tsum[0]+tsum[1]+tsum[2]+tsum[3]);//sum over all
+      double prob2 =((double) md.bwD[i*16+8])/tsum[2];//ga over sum of g*
 
-    std::binomial_distribution<> d(tsum[0]+tsum[1]+tsum[2]+tsum[3], prob1);
-    
-    dat[2][howmany+i] = d(gen);
-    std::binomial_distribution<> d2(dat[2][i], prob2);
-    dat[2][howmany+i] = d2(gen);
+      std::binomial_distribution<> d(tsum[0]+tsum[1]+tsum[2]+tsum[3], prob1);
+      
+      dat[2][howmany+i] = d(gen);
+      std::binomial_distribution<> d2(dat[2][i], prob2);
+      dat[2][howmany+i] = d2(gen);
 
 
-    dat[3][howmany+i] = (double) dat[1][howmany+i]/dat[2][howmany+i];
+      dat[3][howmany+i] = (double) dat[1][howmany+i]/dat[2][howmany+i];
+    }
   }
-
 }
 
 mydataD getval_full(std::map<int, mydataD> &retmap, int2intvec &child, int taxid, int howmany);
@@ -379,10 +400,10 @@ void slave_block(std::map<int, mydataD> &retmap,int howmany,sam_hdr_t *hdr,int2c
         }
         else if(sigtype==2){
           mrand_t *rand_alloc_boot = mrand_alloc(rng_type,seed+b);
-          make_dfit_format_bootstrap(md,bootdata,howmany,rand_alloc_boot);//<-this makes a new dat that has been resampled
+          make_dfit_format_bootstrap(md,bootdata,howmany,rand_alloc_boot,libprep);//<-this makes a new dat that has been resampled
         }
         else if(sigtype==3){
-          make_dfit_format_bootstrap2(md,bootdata,howmany,(int)(seed+b));//<-this makes a new dat that has been resampled
+          make_dfit_format_bootstrap2(md,bootdata,howmany,(int)(seed+b),libprep);//<-this makes a new dat that has been resampled
         }
         
         pars_b[0] = 0.1;pars_b[1]=0.1,pars_b[2]=0.01,pars_b[3]=1000,pars_b[4]=0,pars_b[5]=0;
@@ -591,10 +612,17 @@ void slave_block(std::map<int, mydataD> &retmap,int howmany,sam_hdr_t *hdr,int2c
       dx = stats+2+ncycle;
       dx_conf = stats+2+nrows+ncycle;
       
-      for(int i=0;i<ncycle;i++){
-        if (isnan(dx_conf[i])){dx_conf[i] = 0.0;}
-        if(isnan(dat[3][i+ncycle])){dat[3][i+ncycle] = 0.0;} //the f column
-        ksprintf(kstr,"\t%.0f\t%0.f\t%f\t%f\t%f",dat[1][i+ncycle],dat[2][i+ncycle],dat[3][i+ncycle],dx[i],dx_conf[i]);
+      for (int i = 0; i < ncycle; i++) {
+          if (libprep == 2) {
+              // nan for all bw-related metrics if libprep is mix
+              ksprintf(kstr, "\tNaN\tNaN\tNaN\tNaN\tNaN");
+          } else {
+              // handle normal cases (ds or ss)
+              if (isnan(dx_conf[i])) { dx_conf[i] = 0.0; }
+              if (isnan(dat[3][i + ncycle])) { dat[3][i + ncycle] = 0.0; } // the f column
+              ksprintf(kstr, "\t%.0f\t%0.f\t%f\t%f\t%f",
+                       dat[1][i + ncycle], dat[2][i + ncycle], dat[3][i + ncycle], dx[i], dx_conf[i]);
+          }
       }
     }
     ksprintf(kstr,"\n");
@@ -715,7 +743,7 @@ int main_dfit(int argc, char **argv) {
         hdr = sam_hdr_read(samfp);
     }
     if(infile_bam!=NULL&&infile_nodes!=NULL){
-      fprintf(stderr,"\t-> Potential issue, supplying both -bam and -nodes might not be meaningfull\n");
+      fprintf(stderr,"\t-> Potential issue, supplying both -bam and -nodes might not be meaningful\n");
       exit(1);
     }
     
@@ -782,6 +810,9 @@ int main_dfit(int argc, char **argv) {
       }
       else if(strcasecmp(lib_prep, "ss")==0){
         libprep = 1;
+      }
+      else if(strcasecmp(lib_prep, "mix")==0){
+        libprep = 2;
       }
     }
 

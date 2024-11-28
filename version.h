@@ -1,1 +1,1 @@
-#define METADAMAGE_VERSION "v0.4-94-gc110946-dirty"
+#define METADAMAGE_VERSION "v0.4-97-g249a290-dirty"

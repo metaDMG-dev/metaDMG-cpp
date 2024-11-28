@@ -1,3 +1,8 @@
 .vscode/
 *.o
 *.d
+metaDMG-cpp
+misc/dfit_optim
+misc/extract_reads
+misc/MAP
+misc/compressbam

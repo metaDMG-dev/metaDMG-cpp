@@ -144,7 +144,7 @@ Options:
 #### Header in print: taxid,nralign,orientation,position,AA,AC,AG,AT,CA,CC,CG,CT,GA,GC,GG,GT,TA,TC,TG,TT 
  ```
  
-# metaDMG merge 
+# metaDMG merge
 
 `./metaDMG-cpp merge file.lca file.bdamage.gz ` 
 
@@ -164,7 +164,7 @@ Options:
 ```
 
  
-# metaDMG dfit  
+# metaDMG dfit
 Performing numerical optimization of the deamination frequencies based on the mismatch matrix (.bdamage.gz) to estimate four parameters: A,q,c,phi. Either applying a beta-binomial distribution or binomial distribution as the choice for likelihood model.
 
 A: Amplitude of damage on position one.
@@ -231,7 +231,7 @@ lca mode: 	  damage estimated over the lca tree at different ranks
 
 --threads:			 Number of threads, default = 1, i.e. no threading
 
---lib 				 double stranded (ds) use C>T (forward) and G>A (reverse); single stranded (ss) use C>T for both forward and reverse (default ds)
+--lib 				 double stranded (ds) use C>T (forward) and G>A (reverse); single stranded (ss) use C>T for both forward and reverse; mixed ss and ds bam files (mix) use just C>T (forward) (default ds)
 
 --nbootstrap		 number of bootstrap iterations. default: 1 -> use Beta-binomial model, -nbootstrap >1 use Binomial model 
 
@@ -290,7 +290,7 @@ lca mode: 	  damage estimated over the lca tree at different ranks
  		 ./metaDMG-cpp dfit Pitch6lcatest.bdamage.gz --names names.dmp --nodes nodes.dmp --showfits 0
 ```
 
-# metaDMG aggregate  
+# metaDMG aggregate
 Aggregating the lca statistics when transversing through the tree structure, creating files with prefix .aggregate.stat.txt.gz
 
 `./metaDMG-cpp aggregate file.bdamage.gz --lcastat lca.stat --names names.dmp --nodes nodes.dmp --out file --dfit ` 
