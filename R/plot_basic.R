@@ -4,6 +4,7 @@ args <- commandArgs(trailingOnly = TRUE)
 file <- args[1]
 libraryid <- args[2]
 output_dir <- args[3]
+only5 <- as.logical(args[4])
 
 if (!dir.exists(output_dir)) dir.create(output_dir)
 
@@ -82,18 +83,31 @@ for (i in 1:nrow(df)) {
     n_fwd <- row_data[,..fwd_n_ix]
     k_bwd <- row_data[,..bwd_k_ix]
     n_bwd <- row_data[,..bwd_n_ix]
-    
-    plot(positions, k_fwd, type = "l", col = "red", xlab = "Position", ylab = "Number of nucleotides", ylim = c(0,max(n_fwd, n_bwd)), main=title)
-    lines(positions, k_bwd, type = "l", col = "blue")
-    lines(positions, n_fwd, type = "o", col = "red")
-    lines(positions, n_bwd, type = "o", col = "blue")
-    legend("right",              
-           legend = c("k_fwd", "k_bwd", "n_fwd", "n_bwd"),
-           col = c("red", "blue", "red", "blue"),        
-           lty = c(1,1,1,1),                                      
-           pch = c(NA,NA,1,1),
-           cex = 0.8)
 
+    ylim <- c(0,max(n_fwd, n_bwd))
+    if (only5) ylim <- c(0,max(n_fwd))
+
+    
+    plot(positions, k_fwd, type = "l", col = "red", xlab = "Position", ylab = "Number of nucleotides", ylim = ylim, main=title)
+    if (!only5) lines(positions, k_bwd, type = "l", col = "blue")
+    lines(positions, n_fwd, type = "o", col = "red")
+    if (!only5) {
+      lines(positions, n_bwd, type = "o", col = "blue")
+      legend("right",              
+             legend = c("k_fwd", "k_bwd", "n_fwd", "n_bwd"),
+             col = c("red", "blue", "red", "blue"),        
+             lty = c(1,1,1,1),                                      
+             pch = c(NA,NA,1,1),
+             cex = 0.8)
+    }
+    else {
+          legend("right",              
+           legend = c("k_fwd", "n_fwd"),
+           col = c("red", "red"),        
+           lty = c(1,1),                                      
+           pch = c(NA,1),
+           cex = 0.8)
+    }
     # plot damage 
     # x is smoothed damage est 
     # f is point estimates  
@@ -102,16 +116,29 @@ for (i in 1:nrow(df)) {
     f_fwd <- row_data[,..fwd_f_ix]
     f_bwd <- row_data[,..bwd_f_ix]
 
-    plot(positions, f_fwd, type = "o", col = "red", xlab = "Position", ylab = "Damage estimate", ylim = c(0,max(x_fwd, x_bwd)))
-    lines(positions, f_bwd, type = "o", col = "blue")  
-    lines(positions, x_bwd, type = "l", col = "red")  
-    lines(positions, x_bwd, type = "l", col = "blue")  
-    legend("topright",              
-           legend = c("f_fwd", "f_bwd", "x_fwd", "x_bwd"),
-           col = c("red", "blue", "red", "blue"),        
-           lty = c(1,1,1,1),                                      
-           pch = c(1,1,NA,NA),
+    ylim <- c(0,max(x_fwd, x_bwd))
+    if (only5) ylim <- c(0,max(x_fwd))
+
+    plot(positions, f_fwd, type = "o", col = "tomato4", xlab = "Position", ylab = "Damage estimate", ylim = ylim)
+    if (!only5) lines(positions, f_bwd, type = "o", col = "royalblue4")  
+    lines(positions, x_fwd, type = "l", col = "red")  
+    if (!only5) {
+      lines(positions, x_bwd, type = "l", col = "blue")  
+      legend("topright",              
+             legend = c("f_fwd", "f_bwd", "x_fwd", "x_bwd"),
+             col = c("tomato4", "royalblue4", "red", "blue"),        
+             lty = c(1,1,1,1),                                      
+             pch = c(1,1,NA,NA),
+             cex = 0.8)  
+    }
+    else {
+      legend("topright",              
+           legend = c("f_fwd", "x_fwd" ),
+           col = c("tomato4", "red"),        
+           lty = c(1,1),                                      
+           pch = c(1,NA),
            cex = 0.8)  
+    }
 
     dev.off()  
   }
