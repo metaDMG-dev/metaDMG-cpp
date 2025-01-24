@@ -27,7 +27,7 @@ fwd_f_ix <- grep("^fwf", names(df))
 bwd_f_ix <- grep("^bwf", names(df))
 
 # x axis (how many positions)
-positions <- seq_along(bwd_n_ix)
+positions <- seq_along(bwd_n_ix) -1
 
 # damage params 
 a_ix <- grep("^A_b", names(df))
