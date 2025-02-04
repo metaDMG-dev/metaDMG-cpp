@@ -229,27 +229,26 @@ void parse_nodes2(int2int &parent, int2intvec &child) {
 }
 
 int SIG_COND = 1;
-int2int *bamRefId2tax(bam_hdr_t *hdr, char *acc2taxfile, char *bamfile, int2int &errmap, char *tempfolder, int reallyDump, char *filteredAcc2taxfile) {
+int2int *bamRefId2tax(bam_hdr_t *hdr, char *acc2taxfile, char *bamfile, int2int &errmap, char *tempfolder, int forceDump, char *filteredAcc2taxfile) {
     fprintf(stderr, "\t-> Starting to extract (acc->taxid) from binary file: \'%s\'\n", acc2taxfile);
     fflush(stderr);
     int dodump = !fexists4(tempfolder, basename(acc2taxfile), basename(bamfile), ".bin");
-
+    dodump += forceDump;
     fprintf(stderr, "\t-> Checking if binary file exists. dodump=%d \n", dodump);
 
     time_t t = time(NULL);
     BGZF *fp = NULL;
-    if (dodump) {
-        if (reallyDump)
-            fp = getbgzf4(tempfolder, basename(acc2taxfile), basename(bamfile), ".bin", "wb", 4);
-    } else {
-        fp = getbgzf4(tempfolder, basename(acc2taxfile), basename(bamfile), ".bin", "rb", 4);
-    }
+    if (dodump)
+      fp = getbgzf4(tempfolder, basename(acc2taxfile), basename(bamfile), ".bin", "wb", 4);
+    else
+      fp = getbgzf4(tempfolder, basename(acc2taxfile), basename(bamfile), ".bin", "rb", 4);
+
     // This contains refname(as int) -> taxid
     int2int *am = new int2int;
 
     // Open the filtered output file if specified
     gzFile filteredFile = Z_NULL;
-    if (filteredAcc2taxfile != nullptr) {
+    if (filteredAcc2taxfile != NULL && dodump) {
         filteredFile = gzopen(filteredAcc2taxfile, "wb");
         if (!filteredFile) {
             fprintf(stderr, "Error opening file '%s' for writing\n", filteredAcc2taxfile);
@@ -292,9 +291,8 @@ int2int *bamRefId2tax(bam_hdr_t *hdr, char *acc2taxfile, char *bamfile, int2int 
             (*am)[valinbam] = val;
 
             // Write to the filtered file if specified
-            if (filteredFile != Z_NULL) {
-                gzprintf(filteredFile, "%s\t%d\n", key, val);
-            }
+            if (filteredFile != Z_NULL)
+	      gzprintf(filteredFile, "%s\t%d\n", key, val);
             kstr->l = 0;
         }
         bgzf_close(fp2);

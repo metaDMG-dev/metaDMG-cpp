@@ -65,6 +65,7 @@ void doflush(queue *myq,int2int &keeplist,bam_hdr_t *hdr,samFile *outhts,int str
 //strict=0 means only refids matching
 //strict=1 means all aln will be included, if there is a match for one of the alignments
 void runextract_int2int(int2int &keeplist,samFile *htsfp,bam_hdr_t *hdr,const char *outname,char out_mode[5],int strict){
+  fprintf(stderr,"outname: %s outformat: %s\n",outname,out_mode);
   htsFormat *dingding2 =(htsFormat*) calloc(1,sizeof(htsFormat));
 
   //open outputfile and write header
@@ -181,7 +182,7 @@ int main_byrefid(int argc,char**argv){
   char *keyfile = NULL;
   char *hts = NULL;
   char *type = NULL;
-  char *outfile = strdup("tmp.sam");
+  char *outfile = strdup("tmp.bam");
   char out_mode[5] = "wb";
   int strict = 1;
   while(*argv){
@@ -236,9 +237,12 @@ int main_byrefid(int argc,char**argv){
 }
 
 int main_bytaxid(int argc,char**argv){
-  
   if(argc==1){
-    fprintf(stderr,"./extract_reads -hts -key -taxid -nodes -acc2txt -outnames -strict -type\n");
+    fprintf(stderr,"./extract_reads bytaxid -hts [-key file_with_refnames] -taxid  -nodes -acc2tax -outnames -strict -type [s/b]am\n");
+    fprintf(stderr,"-------\nAlso -forcedump 1 -accout filename.txt.gz\n-strict 1 means only alignments that match\n-strict 0 (default) means all alignments associated with a read if one of the alignments match\n---------\n");
+    fprintf(stderr,"examples\n");
+    fprintf(stderr,"./extract_reads bytaxid -hts yo.bam  -taxid 3258 -nodes /projects/caeg/data/db/aeDNA-refs/resources/20230825/ncbi/taxonomy/nodes.dmp -acc2tax /projects/caeg/data/db/mikkels/combined_accession2taxid_20221112.gz -type bam -out tmp3.bam -strict 0\n");
+    fprintf(stderr,"\nExtract all those reads where one of the alignments is a child to the node given by taxid 3258\n");
     return 0;
   }
   fprintf(stderr,"\t-> 19april2024, i dont remember this functionality. Use at own risk\n");
@@ -251,7 +255,9 @@ int main_bytaxid(int argc,char**argv){
   char *acc2tax = NULL;
   int strict = 0;
   char *type = NULL;
-  char *outfile = strdup("tmp.sam");
+  char *outfile = strdup("tmp.bam");
+  int forcedump = 0;
+  char *accout = NULL;
   while(*argv){
     char *key=*argv;
     char *val=*(++argv);
@@ -261,7 +267,9 @@ int main_bytaxid(int argc,char**argv){
     else if(!strcasecmp("-taxid",key)) names=strdup(val);
     else if(!strcasecmp("-nodes",key)) nodefile=strdup(val);
     else if(!strcasecmp("-acc2tax",key)) acc2tax=strdup(val);
+    else if(!strcasecmp("-accout",key)) accout=strdup(val);
     else if(!strcasecmp("-strict",key)) strict=atoi(val);
+    else if(!strcasecmp("-forcedump",key)) forcedump=atoi(val);
     else if(!strcasecmp("-out",key)) outfile=strdup(val);
     else if(!strcasecmp("-type",key)) {
       out_mode[1]=tolower(val[0]);
@@ -273,22 +281,26 @@ int main_bytaxid(int argc,char**argv){
     ++argv;
   }
   
-  fprintf(stderr,"\t-> key: %s \n\t-> hts: %s \n\t-> nodefile: %s \n\t-> acc2tax: %s \n\t-> names: %s \n\t-> strict: %d \n\t-> type: %s \n\t-> outfile: %s\n",keyfile,hts,nodefile, acc2tax, names,strict,type,outfile);
+  fprintf(stderr,"\t-> key: %s \n\t-> hts: %s \n\t-> nodefile: %s \n\t-> acc2tax: %s \n\t-> names: %s \n\t-> strict: %d \n\t-> type: %s \n\t-> outfile: %s\n\t-> forcedump:%d\n\t-> accout:%s \n",keyfile,hts,nodefile, acc2tax, names,strict,type,outfile,forcedump,accout);
 
-  //open inputfile and parse header
-  samFile *htsfp = hts_open(hts,"r");
-  bam_hdr_t *hdr = sam_hdr_read(htsfp); 
-
-  char2int cmap = getkeys(keyfile,0);
-  
+  if(names ==NULL)
+    return 0;
   char2int taxids;
   if(!fexists(names))
     taxids[names] = 1;
   else
     taxids = getkeys(names,0);
+  if(taxids.size()==0)
+    return 0;
 
+    //open inputfile and parse header
+  samFile *htsfp = hts_open(hts,"r");
+  bam_hdr_t *hdr = sam_hdr_read(htsfp); 
+
+  char2int cmap = getkeys(keyfile,0);
+  
   for(char2int::iterator it=taxids.begin();it!=taxids.end();it++)
-    fprintf(stderr,"\t-> looping up taxid: %s\n",it->first);
+    fprintf(stderr,"\t-> looking up taxid: %s\n",it->first);
   
   //map of taxid -> taxid
   int2int parent;
@@ -305,7 +317,7 @@ int main_bytaxid(int argc,char**argv){
   int2int *bam2tax;//pointer uhhhh
   int2int errmap;
   if(hdr||1)
-    bam2tax=(int2int*) bamRefId2tax(hdr,acc2tax,hts,errmap,NULL,0);
+    bam2tax=(int2int*) bamRefId2tax(hdr,acc2tax,hts,errmap,strdup("/tmp/"),forcedump,accout);
   fprintf(stderr,"\t-> We have bam2tax.size(): %lu and errmap.size():%lu\n",bam2tax->size(),errmap.size());
   
 
@@ -316,6 +328,11 @@ int main_bytaxid(int argc,char**argv){
     fprintf(stderr,"\t-> Number of taxids spanned by taxid: %d from nodesfile: %s is: %lu\n",atoi(it->first),nodefile,taxlist.size());
   }
   fprintf(stderr,"\t-> Total number of taxids to filter from: %lu\n",taxlist.size());
+#if 0//print out taxids to be included
+  for(int2int::iterator it=taxlist.begin();it!=taxlist.end();it++)
+    fprintf(stderr,"taxs: %d %d\n",it->first,it->second);
+#endif
+  
   int2int keeplist;
   for(char2int::iterator it=cmap.begin();it!=cmap.end();it++){
     int tokeep = sam_hdr_name2tid(hdr,it->first);
@@ -331,6 +348,9 @@ int main_bytaxid(int argc,char**argv){
       keeplist[it->first] = 1;
   }
   fprintf(stderr,"\t-> Number of refids to use: %lu\n",keeplist.size());
+#if 1
+  
+#endif
   
   runextract_int2int(keeplist,htsfp,hdr,outfile,out_mode,strict);
   
@@ -339,16 +359,16 @@ int main_bytaxid(int argc,char**argv){
 
 
 int main_byreadid(int argc,char**argv){
-  
   if(argc==1){
     fprintf(stderr,"./extract_reads -hts -key -out -type\n");
     return 0;
   }
+  
   argv++;
   char *keyfile = NULL;
   char *hts = NULL;
   int type = 0;
-  char *outfile = strdup("tmp.sam");
+  char *outfile = strdup("tmp.bam");
   char out_mode[5] = "wb";
   int docomplement = 0;
   while(*argv){
@@ -385,13 +405,14 @@ int main_byreadid(int argc,char**argv){
 int main(int argc,char**argv){
   
   if(argc==1){
-    fprintf(stderr,"./extract_reads bytaxid -hts -key -taxid -nodes -acc2txt -out -strict -type [dev]\n");
+    fprintf(stderr,"./extract_reads bytaxid -hts [-key file_with_refnames] -taxid -nodes -acc2txt -out -strict -type [dev]\n");
     fprintf(stderr,"./extract_reads byreadid -hts -key -out -type -docomplement\n");
     fprintf(stderr,"./extract_reads byrefid -hts -key -out -type -docomplement\n");
+    fprintf(stderr,"-type is outputtype -type sam -type bam\n");
     return 0;
   }
   if(strcasecmp(argv[1],"bytaxid")==0)
-    return main_bytaxid(argc--,++argv);
+    return main_bytaxid(--argc,++argv);
   if(strcasecmp(argv[1],"byreadid")==0)
     return main_byreadid(argc--,++argv);
    if(strcasecmp(argv[1],"byrefid")==0)
