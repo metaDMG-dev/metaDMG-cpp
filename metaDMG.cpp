@@ -22,6 +22,7 @@
 #include "shared.h"      // for parse_names, parse_nodes
 #include "types.h"       // for int2intvec, int2int
 #include "version.h"     // for METADAMAGE_VERSION
+#include "merge_bdamage.h" //for merging multiple bdmage files
 
 #ifdef __REGRESSION__
 #include "regression.h"  // for main_regression
@@ -1402,7 +1403,8 @@ int main(int argc, char **argv) {
         main_merge2(argc, argv);
     if (!strcmp(argv[0], "lca"))
         main_lca(argc, argv);
-
+    if (!strcmp(argv[0], "mergedamage"))
+      main_mergedamage(argc, argv);
     free(dingding2);
     //  fprintf(stderr, "\t[ALL done] cpu-time used =  %.2f sec\n", (float)(clock() - t) / CLOCKS_PER_SEC);
     // fprintf(stderr, "\t[ALL done] walltime used =  %.2f sec\n", (float)(time(NULL) - t2));
