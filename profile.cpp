@@ -658,7 +658,7 @@ std::map<int, mydataD> load_bdamage_full(const char *fname, int &printlength) {
             break;
         assert(nread == 2 * sizeof(int));
         mydataD md;
-
+	md.howmany = printlength;
         md.fwD = new double[16 * printlength];
         md.bwD = new double[16 * printlength];
         md.nreads = ref_nreads[1];

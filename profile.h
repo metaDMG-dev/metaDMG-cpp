@@ -62,6 +62,7 @@ std::map<int, double *> load_bdamage3(const char *fname, int howmany);
 
 typedef struct {
     int nreads;  // this is nalignements
+  int howmany;
     double *fwD;
     double *bwD;
 } mydataD;
