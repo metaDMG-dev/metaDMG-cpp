@@ -37,7 +37,7 @@ class damage {
     std::pair<kstring_t *, std::vector<int> > reconstructedReference;
     std::map<int, triple> assoc;
     void write(char *prefix, bam_hdr_t *hdr);
-    void bwrite(char *prefix, bam_hdr_t *hdr);
+    void bwrite(char *prefix);
     int damage_analysis(bam1_t *b, int whichclass, float incval);
     void printit(FILE *fp, int l);
     int temp_len;

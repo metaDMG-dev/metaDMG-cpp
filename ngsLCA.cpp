@@ -639,7 +639,7 @@ void hts(gzFile fp, samFile *fp_in, int2int &i2i, int2int &parent, bam_hdr_t *hd
         }
     }
     fprintf(stderr,"maxreads: %ld nreads: %ld\n",maxreads,nreads);
-    dmg->bwrite(prefix, hdr);
+    dmg->bwrite(prefix);
 
     specs.clear();
     editdist.clear();

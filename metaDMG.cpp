@@ -302,7 +302,7 @@ int main_getdamage(int argc, char **argv) {
 
     dmg->printit(stdout, printLength);
     dmg->write(onam, runmode == 1 ? hdr : NULL);
-    dmg->bwrite(onam, hdr);
+    dmg->bwrite(onam);
 
     // write stat
     char buf[1024];

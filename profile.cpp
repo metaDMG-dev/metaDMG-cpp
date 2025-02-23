@@ -349,7 +349,8 @@ void damage::write(char *fname, bam_hdr_t *hdr) {
     bgzf_close(fp);
     free(kstr.s);
 }
-void damage::bwrite(char *fname, bam_hdr_t *hdr) {
+
+void damage::bwrite(char *fname) {
 
     char onam[1024];
     snprintf(onam, 1024, "%s.bdamage.gz", fname);
