@@ -75,3 +75,4 @@ typedef struct {
 std::map<int, mydataD> load_bdamage_full(const char *fname, int &printlength);
 std::map<int, mydata2> load_lcastat(const char *fname,int skipfirstline);
 void reconstructRefWithPosHTS(const bam1_t *b, std::pair<kstring_t *, std::vector<int> > &pp, char *reconstructedTemp);
+BGZF *my_bgzf_open(const char *name, int nthreads);
