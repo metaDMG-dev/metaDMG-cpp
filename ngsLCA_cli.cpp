@@ -18,7 +18,7 @@ pars *pars_init() {
     pars *p = (pars *)calloc(1, sizeof(pars));
     p->htsfile = strdup("CHL_155_12485.sort.bam");
     p->acc2taxfile = strdup("nucl_gb.accession2taxid.gz");
-    p->filteredAcc2taxfile = strdup("acc2tax.filt.gz");
+    p->filteredAcc2taxfile = NULL;
     p->namesfile = strdup("names.dmp.gz");
     p->nodesfile = strdup("nodes.dmp.gz");
     p->hts = NULL;
