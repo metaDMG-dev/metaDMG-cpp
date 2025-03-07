@@ -340,7 +340,7 @@ void slave_block(std::map<int, mydataD> &retmap,int howmany,sam_hdr_t *hdr,int2c
   for (std::map<int, mydataD>::iterator it = retmap.begin(); it != retmap.end(); it++) {
     int taxid = it->first;
     mydataD md = it->second;
-    if (it->second.nreads == 0)
+    if (it->second.nal == 0)
       continue;
     
     if(hdr!=NULL){

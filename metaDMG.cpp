@@ -6,6 +6,7 @@
 #include <strings.h>      // for strcasecmp
 #include <time.h>         // for clock, time, clock_t, time_t
 #include <zlib.h>         // for gzprintf, gzclose, gzgets, gzopen, Z_NULL
+#include <climits>
 
 #include <cassert>  // for assert
 #include <cstdio>   // for fprintf, NULL, stderr, stdout, fopen
@@ -76,7 +77,7 @@ double *getval(std::map<int, double *> &retmap, int2intvec &child, int taxid, in
 
     return ret;
 }
-
+int INT_WARN = 1;
 mydataD getval_full(std::map<int, mydataD> &retmap, int2intvec &child, int taxid, int howmany) {
     // fprintf(stderr,"getval\t%d\t%d\n",taxid,howmany);
     std::map<int, mydataD>::iterator it = retmap.find(taxid);
@@ -91,7 +92,7 @@ mydataD getval_full(std::map<int, mydataD> &retmap, int2intvec &child, int taxid
         return it->second;
     }
     mydataD ret;
-    ret.nreads = 0;
+    ret.nal = 0;
     ret.fwD = new double[16 * howmany];
     ret.bwD = new double[16 * howmany];
 
@@ -106,7 +107,11 @@ mydataD getval_full(std::map<int, mydataD> &retmap, int2intvec &child, int taxid
             for (int i = 0; i < avec.size(); i++) {
                 //	fprintf(stderr,"%d/%d %d\n",i,avec.size(),avec[i]);
 	      mydataD tmp = getval_full(retmap, child, avec[i], howmany);
-                ret.nreads += tmp.nreads;
+	      ret.nal += tmp.nal;
+	      if(ret.nal>INT_MAX&&INT_WARN){
+		fprintf(stderr,"\t-> Potential issue, sum of alignment counts are higher than int_max\n");
+		INT_WARN =0;
+	      }
                 for (int i = 0; i < 16 * howmany; i++) {
                     ret.fwD[i] += tmp.fwD[i];
                     ret.bwD[i] += tmp.bwD[i];
@@ -1231,7 +1236,7 @@ int main_print_ugly(int argc, char **argv) {
     for (std::map<int, mydataD>::iterator it = retmap.begin(); it != retmap.end(); it++) {
         int taxid = it->first;
         mydataD md = it->second;
-        if (it->second.nreads == 0)
+        if (it->second.nal == 0)
             continue;
         /*
         char *myrank =NULL;
@@ -1278,12 +1283,12 @@ int main_print_ugly(int argc, char **argv) {
     getval_stats(stats, child, 1);  // this will do everything
     for (std::map<int, mydata2>::iterator it = stats.begin(); 1 && it != stats.end(); it++) {
         std::map<int, mydataD>::iterator itold = retmap.find(it->first);
-        int nalign = -1;
+        size_t nalign = 0;
         if (itold == retmap.end()) {
             fprintf(stderr, "\t-> Problem finding taxid: %d\n", it->first);
             //      exit(0);
         } else
-            nalign = itold->second.nreads;
+            nalign = itold->second.nal;
         char *myrank = NULL;
         char *myname = NULL;
         if (it->second.nreads > 0) {

@@ -1,6 +1,7 @@
 #include <cassert>
 #include <cstdio>
 #include <htslib/bgzf.h>
+#include <climits>
 #include "profile.h"
 
 
@@ -57,7 +58,7 @@ int main_mergedamage(int argc, char **argv){
 	  master->second.fwD[cyc] += slave->second.fwD[cyc];
 	  master->second.bwD[cyc] += slave->second.bwD[cyc];
 	}
-	master->second.nreads += slave->second.nreads;//update the nreads
+	master->second.nal += slave->second.nal;//update the nreads
       }else{
 	fprintf(stderr,"\t-> ID does not exist will do full merge of entry: %d\n",slave->first);//do we need deep copy or is this ok? We havent dealloced so it should be fine...
 	myvec[0][slave->first] = slave->second;
@@ -73,7 +74,11 @@ int main_mergedamage(int argc, char **argv){
   for(std::map<int,mydataD>::iterator it=myvec[0].begin();it!=myvec[0].end();it++){
     int taxid_nreads[2];
     taxid_nreads[0] = it->first;
-    taxid_nreads[1] = it->second.nreads;
+    if(it->second.nal>INT_MAX){
+      fprintf(stderr,"\t-> Problem merging entries sum of alignments are larger than maximum integer\n");
+      assert(1!=0);
+    }
+    taxid_nreads[1] = it->second.nal;
     assert(bgzf_write(fp, taxid_nreads, 2*sizeof(int)) == 2*sizeof(int));
     for (int i = 0; i < globhowmany; i++) {
       float tmp[16];

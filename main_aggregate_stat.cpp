@@ -218,7 +218,7 @@ int main_aggregate(int argc, char **argv) {
     for (std::map<int, mydataD>::iterator it = retmap.begin(); it != retmap.end(); it++) {
         int taxid = it->first;
         mydataD md = it->second;
-        if (it->second.nreads == 0)
+        if (it->second.nal == 0)
 	  continue;
 	//	fprintf(stderr,"retmap taxid:%d nreads: %d\n",it->first,it->second.nreads);
     }
@@ -259,7 +259,7 @@ int main_aggregate(int argc, char **argv) {
         if (itold == retmap.end()) {
             fprintf(stderr, "\t-> Problem finding taxid: %d\n", it->first);
         } else
-            nalign = itold->second.nreads;
+            nalign = itold->second.nal;
         char *myrank = NULL;
         char *myname = NULL;
         if (it->second.nreads > 0) {

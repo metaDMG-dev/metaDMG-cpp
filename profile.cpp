@@ -662,7 +662,7 @@ std::map<int, mydataD> load_bdamage_full(const char *fname, int &printlength) {
 	md.howmany = printlength;
         md.fwD = new double[16 * printlength];
         md.bwD = new double[16 * printlength];
-        md.nreads = ref_nreads[1];
+        md.nal = ref_nreads[1];
 
         float tmp[16];
         for (int i = 0; i < printlength; i++) {
