@@ -145,6 +145,13 @@ if [[ $? -ne 0 ]]; then
     RVAL=$((1024+RVAL))
 fi
 
+echo "Running mergedamage test with 2 bdamage and 2 rlens files"
+CMD="${PRG} mergedamage -b output/test_getdamage_local.bdamage.gz output/test_getdamage_global.bdamage.gz -r output/test_lca.rlens.gz output/test_lca.rlens.gz -out output/test_mergedamage"
+${CMD} >> ${LOG} 2>&1
+if [[ $? -ne 0 ]]; then
+    echo "Problem running mergedamage: ${CMD}"
+    RVAL=$((4096+RVAL))
+fi
 
 echo "Validating checksums"
 echo "========================"
