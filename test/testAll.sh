@@ -24,6 +24,14 @@ if [[ ! -f "${BAM1}" ]]; then
     RVAL=$((2+RVAL))
 fi
 
+if [[ ${RVAL} -ne 0 ]];then
+    echo "Problem with input files"
+    cat ${LOG}
+    echo "====EndOfLog==="
+    exit 1 #exit codes are capped at 255
+fi
+
+
 echo "Sorting bamfile"
 BAM="$(dirname ${BAM1})/$(basename ${BAM1} .bam).rname.bam"
 CMD="samtools sort -n ${BAM1} -o ${BAM}"
@@ -58,6 +66,7 @@ if [[ $? -ne 0 ]]; then
     echo "Problem running command: ${CMD}"
     RVAL=$((32+RVAL))
 fi
+gunzip -c  output/test_lca.lca.gz |cut -f2 --complement >output/test_lca.lca.sub
 
 echo "Running aggregate"
 CMD="${PRG} aggregate output/test_lca.bdamage.gz --nodes data/nodes.dmp.gz --names data/names.dmp.gz --lcastat output/test_lca.stat.gz --out_prefix output/test_aggregate"
