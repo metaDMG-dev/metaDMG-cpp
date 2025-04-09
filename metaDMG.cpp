@@ -1357,7 +1357,7 @@ int main(int argc, char **argv) {
 #endif
         fprintf(stderr, "./metaDMG-cpp pmd [other options]\n");
         fprintf(stderr, "./metaDMG-cpp getdamage file.bam\n");
-        fprintf(stderr, "./metaDMG-cpp mergedamage files.damage.*.gz\n");
+        fprintf(stderr, "./metaDMG-cpp mergedamage -b *bdamage.gz -r *rlens.gz\n");
         fprintf(stderr, "./metaDMG-cpp index files.damage.gz\n");
         fprintf(stderr, "./metaDMG-cpp merge files.lca files.bdamage.gz\n");
         fprintf(stderr, "./metaDMG-cpp merge2 files.lca files.bdamage.gz christian.csv\n");

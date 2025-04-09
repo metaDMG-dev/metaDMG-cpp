@@ -3,27 +3,25 @@
 #include <htslib/bgzf.h>
 #include <climits>
 #include "profile.h"
+#include <string>     
+#include <vector>  
+#include <array>     
+#include <map>    
+#include <cstdlib>
+#include <htslib/kstring.h>
 
 
-int main_mergedamage(int argc, char **argv){
-  fprintf(stderr,"information");
-  fprintf(stderr,"argc: %d\n",argc);
-  argc--;argv++;
+void merge_bdamage(const std::vector<std::string> &bdamage_files, const char* outname) {
+
+
   std::vector<std::map<int, mydataD> > myvec;
-  char *outname = NULL;
   int globhowmany = -1;
-  for(int i=0;i<argc;i++){
-    // fprintf(stderr,"argc: %d val: %s\n",i,argv[i]);
-    if(strcasecmp("-out",argv[i])==0||strcasecmp("-outnames",argv[i])==0){
-      fprintf(stderr,"\t-> Masterhit match: argc: %d i: %d\n",argc,i);
-      outname = strdup(argv[i+1]);
-      i++;
-      continue;
-    }
+  for (const std::string &fname : bdamage_files) {
+
     int howmany;
-    char *fname = argv[i];
-    std::map<int, mydataD> retmap = load_bdamage_full(fname, howmany);
+    std::map<int, mydataD> retmap = load_bdamage_full(fname.c_str(), howmany);
     auto stupid = retmap.begin();
+
     fprintf(stderr, "\t-> Number of entries in damage pattern file: %lu printlength(howmany):%d howmany2: %d\n", retmap.size(), howmany,stupid->second.howmany);
     assert(howmany==stupid->second.howmany);
     if(globhowmany==-1)
@@ -31,22 +29,14 @@ int main_mergedamage(int argc, char **argv){
     if(globhowmany!=stupid->second.howmany){
       fprintf(stderr,"\t-> We need the same number of mismatch cycles for merging bdamage files \n");
     }
-    myvec.push_back(retmap);
-  }
-  fprintf(stderr,"\t-> outnames: %s size of bdamages: %lu\n",outname,myvec.size());
-  if(outname==NULL){
-    fprintf(stderr,"\t-> Please supply -out or -outnames as output prefix\n");
-    exit(1);
-  }
-  if(myvec.size()<2){
-    fprintf(stderr,"\t> Not really meaningfull to only merge one bdamage\n");
+    myvec.push_back(std::move(retmap));
   }
 
   // now merge all but the first one, into the first one. Either adding or making new ids
   fprintf(stderr,"\t-> Doing merging old size: %lu\n",myvec[0].size());
   for(int i=1;i<myvec.size();i++){
     fprintf(stderr,"\t-> Merging %d into 0\n",i);
-    std::map<int, mydataD> &small= myvec[1];
+    std::map<int, mydataD> &small= myvec[i];
     
     for(auto slave =small.begin();slave!=small.end();slave++){
       std::map<int,mydataD>::iterator master = myvec[0].find(slave->first);//master will contain the results
@@ -94,5 +84,159 @@ int main_mergedamage(int argc, char **argv){
     }
   }
   bgzf_close(fp);
+}
+
+void merge_rlens(const std::vector<std::string> &rlens_files, const char* outname) {
+  
+  // results 
+  std::map<int, std::array<size_t, 200>> rlens_merged;
+
+  // each file 
+  for (const std::string &fname : rlens_files) {
+
+    BGZF *fp = bgzf_open(fname.c_str(), "r");
+    if (!fp) {
+      fprintf(stderr, "could not open rlens file: %s\n", fname.c_str());
+      exit(1);
+    }
+
+    kstring_t line = {0, 0, NULL};
+    int ret = bgzf_getline(fp, '\n', &line); 
+    if (ret < 0) {
+      fprintf(stderr, "empty or invalid rlens file: %s\n", fname.c_str());
+      exit(1);
+    }
+
+    while ((ret = bgzf_getline(fp, '\n', &line)) >= 0) {
+      int taxid;
+      size_t tmp[200];
+      char *ptr = line.s;
+      char *endptr;
+
+      // taxid is first column
+      taxid = strtol(ptr, &endptr, 10); 
+      ptr = endptr;
+
+      // each new cell (200)
+      for (int j = 0; j < 200; j++) {
+        tmp[j] = strtoull(ptr, &endptr, 10);
+        ptr = endptr;
+      }
+
+      // sum and merge
+      auto &entry = rlens_merged[taxid];
+      for (int j = 0; j < 200; j++) {
+        entry[j] += tmp[j];
+      }
+    }
+
+    bgzf_close(fp);
+    free(line.s);
+  }
+
+
+  // stolen from bwrite
+  char onam[1024];
+  snprintf(onam, sizeof(onam), "%s.rlens.gz", outname);
+  BGZF *fp = my_bgzf_open(onam, 2);
+  assert(fp);
+
+  kstring_t kstr = {0, 0, NULL};
+  ksprintf(&kstr, "id");
+  for (int i = 0; i < 200; i++)
+    ksprintf(&kstr, "\trlen%d", i);
+  ksprintf(&kstr, "\n");
+
+  for (const auto &it : rlens_merged) {
+    ksprintf(&kstr, "%d", it.first);
+    for (int i = 0; i < 199; i++)
+      ksprintf(&kstr, "\t%lu", it.second[i]);
+    ksprintf(&kstr, "\t%lu\n", it.second[199]);
+
+    if (kstr.l > 1000000) {
+      assert(bgzf_write(fp, kstr.s, kstr.l) == (ssize_t)kstr.l);
+      kstr.l = 0;
+    }
+  }
+
+  if (kstr.l > 0) {
+    assert(bgzf_write(fp, kstr.s, kstr.l) == (ssize_t)kstr.l);
+  }
+
+  bgzf_close(fp);
+  free(kstr.s);
+
+  fprintf(stderr, "\t-> Done writing merged rlens: %s\n", onam);
+}
+
+
+int main_mergedamage(int argc, char **argv) {
+  fprintf(stderr, "[mergedamage] Starting mergedamage\n");
+
+  std::vector<std::string> bdamage_files;
+  std::vector<std::string> rlens_files;
+  const char* outname = nullptr;
+
+  argc--; argv++;
+
+  enum ParseMode { NONE, BFILES, RFILES } mode = NONE;
+
+  // get args 
+  for (int i = 0; i < argc; i++) {
+    if (strcasecmp(argv[i], "-b") == 0) {
+      mode = BFILES;
+      continue;
+    }
+    if (strcasecmp(argv[i], "-r") == 0) {
+      mode = RFILES;
+      continue;
+    }
+    if (strcasecmp(argv[i], "-out") == 0 || strcasecmp(argv[i], "-outnames") == 0) {
+    if (i + 1 >= argc) {
+      fprintf(stderr, "Error: -out flag requires a value\n");
+      exit(1);  
+    }
+    outname = argv[++i];
+    continue;
+    }
+
+  if (mode == BFILES) {
+      bdamage_files.push_back(argv[i]);
+    } else if (mode == RFILES) {
+      rlens_files.push_back(argv[i]);
+    } 
+  }
+
+  // checks 
+  if (bdamage_files.empty() && rlens_files.empty()) {
+    fprintf(stderr, "no input given\n");
+    return 1;
+  }
+
+  if (!outname) {
+  fprintf(stderr, "no output given\n");
+  return 1;
+  }
+
+  if (bdamage_files.size() == 1) {
+    fprintf(stderr, "\t> merging one bdamage file is not meaningful\n");
+  }
+
+  if (rlens_files.size() == 1) {
+    fprintf(stderr, "\t> merging one rlens file is not meaningful\n");
+  }
+
+  // do the thing
+  if (!bdamage_files.empty()) {
+    fprintf(stderr, "[mergedamage] merging %lu bdamage files\n", bdamage_files.size());
+    merge_bdamage(bdamage_files, outname);
+  }
+
+  if (!rlens_files.empty()) {
+    fprintf(stderr, "[mergedamage] merging %lu rlens.gz files\n", rlens_files.size());
+    merge_rlens(rlens_files, outname);
+  }
+
   return 0;
 }
+
