@@ -304,17 +304,18 @@ Aggregating the lca statistics when transversing through the tree structure, cre
 --nodes 	 nodes.dmp.gz
 --lca 		 lcaout.stat lca produced statistics
 --out 		 Suffix of output name with the predetermined prefix (.aggregate.stat.txt.gz)
-`
-``
+```
+
 # metaDMG mergedamage
 
 Merges multiple `.bdamage.gz` and/or `.rlens.gz` files into combined summary files.  
 Useful when aggregating results from multiple runs, libraries, or samples prior to downstream processing or visualization.
 
-./metaDMG-cpp mergedamage -b file1.bdamage file2.bdamage -r file1.rlens.gz file2.rlens.gz -out merged
+`./metaDMG-cpp mergedamage -b file1.bdamage file2.bdamage -r file1.rlens.gz file2.rlens.gz -out merged`
 
+```
 --b 		two or more bdamage files 
 --r 		two or more rlens.gz files 
 --out		Suffix of output name with the predetermined prefix
-
+```
 
