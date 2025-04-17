@@ -162,6 +162,13 @@ if [[ $? -ne 0 ]]; then
     RVAL=$((4096+RVAL))
 fi
 
+CHECKSUMFILE=output.md5
+if [[ "$(uname)" == "Darwin" ]]; then
+  CHECKSUMFILE=output.md5.macos
+else
+  echo "Not macOS"
+fi
+
 echo "Validating checksums"
 echo "========================"
 gunzip -f output/*.gz
