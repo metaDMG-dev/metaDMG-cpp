@@ -23,6 +23,4 @@ eaa8bb5f32aa0ef05bcf923d0c2bd711  output/test_lca_taxa.uglyprint.mismatch
 a23c34eaca4a1d1742dd65f98d70efbf  output/test_mergedamage.bdamage
 1e70c3fbbceb07f1046bf735e39e89a4  output/test_mergedamage.rlens
 dc5bf1edd27b494e23f72d41d718600d  data/f570b1db7c.dedup.filtered.bam
-#c73c56f8a3e2dc9b13c949ec1404bd50  data/f570b1db7c.dedup.filtered.rname.bam
-#3568c671c0fa09797284746bb0528ddd  data/f570b1db7c.dedup.filtered.rname.bam ##apparantly samtools 1.20 has changed the within qname order when sorting by readname. This is of cause fine but some seqs would be reverse complemented. When switching to the new order then this entry should be used instead of the above
 2ae4149efce77b91786d4a13b5451c3b  output/test_lca.lca.sub

@@ -169,10 +169,10 @@ else
   echo "Not macOS"
 fi
 
-echo "Validating checksums"
+echo "Validating checksums: ${CHECKSUMFILE}"
 echo "========================"
 gunzip -f output/*.gz
-md5sum -c output.md5 
+md5sum -c ${CHECKSUMFILE}
 if [[ $? -ne 0 ]]; then
     echo "Problem with md5sums"
     RVAL=$((2048+${RVAL}))
