@@ -142,7 +142,7 @@ void runextract_readid(char2int &keeplist,samFile *htsfp,bam_hdr_t *hdr,const ch
   }
   for(char2int::iterator it=keeplist.begin();it!=keeplist.end();it++){
     if(it->second==0)
-      fprintf(stderr,"read: %s doesnt exists in screening file\n",it->first);
+      fprintf(stderr,"read: %s doesnt exists in inputfile file\n",it->first);
 
   }
   
@@ -173,8 +173,7 @@ void gettaxids_to_use(int taxid,int2intvec &child,int2int &i2i){
 }
 
 int main_byrefid(int argc,char**argv){
-  
-  if(argc==1){
+  if(argc==2){
     fprintf(stderr,"./extract_reads byrefid -hts -key -out -type -strict \n");
     return 0;
   }
@@ -245,7 +244,7 @@ int main_bytaxid(int argc,char**argv){
     fprintf(stderr,"\nExtract all those reads where one of the alignments is a child to the node given by taxid 3258\n");
     return 0;
   }
-  fprintf(stderr,"\t-> 19april2024, i dont remember this functionality. Use at own risk\n");
+
   argv++;
   char *keyfile = NULL;
   char *hts = NULL;
@@ -285,6 +284,10 @@ int main_bytaxid(int argc,char**argv){
 
   if(names ==NULL)
     return 0;
+  if(acc2tax==NULL){
+    fprintf(stderr,"\t-> Must supply -acc2tax\n");
+    return 0;
+  }
   char2int taxids;
   if(!fexists(names))
     taxids[names] = 1;
@@ -359,8 +362,9 @@ int main_bytaxid(int argc,char**argv){
 
 
 int main_byreadid(int argc,char**argv){
-  if(argc==1){
-    fprintf(stderr,"./extract_reads -hts -key -out -type\n");
+  if(argc==2){
+    fprintf(stderr,"./extract_reads byreadid -hts -key -out -type\n");
+    fprintf(stderr,"./extract_reads byreadid -key keyfile -hts compr.bam\n");
     return 0;
   }
   
@@ -412,7 +416,7 @@ int main(int argc,char**argv){
     return 0;
   }
   if(strcasecmp(argv[1],"bytaxid")==0)
-    return main_bytaxid(--argc,++argv);
+    return main_bytaxid(argc--,++argv);
   if(strcasecmp(argv[1],"byreadid")==0)
     return main_byreadid(argc--,++argv);
    if(strcasecmp(argv[1],"byrefid")==0)
