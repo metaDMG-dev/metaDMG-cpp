@@ -182,6 +182,7 @@ int main_byrefid(int argc,char**argv){
   char *hts = NULL;
   char *type = NULL;
   char *outfile = strdup("tmp.bam");
+  int docomplement = 0;
   char out_mode[5] = "wb";
   int strict = 1;
   while(*argv){
@@ -189,6 +190,7 @@ int main_byrefid(int argc,char**argv){
     char *val=*(++argv);
     if(!strcasecmp("-hts",key)) hts=strdup(val);
     else if(!strcasecmp("-key",key)) keyfile=strdup(val);
+    else if(!strcasecmp("-docomplement",key)) docomplement=atoi(val);
     else if(!strcasecmp("-type",key)) {
       type = strdup(val);
       out_mode[1]=tolower(val[0]);
@@ -213,22 +215,47 @@ int main_byrefid(int argc,char**argv){
   int2int keeplist;
   int VERB = 4;
   size_t counter[2] = {0,0};//there, not there
-  for(char2int::iterator it=cmap.begin();it!=cmap.end();it++){
-    int tokeep = sam_hdr_name2tid(hdr,it->first);
-    if(tokeep>=0){
-      keeplist[tokeep] =1;
-      counter[0] = counter[0] +1;
-      //      fprintf(stderr,"%s\n",it->first);
-    }else{
-      if(VERB>0){
-	fprintf(stderr,"\t-> This id: %s does not exist in sam/bam/cramfile: %s\n",it->first,hts);
-	fprintf(stderr,"\t-> This info is only printed %d more times\n",VERB);
-	VERB--;
+  if(docomplement==0){
+    for(char2int::iterator it=cmap.begin();it!=cmap.end();it++){
+      int tokeep = sam_hdr_name2tid(hdr,it->first);
+      if(tokeep>=0){
+	keeplist[tokeep] =1;
+	counter[0] = counter[0] +1;
+	//      fprintf(stderr,"%s\n",it->first);
+      }else{
+	if(VERB>0){
+	  fprintf(stderr,"\t-> This id: %s does not exist in sam/bam/cramfile: %s\n",it->first,hts);
+	  fprintf(stderr,"\t-> This info is only printed %d more times\n",VERB);
+	  VERB--;
+	}
+	counter[1] = counter[1] +1;
       }
-      counter[1] = counter[1] +1;
+      
     }
+  }else{
+    for (int i = 0; i < hdr->n_targets; i++) {
+      int tokeep = -1;
+      //printf("Reference %d: name = %s, length = %d\n", i, header->target_name[i], header->target_len[i]);
+      char2int::iterator it = cmap.find(hdr->target_name[i]);
+      if(it==cmap.end())
+	tokeep = i;
 
+      if(tokeep>=0){
+	keeplist[tokeep] =1;
+	counter[0] = counter[0] +1;
+	//      fprintf(stderr,"%s\n",it->first);
+      }else{
+	if(VERB>0){
+	  fprintf(stderr,"\t-> This id: %s does not exist in sam/bam/cramfile: %s\n",it->first,hts);
+	  fprintf(stderr,"\t-> This info is only printed %d more times\n",VERB);
+	  VERB--;
+	}
+	counter[1] = counter[1] +1;
+      }
+      
+    }
   }
+  
   fprintf(stderr,"\t-> Number of refids to use: %lu from -key \'%s\'\n\t-> Number of refids notused: %lu\n",keeplist.size(),keyfile,counter[1]);
   runextract_int2int(keeplist,htsfp,hdr,outfile,out_mode,strict);
   
