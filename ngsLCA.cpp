@@ -570,9 +570,9 @@ void hts(gzFile fp, samFile *fp_in, int2int &i2i, int2int &parent, bam_hdr_t *hd
         }
 
         if (it == i2i.end() || dingdong == -1) {
-            int2int::iterator it2missing = i2i_missing.find(chr);
+	  int2int::iterator it2missing = i2i_missing.find(chr);
             if (it2missing == i2i_missing.end()) {
-                fprintf(stderr, "[log] \t-> problem finding chrid:%d chrname:%s\n", chr, hdr->target_name[chr]);
+                fprintf(stderr, "[log] \t-> problem finding chrid:%d chrname:%s (due to problem with missing entries in nodes.dmp or supportting files)\n", chr, hdr->target_name[chr]);
                 i2i_missing[chr] = 1;
             } else
                 it2missing->second = it2missing->second + 1;

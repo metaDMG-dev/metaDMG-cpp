@@ -254,7 +254,7 @@ int2int *bamRefId2tax(bam_hdr_t *hdr, char *acc2taxfile, char *bamfile, int2int 
             fprintf(stderr, "Error opening file '%s' for writing\n", filteredAcc2taxfile);
             exit(1);
         }
-        gzprintf(filteredFile, "BAM_Reference\tTaxID\n"); // Write header
+        gzprintf(filteredFile, "BAM_Reference\tTaxID\tBam_hdr_index\n"); // Write header
     }
 
     if (dodump) {
@@ -267,6 +267,7 @@ int2int *bamRefId2tax(bam_hdr_t *hdr, char *acc2taxfile, char *bamfile, int2int 
         BGZF *fp2 = getbgzf(acc2taxfile, "rb", 2);
         bgzf_getline(fp2, '\n', kstr);  // Skip header
         kstr->l = 0;
+	int nprocs =0;
         while (SIG_COND && bgzf_getline(fp2, '\n', kstr)) {
             if (kstr->l == 0)
                 break;
@@ -280,7 +281,7 @@ int2int *bamRefId2tax(bam_hdr_t *hdr, char *acc2taxfile, char *bamfile, int2int 
 
             if (valinbam == -1)
                 continue;
-
+	    nprocs++;
             if (fp != NULL) {
                 assert(bgzf_write(fp, &valinbam, sizeof(int)) == sizeof(int));
                 assert(bgzf_write(fp, &val, sizeof(int)) == sizeof(int));
@@ -292,21 +293,18 @@ int2int *bamRefId2tax(bam_hdr_t *hdr, char *acc2taxfile, char *bamfile, int2int 
 
             // Write to the filtered file if specified
             if (filteredFile != Z_NULL)
-	      gzprintf(filteredFile, "%s\t%d\n", key, val);
+	      gzprintf(filteredFile, "%s\t%d\t%d\n", key, val,valinbam);
             kstr->l = 0;
         }
         bgzf_close(fp2);
+	fprintf(stderr,"\t-> Number of items from acc2tax file that is relevant from the bamheader: %d\n",nprocs);
+	fflush(stderr);
     } else {
         int valinbam, val;
         while (bgzf_read(fp, &valinbam, sizeof(int))) {
             assert(bgzf_read(fp, &val, sizeof(int)) == sizeof(int));
             (*am)[valinbam] = val;
 
-            // Write to the filtered file if specified
-            if (filteredFile != Z_NULL) {
-                const char *refname = hdr->target_name[valinbam];
-                gzprintf(filteredFile, "%s\t%d\n", refname, val);
-            }
         }
     }
 
