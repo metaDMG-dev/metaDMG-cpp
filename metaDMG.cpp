@@ -125,6 +125,53 @@ mydataD getval_full(std::map<int, mydataD> &retmap, int2intvec &child, int taxid
     return ret;
 }
 
+
+//apparantly there is an issue when data is not only leaf.
+std::map<int,mydataD> getval_full_norec(std::map<int, mydataD> &retmap, int2int &parent, int howmany) {
+    // fprintf(stderr,"getval\t%d\t%d\n",taxid,howmany);
+
+  std::map<int, mydataD> results;
+  
+  //funky modern syntax below
+  //loop over all entries in retmap. lizard king 
+  for (const auto &[taxid, data] : retmap) {
+    int current = taxid;
+    //   fprintf(stderr,"taxid: %d\n",taxid);
+     while (true) {
+       //   fprintf(stderr,"current: %d\n",current);
+       mydataD &target = results[current]; //<- will call constructor if doesnt exists. magic magic
+       if (!target.fwD) {//if it doesnt exists then allocate. Just like fw.D!=NULL
+	 target.fwD = new double[16 * howmany]();
+	 target.bwD = new double[16 * howmany]();
+	 target.nal = 0;
+       }
+       
+       target.nal += data.nal;
+       
+       if (target.nal > INT_MAX && INT_WARN) {
+	 fprintf(stderr, "\t-> Potential issue, sum of alignment counts exceeds INT_MAX\n");
+	 INT_WARN = 0;
+       }
+       
+       for (int i = 0; i < 16 * howmany; ++i) {
+	 target.fwD[i] += data.fwD[i];
+	 target.bwD[i] += data.bwD[i];
+       }
+       
+       auto it = parent.find(current);
+       //       fprintf(stderr,"second: %d\n",it->second);
+       if (it == parent.end()) break;
+       //break if up is same as current. That only happens with root that has tqxid=1
+       if(current == it->second)
+	 break;
+       current = it->second;
+     }
+     
+  }
+
+  return results;
+}
+
 mydata2 getval_stats(std::map<int, mydata2> &retmap, int2intvec &child, int taxid) {
     // fprintf(stderr,"getval\t%d\t%d\n",taxid,howmany);
     std::map<int, mydata2>::iterator it = retmap.find(taxid);
@@ -1173,18 +1220,18 @@ int main_print_ugly(int argc, char **argv) {
     int howmany;
 
     while (*(++argv)) {
-        if (strcasecmp("--names", *argv) == 0)
+      if (strcasecmp("--names", *argv) == 0)
             infile_names = strdup(*(++argv));
-        else if (strcasecmp("--nodes", *argv) == 0)
-            infile_nodes = strdup(*(++argv));
-        else if (strcasecmp("--lcastat", *argv) == 0)
-            infile_lcastat = strdup(*(++argv));
-        else if (strcasecmp("--bam", *argv) == 0)
-            infile_bam = strdup(*(++argv));
-        else if (strcasecmp("--out_prefix", *argv) == 0)
-            out_prefix = strdup(*(++argv));
-        else
-            infile_bdamage = strdup(*argv);
+      else if (strcasecmp("--nodes", *argv) == 0)
+	infile_nodes = strdup(*(++argv));
+      else if (strcasecmp("--lcastat", *argv) == 0)
+	infile_lcastat = strdup(*(++argv));
+      else if (strcasecmp("--bam", *argv) == 0)
+	infile_bam = strdup(*(++argv));
+      else if (strcasecmp("--out_prefix", *argv) == 0)
+	out_prefix = strdup(*(++argv));
+      else
+	infile_bdamage = strdup(*argv);
     }
     // Use input file name as default prefix
     if (out_prefix == NULL) {
@@ -1201,7 +1248,7 @@ int main_print_ugly(int argc, char **argv) {
         hdr = sam_hdr_read(samfp);
     }
 
-    fprintf(stderr, "infile_names: %s infile_bdamage: %s nodes: %s lca_stat: %s infile_bam: %s", infile_names, infile_bdamage, infile_nodes, infile_lcastat, infile_bam);
+    fprintf(stderr, "infile_names: %s infile_bdamage: %s nodes: %s lca_stat: %s infile_bam: %s \n", infile_names, infile_bdamage, infile_nodes, infile_lcastat, infile_bam);
     fprintf(stderr, "#VERSION:%s\n", METADAMAGE_VERSION);
     char buf[1024];
     snprintf(buf, 1024, "%s.uglyprint.mismatch.gz", out_prefix);
