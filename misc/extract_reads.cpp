@@ -156,12 +156,12 @@ void runextract_readid(char2int &keeplist,samFile *htsfp,bam_hdr_t *hdr,const ch
 //child are the childnode structure
 //i2i contains all the taxids that is spanned by the taxid. This could be a vector but we use hash to check internal structure that we have no loops
 void gettaxids_to_use(int taxid,int2intvec &child,int2int &i2i){
-  int2int::iterator it = i2i.find(taxid);
-  assert(it==i2i.end());
   i2i[taxid] =1;
-  int2intvec::iterator it2 = child.find(taxid);
-  if (it2!=child.end()){
-    std::vector<int> &avec = it2->second;
+  int2intvec::iterator it = child.find(taxid);
+  if(it==child.end()){
+    fprintf(stderr,"\t-> Problem finding taxid: %d from nodesfile\n",taxid);
+  }else{ 
+    std::vector<int> &avec = it->second;
     for(int i=0;i<avec.size();i++){
       //	fprintf(stderr,"%d/%d %d\n",i,avec.size(),avec[i]);
       gettaxids_to_use(avec[i],child,i2i);
@@ -263,7 +263,7 @@ int main_byrefid(int argc,char**argv){
 }
 
 int main_bytaxid(int argc,char**argv){
-  if(argc==1){
+  if(argc==2){
     fprintf(stderr,"./extract_reads bytaxid -hts [-key file_with_refnames] -taxid  -nodes -acc2tax -outnames -strict -type [s/b]am\n");
     fprintf(stderr,"-------\nAlso -forcedump 1 -accout filename.txt.gz\n-strict 1 means only alignments that match\n-strict 0 (default) means all alignments associated with a read if one of the alignments match\n---------\n");
     fprintf(stderr,"examples\n");
@@ -287,7 +287,7 @@ int main_bytaxid(int argc,char**argv){
   while(*argv){
     char *key=*argv;
     char *val=*(++argv);
-    //X    fprintf(stderr,"key: %s val: %s\n",key,val);
+    //    fprintf(stderr,"key: %s val: %s\n",key,val);
     if(!strcasecmp("-hts",key)) hts=strdup(val);
     else if(!strcasecmp("-key",key)) keyfile=strdup(val);
     else if(!strcasecmp("-taxid",key)) names=strdup(val);
@@ -329,9 +329,9 @@ int main_bytaxid(int argc,char**argv){
 
   char2int cmap = getkeys(keyfile,0);
   
-  for(char2int::iterator it=taxids.begin();it!=taxids.end();it++)
+  for(char2int::iterator it=taxids.begin();0&&it!=taxids.end();it++)
     fprintf(stderr,"\t-> looking up taxid: %s\n",it->first);
-  
+
   //map of taxid -> taxid
   int2int parent;
   //map of taxid -> rank
@@ -342,7 +342,6 @@ int main_bytaxid(int argc,char**argv){
   //parsenodefile
   if(nodefile!=NULL)
     parse_nodes(nodefile,rank,parent,child,1);
-
   //make bamrefids to taxids
   int2int *bam2tax;//pointer uhhhh
   int2int errmap;
@@ -378,11 +377,10 @@ int main_bytaxid(int argc,char**argv){
       keeplist[it->first] = 1;
   }
   fprintf(stderr,"\t-> Number of refids to use: %lu\n",keeplist.size());
-#if 1
-  
-#endif
-  
-  runextract_int2int(keeplist,htsfp,hdr,outfile,out_mode,strict);
+  if(keeplist.size()==0)
+    fprintf(stderr,"\t-> No ids to exctract\n");
+  else
+    runextract_int2int(keeplist,htsfp,hdr,outfile,out_mode,strict);
   
   return 0;
 }
