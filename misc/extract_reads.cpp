@@ -264,10 +264,10 @@ int main_byrefid(int argc,char**argv){
 
 int main_bytaxid(int argc,char**argv){
   if(argc==2){
-    fprintf(stderr,"./extract_reads bytaxid -hts [-key file_with_refnames] -taxid  -nodes -acc2tax -outnames -strict -type [s/b]am\n");
+    fprintf(stderr,"./extract_reads bytaxid -hts [-key file_with_refnames] -taxid -nodes -acc2tax -accout -strict -forcedump -out -type [s/b]am\n");
     fprintf(stderr,"-------\nAlso -forcedump 1 -accout filename.txt.gz\n-strict 1 means only alignments that match\n-strict 0 (default) means all alignments associated with a read if one of the alignments match\n---------\n");
-    fprintf(stderr,"examples\n");
-    fprintf(stderr,"./extract_reads bytaxid -hts yo.bam  -taxid 3258 -nodes /projects/caeg/data/db/aeDNA-refs/resources/20230825/ncbi/taxonomy/nodes.dmp -acc2tax /projects/caeg/data/db/mikkels/combined_accession2taxid_20221112.gz -type bam -out tmp3.bam -strict 0\n");
+    fprintf(stderr,"examples:\n");
+    fprintf(stderr,"./extract_reads bytaxid -hts yo.bam -taxid 3258 -nodes /projects/caeg/data/db/aeDNA-refs/resources/20230825/ncbi/taxonomy/nodes.dmp -acc2tax /projects/caeg/data/db/mikkels/combined_accession2taxid_20221112.gz -type bam -out tmp3.bam -strict 0\n");
     fprintf(stderr,"\nExtract all those reads where one of the alignments is a child to the node given by taxid 3258\n");
     return 0;
   }
@@ -275,7 +275,7 @@ int main_bytaxid(int argc,char**argv){
   argv++;
   char *keyfile = NULL;
   char *hts = NULL;
-  char *names = NULL;
+  char *taxid = NULL;
   char *nodefile = NULL;
   char out_mode[5] = "wb";
   char *acc2tax = NULL;
@@ -290,7 +290,7 @@ int main_bytaxid(int argc,char**argv){
     //    fprintf(stderr,"key: %s val: %s\n",key,val);
     if(!strcasecmp("-hts",key)) hts=strdup(val);
     else if(!strcasecmp("-key",key)) keyfile=strdup(val);
-    else if(!strcasecmp("-taxid",key)) names=strdup(val);
+    else if(!strcasecmp("-taxid",key)) taxid=strdup(val);
     else if(!strcasecmp("-nodes",key)) nodefile=strdup(val);
     else if(!strcasecmp("-acc2tax",key)) acc2tax=strdup(val);
     else if(!strcasecmp("-accout",key)) accout=strdup(val);
@@ -307,23 +307,28 @@ int main_bytaxid(int argc,char**argv){
     ++argv;
   }
   
-  fprintf(stderr,"\t-> key: %s \n\t-> hts: %s \n\t-> nodefile: %s \n\t-> acc2tax: %s \n\t-> names: %s \n\t-> strict: %d \n\t-> type: %s \n\t-> outfile: %s\n\t-> forcedump:%d\n\t-> accout:%s \n",keyfile,hts,nodefile, acc2tax, names,strict,type,outfile,forcedump,accout);
+  fprintf(stderr,"\t-> key: %s \n\t-> hts: %s \n\t-> nodefile: %s \n\t-> acc2tax: %s \n\t-> taxid: %s \n\t-> strict: %d \n\t-> type: %s \n\t-> outfile: %s\n\t-> forcedump:%d\n\t-> accout:%s \n",keyfile,hts,nodefile, acc2tax, taxid,strict,type,outfile,forcedump,accout);
 
-  if(names ==NULL)
+  if(taxid ==NULL)
     return 0;
   if(acc2tax==NULL){
     fprintf(stderr,"\t-> Must supply -acc2tax\n");
     return 0;
   }
   char2int taxids;
-  if(!fexists(names))
-    taxids[names] = 1;
-  else
-    taxids = getkeys(names,0);
+  if(!fexists(taxid)) {
+    char *tok = strtok(taxid, ",");
+    while (tok != NULL) {
+      taxids[strdup(tok)] = 1;
+      tok = strtok(NULL, ",");
+    }
+  } else {
+    taxids = getkeys(taxid,0);
+  }
   if(taxids.size()==0)
     return 0;
 
-    //open inputfile and parse header
+  //open inputfile and parse header
   samFile *htsfp = hts_open(hts,"r");
   bam_hdr_t *hdr = sam_hdr_read(htsfp); 
 
@@ -378,7 +383,7 @@ int main_bytaxid(int argc,char**argv){
   }
   fprintf(stderr,"\t-> Number of refids to use: %lu\n",keeplist.size());
   if(keeplist.size()==0)
-    fprintf(stderr,"\t-> No ids to exctract\n");
+    fprintf(stderr,"\t-> No ids to extract\n");
   else
     runextract_int2int(keeplist,htsfp,hdr,outfile,out_mode,strict);
   
@@ -420,7 +425,7 @@ int main_byreadid(int argc,char**argv){
 
   //open inputfile and parse header
   samFile *htsfp = hts_open(hts,"r");
-  bam_hdr_t *hdr = sam_hdr_read(htsfp); 
+  bam_hdr_t *hdr = sam_hdr_read(htsfp);
 
   char2int cmap = getkeys(keyfile,0);
   
