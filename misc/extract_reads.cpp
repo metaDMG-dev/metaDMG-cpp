@@ -264,10 +264,10 @@ int main_byrefid(int argc,char**argv){
 
 int main_bytaxid(int argc,char**argv){
   if(argc==2){
-    fprintf(stderr,"./extract_reads bytaxid -hts [-key file_with_refnames] -taxid  -nodes -acc2tax -outnames -strict -type [s/b]am\n");
+    fprintf(stderr,"./extract_reads bytaxid -hts [-key file_with_refnames] -taxid -nodes -acc2tax -accout -strict -forcedump -out -type [s/b]am\n");
     fprintf(stderr,"-------\nAlso -forcedump 1 -accout filename.txt.gz\n-strict 1 means only alignments that match\n-strict 0 (default) means all alignments associated with a read if one of the alignments match\n---------\n");
-    fprintf(stderr,"examples\n");
-    fprintf(stderr,"./extract_reads bytaxid -hts yo.bam  -taxid 3258 -nodes /projects/caeg/data/db/aeDNA-refs/resources/20230825/ncbi/taxonomy/nodes.dmp -acc2tax /projects/caeg/data/db/mikkels/combined_accession2taxid_20221112.gz -type bam -out tmp3.bam -strict 0\n");
+    fprintf(stderr,"examples:\n");
+    fprintf(stderr,"./extract_reads bytaxid -hts yo.bam -taxid 3258 -nodes /projects/caeg/data/db/aeDNA-refs/resources/20230825/ncbi/taxonomy/nodes.dmp -acc2tax /projects/caeg/data/db/mikkels/combined_accession2taxid_20221112.gz -type bam -out tmp3.bam -strict 0\n");
     fprintf(stderr,"\nExtract all those reads where one of the alignments is a child to the node given by taxid 3258\n");
     return 0;
   }
@@ -316,14 +316,19 @@ int main_bytaxid(int argc,char**argv){
     return 0;
   }
   char2int taxids;
-  if(!fexists(taxid))
-    taxids[taxid] = 1;
-  else
+  if(!fexists(taxid)) {
+    char *tok = strtok(taxid, ",");
+    while (tok != NULL) {
+      taxids[strdup(tok)] = 1;
+      tok = strtok(NULL, ",");
+    }
+  } else {
     taxids = getkeys(taxid,0);
+  }
   if(taxids.size()==0)
     return 0;
 
-    //open inputfile and parse header
+  //open inputfile and parse header
   samFile *htsfp = hts_open(hts,"r");
   bam_hdr_t *hdr = sam_hdr_read(htsfp); 
 
@@ -378,7 +383,7 @@ int main_bytaxid(int argc,char**argv){
   }
   fprintf(stderr,"\t-> Number of refids to use: %lu\n",keeplist.size());
   if(keeplist.size()==0)
-    fprintf(stderr,"\t-> No ids to exctract\n");
+    fprintf(stderr,"\t-> No ids to extract\n");
   else
     runextract_int2int(keeplist,htsfp,hdr,outfile,out_mode,strict);
   
