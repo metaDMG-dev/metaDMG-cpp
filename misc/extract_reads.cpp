@@ -275,7 +275,7 @@ int main_bytaxid(int argc,char**argv){
   argv++;
   char *keyfile = NULL;
   char *hts = NULL;
-  char *names = NULL;
+  char *taxid = NULL;
   char *nodefile = NULL;
   char out_mode[5] = "wb";
   char *acc2tax = NULL;
@@ -290,7 +290,7 @@ int main_bytaxid(int argc,char**argv){
     //    fprintf(stderr,"key: %s val: %s\n",key,val);
     if(!strcasecmp("-hts",key)) hts=strdup(val);
     else if(!strcasecmp("-key",key)) keyfile=strdup(val);
-    else if(!strcasecmp("-taxid",key)) names=strdup(val);
+    else if(!strcasecmp("-taxid",key)) taxid=strdup(val);
     else if(!strcasecmp("-nodes",key)) nodefile=strdup(val);
     else if(!strcasecmp("-acc2tax",key)) acc2tax=strdup(val);
     else if(!strcasecmp("-accout",key)) accout=strdup(val);
@@ -307,19 +307,19 @@ int main_bytaxid(int argc,char**argv){
     ++argv;
   }
   
-  fprintf(stderr,"\t-> key: %s \n\t-> hts: %s \n\t-> nodefile: %s \n\t-> acc2tax: %s \n\t-> names: %s \n\t-> strict: %d \n\t-> type: %s \n\t-> outfile: %s\n\t-> forcedump:%d\n\t-> accout:%s \n",keyfile,hts,nodefile, acc2tax, names,strict,type,outfile,forcedump,accout);
+  fprintf(stderr,"\t-> key: %s \n\t-> hts: %s \n\t-> nodefile: %s \n\t-> acc2tax: %s \n\t-> taxid: %s \n\t-> strict: %d \n\t-> type: %s \n\t-> outfile: %s\n\t-> forcedump:%d\n\t-> accout:%s \n",keyfile,hts,nodefile, acc2tax, taxid,strict,type,outfile,forcedump,accout);
 
-  if(names ==NULL)
+  if(taxid ==NULL)
     return 0;
   if(acc2tax==NULL){
     fprintf(stderr,"\t-> Must supply -acc2tax\n");
     return 0;
   }
   char2int taxids;
-  if(!fexists(names))
-    taxids[names] = 1;
+  if(!fexists(taxid))
+    taxids[taxid] = 1;
   else
-    taxids = getkeys(names,0);
+    taxids = getkeys(taxid,0);
   if(taxids.size()==0)
     return 0;
 
@@ -420,7 +420,7 @@ int main_byreadid(int argc,char**argv){
 
   //open inputfile and parse header
   samFile *htsfp = hts_open(hts,"r");
-  bam_hdr_t *hdr = sam_hdr_read(htsfp); 
+  bam_hdr_t *hdr = sam_hdr_read(htsfp);
 
   char2int cmap = getkeys(keyfile,0);
   
