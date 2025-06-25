@@ -8,6 +8,63 @@
 #include <ctype.h>
 #include "../shared.h"
 
+//to make life easier we are making some global variables.
+char out_mode[8] = "wb";//<- assume output is a bam
+htsFormat fmt{};//<- stupid syntax {} ls vs {0} rs
+
+void set_output_format_and_mode(const char *outname, const char *user_fmt_str) {
+  
+  // Determine format from file extension
+  htsExactFormat fmt_from_ext = bam;  // Default = BAMblam
+  if (strcmp(outname, "-") != 0) {
+    const char *dot = strrchr(outname, '.');
+    if (dot && dot[1]) {
+      if (strcasecmp(dot + 1, "sam") == 0)
+	fmt_from_ext = sam;
+      else if (strcasecmp(dot + 1, "bam") == 0)
+	fmt_from_ext = bam;
+      else if (strcasecmp(dot + 1, "cram") == 0)
+	fmt_from_ext = cram;
+    }
+  }
+
+  // If user specifies format
+  if (user_fmt_str) {
+    if (strcasecmp(user_fmt_str, "sam") == 0) {
+      fmt.format = sam;
+      strcpy(out_mode, "w");
+    } else if (strcasecmp(user_fmt_str, "bam") == 0) {
+      fmt.format = bam;
+      strcpy(out_mode, "wb");
+    } else if (strcasecmp(user_fmt_str, "cram") == 0) {
+      fmt.format = cram;
+      strcpy(out_mode, "wc");
+    } else {
+      fprintf(stderr, "Unknown output format: %s\n", user_fmt_str);
+      exit(1);
+    }
+    
+    // Validate against extension unless writing to stdout
+    if (strcmp(outname, "-") != 0 && fmt.format != fmt_from_ext) {
+      fprintf(stderr,
+	      "Error: user-specified format '%s' conflicts with output file extension '%s'.\n",
+	      user_fmt_str, outname);
+      exit(1);
+    }
+    return;
+  }
+
+  // No user format — use inferred or default (BAM)
+  fmt.format = fmt_from_ext;
+  if (fmt.format == sam)
+    strcpy(out_mode, "w");
+  else if (fmt.format == cram)
+    strcpy(out_mode, "wc");
+  else
+    strcpy(out_mode, "wb");  // BAM default
+}
+
+
 extern int SIG_COND;
 char2int getkeys(const char *key,int value){
   char2int cmap;
@@ -61,20 +118,20 @@ void doflush(queue *myq,int2int &keeplist,bam_hdr_t *hdr,samFile *outhts,int str
   myq->l =0;
 }
 
-
 //strict=0 means only refids matching
 //strict=1 means all aln will be included, if there is a match for one of the alignments
-void runextract_int2int(int2int &keeplist,samFile *htsfp,bam_hdr_t *hdr,const char *outname,char out_mode[5],int strict){
+void runextract_int2int(int2int &keeplist,samFile *htsfp,bam_hdr_t *hdr,const char *outname,char *type,int strict){
   fprintf(stderr,"outname: %s outformat: %s\n",outname,out_mode);
-  htsFormat *dingding2 =(htsFormat*) calloc(1,sizeof(htsFormat));
+  set_output_format_and_mode(outname,type);
+
 
   //open outputfile and write header
   samFile *outhts = NULL;
-  if ((outhts = sam_open_format(outname,out_mode, dingding2)) == 0) {
+  if ((outhts = sam_open_format(outname,out_mode, &fmt)) == NULL) {
     fprintf(stderr,"Error opening file for writing: %s\n",outname);
     exit(0);
   }
-  
+
   queue *myq = init_queue(5000);//very large, should be enough.
   
   if (sam_hdr_write(outhts, hdr) < 0)
@@ -297,9 +354,8 @@ int main_bytaxid(int argc,char**argv){
     else if(!strcasecmp("-strict",key)) strict=atoi(val);
     else if(!strcasecmp("-forcedump",key)) forcedump=atoi(val);
     else if(!strcasecmp("-out",key)) outfile=strdup(val);
-    else if(!strcasecmp("-type",key)) {
-      out_mode[1]=tolower(val[0]);
-      type=strdup(val);}
+    else if(!strcasecmp("-type",key))
+      type=strdup(val);
     else{
       fprintf(stderr,"\t Unknown parameter key:%s val:%s\n",key,val);
       return 0;
@@ -385,7 +441,7 @@ int main_bytaxid(int argc,char**argv){
   if(keeplist.size()==0)
     fprintf(stderr,"\t-> No ids to extract\n");
   else
-    runextract_int2int(keeplist,htsfp,hdr,outfile,out_mode,strict);
+    runextract_int2int(keeplist,htsfp,hdr,outfile,type,strict);
   
   return 0;
 }
