@@ -892,7 +892,6 @@ int main_dfit(int argc, char **argv) {
       exit(1);
     }
     kstr->l = 0;
-    bgzf_flush(fpfpfp);//<- is flush needed?
     bgzf_close(fpfpfp);
     
     
@@ -902,7 +901,6 @@ int main_dfit(int argc, char **argv) {
         exit(1);
       }
       bootkstr->l = 0;
-      bgzf_flush(bootfp);//<- is flush needed?
       bgzf_close(bootfp);
     }
     
