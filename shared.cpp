@@ -229,12 +229,15 @@ void parse_nodes2(int2int &parent, int2intvec &child) {
 }
 
 int SIG_COND = 1;
-int2int *bamRefId2tax(bam_hdr_t *hdr, char *acc2taxfile, char *bamfile, int2int &errmap, char *tempfolder, int forceDump, char *filteredAcc2taxfile) {
+int2int *bamRefId2tax(bam_hdr_t *hdr, char *acc2taxfile, char *bamfile, int2int &errmap, char *tempfolder, int forceDump, char *filteredAcc2taxfile,char2int *acc2taxidmap) {
     fprintf(stderr, "\t-> Starting to extract (acc->taxid) from binary file: \'%s\'\n", acc2taxfile);
     fflush(stderr);
     int dodump = !fexists4(tempfolder, basename(acc2taxfile), basename(bamfile), ".bin");
+    if(acc2taxidmap!=NULL)
+      forceDump = 1;
     dodump += forceDump;
-    fprintf(stderr, "\t-> Checking if binary file exists. dodump=%d \n", dodump);
+    
+    fprintf(stderr, "\t-> Checking if need to reload acc2tax and dump. dodump=%d forcedump=%d acc2taxidmap: %p\n", dodump,forceDump,acc2taxidmap);
 
     time_t t = time(NULL);
     BGZF *fp = NULL;
@@ -277,6 +280,12 @@ int2int *bamRefId2tax(bam_hdr_t *hdr, char *acc2taxfile, char *bamfile, int2int 
             char *key = strtok(NULL, "\t\n ");
             tok = strtok(NULL, "\t\n ");
             int val = atoi(tok);
+	    if(acc2taxidmap!=NULL){
+	      if(!acc2taxidmap->insert(std::pair<char*,int>(strdup(key),val)).second){
+		fprintf(stderr,"\t-> Problem inserting key: %s with value: %d\n",key,val);
+		exit(0);
+	      } 
+	    }
             int valinbam = bam_name2id(hdr, key);
 
             if (valinbam == -1)
@@ -315,7 +324,7 @@ int2int *bamRefId2tax(bam_hdr_t *hdr, char *acc2taxfile, char *bamfile, int2int 
     }
 
     bgzf_close(fp);
-    fprintf(stderr, "\t-> Number of entries to use from accession to taxid: %lu, time taken: %.2f sec\n", am->size(), (float)(time(NULL) - t));
+    fprintf(stderr, "\t-> Number of entries to use from accession to taxid: %lu, time taken: %.2f sec acc2taxidmap.size(): %lu\n", am->size(), (float)(time(NULL) - t),acc2taxidmap!=NULL?acc2taxidmap->size():0);
     return am;
 }
 
