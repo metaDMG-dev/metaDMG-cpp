@@ -79,7 +79,7 @@ char2int getkeys(const char *key,int value,int nospace){
   
   if(((fp=fopen(key,"rb")))==NULL){
     fprintf(stderr,"\t-> Problem opening file: %s\n",key);
-    exit(0);
+    exit(-1);
   }
   char buf[4096];
   while(fgets(buf,4096,fp)){
@@ -103,7 +103,7 @@ int2int getkeysint(const char *key,int value){
   
   if(((fp=fopen(key,"rb")))==NULL){
     fprintf(stderr,"\t-> Problem opening file: %s\n",key);
-    exit(0);
+    exit(-1);
   }
   char buf[4096];
   while(fgets(buf,4096,fp)){
@@ -158,7 +158,7 @@ void runextract_int2int(int2int &keeplist,samFile *htsfp,bam_hdr_t *hdr,const ch
   samFile *outhts = NULL;
   if ((outhts = sam_open_format(outname,out_mode, &fmt)) == NULL) {
     fprintf(stderr,"Error opening file for writing: %s\n",outname);
-    exit(0);
+    exit(-1);
   }
 
   queue *myq = init_queue(5000);//very large, should be enough.
@@ -201,7 +201,7 @@ void runextract_readid(char2int &keeplist,samFile *htsfp,bam_hdr_t *hdr,const ch
   samFile *outhts = NULL;
   if ((outhts = sam_open_format(outname,out_mode, dingding2)) == 0) {
     fprintf(stderr,"Error opening file for writing: %s\n",outname);
-    exit(0);
+    exit(-1);
   }
 
   if (sam_hdr_write(outhts, hdr) < 0)
@@ -396,7 +396,7 @@ int main_bytaxid(int argc,char**argv){
     ++argv;
   }
   
-  fprintf(stderr,"\t-> key: %s \n\t-> hts: %s \n\t-> nodefile: %s \n\t-> acc2tax: %s \n\t-> taxid: %s\n\t-> taxnames: %s \n\t-> strict: %d \n\t-> type: %s \n\t-> outfile: %s\n\t-> forcedump:%d\n\t-> accout:%s names: %s\n",keyfile,hts,nodefile, acc2tax, taxid,taxnames,strict,type,outfile,forcedump,accout,names);
+  fprintf(stderr,"\t-> key: %s \n\t-> hts: %s \n\t-> nodefile: %s \n\t-> acc2tax: %s \n\t-> taxid: %s\n\t-> taxnames: %s \n\t-> strict: %d \n\t-> type: %s \n\t-> outfile: %s\n\t-> forcedump:%d\n\t-> accout:%s\n\t-> names: %s\n",keyfile,hts,nodefile, acc2tax, taxid,taxnames,strict,type,outfile,forcedump,accout,names);
 
   if(taxid ==NULL&&taxnames==NULL){
     fprintf(stderr,"\t-> Need to supply -taxid and/or -taxnames\n");
@@ -407,14 +407,16 @@ int main_bytaxid(int argc,char**argv){
     return 0;
   }
   int2int taxids;
-  if(!fexists(taxid)) {
-    char *tok = strtok(taxid, ",");
-    while (tok != NULL) {
-      taxids[atoi(tok)] = 1;
-      tok = strtok(NULL, ",");
+  if(taxid!=NULL) {
+    if(!fexists(taxid)) {
+      char *tok = strtok(taxid, ",");
+      while (tok != NULL) {
+	taxids[atoi(tok)] = 1;
+	tok = strtok(NULL, ",");
+      }
+    } else {
+      taxids = getkeysint(taxid,0);
     }
-  } else {
-    taxids = getkeysint(taxid,0);
   }
   
   //open inputfile and parse header
@@ -432,7 +434,7 @@ int main_bytaxid(int argc,char**argv){
   if(taxnames!=NULL){
     if(names==NULL){
       fprintf(stderr,"\t-> if taxnames is defined then names should also be defined\n");
-      exit(0);
+      exit(-1);
     }
     int2char nammap = parse_names(names);
     char2int mapnam;
@@ -440,7 +442,7 @@ int main_bytaxid(int argc,char**argv){
       auto it2=mapnam.find(it->second);
       if(it2!=mapnam.end()){
 	fprintf(stderr,"\t-> Problem with duplicate name in name map: key %d val: %s\n",it->first,it->second);
-	exit(0);
+	exit(-1);
       }
       mapnam[it->second] = it->first;
     }
@@ -450,7 +452,7 @@ int main_bytaxid(int argc,char**argv){
 	auto it = mapnam.find(tok);
 	if(it==mapnam.end()){
 	  fprintf(stderr,"\t-> Problem finding taxname: %s\n",tok);
-	  exit(0);
+	  exit(-1);
 	}
 	taxids[it->second] = 1;
 	tok = strtok(NULL, ",");
@@ -461,7 +463,7 @@ int main_bytaxid(int argc,char**argv){
 	auto it2 = mapnam.find(it->first);
 	if(it2==mapnam.end()){
 	  fprintf(stderr,"\t-> Problem finding taxname: %s\n",it->first);
-	  exit(0);
+	  exit(-1);
 	}
 	taxids[it2->second] = 1;
       }

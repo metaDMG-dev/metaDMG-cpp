@@ -52,7 +52,7 @@ BGZF *getbgzf4(const char *str1, const char *str2, const char *str3, const char 
 }
 
 int fexists(const char *str) {  ///@param str Filename given as a string.
-    fprintf(stderr, "\t-> Checking if exits: \'%s\'\n", str);
+    fprintf(stderr, "\t-> Checking if exists: \'%s\'\n", str);
     struct stat buffer;
     return (stat(str, &buffer) == 0);  /// @return Function returns 1 if file exists.
 }
