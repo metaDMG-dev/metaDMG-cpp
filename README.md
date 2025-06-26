@@ -102,9 +102,9 @@ Options:
   --min_length		minimum read length
   --sim_score_low	number between 0-1 
   --sim_score_high	number between 0-1
-  --fix_ncbi		
+  --fix_ncbi		fixes ncbi taxonomy naming issue, (default: 0)
   --discard
-  --how_many		integer for number of positions OBS rasmus will change this to --print_length 
+  --how_many		integer for number of positions that are printed in the substitution matrix
   --lca_rank		such as family/genus/species, default is species
   --used_reads
   --no_rank2species
