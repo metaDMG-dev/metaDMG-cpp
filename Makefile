@@ -51,7 +51,7 @@ all: .activate_module
 
 endif
 
-.PHONY: .activate_module 
+.PHONY: .activate_module
 
 .activate_module:
 	git submodule update --init --recursive
@@ -60,7 +60,7 @@ endif
 
 
 #modied from htslib makefile
-FLAGS = -O3 
+FLAGS = -O3
 CPPFLAGS := $(filter-out -DNDEBUG,$(CPPFLAGS))
 FLAGS2 = $(CPPFLAGS) $(FLAGS) $(LDFLAGS)
 
@@ -100,7 +100,7 @@ version.h:
 
 .PHONY: all clean install install-all install-misc misc test
 
-misc: 
+misc:
 	$(MAKE) -C misc HTSSRC="$(realpath $(HTSSRC))"
 
 -include $(OBJ:.o=.d)
@@ -121,7 +121,7 @@ metaDMG-cpp: version.h $(OBJ)
 testclean:
 	rm -f test/acc2taxid.map.gzf570b1db7c.dedup.filtered.rname.bam.bin
 	rm -f test/data/f570b1db7c.dedup.filtered.rname.bam
-	rm -rf test/output test/logfile version.h 
+	rm -rf test/output test/logfile version.h
 
 clean: testclean
 	rm  -f *.o *.d $(PROGRAMS) version.h *~
@@ -129,7 +129,7 @@ clean: testclean
 
 test:
 	echo "Running unit tests for metaDMG"
-	cd test;./testAll.sh 
+	cd test;./testAll.sh
 
 force:
 
