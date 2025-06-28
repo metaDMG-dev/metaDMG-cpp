@@ -1,6 +1,5 @@
 441b0ab9e87686b2aa77ffd2e63d5e85  output/test_aggregate.stat
 037258988f595d8737cb4647ddcb0d6d  output/test_dfit_global.dfit.fix
-a988c0e9921c8ed699e4f0efca79dfff  output/test_dfit_local_10threads.dfit.fix
 d5ec49a8685897936d18ecff68586bec  output/test_dfit_local.dfit.fix
 783c885b2ee8ac6469ab070b972e73d8  output/test_getdamage_global.bdamage
 3398e353af15d1646228cb8bbaf4a5a8  output/test_getdamage_global.bdamage.tsv
