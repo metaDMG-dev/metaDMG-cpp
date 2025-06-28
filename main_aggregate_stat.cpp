@@ -28,7 +28,8 @@
 
 extern htsFormat *dingding2;
 
-mydataD getval_full(std::map<int, mydataD> &retmap, int2intvec &child, int taxid, int howmany);
+//from metaDMG.cpp
+std::map<int,mydataD> getval_full_norec(std::map<int, mydataD> &retmap, int2int &parent, int howmany);
 mydata2 getval_stats(std::map<int, mydata2> &retmap, int2intvec &child, int taxid) ;
 
 int helppage_aggregate(FILE *fp){
@@ -158,22 +159,21 @@ int main_aggregate(int argc, char **argv) {
     char *outfile_name = NULL;
     char *infile_dfit = NULL;
     int howmany;//this is the cycle
-
     while (*(++argv)) {
-        if (strcasecmp("-h", *argv) == 0 || strcasecmp("--help", *argv) == 0)
-            helppage_aggregate(stderr);
-        else if (strcasecmp("--names", *argv) == 0 || strcasecmp("-names", *argv) == 0)
-            infile_names = strdup(*(++argv));
-        else if (strcasecmp("--nodes", *argv) == 0 || strcasecmp("-nodes", *argv) == 0)
-            infile_nodes = strdup(*(++argv));
-	else if (strcasecmp("--dfit", *argv) == 0 || strcasecmp("-dfit", *argv) == 0)
-	  infile_dfit = strdup(*(++argv));
-        else if (strcasecmp("-lca", *argv) == 0|| strcasecmp("--lcastat", *argv) == 0|| strcasecmp("-lcastat", *argv) == 0)
-            infile_lcastat = strdup(*(++argv));
-        else if (strcasecmp("-o", *argv) == 0 || strcasecmp("--out", *argv) == 0 || strcasecmp("--out_prefix", *argv) == 0)
-            outfile_name = strdup(*(++argv));
-        else
-          infile_bdamage = strdup(*argv);
+      if (strcasecmp("-h", *argv) == 0 || strcasecmp("--help", *argv) == 0)
+	helppage_aggregate(stderr);
+      else if (strcasecmp("--names", *argv) == 0 || strcasecmp("-names", *argv) == 0)
+	infile_names = strdup(*(++argv));
+      else if (strcasecmp("--nodes", *argv) == 0 || strcasecmp("-nodes", *argv) == 0)
+	infile_nodes = strdup(*(++argv));
+      else if (strcasecmp("--dfit", *argv) == 0 || strcasecmp("-dfit", *argv) == 0)
+	infile_dfit = strdup(*(++argv));
+      else if (strcasecmp("-lca", *argv) == 0|| strcasecmp("--lcastat", *argv) == 0|| strcasecmp("-lcastat", *argv) == 0)
+	infile_lcastat = strdup(*(++argv));
+      else if (strcasecmp("-o", *argv) == 0 || strcasecmp("--out", *argv) == 0 || strcasecmp("--out_prefix", *argv) == 0)
+	outfile_name = strdup(*(++argv));
+      else
+	infile_bdamage = strdup(*argv);
     }
     if(infile_nodes&&!infile_names){
       fprintf(stderr,"\t-> --names file.txt.gz must be defined with --nodes is defined\n");
@@ -210,8 +210,10 @@ int main_aggregate(int argc, char **argv) {
         name_map = parse_names(infile_names);
 
     float presize = retmap.size();
-    if(child.size()>0)
-      getval_full(retmap, child, 1, howmany);  // this will do everything
+    if(child.size()>0){
+	std::map<int,mydataD> results = getval_full_norec(retmap,parent,howmany);//lizard king 2000.
+	retmap = results;
+    }
     float postsize = retmap.size();
     fprintf(stderr, "\t-> pre: %f post:%f grownbyfactor: %f\n", presize, postsize, postsize / presize);
 

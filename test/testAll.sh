@@ -89,18 +89,15 @@ gzip -t  output/test_dfit_local.dfit.gz
 echo -ne "Return value of test $?\nWill now run gunzip -c output/test_dfit_local.dfit.gz|wc -c\n"
  gunzip -c output/test_dfit_local.dfit.gz|wc -c
 
-
-gunzip -c output/test_dfit_local.dfit.gz > tmp.txt
+ gunzip -c output/test_dfit_local.dfit.gz > tmp.txt
 head -n 10 tmp.txt > tmp2.txt
 #rm tmp.txt
 cut -f 1-6,8- tmp2.txt| numfmt -d $'\t' --header --format='%.2f' --field=2- --invalid=ignore > output/test_dfit_local.dfit.fix
-#rm tmp2.txt
-#zcat output/test_dfit_local.dfit.gz | head -n 10|cut -f 1-6,8- | numfmt -d $'\t' --header --format='%.2f' --field=2- --invalid=ignore > output/test_dfit_local.dfit.fix
-#exit 0
+# gunzip -c output/test_dfit_local.dfit.gz|cut -f1-6,8-|./round_file.sh |sort -k1,1n > output/test_dfit_local.dfit.fix
 
 
-echo "Running dfit local (10 threaded)"
-CMD="${PRG} dfit output/test_lca.bdamage.gz --threads 10 --names data/names.dmp.gz --nodes data/nodes.dmp.gz --showfits 2 --nopt 2 --nbootstrap 2 --seed 12345 --lib ds --out output/test_dfit_local_10threads"
+echo "Running dfit local (4 threaded)" #wont bothr chaning name
+CMD="${PRG} dfit output/test_lca.bdamage.gz --threads 4 --names data/names.dmp.gz --nodes data/nodes.dmp.gz --showfits 2 --nopt 2 --nbootstrap 2 --seed 12345 --lib ds --out output/test_dfit_local_10threads"
 ${CMD} >> ${LOG} 2>&1
 if [[ $? -ne 0 ]]; then
     echo "Problem running command: ${CMD}"
@@ -108,12 +105,7 @@ if [[ $? -ne 0 ]]; then
 fi
 # Remove 'ncall' column and round values, since it fails on GitHub tests
 
-#zcat output/test_dfit_local_10threads.dfit.gz | cut -f 1-6,8- | head -n 10 | numfmt -d $'\t' --header --format='%.2f' --field=2- --invalid=ignore | sort -r > output/test_dfit_local_10threads.dfit.fix
-gunzip -c output/test_dfit_local_10threads.dfit.gz > tmp.txt
-head -n 10 tmp.txt > tmp2.txt
-rm tmp.txt
-cut -f 1-6,8- tmp2.txt| numfmt -d $'\t' --header --format='%.2f' --field=2- --invalid=ignore | sort -r > output/test_dfit_local_10threads.dfit.fix
-rm tmp2.txt
+ gunzip -c output/test_dfit_local_10threads.dfit.gz|cut -f1-6,8-|./round_file.sh |sort -k1,1n > output/test_dfit_local_10threads.dfit.fix
 
 echo "Running dfit global"
 CMD="${PRG} dfit output/test_getdamage_global.bdamage.gz --showfits 2 --seed 12345 --lib ds --out output/test_dfit_global"

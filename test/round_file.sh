@@ -1,9 +1,9 @@
 #!/bin/bash
 
-if [ "$#" -ne 1 ]; then
-  echo "Usage: $0 file1"
-  exit 1
-fi
+# Usage: ./script.sh [optional_input_file]
+# If no file is provided, read from stdin.
+
+input="${1:-/dev/stdin}"
 
 round_file() {
   awk '
@@ -16,7 +16,7 @@ round_file() {
       } else if ($i ~ /^[+-]?[0-9]*\.?[0-9]+([eE][+-]?[0-9]+)?$/) {
         # Float — round to 3 decimals
         $i = sprintf("%.3f", $i)
-        sub(/\.000$/, "", $i)  # Optional: strip ".000" from floats like "5.000"
+        sub(/\.000$/, "", $i)  # Strip ".000" from whole numbers
       }
     }
     print
@@ -24,4 +24,6 @@ round_file() {
   ' "$1"
 }
 
-round_file "$1"
+round_file "$input"
+
+
