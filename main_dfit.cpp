@@ -263,6 +263,7 @@ void make_dfit_format_bootstrap2(mydataD &md,double **dat,int howmany,int seed, 
   }
 }
 
+std::map<int,mydataD> getval_full_norec(std::map<int, mydataD> &retmap, int2int &parent, int howmany);
 mydataD getval_full(std::map<int, mydataD> &retmap, int2intvec &child, int taxid, int howmany);
 mydata2 getval_stats(std::map<int, mydata2> &retmap, int2intvec &child, int taxid) ;
 
@@ -797,8 +798,12 @@ int main_dfit(int argc, char **argv) {
         name_map = parse_names(infile_names);
 
     float presize = retmap.size();
-    if(child.size()>0 && presize>0)
-      getval_full(retmap, child, 1, howmany);  // this will do everything
+    if(child.size()>0 && presize>0){
+
+      std::map<int, mydataD> results = getval_full_norec(retmap, parent, howmany);  // this will do everything
+      retmap=results;
+
+    }
     float postsize = retmap.size();
     fprintf(stderr, "\t-> pre: %f post:%f grownbyfactor: %f\n", presize, postsize, postsize / presize);
 

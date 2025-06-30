@@ -78,52 +78,54 @@ double *getval(std::map<int, double *> &retmap, int2intvec &child, int taxid, in
     return ret;
 }
 int INT_WARN = 1;
-mydataD getval_full(std::map<int, mydataD> &retmap, int2intvec &child, int taxid, int howmany) {
+
+
+//apparantly there is an issue when data is not only leaf.
+std::map<int,mydataD> getval_full_norec(std::map<int, mydataD> &retmap, int2int &parent, int howmany) {
     // fprintf(stderr,"getval\t%d\t%d\n",taxid,howmany);
-    std::map<int, mydataD>::iterator it = retmap.find(taxid);
-    if (it != retmap.end()) {
-        // fprintf(stderr,"has found: %d in retmap\n",it->first);
-#if 0
-    fprintf(stderr,"val\t%d",taxid);
-    for(int i=0;i<3*howmany+1;i++)
-      fprintf(stderr,"\t%f",it->second[i]);
-    fprintf(stderr,"\n");
-#endif
-        return it->second;
-    }
-    mydataD ret;
-    ret.nal = 0;
-    ret.fwD = new double[16 * howmany];
-    ret.bwD = new double[16 * howmany];
 
-    for (int i = 0; i < 16 * howmany; i++) {
-        ret.fwD[i] = 0;
-        ret.bwD[i] = 0;
-    }
-    if (child.size() > 0) {  // if we have supplied -nodes
-        int2intvec::iterator it2 = child.find(taxid);
-        if (it2 != child.end()) {
-            std::vector<int> &avec = it2->second;
-            for (int i = 0; i < avec.size(); i++) {
-                //	fprintf(stderr,"%d/%d %d\n",i,avec.size(),avec[i]);
-	      mydataD tmp = getval_full(retmap, child, avec[i], howmany);
-	      ret.nal += tmp.nal;
-	      if(ret.nal>INT_MAX&&INT_WARN){
-		fprintf(stderr,"\t-> Potential issue, sum of alignment counts are higher than int_max\n");
-		INT_WARN =0;
-	      }
-                for (int i = 0; i < 16 * howmany; i++) {
-                    ret.fwD[i] += tmp.fwD[i];
-                    ret.bwD[i] += tmp.bwD[i];
-                }
-            }
-        }
-    }
+  std::map<int, mydataD> results;
+  
+  //funky modern syntax below
+  //loop over all entries in retmap. lizard king 
+  for (const auto &[taxid, data] : retmap) {
+    int current = taxid;
+    //   fprintf(stderr,"taxid: %d\n",taxid);
+     while (true) {
+       //   fprintf(stderr,"current: %d\n",current);
+       mydataD &target = results[current]; //<- will call constructor if doesnt exists. magic magic
+       if (!target.fwD) {//if it doesnt exists then allocate. Just like fw.D!=NULL
+	 target.fwD = new double[16 * howmany]();
+	 target.bwD = new double[16 * howmany]();
+	 target.nal = 0;
+       }
+       
+       target.nal += data.nal;
+       
+       if (target.nal > INT_MAX && INT_WARN) {
+	 fprintf(stderr, "\t-> Potential issue, sum of alignment counts exceeds INT_MAX\n");
+	 INT_WARN = 0;
+       }
+       
+       for (int i = 0; i < 16 * howmany; ++i) {
+	 target.fwD[i] += data.fwD[i];
+	 target.bwD[i] += data.bwD[i];
+       }
+       
+       auto it = parent.find(current);
+       //       fprintf(stderr,"second: %d\n",it->second);
+       if (it == parent.end()) break;
+       //break if up is same as current. That only happens with root that has tqxid=1
+       if(current == it->second)
+	 break;
+       current = it->second;
+     }
+     
+  }
 
-    retmap[taxid] = ret;
-
-    return ret;
+  return results;
 }
+
 
 mydata2 getval_stats(std::map<int, mydata2> &retmap, int2intvec &child, int taxid) {
     // fprintf(stderr,"getval\t%d\t%d\n",taxid,howmany);
@@ -1228,7 +1230,10 @@ int main_print_ugly(int argc, char **argv) {
         name_map = parse_names(infile_names);
 
     float presize = retmap.size();
-    getval_full(retmap, child, 1, howmany);  // this will do everything
+    //    getval_full(retmap, child,1, howmany);  // this will do everything
+    std::map<int, mydataD>  results =   getval_full_norec(retmap, parent, howmany);  // this will do everything
+
+    retmap = results;
     float postsize = retmap.size();
     fprintf(stderr, "\t-> pre: %f post:%f grownbyfactor: %f\n", presize, postsize, postsize / presize);
 
@@ -1279,12 +1284,14 @@ int main_print_ugly(int argc, char **argv) {
     std::map<int, mydata2> stats;
     if (infile_lcastat)
         stats = load_lcastat(infile_lcastat,1);
+    fprintf(stderr,"stats.size(): %lu\n",stats.size());
     getval_stats(stats, child, 1);  // this will do everything
+    fprintf(stderr,"stats.size(): %lu ffff\n",stats.size());
     for (std::map<int, mydata2>::iterator it = stats.begin(); 1 && it != stats.end(); it++) {
         std::map<int, mydataD>::iterator itold = retmap.find(it->first);
         size_t nalign = 0;
         if (itold == retmap.end()) {
-            fprintf(stderr, "\t-> Problem finding taxid: %d\n", it->first);
+	  fprintf(stderr, "[%s]\t-> Problem finding taxid: %d\n",__FUNCTION__, it->first);
             //      exit(0);
         } else
             nalign = itold->second.nal;
