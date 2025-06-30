@@ -311,24 +311,23 @@ int main_getdamage(int argc, char **argv) {
 
     // write stat
     char buf[1024];
-    snprintf(buf, 1024, "%s.stat", onam);
+    snprintf(buf, 1024, "%s.stat.gz", onam);
     fprintf(stderr, "\t-> Outputting overall statistic in file: \"%s\"\n", buf);
 
-    FILE *fpstat = NULL;
-    assert(((fpstat = fopen(buf, "wb"))) != NULL);
-    fprintf(fpstat,"taxid\tnreads\tmea_len\tvar_len\tmean_gc\tvar_gc\tlca\trank\n");
+    gzFile fpstat = NULL;
+    assert((fpstat = gzopen(buf, "wb")) != NULL);
+    gzprintf(fpstat,"taxid\tnreads\tmea_len\tvar_len\tmean_gc\tvar_gc\tlca\trank\n");
     for (std::map<int, std::vector<float> >::iterator it = gcconts.begin(); it != gcconts.end(); it++) {
         std::map<int, triple>::iterator it2 = dmg->assoc.find(it->first);
         assert(it2 != dmg->assoc.end());
         std::map<int, std::vector<float> >::iterator it3 = seqlens.find(it->first);
         assert(it3 != seqlens.end());
         if (0)
-            fprintf(fpstat, "%d\t%lu\t%f\t%f\t%f\t%f\tNA\tNA\n", it->first, it2->second.nreads, mean(it3->second), var(it3->second), mean(it->second), var(it->second));
+            gzprintf(fpstat, "%d\t%lu\t%f\t%f\t%f\t%f\tNA\tNA\n", it->first, it2->second.nreads, mean(it3->second), var(it3->second), mean(it->second), var(it->second));
         else
-            fprintf(fpstat, "%s\t%lu\t%f\t%f\t%f\t%f\tNA\tNA\n", sam_hdr_tid2name(hdr, it->first), it2->second.nreads, mean(it3->second), var(it3->second), mean(it->second), var(it->second));
+            gzprintf(fpstat, "%s\t%lu\t%f\t%f\t%f\t%f\tNA\tNA\n", sam_hdr_tid2name(hdr, it->first), it2->second.nreads, mean(it3->second), var(it3->second), mean(it->second), var(it->second));
     }
-    if (fpstat != NULL)
-        fclose(fpstat);
+    gzclose(fpstat);
 
     sam_hdr_destroy(hdr);
     bam_destroy1(b);

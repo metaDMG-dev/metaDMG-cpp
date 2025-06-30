@@ -66,7 +66,7 @@ if [[ $? -ne 0 ]]; then
     echo "Problem running command: ${CMD}"
     RVAL=$((32+RVAL))
 fi
-gunzip -c  output/test_lca.lca.gz |cut -f1,3-100 >output/test_lca.lca.sub
+gunzip -c  output/test_lca.lca.gz | cut -f1,3-100 >output/test_lca.lca.sub
 
 echo "Running aggregate"
 CMD="${PRG} aggregate output/test_lca.bdamage.gz --nodes data/nodes.dmp.gz --names data/names.dmp.gz --lcastat output/test_lca.stat.gz --out_prefix output/test_aggregate"
@@ -87,13 +87,13 @@ fi
 echo "Running test of output/test_dfit_local.dfit.gz by gzip -t  output/test_dfit_local.dfit.gz "
 gzip -t  output/test_dfit_local.dfit.gz
 echo -ne "Return value of test $?\nWill now run gunzip -c output/test_dfit_local.dfit.gz|wc -c\n"
- gunzip -c output/test_dfit_local.dfit.gz|wc -c
+gunzip -c output/test_dfit_local.dfit.gz | wc -c
 
 
 gunzip -c output/test_dfit_local.dfit.gz > tmp.txt
 head -n 10 tmp.txt > tmp2.txt
 #rm tmp.txt
-cut -f 1-6,8- tmp2.txt| numfmt -d $'\t' --header --format='%.2f' --field=2- --invalid=ignore > output/test_dfit_local.dfit.fix
+cut -f 1-6,8- tmp2.txt | numfmt -d $'\t' --header --format='%.2f' --field=2- --invalid=ignore > output/test_dfit_local.dfit.fix
 #rm tmp2.txt
 #zcat output/test_dfit_local.dfit.gz | head -n 10|cut -f 1-6,8- | numfmt -d $'\t' --header --format='%.2f' --field=2- --invalid=ignore > output/test_dfit_local.dfit.fix
 #exit 0
@@ -112,7 +112,7 @@ fi
 gunzip -c output/test_dfit_local_10threads.dfit.gz > tmp.txt
 head -n 10 tmp.txt > tmp2.txt
 rm tmp.txt
-cut -f 1-6,8- tmp2.txt| numfmt -d $'\t' --header --format='%.2f' --field=2- --invalid=ignore | sort -r > output/test_dfit_local_10threads.dfit.fix
+cut -f 1-6,8- tmp2.txt | numfmt -d $'\t' --header --format='%.2f' --field=2- --invalid=ignore | sort -r > output/test_dfit_local_10threads.dfit.fix
 rm tmp2.txt
 
 echo "Running dfit global"
