@@ -20,7 +20,7 @@ if [[ ! -f "${PRG}" ]]; then
 fi
 
 echo "Testing Existence of samtools"
-if [[ ! -f "samtools" ]]; then
+if ! command -v samtools &> /dev/null ; then
     echo "Problem finding program: samtools"
     RVAL=1
     exit 1;
