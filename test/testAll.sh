@@ -16,6 +16,14 @@ echo "Testing Existence of ${PRG}"
 if [[ ! -f "${PRG}" ]]; then
     echo "Problem finding program: ${PRG}"
     RVAL=1
+    exit 1;
+fi
+
+echo "Testing Existence of samtools"
+if [[ ! -f "samtools" ]]; then
+    echo "Problem finding program: samtools"
+    RVAL=1
+    exit 1;
 fi
 
 echo "Testing Existence of ${BAM1}"

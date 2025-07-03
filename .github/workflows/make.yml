@@ -26,3 +26,5 @@ jobs:
       with:
         name: test-output
         path: test/output/
+	path: test/testAll.sh
+	path: test/testAll.sh.log
