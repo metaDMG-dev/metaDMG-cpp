@@ -1,4 +1,4 @@
-Name: Install deps, make,make test, makes upload folder
+name: Install deps, make,make test, makes upload folder
 
 on:
   push:
