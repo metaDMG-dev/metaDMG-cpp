@@ -1,11 +1,10 @@
 #c++ -I /opt/homebrew/Cellar/eigen/3.4.0_1/include/ -c -I/Users/fvr124/metaDMG-cpp/htslib   regression.cpp -std=c++14  -D__REGRESSION__
-
-
-FLAGS := -O2 -lgsl
-CFLAGS   := $(FLAGS)
-CXXFLAGS := $(FLAGS) -std=c++14
-CPPFLAGS := $(CPPFLAGS) -Wall -Wextra
-LDFLAGS  := $(LDFLAGS)
+# --- Flags og kompileringsvalg ---
+FLAGS     := -O2
+CFLAGS    := $(FLAGS)
+CXXFLAGS  := $(FLAGS) 
+CPPFLAGS  := $(CPPFLAGS) -Wall -Wextra
+LDFLAGS   := -lgsl
 
 CC  ?= gcc
 CXX ?= g++
@@ -32,9 +31,16 @@ ifdef EXTRA_LIBS
 LIBS += $(EXTRA_LIBS)
 endif
 
-# --- Crypto-detektion ---
+# --- Crypto library detektion ---
 HAVE_CRYPTO := $(shell echo 'int main(){}'|$(CXX) -x c++ - -lcrypto -o /dev/null 2>/dev/null && echo 0 || echo 1)
 LIBS := -lz -lm -lbz2 -llzma -lpthread -lcurl
+
+
+# --- Mål og bygning ---
+PROGRAM = metaDMG-cpp
+all: version.h $(PROGRAM) misc 
+
+
 
 ifeq ($(HAVE_CRYPTO),0)
   $(info Crypto library is available to link; adding -lcrypto)
@@ -43,34 +49,29 @@ else
   $(info Crypto library is not available to link; skipping -lcrypto)
 endif
 
-# --- HTSSRC håndtering ---
-ifdef HTSSRC
-  ifeq ($(HTSSRC),systemwide)
-    $(info HTSSRC set to systemwide; using systemwide installation)
-    LIBS += -lhts
-  else
-    $(info HTSSRC defined: $(HTSSRC))
-    CPPFLAGS += -I"$(realpath $(HTSSRC))"
-    LIBHTS := $(HTSSRC)/libhts.a
-    LIBS := $(LIBHTS) $(LIBS)
-  endif
-else
+# --- HTSLIB håndtering ---
+ifndef HTSSRC
   $(info HTSSRC not defined; using htslib submodule)
-  $(info ================================)
-  $(info Use `make HTSSRC=/path/to/htslib` for custom)
-  $(info Use `make HTSSRC=systemwide` for system install)
-  $(info ================================)
   HTSSRC := $(CURDIR)/htslib
-  CPPFLAGS += -I$(HTSSRC)
+endif
+
+ifeq ($(HTSSRC),systemwide)
+  $(info HTSSRC set to systemwide; using systemwide installation)
+  LIBS += -lhts
+  LIBHTS :=
+else
+  CPPFLAGS += -I$(realpath $(HTSSRC))
   LIBHTS := $(HTSSRC)/libhts.a
   LIBS := $(LIBHTS) $(LIBS)
 
-  .PHONY: .activate_module
-  all: .activate_module
-  .activate_module:
+  $(PROGRAM): $(LIBHTS)
+  $(LIBHTS): .activate_module
+endif
+
+.PHONY: .activate_module
+.activate_module:
 	@git submodule update --init --recursive
 	@$(MAKE) -C $(HTSSRC)
-endif
 
 # --- Versionsnummer og version.h ---
 PACKAGE_VERSION := 0.4
@@ -79,15 +80,13 @@ ifneq ("$(wildcard .git)","")
 endif
 
 version.h:
-	echo '#define METADAMAGE_VERSION "$(PACKAGE_VERSION)"' > $@
+	@echo '#define METADAMAGE_VERSION "$(PACKAGE_VERSION)"' > version.h.tmp
+	@cmp -s version.h.tmp version.h || mv version.h.tmp version.h
+	@rm -f version.h.tmp
 
-# --- Mål og bygning ---
-PROGRAM = metaDMG-cpp
 
-all: $(PROGRAM) misc
-
-$(PROGRAM): version.h $(OBJ)
-	$(CXX) $(CXXFLAGS) $(LDFLAGS) -o $@ $(OBJ) $(LIBS)
+$(PROGRAM): version.h $(OBJ) $(LIBHTS)
+	$(CXX) $(CXXFLAGS) $(CPPFLAGS) -o $@ $(OBJ) $(LIBS)  $(LDFLAGS)
 
 .PHONY: misc
 misc:
@@ -116,7 +115,7 @@ testclean:
 	rm -rf test/output test/logfile version.h
 
 test:
-	echo "Running unit tests for metaDMG"
-	cd test && ./testAll.sh
+	@echo "Running unit tests for metaDMG"
+	cd test ; ./testAll.sh
 
 force:
