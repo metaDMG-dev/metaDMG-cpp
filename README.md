@@ -17,6 +17,18 @@ For all analyses, the output is a binary '.bdamage.gz' file, which contains a su
 
 # Installation
 
+### Installing metaDMG-cpp using conda 
+The easiest way to install metaDMG-cpp and its dependencies is using conda
+
+```
+conda install -c bioconda metaDMG
+```
+or the faster mamba
+```
+mamba install -c bioconda metaDMG
+```
+
+## For manual installation
 ### Dependencies
 `metaDMG-cpp` requires `HTSlib`, a common library used for handling high-throughput sequencing data, `eigen3` and `gsl`.
 
