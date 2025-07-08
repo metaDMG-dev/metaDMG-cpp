@@ -17,7 +17,7 @@ For all analyses, the output is a binary '.bdamage.gz' file, which contains a su
 
 # Installation
 
-## Installing metaDMG-cpp using conda 
+### Installing metaDMG-cpp using conda 
 The easiest way to install metaDMG-cpp and its dependencies is using conda
 
 ```
@@ -52,7 +52,7 @@ cd metaDMG-cpp
 make HTTSRC=../htslib
 ```
 
-## Updating to latest version
+### Updating to latest version
 For installing latest updates:
 
 ```
@@ -62,12 +62,14 @@ git pull https://github.com/metaDMG-dev/metaDMG-cpp.git
 
 
 # Usage
-metaDMG-cpp can calculate substitutions between read and reference, this can be done either in global mode where the sustitution statistics are calculates across all references/chromosomes aligned to. This is typically used for sequence data generated from a single source (bone, tooth or like) where you want the overall DNA damage pattern. But it can also be run in local mode in which the substitutions are calculated for all reads mapped to a given reference/chromosome. In this case and if the same read aligns to 2 or more different references it will be counted more than twice. Hence for metagenomes, the correct way of running metaDMG-cpp is to use the LCA, then dfit and lastly aggregate the results together.  
 
-## Damage analysis
-Calculations of substitution matrices (without any LCA analysis), either at a:
-	- global mode (--run_mode 0) e.g. one matrix for the whole alignment file. Which is useful for single taxa analysis or if you want a global estimate for a metagenome. 
- 	- local mode  (--run_mode 1) e.g. a matrix for each reference with alignments. Which can be useful for microbial analysis and simulation of ancient metagenomes. 
+## Damage analysis (non-taxonomically assigned)
+metaDMG-cpp calculates substitutions between reads and reference sequences. It can operate in two modes:
+
+	- global mode (--run_mode 0): Substitution statistics are calculated across all references or chromosomes to which reads are aligned. This mode is typically used for sequence data derived from a single source (e.g., bone, tooth), where the goal is to obtain an overall DNA damage pattern.
+	- local mode (--run_mode 1): Substitution statistics are computed for all unique references in your bam file. In this mode, if a read aligns to multiple references, it will be counted multiple times.
+For metagenomic data, the recommended workflow is to first use LCA (Lowest Common Ancestor), then run dfit, and finally aggregate the results.
+
 ```
 ./metaDMG-cpp getdamage [options] <in.bam>|<in.sam>|<in.cram>
 
@@ -81,8 +83,10 @@ Options:
   -i/--ignore_errors    continue analyses even if there are errors
   -o/--out_prefix	output prefix (default: meta)
 ```
+## metaDMG LCA analyses
 
-## Taxonomic resource files
+
+### Taxonomic resource files
 metaDMG-cpp lca performs a taxonomic classification using the naive lowest common ancestor algorithm as embedded in [ngsLCA](https://github.com/miwipe/ngsLCA). In addition, this version counts substitutions between read and reference on internal nodes within a taxonomy (e.g. from root to species level). To traverse up the taxonomic tree the program needs three files in NCBI taxonomy format. These can either be a custom taxonomy built as the NCBI taxonomy or simply rely on the NCBI taxonomy, or it can  be a combination. NOTE the taxonomy files have to reflect the version of the database you are using (missing reference names and taxids will be printed in the log file). 
 
 **Downloading resource files for the program from NCBI**
@@ -95,7 +99,6 @@ wget https://ftp.ncbi.nlm.nih.gov/pub/taxonomy/accession2taxid/nucl_gb.accession
 gunzip nucl_gb.accession2taxid.gz;
 ```
 
-## LCA analyses
 Calculations, where each read, is classified to a given taxonomic level (based on the similarity of the alignments as specified below, we recommend --sim_score_low 0.95 --sim_score_high 1.0).  
 ```
 ./metaDMG-cpp lca [options]
@@ -106,23 +109,23 @@ Options:
   --names 		names.dmp.gz
   --nodes 		nodes.dmp.gz
   --acc2tax 		accesion to taxid table
-  --edit_dist_min	minimum read edit distance
-  --edit_dist_max	maximum read edit distance
-  --min_mapq		minimum mapping quality
+  --edit_dist_min	minimum read edit distance (minimum number of nucleotide mismatches between read and reference, disabled if not specified)
+  --edit_dist_max	maximum read edit distance (maximum number of nucleotide mismatches between read and reference, disabled if not specified)
+  --min_mapq		minimum mapping quality	(
   --min_length		minimum read length
   --sim_score_low	number between 0-1 
   --sim_score_high	number between 0-1
   --fix_ncbi		fixes ncbi taxonomy naming issue, (default: 0)
-  --discard
+  --discard		
   --how_many		integer for number of positions that are printed in the substitution matrix
-  --lca_rank		such as family/genus/species, default is species
-  --used_reads
-  --no_rank2species
-  --skip_no_rank
-  --weight_type
-  -i/--ignore_errors       continue analyses even if there are errors 1 or stop when error 0 (default)
-  --temp                temp prefix
-  -o/--out_prefix 		output prefix
+  --lca_rank		can be family/genus/species. This function makes the summary statistics to be calculated for reads unique to the specified taxonomic rank, rather than summing up the tree from species (default: species). 
+  --used_reads		
+  --no_rank2species	
+  --skip_no_rank	
+  --weight_type		
+  -i/--ignore_errors	continue analyses even if there are errors 1 or stop when error 0 (default: 0)
+  --temp		temp prefix
+  -o/--out_prefix 	output prefix
 ```
 
  
