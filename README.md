@@ -17,7 +17,7 @@ For all analyses, the output is a binary '.bdamage.gz' file, which contains a su
 
 # Installation
 
-### Installing metaDMG-cpp using conda 
+## Installing metaDMG-cpp using conda 
 The easiest way to install metaDMG-cpp and its dependencies is using conda
 
 ```
