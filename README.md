@@ -21,11 +21,18 @@ For all analyses, the output is a binary '.bdamage.gz' file, which contains a su
 The easiest way to install metaDMG-cpp and its dependencies is using conda
 
 ```
-conda install -c bioconda metaDMG
+conda install metaDMG
 ```
 or the faster mamba
+
 ```
 mamba install -c bioconda metaDMG
+```
+
+### To update using conda
+
+```
+conda update metaDMG
 ```
 
 ## For manual installation
@@ -45,41 +52,19 @@ cd metaDMG-cpp
 make HTTSRC=../htslib
 ```
 
-### To install HTSlib:
-```
-git submodule update --init --recursive
-cd htslib
-make
-```
-
 ## Updating to latest version
 For installing latest updates:
+
 ```
 make clean
 git pull https://github.com/metaDMG-dev/metaDMG-cpp.git
 ```
 
-## Installing metaDMG using Conda. Please note this is an older and not up-to-date version of metaDMG-cpp
-```
-conda create -c bioconda -n metaDMG metadmg
-conda activate metaDMG
-```
 
-# Taxonomic resource files
-./metaDMG-cpp lca counts substitutions between read and reference on internal nodes within a taxonomy (e.g. species, genus and family level). To traverse up a taxonomic tree the program needs three files in NCBI taxonomy format. These can either be a custom taxonomy built as the NCBI taxonomy or simply rely on the NCBI taxonomy, or it can  be a combination. NOTE the taxonomy file shall reflect the version of the database you are using. 
+# Usage
+metaDMG-cpp can calculate substitutions between read and reference, this can be done either in global mode where the sustitution statistics are calculates across all references/chromosomes aligned to. This is typically used for sequence data generated from a single source (bone, tooth or like) where you want the overall DNA damage pattern. But it can also be run in local mode in which the substitutions are calculated for all reads mapped to a given reference/chromosome. In this case and if the same read aligns to 2 or more different references it will be counted more than twice. Hence for metagenomes, the correct way of running metaDMG-cpp is to use the LCA, then dfit and lastly aggregate the results together.  
 
-**Downloading resource files for the program from NCBI**
-``` 
-mkdir ncbi_tax_dmp;
-cd ncbi_tax_dmp/;
-wget https://ftp.ncbi.nlm.nih.gov/pub/taxonomy/new_taxdump/new_taxdump.zip;
-unzip new_taxdump.zip;
-wget https://ftp.ncbi.nlm.nih.gov/pub/taxonomy/accession2taxid/nucl_gb.accession2taxid.gz;
-gunzip nucl_gb.accession2taxid.gz;
-```
-
-
-# Damage analysis
+## Damage analysis
 Calculations of substitution matrices (without any LCA analysis), either at a:
 	- global mode (--run_mode 0) e.g. one matrix for the whole alignment file. Which is useful for single taxa analysis or if you want a global estimate for a metagenome. 
  	- local mode  (--run_mode 1) e.g. a matrix for each reference with alignments. Which can be useful for microbial analysis and simulation of ancient metagenomes. 
@@ -97,7 +82,20 @@ Options:
   -o/--out_prefix	output prefix (default: meta)
 ```
 
-# LCA analyses
+## Taxonomic resource files
+metaDMG-cpp lca performs a taxonomic classification using the naive lowest common ancestor algorithm as embedded in [ngsLCA](https://github.com/miwipe/ngsLCA). In addition, this version counts substitutions between read and reference on internal nodes within a taxonomy (e.g. from root to species level). To traverse up the taxonomic tree the program needs three files in NCBI taxonomy format. These can either be a custom taxonomy built as the NCBI taxonomy or simply rely on the NCBI taxonomy, or it can  be a combination. NOTE the taxonomy files have to reflect the version of the database you are using (missing reference names and taxids will be printed in the log file). 
+
+**Downloading resource files for the program from NCBI**
+``` 
+mkdir ncbi_tax_dmp;
+cd ncbi_tax_dmp/;
+wget https://ftp.ncbi.nlm.nih.gov/pub/taxonomy/new_taxdump/new_taxdump.zip;
+unzip new_taxdump.zip;
+wget https://ftp.ncbi.nlm.nih.gov/pub/taxonomy/accession2taxid/nucl_gb.accession2taxid.gz;
+gunzip nucl_gb.accession2taxid.gz;
+```
+
+## LCA analyses
 Calculations, where each read, is classified to a given taxonomic level (based on the similarity of the alignments as specified below, we recommend --sim_score_low 0.95 --sim_score_high 1.0).  
 ```
 ./metaDMG-cpp lca [options]
@@ -125,54 +123,6 @@ Options:
   -i/--ignore_errors       continue analyses even if there are errors 1 or stop when error 0 (default)
   --temp                temp prefix
   -o/--out_prefix 		output prefix
-```
-
-
-
-
-
-# metaDMG print
-
-`./metaDMG-cpp print file.bdamage.gz [-names file.gz -bam file.bam -ctga -countout] infile: (null) inbam: (null) names: (null) search: -1 ctga: 0 `
-
-All options found below:
-
-```
- ./metaDMG-cpp print 
- 
- Usage: ./metaDMG-cpp print 
- 
-Example ./metaDMG-cpp print file.bdamage.gz -names names.dmp.gz 
-	./metaDMG-cpp print file.bdamage.gz -r 9639 -ctga
-	./metaDMG-cpp print file.bdamage.gz -countout 
-Options:
-  -ctga		ONLY print CT+ and GA- (the damage ones)
-  -countout	print mismatch as counts and not as transition probabilites
-  -r taxid	Only print for specific taxid
-  -names	NCBI names.dmp.gz file - option to print taxonomic names instead of NCBI TaxID
-  -bam		print referencenames (Accession No.) from bamfile, otherwise it prints NCBI TaxId. 
-
-
-#### Header in print: taxid,nralign,orientation,position,AA,AC,AG,AT,CA,CC,CG,CT,GA,GC,GG,GT,TA,TC,TG,TT 
- ```
- 
-# metaDMG merge
-
-`./metaDMG-cpp merge file.lca file.bdamage.gz ` 
-
-
-All options found below:
-
-```
-./metaDMG-cpp merge 
-
-Usage: ./metaDMG-cpp merge file.lca file.bdamage.gz [-names names.dmp.gz -bam <in.bam>|<in.sam>|<in.sam.gz> -howmany 5 -nodes nodes.dmp.gz]
-
-Example
-Options:
--howmany #integer for many positions.
--nodes #needs taxonomic paths to calculate damage higher than species level /ncbi_tax_dump_files/nodes.dmp.gz
--names #NCBI names.dmp file - option that prints taxonomic names to output  
 ```
 
  
@@ -317,6 +267,51 @@ Aggregating the lca statistics when transversing through the tree structure, cre
 --lca 		 lcaout.stat lca produced statistics
 --out 		 Suffix of output name with the predetermined prefix (.aggregate.stat.txt.gz)
 ```
+
+# metaDMG print
+
+`./metaDMG-cpp print file.bdamage.gz [-names file.gz -bam file.bam -ctga -countout] infile: (null) inbam: (null) names: (null) search: -1 ctga: 0 `
+
+All options found below:
+
+```
+ ./metaDMG-cpp print 
+ 
+ Usage: ./metaDMG-cpp print 
+ 
+Example ./metaDMG-cpp print file.bdamage.gz -names names.dmp.gz 
+	./metaDMG-cpp print file.bdamage.gz -r 9639 -ctga
+	./metaDMG-cpp print file.bdamage.gz -countout 
+Options:
+  -ctga		ONLY print CT+ and GA- (the damage ones)
+  -countout	print mismatch as counts and not as transition probabilites
+  -r taxid	Only print for specific taxid
+  -names	NCBI names.dmp.gz file - option to print taxonomic names instead of NCBI TaxID
+  -bam		print referencenames (Accession No.) from bamfile, otherwise it prints NCBI TaxId. 
+
+
+#### Header in print: taxid,nralign,orientation,position,AA,AC,AG,AT,CA,CC,CG,CT,GA,GC,GG,GT,TA,TC,TG,TT 
+ ```
+ 
+# metaDMG merge
+
+`./metaDMG-cpp merge file.lca file.bdamage.gz ` 
+
+
+All options found below:
+
+```
+./metaDMG-cpp merge 
+
+Usage: ./metaDMG-cpp merge file.lca file.bdamage.gz [-names names.dmp.gz -bam <in.bam>|<in.sam>|<in.sam.gz> -howmany 5 -nodes nodes.dmp.gz]
+
+Example
+Options:
+-howmany #integer for many positions.
+-nodes #needs taxonomic paths to calculate damage higher than species level /ncbi_tax_dump_files/nodes.dmp.gz
+-names #NCBI names.dmp file - option that prints taxonomic names to output  
+```
+
 
 # metaDMG mergedamage
 
