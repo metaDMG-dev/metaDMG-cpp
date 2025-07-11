@@ -126,6 +126,7 @@ Options:
   -i/--ignore_errors	continue analyses even if there are errors 1 or stop when error 0 (default: 0)
   --temp		temp prefix
   -o/--out_prefix 	output prefix
+  --filtered_acc2tax	output a acc2tax file using just the accessions and taxid in your dataset, given a filename
 ```
 
  
