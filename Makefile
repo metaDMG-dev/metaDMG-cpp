@@ -12,13 +12,12 @@ CXXSRC := $(wildcard *.cpp)
 CSRC   := $(wildcard *.c)
 OBJ    := $(CSRC:.c=.o) $(CXXSRC:.cpp=.o)
 
-# --- Brugervalgte paths og biblioteker ---
-#EIGEN_INC := /opt/homebrew/Cellar/eigen/3.4.0_1/include
-#CPPFLAGS  := $(CPPFLAGS) -I$(EIGEN_INC)
 
+
+# --- Brugervalgte paths og biblioteker ---
 ifdef PREFIX
 CPPFLAGS += -I$(PREFIX)/include
-LDFLAGS  += -L$(PREFIX)/lib
+LDFLAGS  := -L$(PREFIX)/lib $(LDFLAGS)
 endif
 
 ifdef EXTRA_INC
@@ -26,7 +25,7 @@ CPPFLAGS += $(addprefix -I,$(EXTRA_INC))
 endif
 
 ifdef EXTRA_LIB
-LDFLAGS  += $(addprefix -L,$(EXTRA_LIB))
+LDFLAGS  := $(addprefix -L,$(EXTRA_LIB)) $(LDFLAGS)
 endif
 
 ifdef EXTRA_LIBS
@@ -49,11 +48,15 @@ else
 endif
 
 # --- HTSLIB håndtering ---
+# HTSSRC is an absolute path (e.g., $(CURDIR)/htslib or user-specified)
+
 ifndef HTSSRC
   $(info HTSSRC not defined; cloning htslib from GitHub)
   HTSSRC := $(CURDIR)/htslib
+  ABSPATH=$(HTSSRC) #donkykong
 endif
 
+ABSPATH=$(HTSSRC) #donkykong
 ifeq ($(HTSSRC),systemwide)
   $(info HTSSRC set to systemwide; using systemwide installation)
   LIBS += -lhts
@@ -63,21 +66,29 @@ else
   CPPFLAGS += -I$(HTSSRC)
   LIBHTS := $(HTSSRC)/libhts.a
   LIBS := $(LIBHTS) $(LIBS)
-
   $(PROGRAM): $(LIBHTS)
-  $(LIBHTS): .clone_htslib
+
+  ifneq ($(filter /%,$(HTSSRC)),$(HTSSRC))
+    ABSPATH=../$(HTSSRC)
+  endif
 endif
 
-.PHONY: .clone_htslib
+# Ensure htslib is cloned and built only if libhts.a is missing
+$(LIBHTS): .clone_htslib
+
 .clone_htslib:
 	@if [ ! -d "$(HTSSRC)" ]; then \
-		echo "Cloning htslib into $(HTSSRC)..."; \
+		echo "Cloning htslib into $(HTSSRC) with submodules..."; \
 		git clone --recursive https://github.com/samtools/htslib.git $(HTSSRC) || { echo "Clone failed"; exit 1; }; \
 	else \
 		echo "$(HTSSRC) already exists, skipping clone."; \
 	fi
-	@$(MAKE) -C $(HTSSRC) libhts.a || { echo "Failed to build libhts.a"; exit 1; }
-	$(info CPPFLAGS after htslib setup: $(CPPFLAGS) HTSSRC=$(HTSSRC))
+	@if [ ! -f "$(LIBHTS)" ]; then \
+		$(MAKE) -C $(HTSSRC) libhts.a || { echo "Failed to build libhts.a"; exit 1; }; \
+	else \
+		echo "$(LIBHTS) already exists, skipping build."; \
+	fi
+	$(info CPPFLAGS=$(CPPFLAGS) HTSSRC=$(HTSSRC) (absolute path))
 
 # --- Versionsnummer og version.h ---
 PACKAGE_VERSION := 0.4
@@ -94,24 +105,24 @@ $(PROGRAM): version.h $(OBJ) $(LIBHTS)
 	$(CXX) $(CXXFLAGS) $(CPPFLAGS) -o $@ $(OBJ) $(LIBS) $(LDFLAGS)
 
 .PHONY: misc
-misc:
-	$(MAKE) -C misc HTSSRC="$(HTSSRC)"
+misc: $(LIBHTS) $(OBJ)
+	$(MAKE) -C misc HTSSRC=$(ABSPATH)
 
 # --- Automatisk afhængighedshåndtering ---
 -include $(OBJ:.o=.d)
 
-%.o: %.c .clone_htslib
+%.o: %.c $(LIBHTS)
 	$(CC) -c $(CPPFLAGS) $(CFLAGS) $< -o $@
 	$(CC) -MM $(CPPFLAGS) $(CFLAGS) $< > $*.d
 
-%.o: %.cpp .clone_htslib
+%.o: %.cpp $(LIBHTS)
 	$(CXX) -c $(CPPFLAGS) $(CXXFLAGS) $< -o $@
 	$(CXX) -MM $(CPPFLAGS) $(CXXFLAGS) $< > $*.d
 
 # --- Rens og tests ---
 .PHONY: clean test testclean force
 
-clean: testclean
+clean: 
 	rm -f *.o *.d $(PROGRAM) version.h *~
 	rm -rf $(HTSSRC)
 	$(MAKE) -C misc clean
