@@ -1,8 +1,7 @@
-#c++ -I /opt/homebrew/Cellar/eigen/3.4.0_1/include/ -c -I/Users/fvr124/metaDMG-cpp/htslib   regression.cpp -std=c++14  -D__REGRESSION__
 # --- Flags og kompileringsvalg ---
 FLAGS     := -O2
 CFLAGS    := $(FLAGS)
-CXXFLAGS  := $(FLAGS) 
+CXXFLAGS  := $(FLAGS)
 CPPFLAGS  := $(CPPFLAGS) -Wall -Wextra
 LDFLAGS   := -lgsl
 
@@ -14,6 +13,9 @@ CSRC   := $(wildcard *.c)
 OBJ    := $(CSRC:.c=.o) $(CXXSRC:.cpp=.o)
 
 # --- Brugervalgte paths og biblioteker ---
+#EIGEN_INC := /opt/homebrew/Cellar/eigen/3.4.0_1/include
+#CPPFLAGS  := $(CPPFLAGS) -I$(EIGEN_INC)
+
 ifdef PREFIX
 CPPFLAGS += -I$(PREFIX)/include
 LDFLAGS  += -L$(PREFIX)/lib
@@ -35,12 +37,9 @@ endif
 HAVE_CRYPTO := $(shell echo 'int main(){}'|$(CXX) -x c++ - -lcrypto -o /dev/null 2>/dev/null && echo 0 || echo 1)
 LIBS := -lz -lm -lbz2 -llzma -lpthread -lcurl
 
-
 # --- Mål og bygning ---
 PROGRAM = metaDMG-cpp
-all: version.h $(PROGRAM) misc 
-
-
+all: version.h $(PROGRAM) misc
 
 ifeq ($(HAVE_CRYPTO),0)
   $(info Crypto library is available to link; adding -lcrypto)
@@ -51,7 +50,7 @@ endif
 
 # --- HTSLIB håndtering ---
 ifndef HTSSRC
-  $(info HTSSRC not defined; using htslib submodule)
+  $(info HTSSRC not defined; cloning htslib from GitHub)
   HTSSRC := $(CURDIR)/htslib
 endif
 
@@ -60,18 +59,25 @@ ifeq ($(HTSSRC),systemwide)
   LIBS += -lhts
   LIBHTS :=
 else
-  CPPFLAGS += -I$(realpath $(HTSSRC))
+  # Use HTSSRC directly for include path
+  CPPFLAGS += -I$(HTSSRC)
   LIBHTS := $(HTSSRC)/libhts.a
   LIBS := $(LIBHTS) $(LIBS)
 
   $(PROGRAM): $(LIBHTS)
-  $(LIBHTS): .activate_module
+  $(LIBHTS): .clone_htslib
 endif
 
-.PHONY: .activate_module
-.activate_module:
-	@git submodule update --init --recursive
-	@$(MAKE) -C $(HTSSRC)
+.PHONY: .clone_htslib
+.clone_htslib:
+	@if [ ! -d "$(HTSSRC)" ]; then \
+		echo "Cloning htslib into $(HTSSRC)..."; \
+		git clone --recursive https://github.com/samtools/htslib.git $(HTSSRC) || { echo "Clone failed"; exit 1; }; \
+	else \
+		echo "$(HTSSRC) already exists, skipping clone."; \
+	fi
+	@$(MAKE) -C $(HTSSRC) libhts.a || { echo "Failed to build libhts.a"; exit 1; }
+	$(info CPPFLAGS after htslib setup: $(CPPFLAGS) HTSSRC=$(HTSSRC))
 
 # --- Versionsnummer og version.h ---
 PACKAGE_VERSION := 0.4
@@ -84,22 +90,21 @@ version.h:
 	@cmp -s version.h.tmp version.h || mv version.h.tmp version.h
 	@rm -f version.h.tmp
 
-
 $(PROGRAM): version.h $(OBJ) $(LIBHTS)
-	$(CXX) $(CXXFLAGS) $(CPPFLAGS) -o $@ $(OBJ) $(LIBS)  $(LDFLAGS)
+	$(CXX) $(CXXFLAGS) $(CPPFLAGS) -o $@ $(OBJ) $(LIBS) $(LDFLAGS)
 
 .PHONY: misc
 misc:
-	$(MAKE) -C misc HTSSRC="$(realpath $(HTSSRC))"
+	$(MAKE) -C misc HTSSRC="$(HTSSRC)"
 
 # --- Automatisk afhængighedshåndtering ---
 -include $(OBJ:.o=.d)
 
-%.o: %.c
+%.o: %.c .clone_htslib
 	$(CC) -c $(CPPFLAGS) $(CFLAGS) $< -o $@
 	$(CC) -MM $(CPPFLAGS) $(CFLAGS) $< > $*.d
 
-%.o: %.cpp
+%.o: %.cpp .clone_htslib
 	$(CXX) -c $(CPPFLAGS) $(CXXFLAGS) $< -o $@
 	$(CXX) -MM $(CPPFLAGS) $(CXXFLAGS) $< > $*.d
 
@@ -108,6 +113,7 @@ misc:
 
 clean: testclean
 	rm -f *.o *.d $(PROGRAM) version.h *~
+	rm -rf $(HTSSRC)
 	$(MAKE) -C misc clean
 
 testclean:
