@@ -130,7 +130,7 @@ std::map<int,char *> read_dfit(char *fname){
 }
 
 
-void aggr_stat2000(std::map<int, mydata2> &stats,int2int &parent){
+void aggr_stat3000(std::map<int, mydata2> &stats,int2int &parent){
   std::map<int,int> dasmap;
   for(std::map<int,mydata2>::iterator it = stats.begin();it!=stats.end();it++)
     dasmap[it->first] = it->second.nreads;
@@ -248,7 +248,7 @@ int main_aggregate(int argc, char **argv) {
     if(child.size()>0)//this will not work if we have data at internal nodes 
       getval_stats(stats, child, 1);  // this will do everything
 #endif
-    aggr_stat2000(stats,parent);
+    aggr_stat3000(stats,parent);
     //    exit(0);
     if(stats.size()>0){
       postsize = stats.size();
