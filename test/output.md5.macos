@@ -18,7 +18,8 @@ eaa8bb5f32aa0ef05bcf923d0c2bd711  output/test_lca_taxa.uglyprint.mismatch
 1f9c4d0ab804d6a6e077573e6c8e736a  output/test_lca.uglyprint.stat
 a23c34eaca4a1d1742dd65f98d70efbf  output/test_mergedamage.bdamage
 dc5bf1edd27b494e23f72d41d718600d  data/f570b1db7c.dedup.filtered.bam
-2ae4149efce77b91786d4a13b5451c3b  output/test_lca.lca.sub53943f1ceab5c86c6d815fc55d0363c7  output/test_getdamage_global.rlens
+2ae4149efce77b91786d4a13b5451c3b  output/test_lca.lca.sub
+53943f1ceab5c86c6d815fc55d0363c7  output/test_getdamage_global.rlens
 57013f84420d6460ae5e15aa0092dc1e  output/test_getdamage_local.rlens
 abc7a9ec248d48204d5f417f4c30c59d  output/test_lca.rlens
 9574c8051682dc50c040e5e8c16704a6  output/test_mergedamage.rlens
