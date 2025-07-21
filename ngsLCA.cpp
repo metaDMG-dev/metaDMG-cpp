@@ -412,7 +412,7 @@ std::vector<int> purge(std::vector<int> &taxids, std::vector<int> &editdist) {
     return tmpnewvec;
 }
 
-void hts(gzFile fp, samFile *fp_in, int2int &i2i, int2int &parent, bam_hdr_t *hdr, int2char &rank, int2char &name_map, int minmapq, int discard, int editMin, int editMax, double scoreLow, double scoreHigh, int minlength, int lca_rank, char *prefix, int howmany, samFile *fp_usedreads, int skipnorank, int2int &rank2level, int nthreads, int weighttype,long maxreads) {
+void hts(gzFile fp, samFile *fp_in, int2int &i2i, int2int &parent, bam_hdr_t *hdr, int2char &rank, int2char &name_map, int minmapq, int discard, int editMin, int editMax, double scoreLow, double scoreHigh, int minlength, int lca_rank, char *prefix, int howmany, samFile *fp_usedreads, int skipnorank, int2int &rank2level, int nthreads, int weighttype,long maxreads,samFile *fp_famout) {
   fprintf(stderr, "[%s] \t-> editMin:%d editmMax:%d scoreLow:%f scoreHigh:%f minlength:%d discard: %d prefix: %s howmany: %d skipnorank: %d weighttype: %d maxreads: %ld\n", __FUNCTION__, editMin, editMax, scoreLow, scoreHigh, minlength, discard, prefix, howmany, skipnorank, weighttype,maxreads);
     assert(fp_in != NULL);
     damage *dmg = new damage(howmany, nthreads, 13);
@@ -496,7 +496,14 @@ void hts(gzFile fp, samFile *fp_in, int2int &i2i, int2int &parent, bam_hdr_t *hd
                     // lca_rank is integer and is different from minus one
                     int2int::iterator myit = rank2level.find(lca);
                     assert(myit != rank2level.end());
-		    
+		    //write to family out
+		    if (myit->second != -1 && (myit->second <= 16)) {
+		      //family is 16, see rank2level.txt
+		       for (int i = 0; i < myq->l; i++)
+			 if(fp_famout)
+			   assert(sam_write1(fp_famout, hdr, myq->ary[i]) >= 0);
+		    }
+		    //standard analyses
 		    if (myit->second != -1 && (myit->second <= lca_rank)) {
                         adder(lca, strlen(seq), gccontent(seq));
 			            //fprintf(stderr,"Looping through alignments we have :%d \n",myq->l);
@@ -614,6 +621,13 @@ void hts(gzFile fp, samFile *fp_in, int2int &i2i, int2int &parent, bam_hdr_t *hd
             // lca_rank is integer and is different from minus one
             int2int::iterator myit = rank2level.find(lca);
             assert(myit != rank2level.end());
+	    //write to family out
+	    if (myit->second != -1 && (myit->second <= 16)) {
+	      //family is 16, see rank2level.txt
+	      for (int i = 0; i < myq->l; i++)
+		if(fp_famout)
+		  assert(sam_write1(fp_famout, hdr, myq->ary[i]) >= 0);
+	    }
             if (myit->second != -1 && (myit->second <= lca_rank)) {
                 adder(lca, strlen(seq), gccontent(seq));
                 //      if(correct_rank(lca_rank,lca,rank,norank2species)){
@@ -718,7 +732,7 @@ int2node makeNodes(int2int &parent){
 int main_lca(int argc, char **argv) {
     htsFormat *dingding2 = (htsFormat *)calloc(1, sizeof(htsFormat));
     if (argc == 1) {
-        fprintf(stderr, "\t-> ./metaDMG-cpp lca --names --nodes --acc2tax [-edit_dist_[min/max] --sim_score_[low/high] --min_mapq --bam --lca_rank  --filtered_acc2tax --used_reads [0,1] --weight_type [0,1] #%s \n", METADAMAGE_VERSION);
+        fprintf(stderr, "\t-> ./metaDMG-cpp lca --names --nodes --acc2tax [-edit_dist_[min/max] --sim_score_[low/high] --min_mapq --bam --lca_rank  --filtered_acc2tax --used_reads [0,1] --weight_type [0,1] --famout [0,1] #%s \n", METADAMAGE_VERSION);
         return 0;
     }
     catchkill();
@@ -771,7 +785,7 @@ int main_lca(int argc, char **argv) {
     }
     samFile *usedreads_sam = NULL;
     if (p->usedreads_sam != NULL) {  // p->usedreads sam is const *, sorry this is confusing
-        char out_mode[5] = "ws";
+        char out_mode[5] = "wb";
         if ((usedreads_sam = sam_open_format(p->usedreads_sam, out_mode, dingding2)) == 0) {
             fprintf(stderr, "Error opening file for writing\n");
             exit(0);
@@ -779,8 +793,18 @@ int main_lca(int argc, char **argv) {
         if (sam_hdr_write(usedreads_sam, p->header) < 0)
             fprintf(stderr, "writing headers to %s", p->usedreads_sam);
     }
+    samFile *famout_sam = NULL;
+    if (p->famout_sam != NULL) {  // p->usedreads sam is const *, sorry this is confusing
+      char out_mode[5] = "wb";
+      if ((famout_sam = sam_open_format(p->famout_sam, out_mode, dingding2)) == 0) {
+	fprintf(stderr, "Error opening file for writing\n");
+	exit(0);
+      }
+      if (sam_hdr_write(famout_sam, p->header) < 0)
+	fprintf(stderr, "writing headers to %s", p->famout_sam);
+    }
     gzprintf(p->fp1,"queryid\tseq\tlen\tnaln\tgc\tlca\ttaxa_path\n");
-    hts(p->fp1, p->hts, *i2i, parent, p->header, rank, name_map, p->minmapq, p->discard, p->editdistMin, p->editdistMax, p->simscoreLow, p->simscoreHigh, p->minlength, lca_rank, p->outnames, p->howmany, usedreads_sam, p->skipnorank, tax2level, p->nthreads, p->weighttype,p->maxreads);
+    hts(p->fp1, p->hts, *i2i, parent, p->header, rank, name_map, p->minmapq, p->discard, p->editdistMin, p->editdistMax, p->simscoreLow, p->simscoreHigh, p->minlength, lca_rank, p->outnames, p->howmany, usedreads_sam, p->skipnorank, tax2level, p->nthreads, p->weighttype,p->maxreads,famout_sam);
 
     fprintf(stderr, "\t-> Number of species with reads that map uniquely: %lu\n", specWeight.size());
 
@@ -798,6 +822,8 @@ int main_lca(int argc, char **argv) {
 
     if (usedreads_sam != NULL)
         sam_close(usedreads_sam);
+    if (famout_sam != NULL)
+      sam_close(famout_sam);
     if (p->fp_lcadist) {
         gzprintf(p->fp_lcadist,"taxid\tnreads\tmea_len\tvar_len\tmean_gc\tvar_gc\tlca\trank\n");
         for (std::map<int, lcatriplet>::iterator it = lcastat.begin(); it != lcastat.end(); it++) {

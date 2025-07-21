@@ -38,6 +38,7 @@ pars *pars_init() {
     p->skipnorank = 1;
     p->howmany = 5;
     p->usedreads_sam = NULL;
+    p->famout_sam = NULL;
     p->fixdb = 1;
     p->nthreads = 4;
     p->weighttype = 0;
@@ -188,7 +189,8 @@ pars *get_pars(int argc, char **argv) {
         return NULL;
     }
 
-    int make_used_reads = 0;
+    int make_used_reads = 1;
+    int make_famout_reads = 1;
 
     while (*argv) {
         char *key = *argv;
@@ -236,6 +238,8 @@ pars *get_pars(int argc, char **argv) {
             p->maxreads = atol(val);
         else if (!strcasecmp("--used_reads", key))
             make_used_reads = atoi(val);
+	else if (!strcasecmp("--famout", key))
+            make_famout_reads = atoi(val);
         else if (!strcasecmp("--no_rank2species", key))
             p->norank2species = atoi(val);
         else if (!strcasecmp("--skip_no_rank", key))
@@ -286,9 +290,14 @@ pars *get_pars(int argc, char **argv) {
     assert(p->fp3);
 #endif
     if (make_used_reads) {
-        snprintf(buf, 1024, "%s.usedreads.sam", p->outnames);
+        snprintf(buf, 1024, "%s.usedreads.bam", p->outnames);
         fprintf(stderr, "\t-> Will output the reads that are used for damage file:\t\'%s\'\n", buf);
         p->usedreads_sam = strdup(buf);
+    }
+    if (make_used_reads) {
+      snprintf(buf, 1024, "%s.famoutreads.bam", p->outnames);
+      fprintf(stderr, "\t-> Will output the reads that has lca below family :\t\'%s\'\n", buf);
+      p->famout_sam = strdup(buf);
     }
 
     pthread_mutex_lock(&mutex1);
@@ -317,7 +326,6 @@ void print_pars(FILE *fp, pars *p) {
     fprintf(fp, "\t-> --ignore_errors\t%d\n", p->ignore_errors);
     fprintf(fp, "\t-> --temp\t%s\n", p->tempfolder);
     fprintf(fp, "\t-> --filtered_acc2tax\t%s\n", p->filteredAcc2taxfile);
-
 }
 
 #ifdef __WITH_MAIN__

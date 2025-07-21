@@ -35,6 +35,7 @@ typedef struct {
     int norank2species;
     int howmany;
     char *usedreads_sam;
+  char *famout_sam;
     int fixdb;  // used for disabling mod_db function
     int nthreads;
     int weighttype;
