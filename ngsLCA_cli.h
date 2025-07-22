@@ -41,7 +41,7 @@ typedef struct {
     int weighttype;
     char *tempfolder;
     int ignore_errors;
-  int reallyDump;
+  int useDump;
   long maxreads;
 } pars;
 

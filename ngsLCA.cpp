@@ -752,9 +752,7 @@ int main_lca(int argc, char **argv) {
     int2int *i2i = NULL;
     //  fprintf(stderr,"p->header: %p\n",p->header);
     if (p->header)
-      i2i = bamRefId2tax(p->header, p->acc2taxfile, p->htsfile, errmap, p->tempfolder, p->reallyDump, p->filteredAcc2taxfile,NULL);
-
-
+      i2i = bamRefId2tax(p->header, p->acc2taxfile, p->htsfile, errmap, p->tempfolder, p->useDump, p->filteredAcc2taxfile,NULL);
     // map of taxid -> taxid
     int2int parent;
     // map of taxid -> rank
