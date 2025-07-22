@@ -823,7 +823,7 @@ int main_lca(int argc, char **argv) {
     if (famout_sam != NULL)
       sam_close(famout_sam);
     if (p->fp_lcadist) {
-        gzprintf(p->fp_lcadist,"taxid\tnreads\tmea_len\tvar_len\tmean_gc\tvar_gc\tlca\trank\n");
+        gzprintf(p->fp_lcadist,"taxid\tnreads\tmean_len\tvar_len\tmean_gc\tvar_gc\tlca\trank\n");
         for (std::map<int, lcatriplet>::iterator it = lcastat.begin(); it != lcastat.end(); it++) {
             lcatriplet tmp = it->second;
             gzprintf(p->fp_lcadist, "%d\t%d\t%f\t%f\t%f\t%f", it->first, tmp.nalignments, mean(tmp.readlengths), var(tmp.readlengths), mean(tmp.gccontents), var(tmp.gccontents));

@@ -318,7 +318,7 @@ int main_getdamage(int argc, char **argv) {
 
     gzFile fpstat = NULL;
     assert((fpstat = gzopen(buf, "wb")) != NULL);
-    gzprintf(fpstat,"taxid\tnreads\tmea_len\tvar_len\tmean_gc\tvar_gc\tlca\trank\n");
+    gzprintf(fpstat,"taxid\tnreads\tmean_len\tvar_len\tmean_gc\tvar_gc\tlca\trank\n");
     for (std::map<int, std::vector<float> >::iterator it = gcconts.begin(); it != gcconts.end(); it++) {
         std::map<int, triple>::iterator it2 = dmg->assoc.find(it->first);
         assert(it2 != dmg->assoc.end());
