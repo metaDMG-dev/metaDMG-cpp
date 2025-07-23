@@ -31,7 +31,7 @@ int really_kill = 3;
 int2int errmap;
 void handler(int s) {
     if (VERBOSE)
-        fprintf(stderr, "\n\t-> Caught SIGNAL: Will try to exit nicely (no more threads are created.\n\t\t\t  We will wait for the current threads to finish)\n");
+      fprintf(stderr, "\n\t-> Caught SIGNAL (%d): Will try to exit nicely (no more threads are created.\n\t\t\t  We will wait for the current threads to finish)\n", s);
 
     if (--really_kill != 3)
         fprintf(stderr, "\n\t-> If you really want ./ngsLCA to exit uncleanly ctrl+c: %d more times\n", really_kill + 1);
@@ -140,15 +140,9 @@ int nodes2root(int taxa, int2int &parent) {
 
 int2int dist2root;
 
-int satan(int taxid, int2int &parant) {
-    int2int::iterator it = dist2root.find(taxid);
-
-    return 0;
-}
-
 float mean(std::vector<float> &vec) {
     float tmp = vec[0];
-    for (int i = 1; i < vec.size(); i++)
+    for (size_t i = 1; i < vec.size(); i++)
         tmp += vec[i];
     return tmp / vec.size();
 }
@@ -164,7 +158,7 @@ float var(std::vector<float> &vec) {
     }
     float mea = mean(vec);
     float tmp = 0;
-    for (int i = 1; i < vec.size(); i++)
+    for (size_t i = 1; i < vec.size(); i++)
         tmp += pow(vec[i] - mea, 2);
 
     return tmp / (vec.size() - 1);
@@ -209,7 +203,7 @@ int do_lca(std::vector<int> &taxids, int2int &parent) {
     }
 
     int2int counter;
-    for (int i = 0; i < taxids.size(); i++) {
+    for (size_t i = 0; i < taxids.size(); i++) {
         int taxa = taxids[i];
         while (1) {
             //      fprintf(stderr,"taxa:%d\n",taxa);
@@ -272,7 +266,7 @@ void print_chain1(kstring_t *kstr, int taxa, int2char &rank, int2char &name_map,
 void print_rank(FILE *fp, int taxa, int2char &rank) {
     int2char::iterator it2 = rank.find(taxa);
     assert(it2 != rank.end());
-    fprintf(stderr, "taxa: %d rank %s\n", taxa, it2->second);
+    fprintf(fp, "taxa: %d rank %s\n", taxa, it2->second);
 }
 
 void print_chain(kstring_t *kstr, int taxa, int2int &parent, int2char &rank, int2char &name_map,int donewline) {
@@ -298,7 +292,7 @@ void print_chain(kstring_t *kstr, int taxa, int2int &parent, int2char &rank, int
 
 int isuniq(std::vector<int> &vec) {
     int ret = 1;
-    for (int i = 1; i < vec.size(); i++)
+    for (size_t i = 1; i < vec.size(); i++)
         if (vec[0] != vec[i])
             return 0;
     return ret;
@@ -375,7 +369,7 @@ int refToInt[256] = {
 
 float gccontent(char *seq) {
     int counts[5] = {0, 0, 0, 0, 0};
-    for (int i = 0; i < strlen(seq); i++)
+    for (size_t i = 0; i < strlen(seq); i++)
         counts[refToInt[seq[i]]]++;
 
     float gcs = counts[1] + counts[2];
@@ -404,7 +398,7 @@ std::vector<int> purge(std::vector<int> &taxids, std::vector<int> &editdist) {
     assert(taxids.size() == editdist.size());
     std::vector<int> tmpnewvec;
     int mylow = *std::min_element(editdist.begin(), editdist.end());
-    for (int i = 0; i < taxids.size(); i++)
+    for (size_t i = 0; i < taxids.size(); i++)
         if (editdist[i] <= mylow)
             tmpnewvec.push_back(taxids[i]);
     if (printonce-- == 1)
@@ -417,7 +411,6 @@ void hts(gzFile fp, samFile *fp_in, int2int &i2i, int2int &parent, bam_hdr_t *hd
     assert(fp_in != NULL);
     damage *dmg = new damage(howmany, nthreads, 13);
     bam1_t *aln = bam_init1();  // initialize an alignment
-    int comp;
 
     char *last = NULL;
     char *seq = NULL;
@@ -429,7 +422,6 @@ void hts(gzFile fp, samFile *fp_in, int2int &i2i, int2int &parent, bam_hdr_t *hd
     int lca;
     int2int closest_species;
     int skip = 0;
-    int inc = 0;
     kstring_t *kstr = new kstring_t;
     kstr->s = NULL;kstr->l = kstr->m =0;
     long nreads = 0;
@@ -470,7 +462,7 @@ void hts(gzFile fp, samFile *fp_in, int2int &i2i, int2int &parent, bam_hdr_t *hd
             if (taxids.size() > 0 && skip == 0) {
                 //	fprintf(stderr,"length of taxids:%lu and other:%lu minedit:%d\n",taxids.size(),editdist.size(),*std::min_element(editdist.begin(),editdist.end()));
 
-                int size = taxids.size();
+                size_t size = taxids.size();
                 assert(size == myq->l);
                 if (editMin == -1 && editMax == -1)
                     taxids = purge(taxids, editdist);
@@ -499,7 +491,7 @@ void hts(gzFile fp, samFile *fp_in, int2int &i2i, int2int &parent, bam_hdr_t *hd
 		    //write to family out
 		    if (myit->second != -1 && (myit->second <= 16)) {
 		      //family is 16, see rank2level.txt
-		       for (int i = 0; i < myq->l; i++)
+		       for (size_t i = 0; i < myq->l; i++)
 			 if(fp_famout)
 			   assert(sam_write1(fp_famout, hdr, myq->ary[i]) >= 0);
 		    }
@@ -507,7 +499,7 @@ void hts(gzFile fp, samFile *fp_in, int2int &i2i, int2int &parent, bam_hdr_t *hd
 		    if (myit->second != -1 && (myit->second <= lca_rank)) {
                         adder(lca, strlen(seq), gccontent(seq));
 			            //fprintf(stderr,"Looping through alignments we have :%d \n",myq->l);
-                        for (int i = 0; i < myq->l; i++) {
+                        for (size_t i = 0; i < myq->l; i++) {
 			  
                             int2int::iterator it2k = i2i.find(myq->ary[i]->core.tid);
                             assert(it2k != i2i.end());
@@ -597,7 +589,7 @@ void hts(gzFile fp, samFile *fp_in, int2int &i2i, int2int &parent, bam_hdr_t *hd
         }
     }
     if (taxids.size() > 0 && skip == 0) {
-        int size = taxids.size();
+        size_t size = taxids.size();
         assert(size == myq->l);
         if (editMin == -1 && editMax == -1)
             taxids = purge(taxids, editdist);
@@ -624,7 +616,7 @@ void hts(gzFile fp, samFile *fp_in, int2int &i2i, int2int &parent, bam_hdr_t *hd
 	    //write to family out
 	    if (myit->second != -1 && (myit->second <= 16)) {
 	      //family is 16, see rank2level.txt
-	      for (int i = 0; i < myq->l; i++)
+	      for (size_t i = 0; i < myq->l; i++)
 		if(fp_famout)
 		  assert(sam_write1(fp_famout, hdr, myq->ary[i]) >= 0);
 	    }
@@ -632,7 +624,7 @@ void hts(gzFile fp, samFile *fp_in, int2int &i2i, int2int &parent, bam_hdr_t *hd
                 adder(lca, strlen(seq), gccontent(seq));
                 //      if(correct_rank(lca_rank,lca,rank,norank2species)){
 		        //fprintf(stderr,"Looping through alignments we have :%d \n",myq->l);
-                for (int i = 0; i < myq->l; i++) {
+                for (size_t i = 0; i < myq->l; i++) {
                     // dmg->damage_analysis(myq->ary[i],myq->ary[i]->core.tid);
                     int2int::iterator ittt = i2i.find(myq->ary[i]->core.tid);
                     assert(ittt != i2i.end());

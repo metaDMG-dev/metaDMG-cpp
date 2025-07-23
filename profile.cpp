@@ -15,7 +15,7 @@
 
 float **getmatrix(size_t x, size_t y) {
     float **ret = new float *[x];
-    for (int i = 0; i < x; i++) {
+    for (size_t i = 0; i < x; i++) {
         ret[i] = new float[y];
         for (int j = 0; j < 16; j++)
             ret[i][j] = 0;
@@ -24,7 +24,7 @@ float **getmatrix(size_t x, size_t y) {
 }
 
 void destroymatrix(float **d, size_t x) {
-    for (int i = 0; i < x; i++)
+    for (size_t i = 0; i < x; i++)
         delete[] d[i];
     delete[] d;
 }
@@ -91,7 +91,7 @@ static char DUMMYCHAR = '#';
 void mdString2Vector2(const uint8_t *md, std::vector<mdField> &toReturn) {
     const char *mdFieldToParse = (const char *)md + 1;
     toReturn.clear();
-    int i = 0;
+    size_t i = 0;
     // int addToOffset=0;
     mdField toadd;
 
