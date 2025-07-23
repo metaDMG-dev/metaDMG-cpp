@@ -97,12 +97,17 @@ gzip -t  output/test_dfit_local.dfit.gz
 echo -ne "Return value of test $?\nWill now run gunzip -c output/test_dfit_local.dfit.gz|wc -c\n"
 gunzip -c output/test_dfit_local.dfit.gz | wc -c
 
-gunzip -c output/test_dfit_local.dfit.gz > tmp.txt
-head -n 10 tmp.txt > tmp2.txt
-#rm tmp.txt
-cut -f 1-6,8- tmp2.txt | numfmt -d $'\t' --header --format='%.2f' --field=2- --invalid=ignore > output/test_dfit_local.dfit.fix
-#gunzip -c output/test_dfit_local.dfit.gz|cut -f1-6,8-|./round_file.sh |sort -k1,1n > output/test_dfit_local.dfit.fix
-
+gunzip -c output/test_dfit_local.dfit.gz | \
+cut -f1-6,8- | \
+awk 'BEGIN{OFS=FS="\t"} 
+     NR==1 {print; next} 
+     {
+       for(i=2;i<=NF;i++) {
+         if($i ~ /^[0-9.eE+-]+$/) $i = sprintf("%.2f", $i)
+       }
+       print
+     }' \
+> output/test_dfit_local.dfit.fix
 
 echo "Running dfit local (4 threaded)" #wont bothr chaning name
 CMD="${PRG} dfit output/test_lca.bdamage.gz --threads 4 --names data/names.dmp.gz --nodes data/nodes.dmp.gz --showfits 2 --nopt 2 --nbootstrap 2 --seed 12345 --lib ds --out output/test_dfit_local_10threads"
