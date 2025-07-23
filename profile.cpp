@@ -287,8 +287,8 @@ inline void increaseCounters(const bam1_t *b, const char *reconstructedReference
 int damage::damage_analysis(bam1_t *b, int which, float incval) {
   //  fprintf(stderr,"\t-> incval: %f\n",incval);
   if (assoc.find(which) == assoc.end()) {
-    triple val = {0, getmatrix(MAXLENGTH, 16), getmatrix(MAXLENGTH, 16),new size_t[200]};
-    for(int i=0;i<200;i++)
+    triple val = {0, getmatrix(MAXLENGTH, 16), getmatrix(MAXLENGTH, 16),new size_t[500]};
+    for(int i=0;i<500;i++)
       val.rlens[i] = 0;
     assoc[which] = val;
     mm5pF = val.mm5pF;
@@ -298,7 +298,7 @@ int damage::damage_analysis(bam1_t *b, int which, float incval) {
     std::map<int, triple>::iterator it = assoc.find(which);
     it->second.nreads++;
     //    fprintf(stderr,"[%s] it->first:%d it->second.nreads:%d\n",__FUNCTION__,it->first,it->second.nreads);
-    assert(b->core.l_qseq<200);
+    assert(b->core.l_qseq<500);
     it->second.rlens[b->core.l_qseq] =  it->second.rlens[b->core.l_qseq] + 1; 
     if (b->core.l_qseq - 10 > temp_len) {
         temp_len = b->core.l_qseq;
@@ -374,30 +374,30 @@ void damage::bwrite(char *fname) {
     snprintf(onam, 1024, "%s.rlens.gz", fname);
     fprintf(stderr, "\t-> Will dump: \'%s\' this contains read length distributions for: %lu items\n", onam, assoc.size());
     fp = my_bgzf_open(onam, nthreads);
-    kstring_t kstr2000;
-    kstr2000.s = NULL;
-    kstr2000.l = kstr2000.m = 0;
-    ksprintf(&kstr2000,"id");
-    for(int i=0;i<200;i++)
-      ksprintf(&kstr2000,"\trlen%d",i);
-    ksprintf(&kstr2000,"\n");
+    kstring_t kstr3000;
+    kstr3000.s = NULL;
+    kstr3000.l = kstr3000.m = 0;
+    ksprintf(&kstr3000,"id");
+    for(int i=0;i<500;i++)
+      ksprintf(&kstr3000,"\trlen%d",i);
+    ksprintf(&kstr3000,"\n");
     for (std::map<int, triple>::iterator it = assoc.begin(); it != assoc.end(); it++) {
         if (it->second.nreads == 0)  // should never happen
             continue;
-	ksprintf(&kstr2000,"%d",it->first);
-	for(int i=0;i<200-1;i++)
-	  ksprintf(&kstr2000,"\t%lu",it->second.rlens[i]);
-	ksprintf(&kstr2000,"\t%lu\n",it->second.rlens[199]);
-	if(kstr2000.l>1000000){
-	  assert(bgzf_write(fp,kstr2000.s,kstr2000.l)==kstr2000.l);
-	  kstr2000.l  = 0;
+	ksprintf(&kstr3000,"%d",it->first);
+	for(int i=0;i<500-1;i++)
+	  ksprintf(&kstr3000,"\t%lu",it->second.rlens[i]);
+	ksprintf(&kstr3000,"\t%lu\n",it->second.rlens[499]);
+	if(kstr3000.l>1000000){
+	  assert(bgzf_write(fp,kstr3000.s,kstr3000.l)==kstr3000.l);
+	  kstr3000.l  = 0;
 	}
 	  
     }
-    assert(bgzf_write(fp,kstr2000.s,kstr2000.l)==kstr2000.l);
-    if(kstr2000.l>0)
-      free(kstr2000.s);
-    kstr2000.l  = 0;
+    assert(bgzf_write(fp,kstr3000.s,kstr3000.l)==kstr3000.l);
+    if(kstr3000.l>0)
+      free(kstr3000.s);
+    kstr3000.l  = 0;
     bgzf_close(fp);
 }
 

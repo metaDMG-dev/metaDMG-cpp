@@ -66,11 +66,11 @@ void to_root(int from,int to,std::map<int,mydata2> &stats,int2int &parent,int nr
     mydata2 &md2 = stats.find(to)->second;
     md2.data[0] = ((double) md1.data[0]*md1.nreads+md2.data[0]*md2.nreads)/((double) md1.nreads+md2.nreads); //weighted mean of read length
     md2.data[2] = ((double) md1.data[2]*md1.nreads+md2.data[2]*md2.nreads)/((double) md1.nreads+md2.nreads); //weighted mean of gc
-    
-    double variance1;
-    int nreads1;
-    double variance2;
-    int nreads2;
+
+#if 0
+    double variance1,variance2;
+    int nreads1, nreads2;
+#endif
     if(((double) md1.nreads+md2.nreads)>2){//pooled variance of length and GC
       /*variance1 = ((double) md1.nreads-1)*md1.data[1];
       nreads1 += md1.nreads;
@@ -130,7 +130,7 @@ std::map<int,char *> read_dfit(char *fname){
 }
 
 
-void aggr_stat2000(std::map<int, mydata2> &stats,int2int &parent){
+void aggr_stat3000(std::map<int, mydata2> &stats,int2int &parent){
   std::map<int,int> dasmap;
   for(std::map<int,mydata2>::iterator it = stats.begin();it!=stats.end();it++)
     dasmap[it->first] = it->second.nreads;
@@ -217,14 +217,6 @@ int main_aggregate(int argc, char **argv) {
     float postsize = retmap.size();
     fprintf(stderr, "\t-> pre: %f post:%f grownbyfactor: %f\n", presize, postsize, postsize / presize);
 
-    for (std::map<int, mydataD>::iterator it = retmap.begin(); it != retmap.end(); it++) {
-        int taxid = it->first;
-        mydataD md = it->second;
-        if (it->second.nal == 0)
-	  continue;
-	//	fprintf(stderr,"retmap taxid:%d nreads: %d\n",it->first,it->second.nreads);
-    }
-
     std::map<int, mydata2> stats;
     if (infile_lcastat){
       stats = load_lcastat(infile_lcastat,1);
@@ -248,7 +240,7 @@ int main_aggregate(int argc, char **argv) {
     if(child.size()>0)//this will not work if we have data at internal nodes 
       getval_stats(stats, child, 1);  // this will do everything
 #endif
-    aggr_stat2000(stats,parent);
+    aggr_stat3000(stats,parent);
     //    exit(0);
     if(stats.size()>0){
       postsize = stats.size();

@@ -15,6 +15,14 @@
 #include <map>      // for operator!=, __map_iterator, operator==
 #include <vector>   // for vector
 
+
+int file_is_older(const char *file1, const char *file2) {
+    struct stat st1, st2;
+    if (stat(file1, &st1) != 0) return -1;
+    if (stat(file2, &st2) != 0) return -1;
+    return st1.st_mtime < st2.st_mtime; // return 1 hvis file1 er ældre
+}
+
 BGZF *getbgzf(const char *str1, const char *mode, int nthreads) {
     BGZF *fp = NULL;
     fp = bgzf_open(str1, mode);
@@ -43,6 +51,15 @@ BGZF *getbgzf3(const char *str1, const char *str2, const char *str3, const char 
     snprintf(tmp, tmp_l, "%s%s%s", str1, str2, str3);
     return getbgzf(tmp, mode, nthreads);
 }
+
+char *getfilename4(const char *str1, const char *str2, const char *str3, const char *str4) {
+    unsigned tmp_l = strlen(str1) + strlen(str2) + strlen(str3) + strlen(str4) + 5;
+    char *tmp=(char*)calloc(tmp_l,1);
+    snprintf(tmp, tmp_l, "%s%s%s%s", str1, str2, str3, str4);
+    return tmp;//getbgzf(tmp, mode, nthreads);
+}
+
+
 
 BGZF *getbgzf4(const char *str1, const char *str2, const char *str3, const char *str4, const char *mode, int nthreads) {
     unsigned tmp_l = strlen(str1) + strlen(str2) + strlen(str3) + strlen(str4) + 5;
@@ -229,102 +246,127 @@ void parse_nodes2(int2int &parent, int2intvec &child) {
 }
 
 int SIG_COND = 1;
-int2int *bamRefId2tax(bam_hdr_t *hdr, char *acc2taxfile, char *bamfile, int2int &errmap, char *tempfolder, int forceDump, char *filteredAcc2taxfile,char2int *acc2taxidmap) {
-    fprintf(stderr, "\t-> Starting to extract (acc->taxid) from binary file: \'%s\'\n", acc2taxfile);
+int2int *bamRefId2tax(bam_hdr_t *hdr, char *acc2taxfile, char *bamfile, int2int &errmap,
+                      char *tempfolder, int usedump, char *filteredAcc2taxfile,
+                      char2int *acc2taxidmap) {
+    fprintf(stderr, "\t-> Starting to extract (acc->taxid) from binary file: '%s'\n", acc2taxfile);
     fflush(stderr);
-    int dodump = !fexists4(tempfolder, basename(acc2taxfile), basename(bamfile), ".bin");
-    if(acc2taxidmap!=NULL)
-      forceDump = 1;
-    dodump += forceDump;
-    
-    fprintf(stderr, "\t-> Checking if need to reload acc2tax and dump. dodump=%d forcedump=%d acc2taxidmap: %p\n", dodump,forceDump,acc2taxidmap);
+
+    int binExists = fexists4(tempfolder, basename(acc2taxfile), basename(bamfile), ".bin");
+    int useBinary = 0;
+
+    if (acc2taxidmap != NULL) {
+        useBinary = 0;
+    } else if (binExists && usedump) {
+        useBinary = 1;
+    } else if (!binExists && usedump) {
+        useBinary = 0;
+    } else if (binExists && !usedump) {
+        useBinary = 1;
+    } else {
+        useBinary = 0;
+    }
+
+    fprintf(stderr, "\t-> Binary exists: %d, usedump: %d, acc2taxidmap: %p => useBinary: %d\n",
+            binExists, usedump, acc2taxidmap, useBinary);
 
     time_t t = time(NULL);
     BGZF *fp = NULL;
-    if (dodump)
-      fp = getbgzf4(tempfolder, basename(acc2taxfile), basename(bamfile), ".bin", "wb", 4);
-    else
+    if (!useBinary && usedump)
+        fp = getbgzf4(tempfolder, basename(acc2taxfile), basename(bamfile), ".bin", "wb", 4);
+    else if (useBinary){
+      char *binfile = getfilename4(tempfolder, basename(acc2taxfile), basename(bamfile), ".bin"); //not cleaned up
+      
+      int binIsOlder = 0;
+      if (binExists && usedump) {
+	binIsOlder = file_is_older(binfile, bamfile);
+	if (binIsOlder == 1) {
+	  fprintf(stderr, "\n\t-> WARNING: Binary cache file '%s' is older than BAM file '%s'.\n", binfile, bamfile);
+	  fprintf(stderr, "\t-> This may indicate out-of-date accession-taxid mapping. Refusing to use it.\n");
+	  exit(1);
+	}
+      }
       fp = getbgzf4(tempfolder, basename(acc2taxfile), basename(bamfile), ".bin", "rb", 4);
-
-    // This contains refname(as int) -> taxid
+    }
     int2int *am = new int2int;
 
-    // Open the filtered output file if specified
     gzFile filteredFile = Z_NULL;
-    if (filteredAcc2taxfile != NULL && dodump) {
+    if (filteredAcc2taxfile != NULL && !useBinary) {
         filteredFile = gzopen(filteredAcc2taxfile, "wb");
         if (!filteredFile) {
             fprintf(stderr, "Error opening file '%s' for writing\n", filteredAcc2taxfile);
             exit(1);
         }
-        gzprintf(filteredFile, "BAM_Reference\tTaxID\tBam_hdr_index\n"); // Write header
+        gzprintf(filteredFile, "BAM_Reference\tTaxID\tBam_hdr_index\n");
     }
 
-    if (dodump) {
-        char buf[4096];
+    if (!useBinary) {
         int at = 0;
-
         kstring_t *kstr = (kstring_t *)malloc(sizeof(kstring_t));
         kstr->l = kstr->m = 0;
         kstr->s = NULL;
         BGZF *fp2 = getbgzf(acc2taxfile, "rb", 2);
-        bgzf_getline(fp2, '\n', kstr);  // Skip header
+        bgzf_getline(fp2, '\n', kstr);  // skip header
         kstr->l = 0;
-	int nprocs =0;
+        int nprocs = 0;
         while (SIG_COND && bgzf_getline(fp2, '\n', kstr)) {
-            if (kstr->l == 0)
-                break;
+            if (kstr->l == 0) break;
             if (!((at++ % 100000)) && isatty(fileno(stderr)))
-                fprintf(stderr, "\r\t-> At linenr: %d in \'%s\'      ", at, acc2taxfile);
+                fprintf(stderr, "\r\t-> At linenr: %d in '%s'      ", at, acc2taxfile);
+
             char *tok = strtok(kstr->s, "\t\n ");
             char *key = strtok(NULL, "\t\n ");
             tok = strtok(NULL, "\t\n ");
             int val = atoi(tok);
-	    if(acc2taxidmap!=NULL){
-	      if(!acc2taxidmap->insert(std::pair<char*,int>(strdup(key),val)).second){
-		fprintf(stderr,"\t-> Problem inserting key: %s with value: %d\n",key,val);
-		exit(0);
-	      } 
-	    }
-            int valinbam = bam_name2id(hdr, key);
+            if (!key) continue;
 
-            if (valinbam == -1)
-                continue;
-	    nprocs++;
-            if (fp != NULL) {
-                assert(bgzf_write(fp, &valinbam, sizeof(int)) == sizeof(int));
-                assert(bgzf_write(fp, &val, sizeof(int)) == sizeof(int));
+            if (acc2taxidmap != NULL) {
+                if (!acc2taxidmap->insert(std::pair<char*, int>(strdup(key), val)).second) {
+                    fprintf(stderr, "\t-> Problem inserting key: %s with value: %d\n", key, val);
+                    exit(1);
+                }
             }
 
+            int valinbam = bam_name2id(hdr, key);
+            if (valinbam == -1) continue;
+            nprocs++;
+
+            if (fp != NULL)
+                assert(bgzf_write(fp, &valinbam, sizeof(int)) == sizeof(int) &&
+                       bgzf_write(fp, &val, sizeof(int)) == sizeof(int));
+
             if (am->find(valinbam) != am->end())
-                fprintf(stderr, "\t-> Duplicate entries found \'%s\'\n", key);
+                fprintf(stderr, "\t-> Duplicate entries found '%s'\n", key);
             (*am)[valinbam] = val;
 
-            // Write to the filtered file if specified
             if (filteredFile != Z_NULL)
-	      gzprintf(filteredFile, "%s\t%d\t%d\n", key, val,valinbam);
+                gzprintf(filteredFile, "%s\t%d\t%d\n", key, val, valinbam);
             kstr->l = 0;
         }
         bgzf_close(fp2);
-	fprintf(stderr,"\t-> Number of items from acc2tax file that is relevant from the bamheader: %d\n",nprocs);
-	fflush(stderr);
+        free(kstr->s);
+        free(kstr);
+
+        fprintf(stderr, "\t-> Number of items from acc2tax file that is relevant from the bamheader: %d\n", nprocs);
+        fflush(stderr);
     } else {
         int valinbam, val;
         while (bgzf_read(fp, &valinbam, sizeof(int))) {
             assert(bgzf_read(fp, &val, sizeof(int)) == sizeof(int));
             (*am)[valinbam] = val;
-
         }
     }
 
-    // Close the filtered file if it was opened
     if (filteredFile != Z_NULL) {
         gzclose(filteredFile);
         fprintf(stderr, "\n\t-> Filtered acc2taxfile saved to '%s'\n", filteredAcc2taxfile);
     }
 
-    bgzf_close(fp);
-    fprintf(stderr, "\t-> Number of entries to use from accession to taxid: %lu, time taken: %.2f sec acc2taxidmap.size(): %lu\n", am->size(), (float)(time(NULL) - t),acc2taxidmap!=NULL?acc2taxidmap->size():0);
+    if (fp != NULL)
+        bgzf_close(fp);
+
+    fprintf(stderr, "\t-> Number of entries to use from accession to taxid: %lu, time taken: %.2f sec acc2taxidmap.size(): %lu\n",
+            am->size(), (float)(time(NULL) - t), acc2taxidmap != NULL ? acc2taxidmap->size() : 0);
     return am;
 }
 

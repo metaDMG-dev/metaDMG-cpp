@@ -89,7 +89,7 @@ void merge_bdamage(const std::vector<std::string> &bdamage_files, const char* ou
 void merge_rlens(const std::vector<std::string> &rlens_files, const char* outname) {
   
   // results 
-  std::map<int, std::array<size_t, 200>> rlens_merged;
+  std::map<int, std::array<size_t, 500>> rlens_merged;
 
   // each file 
   for (const std::string &fname : rlens_files) {
@@ -109,7 +109,7 @@ void merge_rlens(const std::vector<std::string> &rlens_files, const char* outnam
 
     while ((ret = bgzf_getline(fp, '\n', &line)) >= 0) {
       int taxid;
-      size_t tmp[200];
+      size_t tmp[500];
       char *ptr = line.s;
       char *endptr;
 
@@ -117,15 +117,15 @@ void merge_rlens(const std::vector<std::string> &rlens_files, const char* outnam
       taxid = strtol(ptr, &endptr, 10); 
       ptr = endptr;
 
-      // each new cell (200)
-      for (int j = 0; j < 200; j++) {
+      // each new cell (500)
+      for (int j = 0; j < 500; j++) {
         tmp[j] = strtoull(ptr, &endptr, 10);
         ptr = endptr;
       }
 
       // sum and merge
       auto &entry = rlens_merged[taxid];
-      for (int j = 0; j < 200; j++) {
+      for (int j = 0; j < 500; j++) {
         entry[j] += tmp[j];
       }
     }
@@ -143,15 +143,15 @@ void merge_rlens(const std::vector<std::string> &rlens_files, const char* outnam
 
   kstring_t kstr = {0, 0, NULL};
   ksprintf(&kstr, "id");
-  for (int i = 0; i < 200; i++)
+  for (int i = 0; i < 500; i++)
     ksprintf(&kstr, "\trlen%d", i);
   ksprintf(&kstr, "\n");
 
   for (const auto &it : rlens_merged) {
     ksprintf(&kstr, "%d", it.first);
-    for (int i = 0; i < 199; i++)
+    for (int i = 0; i < 499; i++)
       ksprintf(&kstr, "\t%lu", it.second[i]);
-    ksprintf(&kstr, "\t%lu\n", it.second[199]);
+    ksprintf(&kstr, "\t%lu\n", it.second[499]);
 
     if (kstr.l > 1000000) {
       assert(bgzf_write(fp, kstr.s, kstr.l) == (ssize_t)kstr.l);

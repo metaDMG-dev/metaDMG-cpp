@@ -1,144 +1,138 @@
-# make FLAGS=-D__REGRESSION__
-#c++ -I /opt/homebrew/Cellar/eigen/3.4.0_1/include/ -c -I/Users/fvr124/metaDMG-cpp/htslib   regression.cpp -std=c++14  -D__REGRESSION__
+# --- Flags og kompileringsvalg ---
+FLAGS     := -O2
+CFLAGS    := $(FLAGS)
+CXXFLAGS  := $(FLAGS)
+CPPFLAGS  := $(CPPFLAGS) -Wall -Wextra
+LDFLAGS   := -lgsl
 
 CC  ?= gcc
 CXX ?= g++
 
-LIBS = -lz -lm -lbz2 -llzma -lpthread -lcurl -lgsl -lgslcblas
+CXXSRC := $(wildcard *.cpp)
+CSRC   := $(wildcard *.c)
+OBJ    := $(CSRC:.c=.o) $(CXXSRC:.cpp=.o)
 
-CRYPTO_TRY=$(shell echo 'int main(){}'|$(CXX) -x c++ - -lcrypto 2>/dev/null -o /dev/null; echo $$?)
-ifeq "$(CRYPTO_TRY)" "0"
-$(info Crypto library is available to link; adding -lcrypto to LIBS)
-LIBS += -lcrypto
-else
-$(info Crypto library is not available to link; will not use -lcrypto)
+
+
+# --- Brugervalgte paths og biblioteker ---
+ifdef PREFIX
+CPPFLAGS += -I$(PREFIX)/include
+LDFLAGS  := -L$(PREFIX)/lib $(LDFLAGS)
 endif
 
+ifdef EXTRA_INC
+CPPFLAGS += $(addprefix -I,$(EXTRA_INC))
+endif
 
-#if htslib source is defined
-ifdef HTSSRC
+ifdef EXTRA_LIB
+LDFLAGS  := $(addprefix -L,$(EXTRA_LIB)) $(LDFLAGS)
+endif
 
-#if hts source is set to systemwide
+ifdef EXTRA_LIBS
+LIBS += $(EXTRA_LIBS)
+endif
+
+# --- Crypto library detektion ---
+HAVE_CRYPTO := $(shell echo 'int main(){}'|$(CXX) -x c++ - -lcrypto -o /dev/null 2>/dev/null && echo 0 || echo 1)
+LIBS := -lz -lm -lbz2 -llzma -lpthread -lcurl
+
+# --- Mål og bygning ---
+PROGRAM = metaDMG-cpp
+all: version.h $(PROGRAM) misc
+
+ifeq ($(HAVE_CRYPTO),0)
+  $(info Crypto library is available to link; adding -lcrypto)
+  LIBS += -lcrypto
+else
+  $(info Crypto library is not available to link; skipping -lcrypto)
+endif
+
+# --- HTSLIB håndtering ---
+# HTSSRC is an absolute path (e.g., $(CURDIR)/htslib or user-specified)
+
+ifndef HTSSRC
+  $(info HTSSRC not defined; cloning htslib from GitHub)
+  HTSSRC := $(CURDIR)/htslib
+  ABSPATH=$(HTSSRC) #donkykong
+endif
+
+ABSPATH=$(HTSSRC) #donkykong
 ifeq ($(HTSSRC),systemwide)
-$(info HTSSRC set to systemwide; assuming systemwide installation)
-LIBS += -lhts
-
+  $(info HTSSRC set to systemwide; using systemwide installation)
+  LIBS += -lhts
+  LIBHTS :=
 else
+  # Use HTSSRC directly for include path
+  CPPFLAGS += -I$(HTSSRC)
+  LIBHTS := $(HTSSRC)/libhts.a
+  LIBS := $(LIBHTS) $(LIBS)
+  $(PROGRAM): $(LIBHTS)
 
-#if hts source path is given
-# Adjust $(HTSSRC) to point to your top-level htslib directory
-$(info HTSSRC defined: $(HTSSRC))
-CPPFLAGS += -I"$(realpath $(HTSSRC))"
-LIBHTS := $(HTSSRC)/libhts.a
-LIBS := $(LIBHTS) $(LIBS)
-
+  ifneq ($(filter /%,$(HTSSRC)),$(HTSSRC))
+    ABSPATH=../$(HTSSRC)
+  endif
 endif
 
-#if htssrc not defined
-else
+# Ensure htslib is cloned and built only if libhts.a is missing
+$(LIBHTS): .clone_htslib
 
-$(info HTSSRC not defined; using htslib submodule)
-$(info Use `make HTSSRC=/path/to/htslib` to build metadamage using a local htslib installation)
-$(info Use `make HTSSRC=systemwide` to build metadamage using the systemwide htslib installation)
+.clone_htslib:
+	@if [ ! -d "$(HTSSRC)" ]; then \
+		echo "Cloning htslib into $(HTSSRC) with submodules..."; \
+		git clone --recursive https://github.com/samtools/htslib.git $(HTSSRC) || { echo "Clone failed"; exit 1; }; \
+	else \
+		echo "$(HTSSRC) already exists, skipping clone."; \
+	fi
+	@if [ ! -f "$(LIBHTS)" ]; then \
+		$(MAKE) -C $(HTSSRC) libhts.a || { echo "Failed to build libhts.a"; exit 1; }; \
+	else \
+		echo "$(LIBHTS) already exists, skipping build."; \
+	fi
+	$(info CPPFLAGS=$(CPPFLAGS) HTSSRC=$(HTSSRC) (absolute path))
 
-
-HTSSRC := $(CURDIR)/htslib
-CPPFLAGS += -I$(HTSSRC)
-LIBHTS := $(HTSSRC)/libhts.a
-LIBS := $(LIBHTS) $(LIBS)
-
-all: .activate_module
-
-endif
-
-.PHONY: .activate_module
-
-.activate_module:
-	git submodule update --init --recursive
-	$(MAKE) -C $(HTSSRC)
-
-
-
-#modied from htslib makefile
-FLAGS = -O3
-CPPFLAGS := $(filter-out -DNDEBUG,$(CPPFLAGS))
-FLAGS2 = $(CPPFLAGS) $(FLAGS) $(LDFLAGS)
-
-CFLAGS := $(FLAGS2) $(CFLAGS)
-CXXFLAGS := $(FLAGS2) $(CXXFLAGS)
-
-OPT=-Wl,-O2
-# filter -O2 optimization flag CXXFLAGS
-CXXFLAGS := $(filter-out -O2,$(CXXFLAGS))
-CXXFLAGS := $(subst $(OPT),,$(CXXFLAGS))
-
-CSRC = $(wildcard *.c)
-CXXSRC = $(wildcard *.cpp)
-OBJ = $(CSRC:.c=.o) $(CXXSRC:.cpp=.o)
-
-prefix      = /usr/local
-exec_prefix = $(prefix)
-bindir      = $(exec_prefix)/bin
-
-INSTALL = install
-INSTALL_DIR = $(INSTALL) -dm0755
-INSTALL_PROGRAM = $(INSTALL) -m0755
-
-PROGRAMS = metaDMG-cpp
-
-all: $(PROGRAMS) misc
-
-PACKAGE_VERSION  = 0.4
-
-ifneq "$(wildcard .git)" ""
-PACKAGE_VERSION := $(shell git describe --always --dirty)
-version.h: $(if $(wildcard version.h),$(if $(findstring "$(PACKAGE_VERSION)",$(shell cat version.h)),,force))
+# --- Versionsnummer og version.h ---
+PACKAGE_VERSION := 0.4
+ifneq ("$(wildcard .git)","")
+  PACKAGE_VERSION := $(shell git describe --always --dirty)
 endif
 
 version.h:
-	echo '#define METADAMAGE_VERSION "$(PACKAGE_VERSION)"' > $@
+	@echo '#define METADAMAGE_VERSION "$(PACKAGE_VERSION)"' > version.h.tmp
+	@cmp -s version.h.tmp version.h || mv version.h.tmp version.h
+	@rm -f version.h.tmp
 
-.PHONY: all clean install install-all install-misc misc test
+$(PROGRAM): version.h $(OBJ) $(LIBHTS)
+	$(CXX) $(CXXFLAGS) $(CPPFLAGS) -o $@ $(OBJ) $(LIBS) $(LDFLAGS)
 
-misc:
-	$(MAKE) -C misc HTSSRC="$(realpath $(HTSSRC))"
+.PHONY: misc
+misc: $(LIBHTS) $(OBJ)
+	$(MAKE) -C misc HTSSRC=$(ABSPATH)
 
+# --- Automatisk afhængighedshåndtering ---
 -include $(OBJ:.o=.d)
 
-%.o: %.c
-	$(CC) -c  $(CFLAGS) $*.c
-	$(CC) -MM $(CFLAGS) $*.c >$*.d
+%.o: %.c $(LIBHTS)
+	$(CC) -c $(CPPFLAGS) $(CFLAGS) $< -o $@
+	$(CC) -MM $(CPPFLAGS) $(CFLAGS) $< > $*.d
 
-%.o: %.cpp
-	$(CXX) -c  $(CXXFLAGS) $*.cpp
-	$(CXX) -MM $(CXXFLAGS) $*.cpp >$*.d
+%.o: %.cpp $(LIBHTS)
+	$(CXX) -c $(CPPFLAGS) $(CXXFLAGS) $< -o $@
+	$(CXX) -MM $(CPPFLAGS) $(CXXFLAGS) $< > $*.d
 
+# --- Rens og tests ---
+.PHONY: clean test testclean force
 
-metaDMG-cpp: version.h $(OBJ)
-	$(CXX) $(FLAGS) -o metaDMG-cpp *.o $(LIBS)
-
-
-testclean:
-	rm -f test/acc2taxid.map.gzf570b1db7c.dedup.filtered.rname.bam.bin
-	rm -f test/data/f570b1db7c.dedup.filtered.rname.bam
-	rm -rf test/output test/logfile version.h
-
-clean: testclean
-	rm  -f *.o *.d $(PROGRAMS) version.h *~
+clean: 
+	rm -f *.o *.d $(PROGRAM) version.h *~
+	rm -rf $(HTSSRC)
 	$(MAKE) -C misc clean
 
+testclean:
+	rm -f test/*.bam.bin test/data/*.bam
+	rm -rf test/output test/logfile version.h
+
 test:
-	echo "Running unit tests for metaDMG"
-	cd test;./testAll.sh
+	@echo "Running unit tests for metaDMG"
+	cd test ; ./testAll.sh
 
 force:
-
-install: all
-	$(INSTALL_DIR) $(DESTDIR)$(bindir)
-	$(INSTALL_PROGRAM) $(PROGRAMS) $(DESTDIR)$(bindir)
-	$(MAKE) -C misc HTSSRC="$(realpath $(HTSSRC))" install
-
-install-misc: misc
-	$(MAKE) -C misc HTSSRC="$(realpath $(HTSSRC))" install-misc
-
-install-all: install install-misc
