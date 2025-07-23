@@ -128,6 +128,7 @@ std::map<int,mydataD> getval_full_norec(std::map<int, mydataD> &retmap, int2int 
 
 
 mydata2 getval_stats(std::map<int, mydata2> &retmap, int2intvec &child, int taxid) {
+  fprintf(stderr,"PAS PAA SATAN\n");
     // fprintf(stderr,"getval\t%d\t%d\n",taxid,howmany);
     std::map<int, mydata2>::iterator it = retmap.find(taxid);
     if (it != retmap.end()) {
@@ -1284,9 +1285,13 @@ int main_print_ugly(int argc, char **argv) {
     std::map<int, mydata2> stats;
     if (infile_lcastat)
         stats = load_lcastat(infile_lcastat,1);
-    fprintf(stderr,"stats.size(): %lu\n",stats.size());
-    getval_stats(stats, child, 1);  // this will do everything
-    fprintf(stderr,"stats.size(): %lu ffff\n",stats.size());
+#if 1
+    if(child.size()>0)
+       getval_stats(stats, child, 1);  // this will do everything
+#endif
+    void aggr_stat3000(std::map<int, mydata2> &stats,int2int &parent);
+    if(0&&parent.size()>0)
+      aggr_stat3000(stats,parent);
     for (std::map<int, mydata2>::iterator it = stats.begin(); 1 && it != stats.end(); it++) {
         std::map<int, mydataD>::iterator itold = retmap.find(it->first);
         size_t nalign = 0;
