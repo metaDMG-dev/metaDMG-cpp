@@ -8,7 +8,7 @@ FLAGS     := -O2
 CFLAGS    := $(FLAGS)
 CXXFLAGS  := $(FLAGS)
 CPPFLAGS  := $(CPPFLAGS) -Wall -Wextra
-LDFLAGS   :=
+LDFLAGS   := $(LDFLAGS)
 LIBS      := -lz -lm -lbz2 -llzma -lpthread -lcurl
 
 # --- Crypto library detection ---
