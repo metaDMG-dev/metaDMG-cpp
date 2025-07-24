@@ -122,7 +122,7 @@ int2int getkeysint(const char *key,int value){
 void doflush(queue *myq,int2int &keeplist,bam_hdr_t *hdr,samFile *outhts,int strict){
   // fprintf(stderr,"flush: %lu strictk:%d\n",myq->l,strict);
   if(strict==1){//will only print specific match
-    for(int i=0;i<myq->l;i++){
+    for(size_t i=0;i<myq->l;i++){
       int2int::iterator it=keeplist.find(myq->ary[i]->core.tid);
       if(it!=keeplist.end())
 	assert(sam_write1(outhts, hdr,myq->ary[i])>=0);
@@ -131,7 +131,7 @@ void doflush(queue *myq,int2int &keeplist,bam_hdr_t *hdr,samFile *outhts,int str
   if(strict==0){
     //if writedata=0 then no aligments will be printed, otherwise all
     int writedata = 0;
-    for(int i=0;i<myq->l;i++){
+    for(size_t i=0;i<myq->l;i++){
       int2int::iterator it=keeplist.find(myq->ary[i]->core.tid);
       if(it!=keeplist.end()){
 	writedata=1;
@@ -139,7 +139,7 @@ void doflush(queue *myq,int2int &keeplist,bam_hdr_t *hdr,samFile *outhts,int str
       }
     }
     if(writedata>0){
-      for(int i=0;i<myq->l;i++){
+      for(size_t i=0;i<myq->l;i++){
 	assert(sam_write1(outhts, hdr,myq->ary[i])>=0);
       }
     }
@@ -248,7 +248,7 @@ void gettaxids_to_use(int taxid,int2intvec &child,int2int &i2i){
     fprintf(stderr,"\t-> Problem finding taxid: %d from nodesfile\n",taxid);
   }else{ 
     std::vector<int> &avec = it->second;
-    for(int i=0;i<avec.size();i++){
+    for(size_t i=0;i<avec.size();i++){
       //	fprintf(stderr,"%d/%d %d\n",i,avec.size(),avec[i]);
       gettaxids_to_use(avec[i],child,i2i);
       

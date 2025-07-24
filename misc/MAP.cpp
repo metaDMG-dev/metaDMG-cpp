@@ -154,8 +154,6 @@ N MAX IS  28921
 
 void M3_stat_file(double M3[MAX_ROWS][MAX_COLS],gzFile file){
     
-    int N_max = 0;
-    
     // N_x=1_forward  N_x=1_reverse
     gzprintf(file,"%d \t %d \t",(int) M3[0][NCOL],(int)M3[NUMROWS-1][NCOL]);
 
@@ -220,7 +218,7 @@ void M3_stat_file(double M3[MAX_ROWS][MAX_COLS],gzFile file){
 
 const char** getColumnNames(int* colnumber) {
     const int maxColumnNames = 200;
-    const char** columnNames = (const char**)malloc(200 * sizeof(const char*));
+    const char** columnNames = (const char**)malloc(maxColumnNames * sizeof(const char*));
     if (columnNames == NULL) {
         fprintf(stderr,"Failed to allocate memory for column names");
         return NULL;
@@ -383,11 +381,6 @@ void M3Print_to_OutStat(int argc,char **argv){
             // Free the allocated memory
             free(columnNames);
         }
-
-        char* Id_copy = strdup(M3file);
-        char* sample_id = strtok(Id_copy,".");
-        free(Id_copy);
-
 
         gzprintf(gz,"%s \t %s \t","tmp",tax_id[0]);
         M3_stat_file(M3,gz);
