@@ -15,18 +15,18 @@ jobs:
     - uses: actions/checkout@v3
     - name: Install dependencies
       run: sudo apt-get update;sudo apt-get install -y libbz2-dev liblzma-dev libcurl4-openssl-dev libgsl-dev samtools
-    - name: prepare htslib
+    - name: Compile htslib
       run: |
         git clone --branch=develop --recursive https://github.com/samtools/htslib.git
-	cd htslib
-	autoreconf -i
-	./configure --prefix=${HOME}/.local
-	export CPATH=${HOME}/.local/include:${CPATH}
-	export LD_LIBRARY_PATH=$HOME/.local/lib:${LD_LIBRARY_PATH}
-	export LIBRARY_PATH=${HOME}/.local/lib :${LIBRARY_PATH}
-	make 
-	make install
-	cd ../
+        cd htslib
+        autoreconf -i
+        ./configure --prefix=${HOME}/.local
+        export CPATH=${HOME}/.local/include:${CPATH}
+        export LD_LIBRARY_PATH=$HOME/.local/lib:${LD_LIBRARY_PATH}
+        export LIBRARY_PATH=${HOME}/.local/lib :${LIBRARY_PATH}
+        make -j2
+        make install
+        cd ../
     - name: make
       run: make
     - name: make test
