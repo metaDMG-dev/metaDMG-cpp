@@ -19,16 +19,14 @@ jobs:
       run: |
         git clone --branch=develop --recursive https://github.com/samtools/htslib.git
         cd htslib
-        autoreconf -i
-        ./configure --prefix=${HOME}/.local
-        export CPATH=${HOME}/.local/include:${CPATH}
-        export LD_LIBRARY_PATH=$HOME/.local/lib:${LD_LIBRARY_PATH}
-        export LIBRARY_PATH=${HOME}/.local/lib :${LIBRARY_PATH}
-        make -j2
-        make install
+        make
         cd ../
     - name: make
-      run: make
+      run: |
+        export CPATH=`pwd`/htslib:${CPATH}
+        export LD_LIBRARY_PATH=`pwd`/htslib:${LD_LIBRARY_PATH}
+        export LIBRARY_PATH=`pwd`/htslib:${LIBRARY_PATH}
+        make
     - name: make test
       run: make test
     - name: Upload test/output folder
