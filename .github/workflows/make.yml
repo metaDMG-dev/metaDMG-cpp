@@ -16,9 +16,9 @@ jobs:
     - name: Install dependencies
       run: sudo apt-get update;sudo apt-get install -y libbz2-dev liblzma-dev libcurl4-openssl-dev libgsl-dev samtools
     - name: prepare htslib
-      run: git clone --branch=develop --recursive https://github.com/samtools/htslib.git;cd htslib; make;cd ..;
+      run: git clone --branch=develop --recursive https://github.com/samtools/htslib.git;cd htslib;autoreconf -i;./configure;make;make install;cd ..;
     - name: make
-      run: export HTSSRC=`pwd`/htslib; make
+      run: make
     - name: make test
       run: make test
     - name: Upload test/output folder
