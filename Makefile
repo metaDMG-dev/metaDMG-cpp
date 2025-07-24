@@ -1,9 +1,9 @@
 # --- Flags og kompileringsvalg ---
-FLAGS     := -O2
+FLAGS     := -O3
 CFLAGS    := $(FLAGS)
 CXXFLAGS  := $(FLAGS)
 CPPFLAGS  := $(CPPFLAGS) -Wall -Wextra
-LDFLAGS   := -lgsl
+LDFLAGS   := -lgsl -lgslcblas
 
 CC  ?= gcc
 CXX ?= g++
@@ -34,7 +34,7 @@ endif
 
 # --- Crypto library detektion ---
 HAVE_CRYPTO := $(shell echo 'int main(){}'|$(CXX) -x c++ - -lcrypto -o /dev/null 2>/dev/null && echo 0 || echo 1)
-LIBS := -lz -lm -lbz2 -llzma -lpthread -lcurl
+LIBS := -lz -lm -lbz2 -llzma -lpthread -lcurl -lhts
 
 # --- Mål og bygning ---
 PROGRAM = metaDMG-cpp
@@ -47,49 +47,6 @@ else
   $(info Crypto library is not available to link; skipping -lcrypto)
 endif
 
-# --- HTSLIB håndtering ---
-# HTSSRC is an absolute path (e.g., $(CURDIR)/htslib or user-specified)
-
-ifndef HTSSRC
-  $(info HTSSRC not defined; cloning htslib from GitHub)
-  HTSSRC := $(CURDIR)/htslib
-  ABSPATH=$(HTSSRC) #donkykong
-endif
-
-ABSPATH=$(HTSSRC) #donkykong
-ifeq ($(HTSSRC),systemwide)
-  $(info HTSSRC set to systemwide; using systemwide installation)
-  LIBS += -lhts
-  LIBHTS :=
-else
-  # Use HTSSRC directly for include path
-  CPPFLAGS += -I$(HTSSRC)
-  LIBHTS := $(HTSSRC)/libhts.a
-  LIBS := $(LIBHTS) $(LIBS)
-  $(PROGRAM): $(LIBHTS)
-
-  ifneq ($(filter /%,$(HTSSRC)),$(HTSSRC))
-    ABSPATH=../$(HTSSRC)
-  endif
-endif
-
-# Ensure htslib is cloned and built only if libhts.a is missing
-$(LIBHTS): .clone_htslib
-
-.clone_htslib:
-	@if [ ! -d "$(HTSSRC)" ]; then \
-		echo "Cloning htslib into $(HTSSRC) with submodules..."; \
-		git clone --recursive https://github.com/samtools/htslib.git $(HTSSRC) || { echo "Clone failed"; exit 1; }; \
-	else \
-		echo "$(HTSSRC) already exists, skipping clone."; \
-	fi
-	@if [ ! -f "$(LIBHTS)" ]; then \
-		$(MAKE) -C $(HTSSRC) libhts.a || { echo "Failed to build libhts.a"; exit 1; }; \
-	else \
-		echo "$(LIBHTS) already exists, skipping build."; \
-	fi
-	$(info CPPFLAGS=$(CPPFLAGS) HTSSRC=$(HTSSRC) (absolute path))
-
 # --- Versionsnummer og version.h ---
 PACKAGE_VERSION := 0.4
 ifneq ("$(wildcard .git)","")
@@ -101,21 +58,21 @@ version.h:
 	@cmp -s version.h.tmp version.h || mv version.h.tmp version.h
 	@rm -f version.h.tmp
 
-$(PROGRAM): version.h $(OBJ) $(LIBHTS)
+$(PROGRAM): version.h $(OBJ)
 	$(CXX) $(CXXFLAGS) $(CPPFLAGS) -o $@ $(OBJ) $(LIBS) $(LDFLAGS)
 
 .PHONY: misc
-misc: $(LIBHTS) $(OBJ)
-	$(MAKE) -C misc HTSSRC=$(ABSPATH)
+misc: $(OBJ)
+	$(MAKE) -C misc
 
 # --- Automatisk afhængighedshåndtering ---
 -include $(OBJ:.o=.d)
 
-%.o: %.c $(LIBHTS)
+%.o: %.c
 	$(CC) -c $(CPPFLAGS) $(CFLAGS) $< -o $@
 	$(CC) -MM $(CPPFLAGS) $(CFLAGS) $< > $*.d
 
-%.o: %.cpp $(LIBHTS)
+%.o: %.cpp
 	$(CXX) -c $(CPPFLAGS) $(CXXFLAGS) $< -o $@
 	$(CXX) -MM $(CPPFLAGS) $(CXXFLAGS) $< > $*.d
 
@@ -124,7 +81,6 @@ misc: $(LIBHTS) $(OBJ)
 
 clean: 
 	rm -f *.o *.d $(PROGRAM) version.h *~
-	rm -rf $(HTSSRC)
 	$(MAKE) -C misc clean
 
 testclean:
