@@ -14,9 +14,7 @@ jobs:
     steps:
     - uses: actions/checkout@v3
     - name: Install dependencies
-      run: sudo apt-get update;sudo apt-get install -y libbz2-dev liblzma-dev libcurl4-openssl-dev libgsl-dev samtools
-    - name: prepare htslib
-      run: git clone --branch=develop --recursive https://github.com/samtools/htslib.git;cd htslib;autoreconf -i;./configure;make;make install;cd ..;
+      run: sudo apt-get update;sudo apt-get install -y libbz2-dev liblzma-dev libcurl4-openssl-dev libgsl-dev samtools htslib-test
     - name: make
       run: make
     - name: make test
