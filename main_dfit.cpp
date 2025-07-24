@@ -339,7 +339,7 @@ void slave_block(std::map<int, mydataD> &retmap,int howmany,sam_hdr_t *hdr,int2c
   dat[3] = new double [2*howmany];
 
   for (std::map<int, mydataD>::iterator it = retmap.begin(); it != retmap.end(); it++) {
-    int taxid = it->first;
+    //int taxid = it->first;
     mydataD md = it->second;
     if (it->second.nal == 0)
       continue;
@@ -378,7 +378,6 @@ void slave_block(std::map<int, mydataD> &retmap,int howmany,sam_hdr_t *hdr,int2c
       double** bootcidata = (double**)malloc(nbootstrap * sizeof(double*));
       
       double acumtmp = 0; double qcumtmp = 0; double ccumtmp = 0; double phicumtmp = 0;
-      double astdtmp = 0; double qstdtmp = 0; double cstdtmp = 0; double phistdtmp = 0;
 	
       //store the confidence interval  values
       for (int j = 0; j < npars; j++){
@@ -670,7 +669,7 @@ int main_dfit(int argc, char **argv) {
     int nbootstrap = 1;
     int doboot = 0;
     int seed = time(NULL);
-    int nthreads = 1;
+    size_t nthreads = 1;
     double CI = 0.95;
     int doCI = 2;
     int rng_type = -1;
@@ -853,7 +852,7 @@ int main_dfit(int argc, char **argv) {
         }
 	
 	      ding *dings = new ding[nthreads];
-        for(int i=0;i<nthreads;i++){
+        for(size_t i=0;i<nthreads;i++){
           dings[i].retmap = &(ary[i]);
           dings[i].howmany = howmany;
           dings[i].hdr = hdr;
@@ -867,8 +866,8 @@ int main_dfit(int argc, char **argv) {
           dings[i].seed = (seed+i)*100;
           dings[i].rng_type = rng_type;
           dings[i].doboot = doboot;
-          fprintf(stderr, "\t-> Initiating thread %d with thread specific seed %d inferred from global seed %d with pseudo-random number generator type  %d\n",i,dings[i].seed/100,seed,rng_type);
-          //fprintf(stderr,"INITIATED THREAD WHAT %d WITH SEED VALUE WHAT %d WITH SPECIFIC SEED %d and seedtype %d \n",i,seed,dings[i].seed,rng_type);
+          fprintf(stderr, "\t-> Initiating thread %lu with thread specific seed %d inferred from global seed %d with pseudo-random number generator type  %d\n",i,dings[i].seed/100,seed,rng_type);
+          //fprintf(stderr,"INITIATED THREAD WHAT %lu WITH SEED VALUE WHAT %d WITH SPECIFIC SEED %d and seedtype %d \n",i,seed,dings[i].seed,rng_type);
 
           kstring_t *kstr = new kstring_t;
           kstr->s = NULL; kstr->l = kstr->m = 0;
@@ -879,13 +878,13 @@ int main_dfit(int argc, char **argv) {
           dings[i].showfits = showfits;
         }
         pthread_t mythreads[nthreads];
-        for(int i=0;i<nthreads;i++)
+        for(size_t i=0;i<nthreads;i++)
           pthread_create(&mythreads[i],NULL,slaveslave, &dings[i]);
         
-        for(int i=0;i<nthreads;i++)
+        for(size_t i=0;i<nthreads;i++)
           pthread_join(mythreads[i],NULL);
           
-        for(int i=0;i<nthreads;i++){
+        for(size_t i=0;i<nthreads;i++){
           ksprintf(kstr,"%s",dings[i].kstr->s);
           ksprintf(bootkstr,"%s",dings[i].bootkstr->s);
         }

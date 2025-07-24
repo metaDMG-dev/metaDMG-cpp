@@ -1,9 +1,9 @@
 # --- Flags og kompileringsvalg ---
-FLAGS     := -O2
+FLAGS     := -O3
 CFLAGS    := $(FLAGS)
 CXXFLAGS  := $(FLAGS)
 CPPFLAGS  := $(CPPFLAGS) -Wall -Wextra
-LDFLAGS   := -lgsl
+LDFLAGS   := -lgsl -lgslcblas
 
 CC  ?= gcc
 CXX ?= g++

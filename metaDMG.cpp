@@ -64,7 +64,7 @@ double *getval(std::map<int, double *> &retmap, int2intvec &child, int taxid, in
         int2intvec::iterator it2 = child.find(taxid);
         if (it2 != child.end()) {
             std::vector<int> &avec = it2->second;
-            for (int i = 0; i < avec.size(); i++) {
+            for (size_t i = 0; i < avec.size(); i++) {
                 //	fprintf(stderr,"%d/%d %d\n",i,avec.size(),avec[i]);
                 double *tmp = getval(retmap, child, avec[i], howmany);
                 for (int i = 0; i < 3 * howmany + 1; i++)
@@ -150,12 +150,12 @@ mydata2 getval_stats(std::map<int, mydata2> &retmap, int2intvec &child, int taxi
         int2intvec::iterator it2 = child.find(taxid);
         if (it2 != child.end()) {
             std::vector<int> &avec = it2->second;
-            for (int i = 0; i < avec.size(); i++) {
+            for (size_t i = 0; i < avec.size(); i++) {
                 mydata2 tmp = getval_stats(retmap, child, avec[i]);
                 ret.nreads += tmp.nreads;
             }
 
-            for (int i = 0; i < avec.size(); i++) {
+            for (size_t i = 0; i < avec.size(); i++) {
                 //	fprintf(stderr,"%d/%d %d\n",i,avec.size(),avec[i]);
                 mydata2 tmp = getval_stats(retmap, child, avec[i]);
                 if (tmp.nreads == 0)
