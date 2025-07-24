@@ -9,7 +9,7 @@ CFLAGS    := $(FLAGS)
 CXXFLAGS  := $(FLAGS)
 CPPFLAGS  := $(CPPFLAGS) -Wall -Wextra
 LDFLAGS   :=
-LIBS      := -lz -lm -lbz2 -llzma -lpthread -lcurl
+LIBS      := -lz -lm -lbz2 -llzma -lpthread -lcurl -lhts
 
 # --- Crypto library detection ---
 HAVE_CRYPTO := $(shell echo 'int main(){}'|$(CXX) -x c++ - -lcrypto -o /dev/null 2>/dev/null && echo 0 || echo 1)
@@ -20,40 +20,11 @@ else
   $(info Crypto library is not available to link; skipping -lcrypto)
 endif
 
-ifeq ($(HTSSRC),systemwide)
-  $(info Using systemwide htslib installation)
-  LIBS += -lhts
-  LIBHTS :=
-else
-  # Convert relative HTSSRC to absolute if needed
-  ifneq ($(filter /%,$(HTSSRC)),$(HTSSRC))
-    override HTSSRC := $(shell [ -d "$(HTSSRC)" ] && cd "$(HTSSRC)" && pwd || echo "__INVALID__")
-    ifeq ($(HTSSRC),__INVALID__)
-      $(error HTSSRC is not a valid directory in misc folder)
-    endif
-    $(info Converted HTSSRC to absolute path: $(HTSSRC))
-  endif
-  CPPFLAGS += -I$(HTSSRC)
-  LIBHTS := $(HTSSRC)/libhts.a
-  LIBS := $(LIBHTS) $(LIBS)
-endif
-
 PROGRAMS := compressbam extract_reads
 PROGRAMS_MISC := MAP dfit_optim
 OBJ := kmath.o Likelihood.o M3Load.o
 
 all: $(PROGRAMS) $(PROGRAMS_MISC)
-
-# Ensure htslib and shared.o are available
-$(PROGRAMS) $(PROGRAMS_MISC): $(LIBHTS)
-$(OBJ): $(LIBHTS)
-
-# Check if libhts.a exists
-$(LIBHTS):
-	@if [ ! -f "$(LIBHTS)" ]; then \
-		echo "Error: $(LIBHTS) not found; ensure parent Makefile has built htslib"; \
-		exit 1; \
-	fi
 
 # Check if shared.o exists for extract_reads
 ../shared.o:
