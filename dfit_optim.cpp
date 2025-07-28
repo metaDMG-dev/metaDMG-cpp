@@ -60,7 +60,7 @@ double **read1_ugly_matrix(const char *fname){
   ret[0][1] = 0;//<- function counter
   ret[1] = new double[xcol.size()];
   ret[2] = new double[xcol.size()];
-  for(int i=0;i<xcol.size();i++){
+  for(int i=0;i<(int)xcol.size();i++){
     ret[0][i+2] = xcol[i];
     ret[1][i] = kcol[i];
     ret[2][i] = ncol[i];
@@ -161,10 +161,10 @@ void getstat(double **dat,double *pars,double *statpars){
     double q = pars[1];
     double c = pars[2];
     double phi = pars[3];
-    double llh = pars[4];
+    //double llh = pars[4];
     int NUMROWS = dat[0][0];
     double *XCOL = dat[0]+2;
-    double *KCOL = dat[1];
+    //    double *KCOL = dat[1];
     double *NCOL = dat[2];
 
     double N_pos = dat[2][0];

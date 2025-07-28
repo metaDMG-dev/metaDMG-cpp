@@ -79,7 +79,7 @@ void make_bootstrap_data(double **in,double **out,int howmany,mrand_t *rand_allo
   }
 }
 
-void print_dat(double **dat, int howmany, int libprep) {
+void print_dat(double **dat, int howmany) {
     int rows = 4;  // [metadata, kvec, nvec, freq]
     int cols = 2 * howmany; 
     printf("printing d:\n");
@@ -337,7 +337,7 @@ void slave_block(std::map<int, mydataD> &retmap,int howmany,sam_hdr_t *hdr,int2c
   dat[3] = new double [2*howmany];
 
   for (std::map<int, mydataD>::iterator it = retmap.begin(); it != retmap.end(); it++) {
-    int taxid = it->first;
+    //    int taxid = it->first;
     mydataD md = it->second;
     if (it->second.nal == 0)
       continue;
@@ -376,7 +376,6 @@ void slave_block(std::map<int, mydataD> &retmap,int howmany,sam_hdr_t *hdr,int2c
       double** bootcidata = (double**)malloc(nbootstrap * sizeof(double*));
       
       double acumtmp = 0; double qcumtmp = 0; double ccumtmp = 0; double phicumtmp = 0;
-      double astdtmp = 0; double qstdtmp = 0; double cstdtmp = 0; double phistdtmp = 0;
 	
       //store the confidence interval  values
       for (int j = 0; j < npars; j++){
@@ -503,7 +502,7 @@ void slave_block(std::map<int, mydataD> &retmap,int howmany,sam_hdr_t *hdr,int2c
     }
     
     // Sigma and Z
-    double stats[2+2*(int)dat[0][0]];
+    double *stats = new double [2+2*(int)dat[0][0]];
     getstat(dat,pars,stats);
       
     // stats contains standard deviation, then significance, then the calculated Dx for each position then the normalized 
@@ -515,7 +514,7 @@ void slave_block(std::map<int, mydataD> &retmap,int howmany,sam_hdr_t *hdr,int2c
     //std::cout << "stats " << stats[0] << " " << stats[1] << std::endl;
     ksprintf(kstr,"\t%f\t%f",stats[0],stats[1]);
       
-    if(showfits == 0){
+    if(showfits == 0) {
       if(nbootstrap > 1){
         //fprintf(stderr,"INSIDE nboot loop \n");
         // adding the estimated parameters for the bootstrapping method -> this does not conform with the original estimated A value obtained from 
@@ -623,6 +622,7 @@ void slave_block(std::map<int, mydataD> &retmap,int howmany,sam_hdr_t *hdr,int2c
                        dat[1][i + ncycle], dat[2][i + ncycle], dat[3][i + ncycle], dx[i], dx_conf[i]);
           }
       }
+        delete [] stats;
     }
     ksprintf(kstr,"\n");
     delete[] CI_val;  // Free the array of pointers
@@ -764,9 +764,12 @@ int main_dfit(int argc, char **argv) {
       snprintf(bootbuf, 1024, "%s.boot.stat.gz", outfile_name);
       bootfp = bgzf_open(bootbuf, "wb");    
       ksprintf(bootkstr,"taxid\tA_b\tq_b\tc_b\tphi_b\n");
-      if(bgzf_write(bootfp,bootkstr->s,bootkstr->l)!=bootkstr->l){
+
+      ssize_t n_written = bgzf_write(bootfp,bootkstr->s,bootkstr->l);
+      
+      if(n_written<0||(size_t)n_written!=bootkstr->l){
 	fprintf(stderr,"\t-> Problem writing boot file\n");
-	exit(0);
+	exit(1);
       }
       bootkstr->l = 0;
     }
@@ -787,7 +790,7 @@ int main_dfit(int argc, char **argv) {
     if(retmap.size() < 1){
       fprintf(stderr,"\t-> Warning: bdamage file has less than 1 mismatch matrix\n");
     }
-    if(retmap.size() < nthreads)
+    if((int)retmap.size() < nthreads)
       nthreads = retmap.size();
 
     int2char name_map;
@@ -876,7 +879,7 @@ int main_dfit(int argc, char **argv) {
           dings[i].bootkstr = bootkstr;
           dings[i].showfits = showfits;
         }
-        pthread_t mythreads[nthreads];
+        pthread_t *mythreads = new pthread_t [nthreads];
         for(int i=0;i<nthreads;i++)
           pthread_create(&mythreads[i],NULL,slaveslave, &dings[i]);
         
@@ -889,8 +892,8 @@ int main_dfit(int argc, char **argv) {
         }
       }
     }
-    
-    if(bgzf_write(fpfpfp,kstr->s,kstr->l) != kstr->l){
+    ssize_t n_written = bgzf_write(fpfpfp,kstr->s,kstr->l);
+    if(n_written<0||(size_t)n_written !=  kstr->l){
       fprintf(stderr, "\t-> Problems write to output BGZ file\n");
       exit(1);
     }
@@ -899,7 +902,9 @@ int main_dfit(int argc, char **argv) {
     
     
     if(doboot>0){
-      if(bgzf_write(bootfp,bootkstr->s,bootkstr->l) != bootkstr->l){
+      ssize_t n_written = bgzf_write(bootfp,bootkstr->s,bootkstr->l);
+      
+      if(n_written<0||(size_t) n_written != bootkstr->l){
         fprintf(stderr, "\t-> Problemst write to output BGZ file\n");
         exit(1);
       }

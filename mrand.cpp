@@ -46,7 +46,7 @@ mrand_t *mrand_alloc(int type_a,long int seedval){
 }
 
 double mrand_pop(mrand_t *mr){
-  double res;
+  double res=0.0;
   if(mr->type==0){
     #if defined(__linux__) || defined(__unix__)
     drand48_r((struct drand48_data*)&mr->buf0,&res);
@@ -77,7 +77,7 @@ double mrand_pop(mrand_t *mr){
   return res;
 }
 long mrand_pop_long(mrand_t *mr){
-  long res;
+  long res=0.0;
   if(mr->type==0){
     #if defined(__linux__) || defined(__unix__)
     lrand48_r((struct drand48_data*)&mr->buf0,&res);
