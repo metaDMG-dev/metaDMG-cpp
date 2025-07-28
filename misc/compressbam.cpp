@@ -71,7 +71,8 @@ void writemod(const char *outfile ,bam_hdr_t *hdr,int *keeplist,samFile *htsfp,c
     kputs(kstmp.s,&newhdr_ks);
     kputc('\n',&newhdr_ks);
     if(newhdr_ks.l>10000000){
-      assert(bgzf_write(fp,newhdr_ks.s,newhdr_ks.l)==newhdr_ks.l);
+      ssize_t n_written = bgzf_write(fp,newhdr_ks.s,newhdr_ks.l);
+      assert(n_written>=0&&(size_t)n_written==newhdr_ks.l);
       newhdr_ks.l =0;
     }
     
@@ -83,7 +84,8 @@ void writemod(const char *outfile ,bam_hdr_t *hdr,int *keeplist,samFile *htsfp,c
     kputs(kstmp.s,&newhdr_ks);
     kputc('\n',&newhdr_ks);
     if(newhdr_ks.l>10000000){
-      assert(bgzf_write(fp,newhdr_ks.s,newhdr_ks.l)==newhdr_ks.l);
+      ssize_t n_written = bgzf_write(fp,newhdr_ks.s,newhdr_ks.l);
+      assert(n_written>=0 &&(size_t) n_written==newhdr_ks.l);
       newhdr_ks.l =0;
     }
   }
@@ -100,8 +102,9 @@ void writemod(const char *outfile ,bam_hdr_t *hdr,int *keeplist,samFile *htsfp,c
     kputc('\n',&newhdr_ks);
   }
 
+  ssize_t n_written = bgzf_write(fp,newhdr_ks.s,newhdr_ks.l);
 
-  assert(bgzf_write(fp,newhdr_ks.s,newhdr_ks.l)==newhdr_ks.l);
+  assert(n_written >=0&& (size_t)n_written ==newhdr_ks.l);
   free(newhdr_ks.s);
   free(kstmp.s);
   bgzf_close(fp);
@@ -142,7 +145,7 @@ void writemod(const char *outfile ,bam_hdr_t *hdr,int *keeplist,samFile *htsfp,c
   }
   sam_hdr_add_pg(newhdr,"compressbam","VN",VERSION,"CL",mycl,NULL);
 
-  int ret = sam_hdr_write(outhts,newhdr);
+  assert(sam_hdr_write(outhts,newhdr)==0);
   fprintf(stderr,"\t-> Done writing new header as binary\n");fflush(stderr);
   //now mainloop
   bam1_t *aln = bam_init1();
@@ -182,7 +185,7 @@ int main(int argc,char**argv){
   
   argv++;
   char *hts = NULL;
-  char *names = NULL;
+  //  char *names = NULL;
   char *ref = NULL;
   char *outfile = strdup("tmp.sam");
 

@@ -54,7 +54,8 @@ double log_exponential(double x, double loc, double scale){
     return -(x - loc) / scale - log(scale);
 }
 
-double compute_log_likelihood(const double DMGparam[], const void *dats){
+double compute_log_likelihood(const double DMGparam[],const void *dats){
+  (void) dats;
     //Compute the log-likelihood across all positions and return the result
     /*double part1=0;
     double part2=0;
@@ -111,7 +112,7 @@ double compute_log_posterior(double* CombinedParam){
     // posterior = prior * likelihood -> log posterior = log prior + log likelihood
     //fprintf(stderr,"Calling compute_log_posterior \n");
     double log_prior = compute_log_prior(CombinedParam);
-    double log_likelihood = compute_log_likelihood(CombinedParam,nullptr);
+    double log_likelihood = compute_log_likelihood(CombinedParam,NULL);
     return log_likelihood+log_prior;
 }
 

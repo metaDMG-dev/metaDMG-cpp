@@ -36,6 +36,7 @@ int HelpPage(FILE *fp){
 }
  
 argStruct *getpars(int argc,char ** argv){
+  (void)argc;
   argStruct *mypars = new argStruct;
   mypars->M3_matrix_print = NULL;
   mypars->OutputStat = NULL;
@@ -57,7 +58,7 @@ argStruct *getpars(int argc,char ** argv){
   return mypars;
 }
 
-void MAP(double M3[MAX_ROWS][MAX_COLS],double* MAP){
+void MAP(double* MAP){
     double lowbound[] = {0.00000001,0.00000001,0.00000001,2};
     double upbound[] = {1-0.00000001,1-0.00000001,1-0.00000001,100000};
     int nbd[] = {2,2,2,1};
@@ -78,7 +79,7 @@ void MAP(double M3[MAX_ROWS][MAX_COLS],double* MAP){
     MAP[1] = DMGparam[1];
     MAP[2] = DMGparam[2];
     MAP[3] = DMGparam[3];
-    MAP[4] = compute_log_likelihood(DMGparam,nullptr);
+    MAP[4] = compute_log_likelihood(DMGparam,NULL);
 
     free(DMGparam);
 }
@@ -153,9 +154,7 @@ N MAX IS  28921
 
 
 void M3_stat_file(double M3[MAX_ROWS][MAX_COLS],gzFile file){
-    
-    int N_max = 0;
-    
+        
     // N_x=1_forward  N_x=1_reverse
     gzprintf(file,"%d \t %d \t",(int) M3[0][NCOL],(int)M3[NUMROWS-1][NCOL]);
 
@@ -219,7 +218,7 @@ void M3_stat_file(double M3[MAX_ROWS][MAX_COLS],gzFile file){
 }
 
 const char** getColumnNames(int* colnumber) {
-    const int maxColumnNames = 200;
+
     const char** columnNames = (const char**)malloc(200 * sizeof(const char*));
     if (columnNames == NULL) {
         fprintf(stderr,"Failed to allocate memory for column names");
@@ -228,24 +227,6 @@ const char** getColumnNames(int* colnumber) {
 
     columnNames[0] = "sample";
     columnNames[1] = "tax_id";
-
-    int N_sum = 0;
-    int N_sum_fwd = 0;
-    int N_sum_rev = 0;
-    int K_sum_fwd = 0;
-    int K_sum_rev = 0;
-
-    for (int i = 0; i < NUMROWS; i++) {
-        N_sum += M3[i][NCOL];
-        if (i < NUMROWS / 2) {
-            N_sum_fwd += M3[i][NCOL];
-            K_sum_fwd += M3[i][KCOL];
-        }
-        else if (i > NUMROWS / 2) {
-            N_sum_rev += M3[i][NCOL];
-            K_sum_rev += M3[i][KCOL];
-        }
-    }
 
     columnNames[2] = "N_x=1_forward";
     columnNames[3] = "N_x=1_reverse";
@@ -360,11 +341,11 @@ void M3Print_to_OutStat(int argc,char **argv){
         const char* filename = mypars-> OutputStat; //"outputtest.txt.gz";
 
         read_count_matrix(M3file, M3,tax_id,dir,&num_rows, &num_cols);
-        Alter_count_matrix(M3,tax_id,dir,num_rows,num_cols);
+        Alter_count_matrix(M3,dir,num_rows);
 
         int numpars = 5;
         double* LlhRes = (double*) malloc(numpars*sizeof(double));    
-        MAP(M3,LlhRes);
+        MAP(LlhRes);
         //fprintf(stderr,"A: %f \t q: %f \t c: %f \t phi: %f \t llh: %f \n",LlhRes[0],LlhRes[1],LlhRes[2],LlhRes[3],LlhRes[4]);
 
         int colnumber = 0;
@@ -385,7 +366,6 @@ void M3Print_to_OutStat(int argc,char **argv){
         }
 
         char* Id_copy = strdup(M3file);
-        char* sample_id = strtok(Id_copy,".");
         free(Id_copy);
 
 

@@ -1380,7 +1380,7 @@ int main(int argc, char **argv) {
   */
     if (argc == 1) {
 #ifdef __REGRESSION__
-        fprintf(stderr, "./metaDMG-cpp regression [other options]\n");
+        Fprintf(stderr, "./metaDMG-cpp regression [other options]\n");
 #endif
         fprintf(stderr, "./metaDMG-cpp pmd [other options]\n");
         fprintf(stderr, "./metaDMG-cpp getdamage file.bam\n");

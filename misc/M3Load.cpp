@@ -83,13 +83,13 @@ void read_count_matrix(const char* filename, double M3[MAX_ROWS][MAX_COLS],char 
     gzclose(file);
 }
     
-void Alter_count_matrix(double M3[MAX_ROWS][MAX_COLS],char tax_id[MAX_ROWS][MAX_COLS],char dir[MAX_ROWS][MAX_COLS],int num_rows,int num_cols){
+void Alter_count_matrix(double M3[MAX_ROWS][MAX_COLS],char dir[MAX_ROWS][MAX_COLS],int num_rows){
     // Alters / adds additional columns to the count M^3 matrix, needed for log-likelihood calculations
     
     double C_total, G_total = 0; 
 
     int k_sum_total = 0;
-    double N_in_group[MAX_ROWS];
+    //    double N_in_group[MAX_ROWS];
     int Max_N_in_group = 0;
     int Min_N_in_group = 0;
 
@@ -151,7 +151,7 @@ int main() {
     int num_rows, num_cols;
     read_count_matrix("MycoBactBamSEOutSortMDSortN.mismatches.txt.gz", M3,tax_id,dir,&num_rows, &num_cols);
     printf("Read %d rows and %d columns\n", num_rows, num_cols);
-    Alter_count_matrix(M3,tax_id,dir,num_rows,num_cols);
+    Alter_count_matrix(M3,dir,num_rows);
 
     return 0;
 }
