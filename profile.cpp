@@ -15,7 +15,7 @@
 
 float **getmatrix(size_t x, size_t y) {
     float **ret = new float *[x];
-    for (int i = 0; i < x; i++) {
+    for (size_t i = 0; i < x; i++) {
         ret[i] = new float[y];
         for (int j = 0; j < 16; j++)
             ret[i][j] = 0;
@@ -24,7 +24,7 @@ float **getmatrix(size_t x, size_t y) {
 }
 
 void destroymatrix(float **d, size_t x) {
-    for (int i = 0; i < x; i++)
+    for (size_t i = 0; i < x; i++)
         delete[] d[i];
     delete[] d;
 }
@@ -91,7 +91,7 @@ static char DUMMYCHAR = '#';
 void mdString2Vector2(const uint8_t *md, std::vector<mdField> &toReturn) {
     const char *mdFieldToParse = (const char *)md + 1;
     toReturn.clear();
-    int i = 0;
+    unsigned i = 0;
     // int addToOffset=0;
     mdField toadd;
 
@@ -212,7 +212,7 @@ void reconstructRefWithPosHTS(const bam1_t *b, std::pair<kstring_t *, std::vecto
         }
     }
 
-    if (strlen(pp.first->s) != b->core.l_qseq) {
+    if ((int)strlen(pp.first->s) !=  b->core.l_qseq) {
         fprintf(stderr, "Could not recreate the sequence for read: %s pp.first->s: %s strlen():%lu\n", bam_get_qname(b), pp.first->s, strlen(pp.first->s));
         exit(1);
     }
@@ -223,7 +223,7 @@ void reconstructRefWithPosHTS(const bam1_t *b, std::pair<kstring_t *, std::vecto
     }
 }
 
-inline void increaseCounters(const bam1_t *b, const char *reconstructedReference, const std::vector<int> &reconstructedReferencePos, const int &minQualBase, int MAXLENGTH, float **mm5p, float **mm3p, float incval) {
+inline void increaseCounters(const bam1_t *b, const char *reconstructedReference, const int &minQualBase, int MAXLENGTH, float **mm5p, float **mm3p, float incval) {
     const char *alphabetHTSLIB = "NACNGNNNTNNNNNNN";
     char refeBase;
     char readBase;
@@ -261,25 +261,25 @@ inline void increaseCounters(const bam1_t *b, const char *reconstructedReference
             refeBase = readBase;
         }
 
-        refeBase = refToChar[refeBase];
-        readBase = refToChar[readBase];
+        refeBase = refToChar[(int)refeBase];
+        readBase = refToChar[(int)readBase];
 
         if (refeBase != 4 && readBase != 4) {
             int dist5p = i;
             int dist3p = b->core.l_qseq - 1 - i;
 
             if (bam_is_rev(b)) {
-                refeBase = com[refeBase];
-                readBase = com[readBase];
+	      refeBase = com[(int)refeBase];
+	      readBase = com[(int)readBase];
                 // dist5p=int(al.QueryBases.size())-1-i;
                 dist5p = int(b->core.l_qseq) - 1 - i;
                 dist3p = i;
             }
 
             if (dist5p < MAXLENGTH)
-                mm5p[dist5p][toIndex[refeBase][readBase]] += incval;
+	      mm5p[(int)dist5p][(int)toIndex[(int)refeBase][(int)readBase]] += incval;
             if (dist3p < MAXLENGTH)
-                mm3p[dist3p][toIndex[refeBase][readBase]] += incval;
+                mm3p[(int)dist3p][(int)toIndex[(int)refeBase][(int)readBase]] += incval;
         }
     }
 }
@@ -308,7 +308,7 @@ int damage::damage_analysis(bam1_t *b, int which, float incval) {
     }
     memset(reconstructedTemp, 0, temp_len);
     reconstructRefWithPosHTS(b, reconstructedReference, reconstructedTemp);
-    increaseCounters(b, reconstructedReference.first->s, reconstructedReference.second, minQualBase, MAXLENGTH, it->second.mm5pF, it->second.mm3pF, incval);
+    increaseCounters(b, reconstructedReference.first->s, minQualBase, MAXLENGTH, it->second.mm5pF, it->second.mm3pF, incval);
     return 0;
 }
 
@@ -343,7 +343,8 @@ void damage::write(char *fname, bam_hdr_t *hdr) {
                 ksprintf(&kstr, "\t%.0f", it->second.mm3pF[l][i]);
         }
         ksprintf(&kstr, "\n");
-        assert(bgzf_write(fp, kstr.s, kstr.l) == kstr.l);
+	ssize_t n_written = bgzf_write(fp, kstr.s, kstr.l);
+        assert(n_written>=0 &&(size_t)n_written == kstr.l);
         kstr.l = 0;
     }
     bgzf_close(fp);
@@ -389,12 +390,16 @@ void damage::bwrite(char *fname) {
 	  ksprintf(&kstr3000,"\t%lu",it->second.rlens[i]);
 	ksprintf(&kstr3000,"\t%lu\n",it->second.rlens[499]);
 	if(kstr3000.l>1000000){
-	  assert(bgzf_write(fp,kstr3000.s,kstr3000.l)==kstr3000.l);
+	  ssize_t n_written = bgzf_write(fp,kstr3000.s,kstr3000.l);
+	  assert(n_written>=0&& (size_t) n_written==kstr3000.l);
 	  kstr3000.l  = 0;
 	}
 	  
     }
-    assert(bgzf_write(fp,kstr3000.s,kstr3000.l)==kstr3000.l);
+    ssize_t n_written = bgzf_write(fp,kstr3000.s,kstr3000.l);
+    assert(n_written>=0&& (size_t) n_written==kstr3000.l);
+        
+    //    assert(bgzf_write(fp,kstr3000.s,kstr3000.l)==kstr3000.l);
     if(kstr3000.l>0)
       free(kstr3000.s);
     kstr3000.l  = 0;

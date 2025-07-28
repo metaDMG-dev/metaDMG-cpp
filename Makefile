@@ -119,6 +119,11 @@ misc: $(LIBHTS) $(OBJ)
 	$(CXX) -c $(CPPFLAGS) $(CXXFLAGS) $< -o $@
 	$(CXX) -MM $(CPPFLAGS) $(CXXFLAGS) $< > $*.d
 
+NOWARN = -Wno-unused-label -Wno-unused-but-set-parameter -Wno-unused-parameter -Wno-uninitialized -Wno-unused-but-set-variable
+bfgs.o: bfgs.cpp bfgs.h
+	$(CXX) -c $(CPPFLAGS) $(CXXFLAGS) $(NOWARN)  $< -o $@
+
+
 # --- Rens og tests ---
 .PHONY: clean test testclean force
 

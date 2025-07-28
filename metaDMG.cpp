@@ -64,7 +64,7 @@ double *getval(std::map<int, double *> &retmap, int2intvec &child, int taxid, in
         int2intvec::iterator it2 = child.find(taxid);
         if (it2 != child.end()) {
             std::vector<int> &avec = it2->second;
-            for (int i = 0; i < avec.size(); i++) {
+            for (size_t i = 0; i < avec.size(); i++) {
                 //	fprintf(stderr,"%d/%d %d\n",i,avec.size(),avec[i]);
                 double *tmp = getval(retmap, child, avec[i], howmany);
                 for (int i = 0; i < 3 * howmany + 1; i++)
@@ -88,7 +88,11 @@ std::map<int,mydataD> getval_full_norec(std::map<int, mydataD> &retmap, int2int 
   
   //funky modern syntax below
   //loop over all entries in retmap. lizard king 
-  for (const auto &[taxid, data] : retmap) {
+  //  for (const auto &[taxid, data] : retmap) {
+  for (std::map<int, mydataD>::iterator it = retmap.begin(); it != retmap.end(); ++it){
+    int taxid = it->first;
+    mydataD &data = it->second;
+    
     int current = taxid;
     //   fprintf(stderr,"taxid: %d\n",taxid);
      while (true) {
@@ -343,10 +347,11 @@ int main_getdamage(int argc, char **argv) {
 }
 
 int main_index(int argc, char **argv) {
+  (void) argc;
     char *infile = argv[1];
     fprintf(stderr, "infile: %s\n", infile);
-    char onam[strlen(infile) + 20];
-    snprintf(onam,strlen(infile) + 20, "%s.idx", infile);
+    char onam[1024]; // stor nok buffer
+    snprintf(onam, sizeof(onam), "%s_out.txt", infile);
     fprintf(stderr, "outfile: %s\n", onam);
     FILE *fp = NULL;
     if (((fp = fopen(onam, "wb"))) == NULL) {
@@ -413,7 +418,7 @@ int main_print(int argc, char **argv) {
     if (search != -1 && doold == 0) {
         std::map<int, double *> retmap = load_bdamage3(infile, howmany);
         double *dbl = getval(retmap, child, search, howmany);
-        double dbldbl[3 * howmany + 1];  // 3 because ct,ga,other
+        double *dbldbl = new double[3 * howmany + 1];  // 3 because ct,ga,other
         dbldbl[0] = dbl[0];
         for (int i = 0; i < 3 * howmany; i++)
             dbldbl[i + 1] = dbl[1 + i] / dbl[0];
@@ -422,6 +427,7 @@ int main_print(int argc, char **argv) {
         for (int i = 0; i < 3 * howmany; i++)
             fprintf(stdout, "\t%f", dbldbl[1 + i]);
         fprintf(stdout, "\n");
+	delete [] dbldbl;
         return 0;
     }
 
@@ -462,9 +468,10 @@ int main_print(int argc, char **argv) {
     }
 
     float data[16];
+    double *ctgas = new double [2 * printlength];
     while (1) {
         int nread = bgzf_read(bgfp, ref_nreads, 2 * sizeof(int));
-        double ctgas[2 * printlength];
+	//        double ctgas[2 * printlength];
         if (nread == 0)
             break;
         assert(nread == 2 * sizeof(int));
@@ -575,6 +582,7 @@ int main_print(int argc, char **argv) {
             }
         }
     }
+    delete [] ctgas;
     //cleanup
     for(int2char::iterator it=name_map.begin();it!=name_map.end();it++)
       free(it->second);
@@ -651,7 +659,7 @@ int main_print2(int argc, char **argv) {
     if (search != -1 && doold == 0) {
         std::map<int, double *> retmap = load_bdamage3(infile, howmany);
         double *dbl = getval(retmap, child, search, howmany);
-        double dbldbl[3 * howmany + 1];  // 3 because ct,ga,other
+        double *dbldbl = new double[3 * howmany + 1];  // 3 because ct,ga,other
         dbldbl[0] = dbl[0];
         for (int i = 0; i < 3 * howmany; i++)
             dbldbl[i + 1] = dbl[1 + i] / dbl[0];
@@ -660,6 +668,7 @@ int main_print2(int argc, char **argv) {
         for (int i = 0; i < 3 * howmany; i++)
             fprintf(stdout, "\t%f", dbldbl[1 + i]);
         fprintf(stdout, "\n");
+	delete [] dbldbl;
         return 0;
     }
 
@@ -708,10 +717,10 @@ int main_print2(int argc, char **argv) {
     }
 
     int data[16];
-
+    double *ctgas = new double [2 * printlength];
     while (1) {
         int nread = bgzf_read(bgfp, ref_nreads, 2 * sizeof(int));
-        double ctgas[2 * printlength];
+	//        double ctgas[2 * printlength];
         if (nread == 0)
             break;
         fprintf(stderr, "ref: %d nreads: %d\n", ref_nreads[0], ref_nreads[1]);
@@ -824,6 +833,7 @@ int main_print2(int argc, char **argv) {
             }
         }
     }
+    delete [] ctgas;
     //clean up
     for(int2char::iterator it=name_map.begin();it!=name_map.end();it++)
       free(it->second);
@@ -925,11 +935,11 @@ int main_merge(int argc, char **argv) {
     while (gzgets(fp, buf, 4096)) {
         strncpy(orig, buf, 4096);
         //    fprintf(stderr,"buf: %s\n",buf);
-        char *tok = strtok(buf, "\t\n ");
+        strtok(buf, "\t\n ");
         int taxid = atoi(strtok(NULL, ":"));
         //    fprintf(stderr,"taxid: %d\n",taxid);
         double *dbl = getval(retmap, child, taxid, howmany);
-        double dbldbl[3 * howmany + 1];  // 3 because ct,ga,other
+        double *dbldbl = new double [3 * howmany + 1];  // 3 because ct,ga,other
         dbldbl[0] = dbl[0];
         for (int i = 0; i < 3 * howmany; i++)
             dbldbl[i + 1] = dbl[1 + i] / dbl[0];
@@ -939,6 +949,7 @@ int main_merge(int argc, char **argv) {
         for (int i = 0; i < 3 * howmany; i++)
             fprintf(stdout, "\t%f", dbldbl[1 + i]);
         fprintf(stdout, "\n");
+	delete [] dbldbl;
     }
     float postsize = retmap.size();
     fprintf(stderr, "\t-> pre: %f post:%f grownbyfactor: %f\n", presize, postsize, postsize / presize);
@@ -957,7 +968,7 @@ int2int getlcadist(char *fname) {
     //  fprintf(stderr,"fname: %s\n",fname);
     int2int lcadist;
     int tlen = strlen(fname) + 10;
-    char tmp[tlen];
+    char *tmp =(char*) malloc(tlen);
     snprintf(tmp, tlen, "%s.stat", fname);
     fprintf(stderr, "tmp: %s\n", tmp);
     FILE *fp = NULL;
@@ -970,6 +981,7 @@ int2int getlcadist(char *fname) {
         lcadist[key] = val;
     }
     fprintf(stderr, "\t-> Done reading: %lu entries from file: \'%s\'\n", lcadist.size(), tmp);
+    free(tmp);
     return lcadist;
 }
 
@@ -1065,7 +1077,7 @@ int main_merge2(int argc, char **argv) {
         if (ititit != chris.end())
             valval = ititit->second;
         double *dbl = getval(retmap, child, taxid, howmany);
-        double dbldbl[3 * howmany + 1];  // 3 because ct,ga,other
+        double *dbldbl = new double [3 * howmany + 1];  // 3 because ct,ga,other
         dbldbl[0] = dbl[0];
         for (int i = 0; i < 3 * howmany; i++)
             dbldbl[i + 1] = dbl[1 + i] / dbl[0];
@@ -1081,6 +1093,7 @@ int main_merge2(int argc, char **argv) {
             fprintf(stdout, "\t%s", tok);
         }
         fprintf(stdout, "\n");
+	delete [] dbldbl;
     }
     float postsize = retmap.size();
     fprintf(stderr, "\t-> pre: %f post:%f grownbyfactor: %f\n", presize, postsize, postsize / presize);
@@ -1128,7 +1141,6 @@ int main_print_all(int argc, char **argv) {
     int2char name = parse_names(infile_names);
 
     BGZF *bgfp = NULL;
-    samFile *samfp = NULL;
 
     float presize = retmap.size();
     getval(retmap, child, 1, howmany);  // this will do everything
@@ -1145,7 +1157,7 @@ int main_print_all(int argc, char **argv) {
         itc = name.find(taxid);
         if (itc != name.end())
             myname = itc->second;
-        double dbldbl[3 * howmany + 1];  // 3 because ct,ga,other
+        double *dbldbl = new double[3 * howmany + 1];  // 3 because ct,ga,other
         dbldbl[0] = dbl[0];
         for (int i = 0; i < 3 * howmany; i++)
             dbldbl[i + 1] = dbl[1 + i] / dbl[0];
@@ -1154,7 +1166,8 @@ int main_print_all(int argc, char **argv) {
             for (int i = 0; i < 3 * howmany; i++)
                 fprintf(stdout, "\t%f", dbldbl[1 + i]);
             fprintf(stdout, "\n");
-        };
+        }
+	delete [] dbldbl;
     }
 
     if (bgfp)
@@ -1241,7 +1254,7 @@ int main_print_ugly(int argc, char **argv) {
 
     for (std::map<int, mydataD>::iterator it = retmap.begin(); it != retmap.end(); it++) {
         int taxid = it->first;
-        mydataD md = it->second;
+	//        mydataD md = it->second;
         if (it->second.nal == 0)
             continue;
         /*
@@ -1361,9 +1374,10 @@ int main_print_ugly(int argc, char **argv) {
 int main_lca(int argc, char **argv);
 int main(int argc, char **argv) {
   fprintf(stderr,"\t-> metaDMG version: %s (htslib: %s) build(%s %s)\n",METADAMAGE_VERSION,hts_version(),__DATE__,__TIME__); 
-    clock_t t = clock();
+  /*
+  clock_t t = clock();
     time_t t2 = time(NULL);
-
+  */
     if (argc == 1) {
 #ifdef __REGRESSION__
         fprintf(stderr, "./metaDMG-cpp regression [other options]\n");
