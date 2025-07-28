@@ -122,7 +122,7 @@ int2int getkeysint(const char *key,int value){
 void doflush(queue *myq,int2int &keeplist,bam_hdr_t *hdr,samFile *outhts,int strict){
   // fprintf(stderr,"flush: %lu strictk:%d\n",myq->l,strict);
   if(strict==1){//will only print specific match
-    for(int i=0;i<myq->l;i++){
+    for(int i=0;i<(int)myq->l;i++){
       int2int::iterator it=keeplist.find(myq->ary[i]->core.tid);
       if(it!=keeplist.end())
 	assert(sam_write1(outhts, hdr,myq->ary[i])>=0);
@@ -131,7 +131,7 @@ void doflush(queue *myq,int2int &keeplist,bam_hdr_t *hdr,samFile *outhts,int str
   if(strict==0){
     //if writedata=0 then no aligments will be printed, otherwise all
     int writedata = 0;
-    for(int i=0;i<myq->l;i++){
+    for(int i=0;i<(int)myq->l;i++){
       int2int::iterator it=keeplist.find(myq->ary[i]->core.tid);
       if(it!=keeplist.end()){
 	writedata=1;
@@ -139,7 +139,7 @@ void doflush(queue *myq,int2int &keeplist,bam_hdr_t *hdr,samFile *outhts,int str
       }
     }
     if(writedata>0){
-      for(int i=0;i<myq->l;i++){
+      for(int i=0;i<(int)myq->l;i++){
 	assert(sam_write1(outhts, hdr,myq->ary[i])>=0);
       }
     }
@@ -248,7 +248,7 @@ void gettaxids_to_use(int taxid,int2intvec &child,int2int &i2i){
     fprintf(stderr,"\t-> Problem finding taxid: %d from nodesfile\n",taxid);
   }else{ 
     std::vector<int> &avec = it->second;
-    for(int i=0;i<avec.size();i++){
+    for(int i=0;i<(int)avec.size();i++){
       //	fprintf(stderr,"%d/%d %d\n",i,avec.size(),avec[i]);
       gettaxids_to_use(avec[i],child,i2i);
       
@@ -363,7 +363,7 @@ int main_bytaxid(int argc,char**argv){
   char *hts = NULL;
   char *taxid = NULL;
   char *nodefile = NULL;
-  char out_mode[5] = "wb";
+  //  char out_mode[5] = "wb";
   char *acc2tax = NULL;
   int strict = 0;
   char *type = NULL;
@@ -428,7 +428,7 @@ int main_bytaxid(int argc,char**argv){
   int2int errmap;
   
   if(hdr||1)
-    bam2tax=(int2int*) bamRefId2tax(hdr,acc2tax,hts,errmap,strdup("/tmp/"),forcedump,accout,NULL);
+    bam2tax=(int2int*) bamRefId2tax(hdr,acc2tax,hts,strdup("/tmp/"),forcedump,accout,NULL);
   fprintf(stderr,"\t-> We have bam2tax.size(): %lu and errmap.size():%lu \n",bam2tax->size(),errmap.size());
 
   if(taxnames!=NULL){

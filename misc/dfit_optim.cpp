@@ -58,7 +58,7 @@ double **read1_ugly_matrix(const char *fname){
   ret[0][1] = 0;//<- function counter
   ret[1] = new double[xcol.size()];
   ret[2] = new double[xcol.size()];
-  for(int i=0;i<xcol.size();i++){
+  for(int i=0;i<(int)xcol.size();i++){
     ret[0][i+2] = xcol[i];
     ret[1][i] = kcol[i];
     ret[2][i] = ncol[i];
@@ -159,10 +159,10 @@ void getstat(double **dat,double *pars,double *statpars){
     double q = pars[1];
     double c = pars[2];
     double phi = pars[3];
-    double llh = pars[4];
+    //    double llh = pars[4];
     int NUMROWS = dat[0][0];
     double *XCOL = dat[0]+2;
-    double *KCOL = dat[1];
+    //    double *KCOL = dat[1];
     double *NCOL = dat[2];
     double N_pos = dat[2][0];
     
@@ -229,7 +229,7 @@ int main(int argc,char **argv){
   double **dat = read1_ugly_matrix(fname);
   double pars[6] = {0.1,0.1,0.01,1000};//last one will contain the llh,and the ncall for the objective function
   optimoptim(pars,dat,nopt);
-  double stats[2+2*(int)dat[0][0]];
+  double *stats = new double [2+2*(int)dat[0][0]];
   getstat(dat,pars,stats);
 
   //printit
@@ -249,6 +249,7 @@ int main(int argc,char **argv){
   dx_conf = stats+2+nrows+ncycle;
   for(int i=0;i<ncycle;i++)
     fprintf(stderr,"3\t%d\t%.0f\t%0.f\t%f\t%f\n",i,dat[1][i+ncycle],dat[2][i+ncycle],dx[i],dx_conf[i]);
+  delete [] stats;
 }
 
 #endif

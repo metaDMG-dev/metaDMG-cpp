@@ -38,20 +38,6 @@ BGZF *getbgzf(const char *str1, const char *mode, int nthreads) {
     return fp;
 }
 
-BGZF *getbgzf2(const char *str1, const char *str2, const char *mode, int nthreads) {
-    unsigned tmp_l = strlen(str1) + strlen(str2) + 5;
-    char tmp[tmp_l];
-    snprintf(tmp, tmp_l, "%s%s", str1, str2);
-    return getbgzf(tmp, mode, nthreads);
-}
-
-BGZF *getbgzf3(const char *str1, const char *str2, const char *str3, const char *mode, int nthreads) {
-    unsigned tmp_l = strlen(str1) + strlen(str2) + strlen(str3) + 5;
-    char tmp[tmp_l];
-    snprintf(tmp, tmp_l, "%s%s%s", str1, str2, str3);
-    return getbgzf(tmp, mode, nthreads);
-}
-
 char *getfilename4(const char *str1, const char *str2, const char *str3, const char *str4) {
     unsigned tmp_l = strlen(str1) + strlen(str2) + strlen(str3) + strlen(str4) + 5;
     char *tmp=(char*)calloc(tmp_l,1);
@@ -63,9 +49,12 @@ char *getfilename4(const char *str1, const char *str2, const char *str3, const c
 
 BGZF *getbgzf4(const char *str1, const char *str2, const char *str3, const char *str4, const char *mode, int nthreads) {
     unsigned tmp_l = strlen(str1) + strlen(str2) + strlen(str3) + strlen(str4) + 5;
-    char tmp[tmp_l];
+    char *tmp = new char[tmp_l];
     snprintf(tmp, tmp_l, "%s%s%s%s", str1, str2, str3, str4);
-    return getbgzf(tmp, mode, nthreads);
+    BGZF *fp = NULL;
+    assert(((fp=getbgzf(tmp, mode, nthreads)))!=NULL);
+    delete [] tmp;
+    return fp; 
 }
 
 int fexists(const char *str) {  ///@param str Filename given as a string.
@@ -74,34 +63,22 @@ int fexists(const char *str) {  ///@param str Filename given as a string.
     return (stat(str, &buffer) == 0);  /// @return Function returns 1 if file exists.
 }
 
-int fexists2(const char *str1, const char *str2) {
-    unsigned tmp_l = strlen(str1) + strlen(str2) + 5;
-    char tmp[tmp_l];
-    snprintf(tmp, tmp_l, "%s%s", str1, str2);
-    return fexists(tmp);
-}
-
 size_t fsize(const char *fname) {
     struct stat st;
     stat(fname, &st);
     return st.st_size;
 }
 
-int fexists3(const char *str1, const char *str2, const char *str3) {
-    unsigned tmp_l = strlen(str1) + strlen(str2) + strlen(str3) + 5;
-    char tmp[tmp_l];
-    snprintf(tmp, tmp_l, "%s%s%s", str1, str2, str3);
-    size_t fs = fsize(tmp);
-    return fexists(tmp) && fs > 0;
-}
-
 int fexists4(const char *str1, const char *str2, const char *str3, const char *str4) {
     unsigned tmp_l = strlen(str1) + strlen(str2) + strlen(str3) + strlen(str4) + 5;
-    char tmp[tmp_l];
+    char *tmp = new char[tmp_l];
     snprintf(tmp, tmp_l, "%s%s%s%s", str1, str2, str3, str4);
     //  fprintf(stderr,"\t-> checking if : %s exists\n",tmp );
     size_t fs = fsize(tmp);
-    return fexists(tmp) && fs > 0;
+
+    int ret = fexists(tmp) && fs > 0;
+    delete [] tmp;
+    return ret;
 }
 
 // usefull little function to split
@@ -122,7 +99,7 @@ char *strpop(char **str, char split) {
 void strip(char *line) {
     int at = 0;
     //  fprintf(stderr,"%s\n",line);
-    for (int i = 0; i < strlen(line); i++)
+    for (int i = 0; i < (int)strlen(line); i++)
         if (line[i] == '\t' || line[i] == '\n')
             continue;
         else
@@ -183,7 +160,7 @@ void parse_nodes(const char *fname, int2char &rank, int2int &parent, int2intvec 
         exit(1);
     }
     char buf[4096];
-    int at = 0;
+    // int at = 0;
     char **toks = new char *[5];
 
     while (gzgets(gz, buf, 4096)) {
@@ -246,7 +223,7 @@ void parse_nodes2(int2int &parent, int2intvec &child) {
 }
 
 int SIG_COND = 1;
-int2int *bamRefId2tax(bam_hdr_t *hdr, char *acc2taxfile, char *bamfile, int2int &errmap,
+int2int *bamRefId2tax(bam_hdr_t *hdr, char *acc2taxfile, char *bamfile,
                       char *tempfolder, int usedump, char *filteredAcc2taxfile,
                       char2int *acc2taxidmap) {
     fprintf(stderr, "\t-> Starting to extract (acc->taxid) from binary file: '%s'\n", acc2taxfile);
@@ -375,7 +352,7 @@ queue *init_queue(size_t maxsize) {
     ret->l = 0;
     ret->m = maxsize;
     ret->ary = new bam1_t *[ret->m];
-    for (int i = 0; i < ret->m; i++)
+    for (int i = 0; i <(int) ret->m; i++)
         ret->ary[i] = bam_init1();
     return ret;
 }
@@ -383,9 +360,9 @@ queue *init_queue(size_t maxsize) {
 // expand queue with 500 elements
 void expand_queue(queue *ret) {
     bam1_t **newary = new bam1_t *[ret->m + 500];
-    for (int i = 0; i < ret->l; i++)
+    for (int i = 0; i < (int) ret->l; i++)
         newary[i] = ret->ary[i];
-    for (int i = ret->l; i < ret->m + 500; i++)
+    for (int i = ret->l; i <(int) ret->m + 500; i++)
         newary[i] = bam_init1();
     delete[] ret->ary;
     ret->ary = newary;
@@ -393,7 +370,7 @@ void expand_queue(queue *ret) {
 }
 
 void destroy_queue(queue *q) {
-    for (int i = 0; i < q->m; i++)
+  for (int i = 0; i <(int) q->m; i++)
         bam_destroy1(q->ary[i]);
     delete[] q->ary;
     delete q;

@@ -632,7 +632,7 @@ void hts(gzFile fp, samFile *fp_in, int2int &i2i, int2int &parent, bam_hdr_t *hd
                 adder(lca, strlen(seq), gccontent(seq));
                 //      if(correct_rank(lca_rank,lca,rank,norank2species)){
 		        //fprintf(stderr,"Looping through alignments we have :%d \n",myq->l);
-                for (size_t i = 0; i < myq->l; i++) {
+                for (int i = 0; i <(int) myq->l; i++) {
                     // dmg->damage_analysis(myq->ary[i],myq->ary[i]->core.tid);
                     int2int::iterator ittt = i2i.find(myq->ary[i]->core.tid);
                     assert(ittt != i2i.end());
@@ -752,7 +752,7 @@ int main_lca(int argc, char **argv) {
     int2int *i2i = NULL;
     //  fprintf(stderr,"p->header: %p\n",p->header);
     if (p->header)
-      i2i = bamRefId2tax(p->header, p->acc2taxfile, p->htsfile, errmap, p->tempfolder, p->useDump, p->filteredAcc2taxfile,NULL);
+      i2i = bamRefId2tax(p->header, p->acc2taxfile, p->htsfile, p->tempfolder, p->useDump, p->filteredAcc2taxfile,NULL);
     // map of taxid -> taxid
     int2int parent;
     // map of taxid -> rank
