@@ -126,9 +126,10 @@ std::map<int,mydataD> getval_full_norec(std::map<int, mydataD> &retmap, int2int 
   return results;
 }
 
-
+#if 0
+//doesnt work
 mydata2 getval_stats(std::map<int, mydata2> &retmap, int2intvec &child, int taxid) {
-  fprintf(stderr,"PAS PAA SATAN\n");
+  fprintf(stderr,"PAS PAA SATAN\n");exit(1);
     // fprintf(stderr,"getval\t%d\t%d\n",taxid,howmany);
     std::map<int, mydata2>::iterator it = retmap.find(taxid);
     if (it != retmap.end()) {
@@ -174,7 +175,7 @@ mydata2 getval_stats(std::map<int, mydata2> &retmap, int2intvec &child, int taxi
 
     return ret;
 }
-
+#endif
 int main_getdamage(int argc, char **argv) {
     if (argc == 1)
         return usage_getdamage(stderr);
@@ -1285,13 +1286,14 @@ int main_print_ugly(int argc, char **argv) {
     std::map<int, mydata2> stats;
     if (infile_lcastat)
         stats = load_lcastat(infile_lcastat,1);
-#if 1
-    if(child.size()>0)
+#if 0
+    if(child.size()>0) //below function is not correct when computing variance
        getval_stats(stats, child, 1);  // this will do everything
-#endif
+#else
     void aggr_stat3000(std::map<int, mydata2> &stats,int2int &parent);
     if(0&&parent.size()>0)
       aggr_stat3000(stats,parent);
+#endif
     for (std::map<int, mydata2>::iterator it = stats.begin(); 1 && it != stats.end(); it++) {
         std::map<int, mydataD>::iterator itold = retmap.find(it->first);
         size_t nalign = 0;

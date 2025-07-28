@@ -11,7 +11,7 @@ d95e54a3886b9f411bde8d96de4af32e  output/test_getdamage_local.res
 443b35425bc868259fde18dbe86011e3  output/test_lca.bdamage
 e6a34153420df3f15a7c00eb6bf082fc  output/test_lca.stat
 eaa8bb5f32aa0ef05bcf923d0c2bd711  output/test_lca_taxa.uglyprint.mismatch
-823ac0bcf53f3a69329ff7c3eaf6a25f  output/test_lca_taxa.uglyprint.stat
+fd1f85acd1ac0e0b37b311457db58af1  output/test_lca_taxa.uglyprint.stat
 70363c8585d69e8d4457fc1d1ba7cd92  output/test_lca.uglyprint.mismatch
 1f9c4d0ab804d6a6e077573e6c8e736a  output/test_lca.uglyprint.stat
 a23c34eaca4a1d1742dd65f98d70efbf  output/test_mergedamage.bdamage
