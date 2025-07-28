@@ -264,7 +264,7 @@ pars *get_pars(int argc, char **argv) {
         ++argv;
     }
 
-    pthread_t thread1, thread2;
+    pthread_t thread1;
     pthread_mutex_lock(&mutex1);
     //  pthread_mutex_lock(&mutex2);
     assert(pthread_create(&thread1, NULL, read_header_thread, (void *)p) == 0);
@@ -294,7 +294,7 @@ pars *get_pars(int argc, char **argv) {
         fprintf(stderr, "\t-> Will output the reads that are used for damage file:\t\'%s\'\n", buf);
         p->usedreads_sam = strdup(buf);
     }
-    if (make_used_reads) {
+    if (make_famout_reads) {
       snprintf(buf, 1024, "%s.famoutreads.bam", p->outnames);
       fprintf(stderr, "\t-> Will output the reads that has lca below family :\t\'%s\'\n", buf);
       p->famout_sam = strdup(buf);

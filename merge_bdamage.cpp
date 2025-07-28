@@ -34,8 +34,8 @@ void merge_bdamage(const std::vector<std::string> &bdamage_files, const char* ou
 
   // now merge all but the first one, into the first one. Either adding or making new ids
   fprintf(stderr,"\t-> Doing merging old size: %lu\n",myvec[0].size());
-  for(int i=1;i<myvec.size();i++){
-    fprintf(stderr,"\t-> Merging %d into 0\n",i);
+  for(size_t i=1;i<myvec.size();i++){
+    fprintf(stderr,"\t-> Merging %d into 0\n",(int)i);
     std::map<int, mydataD> &small= myvec[i];
     
     for(auto slave =small.begin();slave!=small.end();slave++){
