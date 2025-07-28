@@ -5,7 +5,7 @@
 #include <cstdio>
 #include <zlib.h>
 
-#include "bfgs.h"
+#include "../bfgs.h"
 
 double **read1_ugly_matrix(const char *fname){
   fprintf(stderr,"\t-> Reading file: \'%s\'\n",fname);

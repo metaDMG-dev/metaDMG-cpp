@@ -40,7 +40,7 @@ endif
 
 PROGRAMS := compressbam extract_reads
 PROGRAMS_MISC := MAP dfit_optim
-OBJ := kmath.o Likelihood.o M3Load.o
+OBJ := Likelihood.o M3Load.o
 
 all: $(PROGRAMS) $(PROGRAMS_MISC)
 
@@ -62,9 +62,11 @@ $(LIBHTS):
 		exit 1; \
 	fi
 
-kmath.o: bfgs.cpp bfgs.h
-	$(CXX) -c $(CPPFLAGS) $(CXXFLAGS) bfgs.cpp -o kmath.o
-	$(CXX) -MM $(CPPFLAGS) $(CXXFLAGS) bfgs.cpp > kmath.d
+../bfgs.o:
+	@if [ ! -f "../bfgs.o" ]; then \
+		echo "Error: ../bfgs.o not found; ensure parent Makefile has built it"; \
+		exit 1; \
+	fi
 
 Likelihood.o: Likelihood.cpp
 	$(CXX) -c $(CPPFLAGS) $(CXXFLAGS) Likelihood.cpp -o Likelihood.o
@@ -80,11 +82,11 @@ compressbam: compressbam.cpp
 extract_reads: extract_reads.cpp ../shared.o
 	$(CXX) $(CXXFLAGS) $(CPPFLAGS) extract_reads.cpp ../shared.o -o extract_reads $(LIBS) $(LDFLAGS)
 
-MAP: MAP.cpp M3Load.o kmath.o Likelihood.o
-	$(CXX) $(CXXFLAGS) $(CPPFLAGS) -std=c++11 MAP.cpp M3Load.o kmath.o Likelihood.o -o MAP $(LIBS) $(LDFLAGS) -D__WITH_MAIN__
+MAP: MAP.cpp M3Load.o ../bfgs.o Likelihood.o
+	$(CXX) $(CXXFLAGS) $(CPPFLAGS) -std=c++11 MAP.cpp M3Load.o Likelihood.o ../bfgs.o -o MAP $(LIBS) $(LDFLAGS) -D__WITH_MAIN__
 
-dfit_optim: dfit_optim.cpp kmath.o
-	$(CXX) $(CXXFLAGS) $(CPPFLAGS) dfit_optim.cpp kmath.o -o dfit_optim $(LIBS) $(LDFLAGS) -D__WITH_MAIN__
+dfit_optim: dfit_optim.cpp ../bfgs.o
+	$(CXX) $(CXXFLAGS) $(CPPFLAGS) ../bfgs.o dfit_optim.cpp -o dfit_optim $(LIBS) $(LDFLAGS) -D__WITH_MAIN__
 
 # --- Automatisk afhængighedshåndtering ---
 -include $(OBJ:.o=.d)

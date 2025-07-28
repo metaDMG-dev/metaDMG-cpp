@@ -6,7 +6,7 @@
 #include <math.h>
 #include <cassert>
 
-#include "bfgs.h"
+#include "../bfgs.h"
 #include "M3Load.h"
 #include "Likelihood.h"
 

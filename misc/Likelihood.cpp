@@ -6,7 +6,7 @@
 #include <math.h>
 
 #include "M3Load.h"
-#include "bfgs.h"
+#include "../bfgs.h"
 
 #define NUMROWS 30
 #define KCOL 21
