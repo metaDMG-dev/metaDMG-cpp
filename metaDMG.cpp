@@ -399,7 +399,7 @@ int main_print(int argc, char **argv) {
             infile = strdup(*argv);
     }
 
-    fprintf(stderr, "infile: %s inbam: %s search: %d ctga: %d countout: %d nodes: %s names: %s howmany: %d\n", infile, inbam, search, ctga, countout, infile_nodes, infile_names, howmany);
+    fprintf(stderr, "infile: %s inbam: %s search: %d ctga: %d countout: %d nodes: %s names: %s howmany: %d\n", infile?infile: "(null)", inbam, search, ctga, countout, infile_nodes, infile_names, howmany);
 
     assert(infile);
     int2char name_map;
@@ -641,7 +641,7 @@ int main_print2(int argc, char **argv) {
             infile = strdup(*argv);
     }
 
-    fprintf(stderr, "infile: %s inbam: %s names: %s search: %d ctga: %d countout: %d nodes: %s\n", infile, inbam, acc2tax, search, ctga, countout, infile_nodes);
+    fprintf(stderr, "infile: %s inbam: %s names: %s search: %d ctga: %d countout: %d nodes: %s\n", infile?infile:"(null)", inbam, acc2tax, search, ctga, countout, infile_nodes);
     assert(infile);
     int2char name_map;
     if (acc2tax != NULL)

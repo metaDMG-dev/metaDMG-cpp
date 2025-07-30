@@ -121,7 +121,7 @@ char2int *ass2bin(const char *fname, int redo) {
 
         while (sizeof(int) == gzread(FP, &key_l, sizeof(int))) {
             char *key = (char *)calloc(key_l + 1, sizeof(char));
-            assert(key_l = gzread(FP, key, key_l));
+            assert(key_l == gzread(FP, key, key_l));
             int val;
             assert(sizeof(int) == gzread(FP, &val, sizeof(int)));
             if (cm->find(key) != cm->end()) {

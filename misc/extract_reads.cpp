@@ -290,7 +290,7 @@ int main_byrefid(int argc,char**argv){
     ++argv;
   }
   
-  fprintf(stderr,"\t-> key: %s \n\t-> hts: %s \n\t-> type: %s \n\t-> outfile: %s\n\t-> strict: %d\n",keyfile,hts,type,outfile,strict);
+  fprintf(stderr,"\t-> key: %s \n\t-> hts: %s \n\t-> type: %s \n\t-> outfile: %s\n\t-> strict: %d\n",keyfile?keyfile:"(null)",hts?hts:"(null)",type,outfile?outfile:"(null)",strict);
 
   //open inputfile and parse header
   samFile *htsfp = hts_open(hts,"r");
@@ -396,7 +396,7 @@ int main_bytaxid(int argc,char**argv){
     ++argv;
   }
   
-  fprintf(stderr,"\t-> key: %s \n\t-> hts: %s \n\t-> nodefile: %s \n\t-> acc2tax: %s \n\t-> taxid: %s\n\t-> taxnames: %s \n\t-> strict: %d \n\t-> type: %s \n\t-> outfile: %s\n\t-> forcedump:%d\n\t-> accout:%s\n\t-> names: %s\n",keyfile,hts,nodefile, acc2tax, taxid,taxnames,strict,type,outfile,forcedump,accout,names);
+  fprintf(stderr,"\t-> key: %s \n\t-> hts: %s \n\t-> nodefile: %s \n\t-> acc2tax: %s \n\t-> taxid: %s\n\t-> taxnames: %s \n\t-> strict: %d \n\t-> type: %s \n\t-> outfile: %s\n\t-> forcedump:%d\n\t-> accout:%s\n\t-> names: %s\n",keyfile?keyfile:"(null)",hts?hts:"(null)",nodefile, acc2tax, taxid,taxnames,strict,type,outfile,forcedump,accout,names);
 
   if(taxid ==NULL&&taxnames==NULL){
     fprintf(stderr,"\t-> Need to supply -taxid and/or -taxnames\n");
