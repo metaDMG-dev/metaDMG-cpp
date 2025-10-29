@@ -19,14 +19,33 @@
 
 #define VERSION "0.1"
 
+
+
+
 htsFormat *dingding2 =(htsFormat*) calloc(1,sizeof(htsFormat));
 htsThreadPool p = {NULL, 0};
 int nthreads = 8;
 char out_mode[5]="ws";
 
+int matched_bases(const bam1_t *b){
+    int matched = 0;
+    uint32_t *cigar = bam_get_cigar(b);
+    int n_cigar = b->core.n_cigar;
+
+    for (int i = 0; i < n_cigar; i++) {
+        int op = bam_cigar_op(cigar[i]);
+        int len = bam_cigar_oplen(cigar[i]);
+        if (op == BAM_CMATCH || op == BAM_CEQUAL || op == BAM_CDIFF)
+            matched += len;
+    }
+    return matched;
+}
+
+
+
 //get ref used not get refused
-int VERB=5;
-size_t getrefused(samFile *htsfp,bam_hdr_t *hdr,int *keeplist,int &nkeep){
+int VERB[2]={5,5};
+size_t getrefused(samFile *htsfp,bam_hdr_t *hdr,int *keeplist,int &nkeep,int minmatch){
    //now mainloop
   bam1_t *aln = bam_init1();
 
@@ -36,10 +55,17 @@ size_t getrefused(samFile *htsfp,bam_hdr_t *hdr,int *keeplist,int &nkeep){
       fprintf(stderr,"\r\t->  Now at read:     %lu ",at);
     int chr = aln->core.tid ; //contig name (chromosome)
     if(chr<0){
-      if(VERB>0)
-         fprintf(stderr,"\t-> Problem with unmapped reads, these will be discarded. Msg shows more: %d\n",VERB--);
+      if(VERB[0]>0)
+         fprintf(stderr,"\t-> Problem with unmapped reads, these will be discarded. Msg shows more: %d\n",VERB[0]--);
        continue;
     }
+    int nmatch = matched_bases(aln);
+    if(nmatch<minmatch){
+      if(VERB[1]>0)
+	fprintf(stderr,"\t-> Problem with short <%d alns, these will be discarded. Msg shows more: %d\n",minmatch,VERB[1]--);
+      continue;
+    }
+    
     keeplist[chr] = keeplist[chr]+1;
     chr =aln->core.mtid; 
     if(chr!=-1)
@@ -53,8 +79,8 @@ size_t getrefused(samFile *htsfp,bam_hdr_t *hdr,int *keeplist,int &nkeep){
   return at;
 }
 
-int VERB2=5;
-void writemod(const char *outfile ,bam_hdr_t *hdr,int *keeplist,samFile *htsfp,char *mycl){
+int VERB2[2]={5,5};
+void writemod(const char *outfile ,bam_hdr_t *hdr,int *keeplist,samFile *htsfp,char *mycl,int minmatch){
   BGZF *fp = NULL;
   fp=bgzf_open(outfile,"w5");//write bgzf with compression level5. Maybe this should be changed.
   bgzf_mt(fp,nthreads,256);
@@ -77,7 +103,7 @@ void writemod(const char *outfile ,bam_hdr_t *hdr,int *keeplist,samFile *htsfp,c
     kputs(kstmp.s,&newhdr_ks);
     kputc('\n',&newhdr_ks);
     if(newhdr_ks.l>10000000){
-      assert(bgzf_write(fp,newhdr_ks.s,newhdr_ks.l)==newhdr_ks.l);
+      assert(bgzf_write(fp,newhdr_ks.s,newhdr_ks.l)==(ssize_t)newhdr_ks.l);
       newhdr_ks.l =0;
     }
     
@@ -89,7 +115,7 @@ void writemod(const char *outfile ,bam_hdr_t *hdr,int *keeplist,samFile *htsfp,c
     kputs(kstmp.s,&newhdr_ks);
     kputc('\n',&newhdr_ks);
     if(newhdr_ks.l>10000000){
-      assert(bgzf_write(fp,newhdr_ks.s,newhdr_ks.l)==newhdr_ks.l);
+      assert(bgzf_write(fp,newhdr_ks.s,newhdr_ks.l)==(ssize_t)newhdr_ks.l);
       newhdr_ks.l =0;
     }
   }
@@ -107,7 +133,7 @@ void writemod(const char *outfile ,bam_hdr_t *hdr,int *keeplist,samFile *htsfp,c
   }
 
 
-  assert(bgzf_write(fp,newhdr_ks.s,newhdr_ks.l)==newhdr_ks.l);
+  assert(bgzf_write(fp,newhdr_ks.s,newhdr_ks.l)==(ssize_t)newhdr_ks.l);
   free(newhdr_ks.s);
   free(kstmp.s);
   bgzf_close(fp);
@@ -149,6 +175,7 @@ void writemod(const char *outfile ,bam_hdr_t *hdr,int *keeplist,samFile *htsfp,c
   sam_hdr_add_pg(newhdr,"compressbam","VN",VERSION,"CL",mycl,NULL);
 
   int ret = sam_hdr_write(outhts,newhdr);
+  assert(ret>=0);
   fprintf(stderr,"\t-> Done writing new header as binary\n");fflush(stderr);
   //now mainloop
   bam1_t *aln = bam_init1();
@@ -160,11 +187,18 @@ void writemod(const char *outfile ,bam_hdr_t *hdr,int *keeplist,samFile *htsfp,c
       fflush(stderr);
     }
    if(aln->core.tid<0){
-   if(VERB2>0)
-      fprintf(stderr,"Unmapped read in bamwriting part, this msg will be snown: %d more\n",VERB2--);
-      continue;
+     if(VERB2[0]>0)
+       fprintf(stderr,"Unmapped read in bamwriting part, this msg will be snown: %d more\n",VERB2[0]--);
+     continue;
    }
-    aln->core.tid = keeplist[aln->core.tid];
+   int nmatch = matched_bases(aln);
+   if(nmatch<minmatch){
+     if(VERB2[1]>0)
+       fprintf(stderr,"\t-> Problem with short <%d alns, these will be discarded. Msg shows more: %d\n",minmatch,VERB2[1]--);
+     continue;
+   }
+   
+   aln->core.tid = keeplist[aln->core.tid];
     if(aln->core.mtid!=-1)
       aln->core.mtid = keeplist[aln->core.mtid];
     assert(sam_write1(outhts, newhdr,aln)>=0);
@@ -184,7 +218,7 @@ int main(int argc,char**argv){
   time_t t2=time(NULL);
 
   if(argc==1){
-    fprintf(stderr,"./compressbam --threads <INT> --input <FILE> --ref <FILE> --output <FILE>\n");
+    fprintf(stderr,"./compressbam --threads <INT> --input <FILE> --ref <FILE> --output <FILE> [--min-match <int>]\n");
     return -1;
   }
   char *mycl = stringify_argv(argc,argv);
@@ -192,10 +226,9 @@ int main(int argc,char**argv){
   
   argv++;
   char *hts = NULL;
-  char *names = NULL;
   char *ref = NULL;
   char *outfile = strdup("tmp.sam");
-
+  int minmatch = 30;
   //  char out_mode[5]="ws";
   //  int nthreads = 4; //this is now global
   while(*argv){
@@ -209,6 +242,7 @@ int main(int argc,char**argv){
     }
     else if(!strcasecmp("--ref",key)) ref=strdup(val);
     else if(!strcasecmp("-n",key) || !strcasecmp("--threads",key)) nthreads=atoi(val);
+    else if(!strcasecmp("-m",key) || !strcasecmp("--min-match",key)) minmatch=atoi(val);
     else{
       fprintf(stderr,"\t Unknown parameter key:%s val:%s\n",key,val);
       return -1;
@@ -231,14 +265,14 @@ int main(int argc,char**argv){
   int *keeplist = new int[sam_hdr_nref(hdr)];
   for(int i=0;i<sam_hdr_nref(hdr);i++)
     keeplist[i] = -1;
-  size_t nalign = getrefused(htsfp,hdr,keeplist,nkeep);
+  size_t nalign = getrefused(htsfp,hdr,keeplist,nkeep,minmatch);
   fprintf(stderr,"\t-> Number of alignments parsed: %lu\n",nalign);
   sam_close(htsfp);
 
   sam_hdr_destroy(hdr);
   htsfp=hts_open(hts,"r" );
   hdr = sam_hdr_read(htsfp);
-  writemod(outfile,hdr,keeplist,htsfp,mycl);
+  writemod(outfile,hdr,keeplist,htsfp,mycl,minmatch);
   fprintf(stderr,"\t-> Done writing file: \'%s\'\n",outfile);
   free(mycl);
   sam_close(htsfp);
