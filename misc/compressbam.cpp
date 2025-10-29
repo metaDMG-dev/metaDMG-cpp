@@ -25,6 +25,7 @@ int nthreads = 8;
 char out_mode[5]="ws";
 
 //get ref used not get refused
+int VERB=5;
 size_t getrefused(samFile *htsfp,bam_hdr_t *hdr,int *keeplist,int &nkeep){
    //now mainloop
   bam1_t *aln = bam_init1();
@@ -34,7 +35,11 @@ size_t getrefused(samFile *htsfp,bam_hdr_t *hdr,int *keeplist,int &nkeep){
     if((at++ %100000)==0  )
       fprintf(stderr,"\r\t->  Now at read:     %lu ",at);
     int chr = aln->core.tid ; //contig name (chromosome)
-    assert(chr!=-1);
+    if(chr<0){
+      if(VERB>0)
+         fprintf(stderr,"\t-> Problem with unmapped reads, these will be discarded. Msg shows more: %d\n",VERB--);
+       continue;
+    }
     keeplist[chr] = keeplist[chr]+1;
     chr =aln->core.mtid; 
     if(chr!=-1)
@@ -48,6 +53,7 @@ size_t getrefused(samFile *htsfp,bam_hdr_t *hdr,int *keeplist,int &nkeep){
   return at;
 }
 
+int VERB2=5;
 void writemod(const char *outfile ,bam_hdr_t *hdr,int *keeplist,samFile *htsfp,char *mycl){
   BGZF *fp = NULL;
   fp=bgzf_open(outfile,"w5");//write bgzf with compression level5. Maybe this should be changed.
@@ -153,7 +159,11 @@ void writemod(const char *outfile ,bam_hdr_t *hdr,int *keeplist,samFile *htsfp,c
       sam_flush(htsfp);
       fflush(stderr);
     }
-
+   if(aln->core.tid<0){
+   if(VERB2>0)
+      fprintf(stderr,"Unmapped read in bamwriting part, this msg will be snown: %d more\n",VERB2--);
+      continue;
+   }
     aln->core.tid = keeplist[aln->core.tid];
     if(aln->core.mtid!=-1)
       aln->core.mtid = keeplist[aln->core.mtid];
