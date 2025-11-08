@@ -126,9 +126,13 @@ std::map<int,mydataD> getval_full_norec(std::map<int, mydataD> &retmap, int2int 
   return results;
 }
 
+int mywarn =1;
 
-mydata2 getval_stats(std::map<int, mydata2> &retmap, int2intvec &child, int taxid) {
+mydata2 getval_stats_unknownfunctionality(std::map<int, mydata2> &retmap, int2intvec &child, int taxid) {
+  if(mywarn>0){
   fprintf(stderr,"PAS PAA SATAN\n");
+  mywarn--;
+  }
     // fprintf(stderr,"getval\t%d\t%d\n",taxid,howmany);
     std::map<int, mydata2>::iterator it = retmap.find(taxid);
     if (it != retmap.end()) {
@@ -151,13 +155,13 @@ mydata2 getval_stats(std::map<int, mydata2> &retmap, int2intvec &child, int taxi
         if (it2 != child.end()) {
             std::vector<int> &avec = it2->second;
             for (size_t i = 0; i < avec.size(); i++) {
-                mydata2 tmp = getval_stats(retmap, child, avec[i]);
+                mydata2 tmp = getval_stats_unknownfunctionality(retmap, child, avec[i]);
                 ret.nreads += tmp.nreads;
             }
 
             for (size_t i = 0; i < avec.size(); i++) {
                 //	fprintf(stderr,"%d/%d %d\n",i,avec.size(),avec[i]);
-                mydata2 tmp = getval_stats(retmap, child, avec[i]);
+                mydata2 tmp = getval_stats_unknownfunctionality(retmap, child, avec[i]);
                 if (tmp.nreads == 0)
                     continue;
                 double a = tmp.nreads;
@@ -1163,6 +1167,9 @@ int main_print_all(int argc, char **argv) {
 }
 
 int main_print_ugly(int argc, char **argv) {
+  if(1)
+    fprintf(stderr,"\t-> print_ugly functionality will be removed\n");
+  
     fprintf(stderr, "./metaDMG-cpp print_ugly file.bdamage.gz --names file.gz --nodes trestructure.gz --lcastat file.gz --out_prefix out\n");
     if (argc <= 1)
         return 0;
@@ -1287,7 +1294,7 @@ int main_print_ugly(int argc, char **argv) {
         stats = load_lcastat(infile_lcastat,1);
 #if 1
     if(child.size()>0)
-       getval_stats(stats, child, 1);  // this will do everything
+       getval_stats_unknownfunctionality(stats, child, 1);  // this will do everything
 #endif
     void aggr_stat3000(std::map<int, mydata2> &stats,int2int &parent);
     if(0&&parent.size()>0)
