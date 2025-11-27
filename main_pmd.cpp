@@ -244,8 +244,9 @@ void parse_sequencingdata(char *refName, char *fname, int mapped_only, int se_on
 }
 
 int usage(FILE *fp, int val) {
-    fprintf(stderr, "./metaDMG-cpp pmd [-T ref.fa -@ threads -a se_only -q minmapQ -v VERBOSE] file.bam\n");
-    fprintf(stderr, "-a is an integer zero or one, indicating if paired end reads should be discarded\n");
+    fprintf(fp, "ERROR (%d)\nUsage:", val);
+    fprintf(fp, "\t./metaDMG-cpp pmd [-T ref.fa -@ threads -a se_only -q minmapQ -v VERBOSE] file.bam\n");
+    fprintf(fp, "\t-a is an integer zero or one, indicating if paired end reads should be discarded\n");
     return 0;
 }
 
@@ -264,7 +265,6 @@ int main_pmd(int argc, char **argv) {
     }
 
     int VERBOSE = 0;
-    unsigned long int seed = 0;
 
     clock_t t = clock();
     time_t t2 = time(NULL);
@@ -343,7 +343,8 @@ int main_pmd(int argc, char **argv) {
         fname = strdup(argv[optind]);
 
     if (!fname) {
-        fprintf(stderr, "\t-> No input file specified\n");
+        if(VERBOSE)
+          fprintf(stderr, "\t-> No input file specified\n");
         usage(stdout, 0);
         return 0;
     }

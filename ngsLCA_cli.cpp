@@ -121,7 +121,7 @@ char2int *ass2bin(const char *fname, int redo) {
 
         while (sizeof(int) == gzread(FP, &key_l, sizeof(int))) {
             char *key = (char *)calloc(key_l + 1, sizeof(char));
-            assert(key_l = gzread(FP, key, key_l));
+            assert((key_l = gzread(FP, key, key_l)));
             int val;
             assert(sizeof(int) == gzread(FP, &val, sizeof(int)));
             if (cm->find(key) != cm->end()) {
@@ -249,9 +249,9 @@ pars *get_pars(int argc, char **argv) {
         else if (!strcasecmp("--weight_type", key))
             p->weighttype = atoi(val);
 	else if (!strcasecmp("--useDump", key))
-	   p->useDump = atoi(val);
+	    p->useDump = atoi(val);
 	else if (!strcasecmp("--ignore_errors", key)||!strcasecmp("-i", key))
-	  p->ignore_errors++;
+	    p->ignore_errors++;
         else if (!strcasecmp("--temp", key)) {
             free(p->tempfolder);
             p->tempfolder = strdup(val);
@@ -264,7 +264,8 @@ pars *get_pars(int argc, char **argv) {
         ++argv;
     }
 
-    pthread_t thread1, thread2;
+    pthread_t thread1;
+    //  pthread_t thread2;
     pthread_mutex_lock(&mutex1);
     //  pthread_mutex_lock(&mutex2);
     assert(pthread_create(&thread1, NULL, read_header_thread, (void *)p) == 0);

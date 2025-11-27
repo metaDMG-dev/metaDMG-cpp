@@ -49,7 +49,7 @@ To install metaDMG-cpp do:
 ```
 git clone https://github.com/metaDMG-dev/metaDMG-cpp.git
 cd metaDMG-cpp
-make HTTSRC=../htslib
+make
 ```
 
 ### Updating to latest version
@@ -104,50 +104,56 @@ Calculations, where each read, is classified to a given taxonomic level (based o
 ./metaDMG-cpp lca [options]
 
 Options:
-  --threads             number of threads used for reading/writing (default: 4)
-  --bam			input alignment file SAM/SAM.gz/BAM
-  --names 		names.dmp.gz
-  --nodes 		nodes.dmp.gz
+  --threads			number of threads used for reading/writing (default: 4)
+  --bam				input alignment file SAM/SAM.gz/BAM
+  --names 			names.dmp.gz
+  --nodes 			nodes.dmp.gz
   --acc2tax 		accesion to taxid table
   --edit_dist_min	minimum read edit distance (minimum number of nucleotide mismatches between read and reference, disabled if not specified)
   --edit_dist_max	maximum read edit distance (maximum number of nucleotide mismatches between read and reference, disabled if not specified)
-  --min_mapq		minimum mapping quality	(
+  --min_mapq		minimum mapping quality	(not desirable if you have aligned the reads using bowtie2 specifying the -k option)
   --min_length		minimum read length
   --sim_score_low	number between 0-1 
   --sim_score_high	number between 0-1
-  --fix_ncbi		fixes ncbi taxonomy naming issue, (default: 0)
-  --discard		
+  --fix_ncbi		<0|1> (default: 1) fixes ncbi taxonomy naming issue
+  --discard 		<INT> Discard is a BAM/SAM flag bitmask: any read whose SAM FLAG shares a bit with <INT> is skipped before LCA/damage estimation. This mirrors the logic of samtools view -F <mask>.
   --how_many		integer for number of positions that are printed in the substitution matrix
-  --lca_rank		can be family/genus/species. This function makes the summary statistics to be calculated for reads unique to the specified taxonomic rank, rather than summing up the tree from species (default: species). 
-  --used_reads		
-  --no_rank2species	
-  --skip_no_rank	
-  --weight_type		
-  -i/--ignore_errors	continue analyses even if there are errors 1 or stop when error 0 (default: 0)
-  --temp		temp prefix
+  --lca_rank		(default: species) Can be family/genus/species. This function makes the summary statistics to be calculated for reads unique to the specified taxonomic rank, rather than summing up the tree from species. 
+  --used_reads		<0|1> (default: 1) Controls whether metaDMG writes a BAM file containing the reads that passed all filters and were actually used for damage/LCA calculations.
+  --no_rank2species	<0|1> (default: 0) Controls how NCBI “no rank” nodes are treated when mapping taxonomic ranks to internal levels:
+	1: treat "no rank" as if it were species level for the internal rank→level mapping (i.e., assign it the same level value as "species"). This is implemented in setlevels(…) by inserting "no rank" with the species level
+	0: do not remap "no rank"; it won’t get a defined level from rank2level(…) (and is handled separately).
+  --skip_no_rank	<0|1> (default: 0) Tells the LCA code whether to skip “no rank” nodes entirely during traversal/aggregation.
+	1: skip “no rank” entries (the default)
+	0: keep “no rank” nodes in the lineage
+  --weight_type		<0|1> (default: 1) controls how multi‑mapped reads are weighted when metaDMG aggregates mismatch (damage) counts up the taxonomy during the LCA step
+	0: “count every alignment”: if a read maps to k references, each alignment gets full weight (the read contributes k in total). This inflates counts for multi‑mappers. This is called “weight‑type 0” in the paper
+	1: “fractional per‑read”: a read’s contribution is split across its k alignments (each gets weight 1/k), so the read contributes 1 in total. This avoids over‑counting multi‑mapped reads and is the recommended default
+  -i/--ignore_errors	<0|1> (default: 0) continue analyses even if there are errors 1 or stop when error 0 
+  --temp			temp prefix
   -o/--out_prefix 	output prefix
-  --filtered_acc2tax	output a acc2tax file using just the accessions and taxid in your dataset, given a filename
+  --filtered_acc2tax	outputs a acc2tax file using just the accessions and taxid in your dataset, given a filename
 ```
 
  
 # metaDMG dfit
 Performing numerical optimization of the deamination frequencies based on the mismatch matrix (.bdamage.gz) to estimate four parameters: A,q,c,phi. Either applying a beta-binomial distribution or binomial distribution as the choice for likelihood model.
 
-A: Amplitude of damage on position one.
+**A**: Amplitude of damage on position one.
 
-q: Relative decrease of damage per position.
+**q**: Relative decrease of damage per position.
 
-c: Background noise, equivalent to sequencing errors.
+**c**: Background noise, equivalent to sequencing errors.
 
-phi: signifies the uncertainty of beta-binomial model, with larger values indicating the probability of deamination is reduced to binomial distribution.
+**phi**: signifies the uncertainty of beta-binomial model, with larger values indicating the probability of deamination is reduced to binomial distribution.
 
 The optimization can be performed in three modes, all of which depends on the input parameters and information stored within the .bdamage.gz file, 
 
-global: with one damage estimate for entire BAM file. 
+**global**: with one damage estimate for entire BAM file. 
 
-local: damage estimate for all chromosomes/contigs/scaffolds present in BAM header.
+**local**: damage estimate for all chromosomes/contigs/scaffolds present in BAM header.
 
-lca: damage estimates of the nodes within the lca tree structure.
+**lca**: damage estimates of the nodes within the lca tree structure.
 
 `./metaDMG-cpp dfit file.bdamage.gz ` 
 

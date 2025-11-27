@@ -122,7 +122,7 @@ char *strpop(char **str, char split) {
 void strip(char *line) {
     int at = 0;
     //  fprintf(stderr,"%s\n",line);
-    for (int i = 0; i < strlen(line); i++)
+    for (size_t i = 0; i < strlen(line); i++)
         if (line[i] == '\t' || line[i] == '\n')
             continue;
         else
@@ -375,7 +375,7 @@ queue *init_queue(size_t maxsize) {
     ret->l = 0;
     ret->m = maxsize;
     ret->ary = new bam1_t *[ret->m];
-    for (int i = 0; i < ret->m; i++)
+    for (size_t i = 0; i < ret->m; i++)
         ret->ary[i] = bam_init1();
     return ret;
 }
@@ -383,9 +383,9 @@ queue *init_queue(size_t maxsize) {
 // expand queue with 500 elements
 void expand_queue(queue *ret) {
     bam1_t **newary = new bam1_t *[ret->m + 500];
-    for (int i = 0; i < ret->l; i++)
+    for (size_t i = 0; i < ret->l; i++)
         newary[i] = ret->ary[i];
-    for (int i = ret->l; i < ret->m + 500; i++)
+    for (size_t i = ret->l; i < ret->m + 500; i++)
         newary[i] = bam_init1();
     delete[] ret->ary;
     ret->ary = newary;
@@ -393,7 +393,7 @@ void expand_queue(queue *ret) {
 }
 
 void destroy_queue(queue *q) {
-    for (int i = 0; i < q->m; i++)
+    for (size_t i = 0; i < q->m; i++)
         bam_destroy1(q->ary[i]);
     delete[] q->ary;
     delete q;
