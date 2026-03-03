@@ -12,7 +12,6 @@
 #include <ctime>
 #include <sys/time.h>
 #include <math.h>
-#include <gsl/gsl_cdf.h>
 #include <algorithm> // for std::sort
 
 #include <iostream>

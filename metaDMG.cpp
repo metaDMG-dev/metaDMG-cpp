@@ -1269,7 +1269,7 @@ int main_print_ugly(int argc, char **argv) {
                 gzprintf(fpfpfp, "%s\t5'\t%d", sam_hdr_tid2name(hdr, taxid), i);
 
             for (int ii = 0; ii < 16; ii++)
-                gzprintf(fpfpfp, "\t%.0f", it->second.fwD[i * 16 + ii]);
+                gzprintf(fpfpfp, "\t%.2f", it->second.fwD[i * 16 + ii]);
             gzprintf(fpfpfp, "\n");
         }
         for (int i = 0; i < howmany; i++) {
@@ -1280,7 +1280,7 @@ int main_print_ugly(int argc, char **argv) {
             else
                 gzprintf(fpfpfp, "%s\t3'\t%d", sam_hdr_tid2name(hdr, taxid), i);
             for (int ii = 0; ii < 16; ii++)
-                gzprintf(fpfpfp, "\t%.0f", it->second.bwD[i * 16 + ii]);
+                gzprintf(fpfpfp, "\t%.2f", it->second.bwD[i * 16 + ii]);
             gzprintf(fpfpfp, "\n");
         }
     }
