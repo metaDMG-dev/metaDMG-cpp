@@ -236,7 +236,7 @@ int do_lca(std::vector<int> &taxids, int2int &parent) {
     // now counts contain how many time a node is traversed to the root
     int2int dist2root;
     for (int2int::iterator it = counter.begin(); it != counter.end(); it++)
-      if (it->second == (int) taxids.size())
+        if (it->second == taxids.size())
             dist2root[nodes2root(it->first, parent)] = it->first;
     for (int2int::iterator it = dist2root.begin(); 0 && it != dist2root.end(); it++)
         fprintf(stderr, "%d\t->%d\n", it->first, it->second);
@@ -426,20 +426,19 @@ void hts(gzFile fp, samFile *fp_in, int2int &i2i, int2int &parent, bam_hdr_t *hd
     kstr->s = NULL;kstr->l = kstr->m =0;
     long nreads = 0;
     while (sam_read1(fp_in, hdr, aln) >= 0) {
-      fprintf(stderr,"Look a dollar\n");
       if(maxreads!=-1&&nreads>=maxreads)
 	break;
       if (bam_is_unmapped(aln)) {
-	 fprintf(stderr,"skipping: %s unmapped \n",bam_get_qname(aln));
+	// fprintf(stderr,"skipping: %s unmapped \n",bam_get_qname(b));
 	continue;
       }
         if (bam_is_failed(aln)) {
-             fprintf(stderr,"skipping: %s failed: flags=%d \n",bam_get_qname(aln),aln->core.flag);
+            // fprintf(stderr,"skipping: %s failed: flags=%d \n",bam_get_qname(b),b->core.flag);
             continue;
         }
         char *qname = bam_get_qname(aln);
         int chr = aln->core.tid;  // contig name (chromosome)
-            fprintf(stderr,"%d %d\n",aln->core.qual,minmapq);
+        //    fprintf(stderr,"%d %d\n",aln->core.qual,minmapq);
         static int ntimes = 3;
         if (aln->core.qual < minmapq && ntimes > 0) {
             ntimes--;
@@ -458,7 +457,7 @@ void hts(gzFile fp, samFile *fp_in, int2int &i2i, int2int &parent, bam_hdr_t *hd
         }
         if (minlength != -1 && (aln->core.l_qseq < minlength))
             continue;
-        // change of readname
+        // change of ref
         if (strcmp(last, qname) != 0) {
             if (taxids.size() > 0 && skip == 0) {
                 //	fprintf(stderr,"length of taxids:%lu and other:%lu minedit:%d\n",taxids.size(),editdist.size(),*std::min_element(editdist.begin(),editdist.end()));
