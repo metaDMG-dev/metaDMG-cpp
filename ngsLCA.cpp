@@ -109,7 +109,7 @@ void mod_db(int *in, int *out, int2int &parent, int2char &rank, int2char &name_m
     int2char::iterator itc;
     for (int i = 0; i < 24; i++) {
         if (parent.count(out[i]) != 1) {
-            fprintf(stderr, "\t-> Problem \"fixing\" database entries with known issues, consider add -fix_ncbi 0 when running program\n");
+            fprintf(stderr, "\t-> Problem \"fixing\" database entries with known issues, consider add --fix_ncbi 0 when running program\n");
             exit(0);
         }
         iti = parent.find(in[i]);
@@ -571,7 +571,7 @@ void hts(gzFile fp, samFile *fp_in, int2int &i2i, int2int &parent, bam_hdr_t *hd
         if (it == i2i.end() || dingdong == -1) {
 	  int2int::iterator it2missing = i2i_missing.find(chr);
             if (it2missing == i2i_missing.end()) {
-                fprintf(stderr, "[log] \t-> problem finding chrid:%d chrname:%s (due to problem with missing entries in nodes.dmp or supportting files)\n", chr, hdr->target_name[chr]);
+                fprintf(stderr, "[log] \t-> problem finding chrid:%d chrname:%s (due to problem with missing entries in nodes.dmp or supporting files)\n", chr, hdr->target_name[chr]);
                 i2i_missing[chr] = 1;
             } else
                 it2missing->second = it2missing->second + 1;
