@@ -492,8 +492,8 @@ int main_bytaxid(int argc,char**argv){
     parse_nodes(nodefile,rank,parent,child,1);
  
 
-  
 
+  
   //make a list of taxids to use
   int2int taxlist;
   for(int2int::iterator it=taxids.begin();it!=taxids.end();it++){

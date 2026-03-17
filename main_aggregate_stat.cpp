@@ -46,7 +46,7 @@ int helppage_aggregate(FILE *fp){
   exit(1);
   return 0;
 }
-
+/*
 void to_root(int from,int to,std::map<int,mydata2> &stats,int2int &parent,int nreads){
   //  fprintf(stderr,"from: %d to: %d nreads:%d\n",from,to,nreads);
   mydata2 &md1 = stats.find(from)->second;
@@ -72,12 +72,14 @@ void to_root(int from,int to,std::map<int,mydata2> &stats,int2int &parent,int nr
     int nreads1, nreads2;
 #endif
     if(((double) md1.nreads+md2.nreads)>2){//pooled variance of length and GC
-      /*variance1 = ((double) md1.nreads-1)*md1.data[1];
+$if 0
+    variance1 = ((double) md1.nreads-1)*md1.data[1];
       nreads1 += md1.nreads;
       variance2 = ((double) md2.nreads-1)*md2.data[1];
       nreads2 += md2.nreads;
       md2.data[1] = (variance1 + variance2) / (nreads1 + nreads2 - 2);
-      md2.data[3] = (variance1 + variance2) / (nreads1 + nreads2 - 2);*/
+      md2.data[3] = (variance1 + variance2) / (nreads1 + nreads2 - 2);
+      #endif
       md2.data[1] = (((double) md1.nreads-1)*md1.data[1]+((double) md2.nreads-1)*md2.data[1])/((double)md1.nreads+md2.nreads-2);
       md2.data[3] = (((double) md1.nreads-1)*md1.data[3]+((double) md2.nreads-1)*md2.data[3])/((double)md1.nreads+md2.nreads-2);;
     }
@@ -94,6 +96,76 @@ void to_root(int from,int to,std::map<int,mydata2> &stats,int2int &parent,int nr
   if(newto!=to)
     to_root(to,newto,stats,parent,nreads);
   
+}
+*/
+void to_root(int from,int to,std::map<int,mydata2> &stats,int2int &parent,int src_nreads,double *src_data){
+  // fprintf(stderr,"from: %d to: %d src_nreads:%d\n",from,to,src_nreads);
+
+  std::map<int,mydata2>::iterator it=stats.find(to);
+  if(it==stats.end()){
+    mydata2 mdmis;
+    mdmis.nreads = src_nreads;
+
+    mdmis.data = new double[4];
+    for(int iii=0;iii<4;iii++)
+      mdmis.data[iii] = src_data[iii];
+
+    stats[to] = mdmis;
+  }
+  else{
+    mydata2 &md2 = stats.find(to)->second;
+
+    int old_nreads = md2.nreads;
+    int new_nreads = md2.nreads + src_nreads;
+
+    double old_mean_len = md2.data[0];
+    double old_var_len  = md2.data[1];
+    double old_mean_gc  = md2.data[2];
+    double old_var_gc   = md2.data[3];
+
+    double src_mean_len = src_data[0];
+    double src_var_len  = src_data[1];
+    double src_mean_gc  = src_data[2];
+    double src_var_gc   = src_data[3];
+
+    md2.data[0] = ((double)src_mean_len*src_nreads + old_mean_len*old_nreads)/((double)src_nreads + old_nreads);
+    md2.data[2] = ((double)src_mean_gc*src_nreads + old_mean_gc*old_nreads)/((double)src_nreads + old_nreads);
+
+    if(new_nreads>1){
+      if(src_nreads>1 && old_nreads>1){
+        double ss_len =
+          ((double)src_nreads-1)*src_var_len +
+          ((double)old_nreads-1)*old_var_len +
+          ((double)src_nreads*old_nreads/(double)new_nreads)*
+          (src_mean_len-old_mean_len)*(src_mean_len-old_mean_len);
+
+        double ss_gc =
+          ((double)src_nreads-1)*src_var_gc +
+          ((double)old_nreads-1)*old_var_gc +
+          ((double)src_nreads*old_nreads/(double)new_nreads)*
+          (src_mean_gc-old_mean_gc)*(src_mean_gc-old_mean_gc);
+
+        md2.data[1] = ss_len/((double)new_nreads-1);
+        md2.data[3] = ss_gc/((double)new_nreads-1);
+      }
+      else if(src_nreads>1 && old_nreads<=1){
+        md2.data[1] = src_var_len;
+        md2.data[3] = src_var_gc;
+      }
+      else if(src_nreads<=1 && old_nreads>1){
+        md2.data[1] = old_var_len;
+        md2.data[3] = old_var_gc;
+      }
+    }
+
+    md2.nreads += src_nreads;
+  }
+
+  int newto = parent.find(to)->second;
+
+  if(newto!=to)
+    to_root(from,newto,stats,parent,src_nreads,src_data);
+
 }
 
 std::map<int,char *> read_dfit(char *fname){
@@ -129,7 +201,7 @@ std::map<int,char *> read_dfit(char *fname){
   return ret;
 }
 
-
+/*
 void aggr_stat3000(std::map<int, mydata2> &stats,int2int &parent){
   std::map<int,int> dasmap;
   for(std::map<int,mydata2>::iterator it = stats.begin();it!=stats.end();it++)
@@ -147,6 +219,32 @@ void aggr_stat3000(std::map<int, mydata2> &stats,int2int &parent){
   
 }
 
+*/
+void aggr_stat3000(std::map<int, mydata2> &stats,int2int &parent){
+  std::map<int,int> dasmap;
+  std::map<int,double *> datamap;
+
+  for(std::map<int,mydata2>::iterator it = stats.begin();it!=stats.end();it++){
+    dasmap[it->first] = it->second.nreads;
+
+    datamap[it->first] = new double[4];
+    for(int i=0;i<4;i++)
+      datamap[it->first][i] = it->second.data[i];
+  }
+
+  for(std::map<int,int>::iterator itt=dasmap.begin();itt!=dasmap.end();itt++){
+    int focal_taxid = itt->first;
+    int2int::iterator it = parent.find(focal_taxid);
+    assert(it!=parent.end());
+    int target = it->second;
+
+    if(target!=focal_taxid)
+      to_root(focal_taxid,target,stats,parent,itt->second,datamap[focal_taxid]);
+  }
+
+  for(std::map<int,double *>::iterator it=datamap.begin();it!=datamap.end();it++)
+    delete [] it->second;
+}
 int main_aggregate(int argc, char **argv) {
     if (argc <= 1){
       helppage_aggregate(stderr);
