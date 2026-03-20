@@ -1,5 +1,5 @@
-@CO this is a test for wether or not it sums correctly eg weight_type 0 and one
 @HD	VN:1.6	SO:queryname	SS:queryname:natural
+@CO	this is a test
 @SQ	SN:ref1	LN:1000
 @SQ	SN:ref2	LN:1000
 @SQ	SN:ref3	LN:1000
