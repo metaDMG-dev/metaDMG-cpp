@@ -173,6 +173,28 @@ int2char parse_names(const char *fname) {
     delete[] toks;
     return name_map;
 }
+const char *find_nearest_non_clade_rank(int node, int2char &rank, int2int &parent) {
+    int cur = node;
+
+    while (1) {
+        int2int::iterator pit = parent.find(cur);
+        if (pit == parent.end())
+            return NULL;
+
+        int par = pit->second;
+        if (par == cur)
+            return NULL;
+
+        int2char::iterator rit = rank.find(par);
+        if (rit == rank.end())
+            return NULL;
+
+        if (strcmp(rit->second, "clade") != 0)
+            return rit->second;
+
+        cur = par;
+    }
+}
 
 void parse_nodes(const char *fname, int2char &rank, int2int &parent, int2intvec &child, int dochild) {
     //  fprintf(stderr,"Parsing: %s\n",fname);
@@ -223,6 +245,17 @@ void parse_nodes(const char *fname, int2char &rank, int2int &parent, int2intvec 
     // fprintf(stderr,"%d->%lu\n",it->first,it->second.size());
     // exit(0);
     gzclose(gz);
+
+     // fix clade -> nearest non-clade ancestor
+    for (int2char::iterator it = rank.begin(); it != rank.end(); it++) {
+        if (strcmp(it->second, "clade") == 0) {
+            const char *newrank = find_nearest_non_clade_rank(it->first, rank, parent);
+            if (newrank != NULL) {
+                free(it->second);
+                it->second = strdup(newrank);
+            }
+        }
+    }
     delete[] toks;
 }
 
