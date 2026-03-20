@@ -640,14 +640,14 @@ void slave_block(std::map<int, mydataD> &retmap,int howmany,sam_hdr_t *hdr,int2c
 
 int main_dfit(int argc, char **argv) {
     /*
-    fprintf(stderr, "./metaDMG-cpp dfit file.bdamage.gz -names file.gz -nodes trestructure.gz -lcastat fil.gz -bam file.bam -showfits int -nopt int -nbootstrap int -seed int -doCI int -CI float -lib <ds,ss> -out file\n");
+    fprintf(stderr, "./metaDMG-cpp dfit file.bdamage.gz -names file.gz -nodes trestructure.gz -bam file.bam -showfits int -nopt int -nbootstrap int -seed int -doCI int -CI float -lib <ds,ss> -out file\n");
     fprintf(stderr, "-------------\n Estimate damage patterns with beta-binomial model\n");
     fprintf(stderr, "\tEstimate damage patterns for each chr/scaffold contig (local mode), using lca stats\n");
-    fprintf(stderr, "\t\t./metaDMG-cpp dfit file.bdamage.gz -names file.gz -nodes trestructure.gz -lcastat fil.gz -bam file.bam -showfits int -nopt int -nbootstrap int -seed int -doCI int -CI float -lib <ds,ss> -out file\n");
+    fprintf(stderr, "\t\t./metaDMG-cpp dfit file.bdamage.gz -names file.gz -nodes trestructure.gz -bam file.bam -showfits int -nopt int -nbootstrap int -seed int -doCI int -CI float -lib <ds,ss> -out file\n");
     fprintf(stderr, "\tEstimate one global damage pattern \n");
     fprintf(stderr, "-------------\n Estimate damage patterns with binomial model\n");
     fprintf(stderr, "\tEstimate damage patterns for each chr/scaffold contig (local mode), using lca stats\n");
-    fprintf(stderr, "\t\t./metaDMG-cpp dfit file.bdamage.gz -names file.gz -nodes trestructure.gz -lcastat fil.gz -bam file.bam -showfits int -nopt int -nbootstrap int -seed int -doCI int -CI float -lib <ds,ss> -out file\n");
+    fprintf(stderr, "\t\t./metaDMG-cpp dfit file.bdamage.gz -names file.gz -nodes trestructure.gz -bam file.bam -showfits int -nopt int -nbootstrap int -seed int -doCI int -CI float -lib <ds,ss> -out file\n");
     fprintf(stderr, "\tEstimate one global damage pattern \n");
     fprintf(stderr, "\t\t./metaDMG-cpp dfit metaDMG-cpp/metaDMG-cpp dfit Pitch6getDMG.bdamage.gz -doboot 1 -nbootstrap 5 -nopt 10 -showfits 0\n");
     */
@@ -705,10 +705,17 @@ int main_dfit(int argc, char **argv) {
           doCI = atoi(*(++argv));
         else if (strcasecmp("--lib", *argv) == 0)
             lib_prep = strdup(*(++argv));
-	      else if (strcasecmp("--threads", *argv) == 0)
-            nthreads = atoi(*(++argv));
-        else
-          infile_bdamage = strdup(*argv);
+	else if (strcasecmp("--threads", *argv) == 0)
+	  nthreads = atoi(*(++argv));
+	else{
+	  if(infile_bdamage==NULL){
+	    infile_bdamage = strdup(*argv);
+	    fprintf(stderr,"\t-> infile_bdamage: %s\n",infile_bdamage);
+	  }else{
+	    fprintf(stderr,"\t-> Possible problem. Looks like multiple bdamage files has been defined: %s and %s\n",infile_bdamage,*argv);
+	    exit(1);
+	  }
+	}
     }
     if(infile_nodes&&!infile_names){
       fprintf(stderr,"\t-> --names file.gz must be defined with --nodes is defined\n");
