@@ -21,7 +21,8 @@ typedef struct {
   size_t nreads;
   float **mm5pF;
   float **mm3pF;
-  size_t *rlens;
+  size_t *rlens; //this is the counts. Not hashmap to speed up things
+  int rlens_m; // the length of the above. surprise
 } triple;
 
 class damage {
@@ -40,7 +41,8 @@ class damage {
     void bwrite(char *prefix);
     int damage_analysis(bam1_t *b, int whichclass, float incval);
     void printit(FILE *fp, int l);
-    int temp_len;
+  int temp_len;//<- this is the maxlenght of the reconstructed reference etc. This might be updated to a higher value.
+  //also when we initialize a new rlens for a ref/taxid that will be used. 
     damage(int maxlen, int nthd, int minqb) {
         temp_len = 512;
         MAXLENGTH = maxlen;

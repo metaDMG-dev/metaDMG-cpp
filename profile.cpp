@@ -284,32 +284,56 @@ inline void increaseCounters(const bam1_t *b, const char *reconstructedReference
     }
 }
 
+//this function will not get a commen
+void mysuperduper_function(triple &t, size_t old_m, size_t new_m) {
+  assert(t.rlens!=NULL&&old_m<new_m);
+  assert(t.rlens_m == old_m);//just so ser ser double sure
+  size_t *tmp = new size_t[new_m];
+  memset(tmp, 0, new_m * sizeof(size_t));
+  memcpy(tmp, t.rlens, t.rlens_m * sizeof(size_t));
+  delete [] t.rlens;
+  
+  t.rlens = tmp;
+  t.rlens_m = new_m;
+}
+
 int damage::damage_analysis(bam1_t *b, int which, float incval) {
+  size_t rlen = (size_t)b->core.l_qseq;
   //  fprintf(stderr,"\t-> incval: %f\n",incval);
+  //ok we need to do something
+  if (rlen + 10 >= temp_len) {//so lets be sure,
+    temp_len = b->core.l_qseq+10;//and then be really sure
+    kroundup32(temp_len);
+    free(reconstructedTemp);
+    reconstructedTemp = (char *)calloc(temp_len, 1);
+    
+  }
+  memset(reconstructedTemp, 0, temp_len);//maybe bottleneck, should not be needed.
+  
   if (assoc.find(which) == assoc.end()) {
-    triple val = {0, getmatrix(MAXLENGTH, 16), getmatrix(MAXLENGTH, 16),new size_t[500]};
-    for(int i=0;i<500;i++)
-      val.rlens[i] = 0;
+    triple val = {0, getmatrix(MAXLENGTH, 16), getmatrix(MAXLENGTH, 16),new size_t[temp_len],temp_len};
+    memset(val.rlens, 0, temp_len * sizeof(size_t));
     assoc[which] = val;
     mm5pF = val.mm5pF;
     mm3pF = val.mm3pF;
     //    fprintf(stderr,"has added which: %d\n",which);
   }
-    std::map<int, triple>::iterator it = assoc.find(which);
-    it->second.nreads++;
-    //    fprintf(stderr,"[%s] it->first:%d it->second.nreads:%d\n",__FUNCTION__,it->first,it->second.nreads);
-    assert(b->core.l_qseq<500);
-    it->second.rlens[b->core.l_qseq] =  it->second.rlens[b->core.l_qseq] + 1; 
-    if (b->core.l_qseq - 10 > temp_len) {
-        temp_len = b->core.l_qseq;
-        kroundup32(temp_len);
-        free(reconstructedTemp);
-        reconstructedTemp = (char *)calloc(temp_len, 1);
-    }
-    memset(reconstructedTemp, 0, temp_len);
-    reconstructRefWithPosHTS(b, reconstructedReference, reconstructedTemp);
-    increaseCounters(b, reconstructedReference.first->s, reconstructedReference.second, minQualBase, MAXLENGTH, it->second.mm5pF, it->second.mm3pF, incval);
-    return 0;
+
+  
+  std::map<int, triple>::iterator it = assoc.find(which);
+  //so lets make sure that 
+  if (rlen +10 >= it->second.rlens_m) {
+    size_t new_m = rlen + 10;
+    kroundup32(new_m);
+    mysuperduper_function(it->second, it->second.rlens_m, new_m);
+  }
+  
+  it->second.nreads++;
+  it->second.rlens[rlen]++;
+  fprintf(stderr,"er vi her fprintf%lu rlen: %lu\n",it->second.nreads,rlen);
+  reconstructRefWithPosHTS(b, reconstructedReference, reconstructedTemp);
+  increaseCounters(b, reconstructedReference.first->s, reconstructedReference.second, minQualBase, MAXLENGTH, it->second.mm5pF, it->second.mm3pF, incval);
+  return 0;
 }
 
 void damage::write(char *fname, bam_hdr_t *hdr) {
@@ -382,7 +406,7 @@ void damage::bwrite(char *fname) {
         if (it->second.nreads == 0)  // should never happen
             continue;
 	ksprintf(&kstr3000,"%d",it->first);
-	for(int i=0;i<500;i++)
+	for(int i=0;i<it->second.rlens_m;i++)
 	  if(it->second.rlens[i]>0)
 	    ksprintf(&kstr3000,"\t%d:%lu",it->second.rlens[i]);
 	ksprintf(&kstr3000,"\n");
