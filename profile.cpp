@@ -377,17 +377,15 @@ void damage::bwrite(char *fname) {
     kstring_t kstr3000;
     kstr3000.s = NULL;
     kstr3000.l = kstr3000.m = 0;
-    ksprintf(&kstr3000,"id");
-    for(int i=0;i<500;i++)
-      ksprintf(&kstr3000,"\trlen%d",i);
-    ksprintf(&kstr3000,"\n");
+    ksprintf(&kstr3000,"id\trlen:count\n");
     for (std::map<int, triple>::iterator it = assoc.begin(); it != assoc.end(); it++) {
         if (it->second.nreads == 0)  // should never happen
             continue;
 	ksprintf(&kstr3000,"%d",it->first);
-	for(int i=0;i<500-1;i++)
-	  ksprintf(&kstr3000,"\t%lu",it->second.rlens[i]);
-	ksprintf(&kstr3000,"\t%lu\n",it->second.rlens[499]);
+	for(int i=0;i<500;i++)
+	  if(it->second.rlens[i]>0)
+	    ksprintf(&kstr3000,"\t%d:%lu",it->second.rlens[i]);
+	ksprintf(&kstr3000,"\n");
 	if(kstr3000.l>1000000){
 	  assert(bgzf_write(fp,kstr3000.s,kstr3000.l)==kstr3000.l);
 	  kstr3000.l  = 0;
