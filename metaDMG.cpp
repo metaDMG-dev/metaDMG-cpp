@@ -41,6 +41,7 @@ int usage_getdamage(FILE *fp) {
     fprintf(fp, "  -r/--run_mode\t\t 0: global estimate (default)\n\t\t\t 1: damage patterns will be calculated for each chr/scaffold contig\n");
     fprintf(fp, "  -i/--ignore_errors\t continue analyses even if there are errors.\n");
     fprintf(fp, "  -o/--out_prefix\t output prefix (default: meta)\n");
+    fprintf(fp, "  -z/--rlens_flat_out\t make flat output of bins. Nice for computers\n");
     return 1;
 }
 
@@ -193,9 +194,11 @@ int main_getdamage(int argc, char **argv) {
     char *onam = strdup("meta");
     int nthreads = 4;
     int ignore_errors = 0;
+    int rlens_flat_out = 0;
     // fix thesepro
     static struct option lopts[] = {
         {"threads", required_argument, 0, 'n'},
+	{"rlens_flat_out", required_argument, 0, 'z'},
         {"fasta", required_argument, 0, 'f'},
         {"min_length", required_argument, 0, 'l'},
         {"print_length", required_argument, 0, 'p'},
@@ -207,7 +210,7 @@ int main_getdamage(int argc, char **argv) {
 
     int c;
     while ((c = getopt_long(argc, argv,
-                            "n:f:l:p:r:o:h",
+                            "z:n:f:l:p:r:o:h",
                             lopts, NULL)) >= 0) {
       switch (c) {
       case 'n':
@@ -215,6 +218,8 @@ int main_getdamage(int argc, char **argv) {
 	break;
       case 'f':
 	refName = strdup(optarg);
+      case 'z':
+	rlens_flat_out = atoi(optarg);
 	break;
       case 'l':
 	minLength = atoi(optarg);
@@ -238,7 +243,7 @@ int main_getdamage(int argc, char **argv) {
     }
     if (optind < argc)
         fname = strdup(argv[optind]);
-    fprintf(stderr, "\t-> ./metaDMG-cpp refName: %s min_length: %d print_length: %d run_mode: %d out_prefix: %s nthreads: %d ignore_errors: %d\n", refName, minLength, printLength, runmode, onam, nthreads, ignore_errors);
+    fprintf(stderr, "\t-> ./metaDMG-cpp refName: %s min_length: %d print_length: %d run_mode: %d out_prefix: %s nthreads: %d ignore_errors: %d rlens_flat_out: %d\n", refName, minLength, printLength, runmode, onam, nthreads, ignore_errors,rlens_flat_out);
     if (fname == NULL) {
         usage_getdamage(stderr);
         return 0;
@@ -314,7 +319,7 @@ int main_getdamage(int argc, char **argv) {
 
     dmg->printit(stdout, printLength);
     dmg->write(onam, runmode == 1 ? hdr : NULL);
-    dmg->bwrite(onam);
+    dmg->bwrite(onam,rlens_flat_out);
 
     // write stat
     char buf[1024];

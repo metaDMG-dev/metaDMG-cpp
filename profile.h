@@ -38,7 +38,7 @@ class damage {
     std::pair<kstring_t *, std::vector<int> > reconstructedReference;
     std::map<int, triple> assoc;
     void write(char *prefix, bam_hdr_t *hdr);
-    void bwrite(char *prefix);
+  void bwrite(char *prefix,int FLAT_OUT);
     int damage_analysis(bam1_t *b, int whichclass, float incval);
     void printit(FILE *fp, int l);
   int temp_len;//<- this is the maxlenght of the reconstructed reference etc. This might be updated to a higher value.

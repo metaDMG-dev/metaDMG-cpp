@@ -13,6 +13,9 @@
 #include <cstring>    // for strlen, strtok, memset, strdup
 #include <vector>     // for vector
 
+
+
+
 float **getmatrix(size_t x, size_t y) {
     float **ret = new float *[x];
     for (size_t i = 0; i < x; i++) {
@@ -330,7 +333,7 @@ int damage::damage_analysis(bam1_t *b, int which, float incval) {
   
   it->second.nreads++;
   it->second.rlens[rlen]++;
-  fprintf(stderr,"er vi her fprintf%lu rlen: %lu\n",it->second.nreads,rlen);
+  //  fprintf(stderr,"er vi her fprintf%lu rlen: %lu\n",it->second.nreads,rlen);
   reconstructRefWithPosHTS(b, reconstructedReference, reconstructedTemp);
   increaseCounters(b, reconstructedReference.first->s, reconstructedReference.second, minQualBase, MAXLENGTH, it->second.mm5pF, it->second.mm3pF, incval);
   return 0;
@@ -374,7 +377,8 @@ void damage::write(char *fname, bam_hdr_t *hdr) {
     free(kstr.s);
 }
 
-void damage::bwrite(char *fname) {
+//default output in rlens is ref bin:count[], FLAT_OUT 1 is ref tab bin tab count newline
+void damage::bwrite(char *fname,int FLAT_OUT = 0) {
 
     char onam[1024];
     snprintf(onam, 1024, "%s.bdamage.gz", fname);
@@ -401,15 +405,24 @@ void damage::bwrite(char *fname) {
     kstring_t kstr3000;
     kstr3000.s = NULL;
     kstr3000.l = kstr3000.m = 0;
-    ksprintf(&kstr3000,"id\trlen:count\n");
+    if(FLAT_OUT ==0 )
+      ksprintf(&kstr3000,"id\trlen:count\n");
+    else
+      ksprintf(&kstr3000,"ID\trlen\tcount\n");
     for (std::map<int, triple>::iterator it = assoc.begin(); it != assoc.end(); it++) {
         if (it->second.nreads == 0)  // should never happen
             continue;
-	ksprintf(&kstr3000,"%d",it->first);
+	if(FLAT_OUT==0)
+	  ksprintf(&kstr3000,"%d",it->first);
 	for(int i=0;i<it->second.rlens_m;i++)
-	  if(it->second.rlens[i]>0)
-	    ksprintf(&kstr3000,"\t%d:%lu",it->second.rlens[i]);
-	ksprintf(&kstr3000,"\n");
+	  if(it->second.rlens[i]>0){
+	    if(FLAT_OUT == 0)
+	      ksprintf(&kstr3000,"\t%d:%lu",i,it->second.rlens[i]);
+	    else
+	      ksprintf(&kstr3000,"%d\t%d\t%lu\n",it->first,i,it->second.rlens[i]);
+	  }
+	if(FLAT_OUT==0)
+	  ksprintf(&kstr3000,"\n");
 	if(kstr3000.l>1000000){
 	  assert(bgzf_write(fp,kstr3000.s,kstr3000.l)==kstr3000.l);
 	  kstr3000.l  = 0;

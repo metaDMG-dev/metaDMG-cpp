@@ -43,6 +43,7 @@ typedef struct {
     int ignore_errors;
   int useDump;
   long maxreads;
+  int rlens_flat_out;
 } pars;
 
 pars *get_pars(int argc, char **argv);

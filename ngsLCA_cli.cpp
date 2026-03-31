@@ -46,6 +46,7 @@ pars *pars_init() {
     p->ignore_errors = 0;
     p->useDump = 0;
     p->maxreads = -1;
+    p->rlens_flat_out = 0;
     return p;
 }
 
@@ -252,6 +253,8 @@ pars *get_pars(int argc, char **argv) {
 	    p->useDump = atoi(val);
 	else if (!strcasecmp("--ignore_errors", key)||!strcasecmp("-i", key))
 	    p->ignore_errors++;
+	else if (!strcasecmp("--rlens_flat_out", key)||!strcasecmp("-rfo", key))
+	  p->rlens_flat_out = atoi(val);
         else if (!strcasecmp("--temp", key)) {
             free(p->tempfolder);
             p->tempfolder = strdup(val);
@@ -327,6 +330,7 @@ void print_pars(FILE *fp, pars *p) {
     fprintf(fp, "\t-> --ignore_errors\t%d\n", p->ignore_errors);
     fprintf(fp, "\t-> --temp\t%s\n", p->tempfolder);
     fprintf(fp, "\t-> --filtered_acc2tax\t%s\n", p->filteredAcc2taxfile);
+    fprintf(fp, "\t-> --rlens_flat_out\t%d\n", p->rlens_flat_out);
 }
 
 #ifdef __WITH_MAIN__
