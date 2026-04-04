@@ -227,7 +227,7 @@ void reconstructRefWithPosHTS(const bam1_t *b, std::pair<kstring_t *, std::vecto
         }
     }
 
-    if (strlen(pp.first->s) != b->core.l_qseq) {
+    if (strlen(pp.first->s) !=(size_t) b->core.l_qseq) {
         fprintf(stderr, "Could not recreate the sequence for read: %s pp.first->s: %s strlen():%zu\n", bam_get_qname(b), pp.first->s, strlen(pp.first->s));
         exit(1);
     }
@@ -238,7 +238,7 @@ void reconstructRefWithPosHTS(const bam1_t *b, std::pair<kstring_t *, std::vecto
     }
 }
 
-inline void increaseCounters(const bam1_t *b, const char *reconstructedReference, const std::vector<int> &reconstructedReferencePos, const int &minQualBase, int MAXLENGTH, float **mm5p, float **mm3p, float incval) {
+inline void increaseCounters(const bam1_t *b, const char *reconstructedReference, const int &minQualBase, int MAXLENGTH, float **mm5p, float **mm3p, float incval) {
     const char *alphabetHTSLIB = "NACNGNNNTNNNNNNN";
     char refeBase;
     char readBase;
@@ -276,25 +276,25 @@ inline void increaseCounters(const bam1_t *b, const char *reconstructedReference
             refeBase = readBase;
         }
 
-        refeBase = refToChar[refeBase];
-        readBase = refToChar[readBase];
+        refeBase = refToChar[(unsigned char)refeBase];
+        readBase = refToChar[(unsigned char)readBase];
 
         if (refeBase != 4 && readBase != 4) {
             int dist5p = i;
             int dist3p = b->core.l_qseq - 1 - i;
 
             if (bam_is_rev(b)) {
-                refeBase = com[refeBase];
-                readBase = com[readBase];
+                refeBase = com[(unsigned char)refeBase];
+                readBase = com[(unsigned char)readBase];
                 // dist5p=int(al.QueryBases.size())-1-i;
                 dist5p = int(b->core.l_qseq) - 1 - i;
                 dist3p = i;
             }
 
             if (dist5p < MAXLENGTH)
-                mm5p[dist5p][toIndex[refeBase][readBase]] += incval;
+                mm5p[dist5p][toIndex[(unsigned char)refeBase][(unsigned char)readBase]] += incval;
             if (dist3p < MAXLENGTH)
-                mm3p[dist3p][toIndex[refeBase][readBase]] += incval;
+                mm3p[dist3p][toIndex[(unsigned char)refeBase][(unsigned char)readBase]] += incval;
         }
     }
 }
@@ -302,7 +302,7 @@ inline void increaseCounters(const bam1_t *b, const char *reconstructedReference
 //this function will not get a commen
 void mysuperduper_function(triple &t, size_t old_m, size_t new_m) {
   assert(t.rlens!=NULL&&old_m<new_m);
-  assert(t.rlens_m == old_m);//just so ser ser double sure
+  assert((size_t)t.rlens_m == old_m);//just so ser ser double sure
   size_t *tmp = new size_t[new_m];
   memset(tmp, 0, new_m * sizeof(size_t));
   memcpy(tmp, t.rlens, t.rlens_m * sizeof(size_t));
@@ -329,8 +329,8 @@ int damage::damage_analysis(bam1_t *b, int which, float incval) {
     triple val = {0, getmatrix(MAXLENGTH, 16), getmatrix(MAXLENGTH, 16),new size_t[temp_len],temp_len};
     memset(val.rlens, 0, temp_len * sizeof(size_t));
     assoc[which] = val;
-    mm5pF = val.mm5pF;
-    mm3pF = val.mm3pF;
+    //mm5pF = val.mm5pF;
+    //mm3pF = val.mm3pF;
     //    fprintf(stderr,"has added which: %d\n",which);
   }
 
@@ -347,7 +347,7 @@ int damage::damage_analysis(bam1_t *b, int which, float incval) {
   it->second.rlens[rlen]++;
   //  fprintf(stderr,"er vi her fprintf%zu rlen: %zu\n",it->second.nreads,rlen);
   reconstructRefWithPosHTS(b, reconstructedReference, reconstructedTemp);
-  increaseCounters(b, reconstructedReference.first->s, reconstructedReference.second, minQualBase, MAXLENGTH, it->second.mm5pF, it->second.mm3pF, incval);
+  increaseCounters(b, reconstructedReference.first->s, minQualBase, MAXLENGTH, it->second.mm5pF, it->second.mm3pF, incval);
   return 0;
 }
 
@@ -382,10 +382,7 @@ void damage::write(char *fname, bam_hdr_t *hdr) {
                 ksprintf(&kstr, "\t%.0f", it->second.mm3pF[l][i]);
         }
         ksprintf(&kstr, "\n");
-        if(bgzf_write(fp, kstr.s, kstr.l) != kstr.l){
-	  fprintf(stderr, "Write error\n");
-	  exit(1);
-	}
+        my_bgzf_write(fp, kstr.s, kstr.l);
         kstr.l = 0;
     }
     bgzf_close(fp);
@@ -439,12 +436,12 @@ void damage::bwrite(char *fname,int FLAT_OUT = 0) {
             continue;
 	if(FLAT_OUT==0)
 	  ksprintf(&kstr3000,"%d",it->first);
-	for(int i=0;i<it->second.rlens_m;i++)
+	for(size_t i=0;i<it->second.rlens_m;i++)
 	  if(it->second.rlens[i]>0){
 	    if(FLAT_OUT == 0)
-	      ksprintf(&kstr3000,"\t%d:%zu",i,it->second.rlens[i]);
+	      ksprintf(&kstr3000,"\t%zu:%zu",i,it->second.rlens[i]);
 	    else
-	      ksprintf(&kstr3000,"%d\t%d\t%zu\n",it->first,i,it->second.rlens[i]);
+	      ksprintf(&kstr3000,"%d\t%zu\t%zu\n",it->first,i,it->second.rlens[i]);
 	  }
 	if(FLAT_OUT==0)
 	  ksprintf(&kstr3000,"\n");
@@ -493,10 +490,12 @@ int printresults_grenaud2(FILE *fp, float **mm5p, int lengthMaxToPrint) {
 }
 
 void damage::printit(FILE *fp, int l) {
-    if (mm5pF)
-        printresults_grenaud2(fp, mm5pF, l);
-    if (mm3pF)
-        printresults_grenaud2(fp, mm3pF, l);
+  fprintf(fp,"Printing mismatchmatric for first entry\n");
+  if(assoc.size()==0)
+    return;
+  auto it = assoc.begin();
+  printresults_grenaud2(fp, it->second.mm5pF, l);
+  printresults_grenaud2(fp, it->second.mm3pF, l);
 }
 
 #ifdef __WITH_MAIN__
