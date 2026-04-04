@@ -427,7 +427,7 @@ int main_print(int argc, char **argv) {
     if (search != -1 && doold == 0) {
         std::map<int, double *> retmap = load_bdamage3(infile, howmany);
         double *dbl = getval(retmap, child, search, howmany);
-        double dbldbl[3 * howmany + 1];  // 3 because ct,ga,other
+        double *dbldbl = new double[3 * howmany + 1];  // 3 because ct,ga,other
         dbldbl[0] = dbl[0];
         for (int i = 0; i < 3 * howmany; i++)
             dbldbl[i + 1] = dbl[1 + i] / dbl[0];
@@ -436,6 +436,7 @@ int main_print(int argc, char **argv) {
         for (int i = 0; i < 3 * howmany; i++)
             fprintf(stdout, "\t%f", dbldbl[1 + i]);
         fprintf(stdout, "\n");
+	delete [] dbldbl;
         return 0;
     }
 
@@ -539,7 +540,7 @@ int main_print(int argc, char **argv) {
 
         for (int at = 0; at < printlength; at++) {
             assert(16 * sizeof(float) == bgzf_read(bgfp, data, sizeof(float) * 16));
-            if (at > howmany)
+            if (at >= howmany)
                 continue;
             if (search == -1 || search == ref_nreads[0]) {
                 if (ctga == 0) {
@@ -665,7 +666,7 @@ int main_print2(int argc, char **argv) {
     if (search != -1 && doold == 0) {
         std::map<int, double *> retmap = load_bdamage3(infile, howmany);
         double *dbl = getval(retmap, child, search, howmany);
-        double dbldbl[3 * howmany + 1];  // 3 because ct,ga,other
+        double *dbldbl = new double [3 * howmany + 1];  // 3 because ct,ga,other
         dbldbl[0] = dbl[0];
         for (int i = 0; i < 3 * howmany; i++)
             dbldbl[i + 1] = dbl[1 + i] / dbl[0];
@@ -674,6 +675,7 @@ int main_print2(int argc, char **argv) {
         for (int i = 0; i < 3 * howmany; i++)
             fprintf(stdout, "\t%f", dbldbl[1 + i]);
         fprintf(stdout, "\n");
+	delete [] dbldbl;
         return 0;
     }
 
@@ -753,7 +755,7 @@ int main_print2(int argc, char **argv) {
                 }
                 if (countout == 1) {
                     for (int i = 0; i < 16; i++)
-                        fprintf(stdout, "\t%d", data[i]);
+                        fprintf(stdout, "\t%f", data[i]);
                     fprintf(stdout, "\n");
                 } else {
                     float flt[16];
@@ -805,7 +807,7 @@ int main_print2(int argc, char **argv) {
                 }
                 if (countout == 1) {
                     for (int i = 0; i < 16; i++)
-                        fprintf(stdout, "\t%d", data[i]);
+                        fprintf(stdout, "\t%f", data[i]);
                     fprintf(stdout, "\n");
                 } else {
                     float flt[16];
@@ -970,22 +972,32 @@ int main_merge(int argc, char **argv) {
 int2int getlcadist(char *fname) {
     //  fprintf(stderr,"fname: %s\n",fname);
     int2int lcadist;
-    int tlen = strlen(fname) + 10;
-    char tmp[tlen];
-    snprintf(tmp, tlen, "%s.stat", fname);
+    if(strlen(fname)>1000){
+      fprintf(stderr,"\t-> Ridiculus long filename: \'%s\'\n",fname);
+      exit(1);
+    }
+    char tmp[1024];
+    snprintf(tmp, 1000, "%s.stat", fname);
     fprintf(stderr, "tmp: %s\n", tmp);
     FILE *fp = NULL;
     fp = fopen(tmp, "rb");
     assert(fp != NULL);
     char buf[4096];
     while (fgets(buf, 4096, fp)) {
-        int key = atoi(strtok(buf, "\t\n "));
-        int val = atoi(strtok(NULL, "\t\n "));
-        lcadist[key] = val;
+      char *tok1 = strtok(buf, "\t\n ");
+      char *tok2 = strtok(NULL, "\t\n ");
+      if(!tok1||!tok2)
+	continue;
+      int key = atoi(tok1);
+      int val = atoi(tok2);
+      lcadist[key] = val;
     }
     fprintf(stderr, "\t-> Done reading: %lu entries from file: \'%s\'\n", lcadist.size(), tmp);
+    fclose(fp);
     return lcadist;
 }
+
+
 
 std::map<int, double *> getcsv(char *fname) {
     std::map<int, double *> ret;
@@ -1106,20 +1118,18 @@ int main_merge2(int argc, char **argv) {
 }
 
 int main_print_all(int argc, char **argv) {
-    fprintf(stderr, "./metaDMG-cpp print_all file.bdamage.gz -names file.gz [-howmany 5] -nodes trestructure.gz -names fil.gz\n");
+    fprintf(stderr, "./metaDMG-cpp print_all file.bdamage.gz -names file.gz -nodes trestructure.gz -names fil.gz\n");
     if (argc <= 2)
         return 0;
     char *infile_bdamage = NULL;
     char *infile_nodes = NULL;
     char *infile_names = NULL;
-    int howmany = 5;
+
 
     while (*(++argv)) {
         if (strcasecmp("-names", *argv) == 0)
             infile_names = strdup(*(++argv));
-        else if (strcasecmp("-howmany", *argv) == 0)
-            howmany = atoi(*(++argv));
-        else if (strcasecmp("-nodes", *argv) == 0)
+	else if (strcasecmp("-nodes", *argv) == 0)
             infile_nodes = strdup(*(++argv));
         else
             infile_bdamage = strdup(*argv);
@@ -1136,15 +1146,15 @@ int main_print_all(int argc, char **argv) {
 
     if (infile_nodes != NULL)
         parse_nodes(infile_nodes, rank, parent, child, 1);
-
+    int howmany = 5;
     std::map<int, double *> retmap = load_bdamage3(infile_bdamage, howmany);
     fprintf(stderr, "\t-> number of entries in damage pattern file: %lu\n", retmap.size());
     int2char name = parse_names(infile_names);
 
     BGZF *bgfp = NULL;
-    samFile *samfp = NULL;
-
+    
     float presize = retmap.size();
+
     getval(retmap, child, 1, howmany);  // this will do everything
     float postsize = retmap.size();
     fprintf(stderr, "\t-> pre: %f post:%f grownbyfactor: %f\n", presize, postsize, postsize / presize);
@@ -1259,7 +1269,7 @@ int main_print_ugly(int argc, char **argv) {
 
     for (std::map<int, mydataD>::iterator it = retmap.begin(); it != retmap.end(); it++) {
         int taxid = it->first;
-        mydataD md = it->second;
+        //mydataD md = it->second;
         if (it->second.nal == 0)
             continue;
         /*
@@ -1440,7 +1450,7 @@ int main(int argc, char **argv) {
     if (!strcmp(argv[0], "mergedamage"))
       main_mergedamage(argc, argv);
 
-    //  fprintf(stderr, "\t[ALL done] cpu-time used =  %.2f sec\n", (float)(clock() - t) / CLOCKS_PER_SEC);
-    // fprintf(stderr, "\t[ALL done] walltime used =  %.2f sec\n", (float)(time(NULL) - t2));
+    fprintf(stderr, "\t[ALL done] cpu-time used =  %.2f sec\n", (float)(clock() - t) / CLOCKS_PER_SEC);
+    fprintf(stderr, "\t[ALL done] walltime used =  %.2f sec\n", (float)(time(NULL) - t2));
     return 0;
 }
