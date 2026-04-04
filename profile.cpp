@@ -278,23 +278,22 @@ inline void increaseCounters(const bam1_t *b, const char *reconstructedReference
 
         refeBase = refToChar[(unsigned char)refeBase];
         readBase = refToChar[(unsigned char)readBase];
-
-        if (refeBase != 4 && readBase != 4) {
-            int dist5p = i;
-            int dist3p = b->core.l_qseq - 1 - i;
-
-            if (bam_is_rev(b)) {
-                refeBase = com[(unsigned char)refeBase];
-                readBase = com[(unsigned char)readBase];
-                // dist5p=int(al.QueryBases.size())-1-i;
-                dist5p = int(b->core.l_qseq) - 1 - i;
-                dist3p = i;
-            }
-
-            if (dist5p < MAXLENGTH)
-                mm5p[dist5p][toIndex[(unsigned char)refeBase][(unsigned char)readBase]] += incval;
-            if (dist3p < MAXLENGTH)
-                mm3p[dist3p][toIndex[(unsigned char)refeBase][(unsigned char)readBase]] += incval;
+	if(refeBase<4 && readBase <4){
+	  int dist5p = i;
+	  int dist3p = b->core.l_qseq - 1 - i;
+	  
+	  if (bam_is_rev(b)) {
+	    refeBase = com[(unsigned char)refeBase];
+	    readBase = com[(unsigned char)readBase];
+	    // dist5p=int(al.QueryBases.size())-1-i;
+	    dist5p = int(b->core.l_qseq) - 1 - i;
+	    dist3p = i;
+	  }
+	  
+	  if (dist5p < MAXLENGTH)
+	    mm5p[dist5p][toIndex[(unsigned char)refeBase][(unsigned char)readBase]] += incval;
+	  if (dist3p < MAXLENGTH)
+	    mm3p[dist3p][toIndex[(unsigned char)refeBase][(unsigned char)readBase]] += incval;
         }
     }
 }

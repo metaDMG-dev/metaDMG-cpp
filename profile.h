@@ -51,7 +51,6 @@ class damage {
         kstr->l = kstr->m = 0;
         kstr->s = NULL;
         reconstructedReference.first = kstr;
-        //mm5pF = mm3pF = NULL;
     }
     ~damage() { free(reconstructedTemp); }
 };
