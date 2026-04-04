@@ -89,7 +89,12 @@ std::map<int,mydataD> getval_full_norec(std::map<int, mydataD> &retmap, int2int 
   
   //funky modern syntax below
   //loop over all entries in retmap. lizard king 
-  for (const auto &[taxid, data] : retmap) {
+  //  for (const auto &[taxid, data] : retmap) {
+
+  for(  std::map<int, mydataD>::iterator it=retmap.begin();it!=retmap.end();it++){
+    int taxid = it->first;
+    mydataD data = it->second;
+    
     int current = taxid;
     //   fprintf(stderr,"taxid: %d\n",taxid);
      while (true) {
