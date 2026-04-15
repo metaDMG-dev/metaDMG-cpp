@@ -298,7 +298,7 @@ pars *get_pars(int argc, char **argv) {
         fprintf(stderr, "\t-> Will output the reads that are used for damage file:\t\'%s\'\n", buf);
         p->usedreads_sam = strdup(buf);
     }
-    if (make_used_reads) {
+    if (make_famout_reads) {
       snprintf(buf, 1024, "%s.famoutreads.bam", p->outnames);
       fprintf(stderr, "\t-> Will output the reads that has lca below family :\t\'%s\'\n", buf);
       p->famout_sam = strdup(buf);
