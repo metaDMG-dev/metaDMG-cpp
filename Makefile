@@ -34,7 +34,7 @@ endif
 
 # --- Crypto library detektion ---
 HAVE_CRYPTO := $(shell echo 'int main(){}'|$(CXX) -x c++ - -lcrypto -o /dev/null 2>/dev/null && echo 0 || echo 1)
-LIBS := -lz -lm -lbz2 -llzma -lpthread -lcurl
+LIBS := -lz -lpthread
 
 # --- Mål og bygning ---
 PROGRAM = metaDMG-cpp
@@ -65,7 +65,7 @@ else
   # Use HTSSRC directly for include path
   CPPFLAGS += -I$(HTSSRC)
   LIBHTS := $(HTSSRC)/libhts.a
-  LIBS := $(LIBHTS) $(LIBS)
+  LIBS := $(LIBHTS) $(LIBS) -lbz2 -llzma -lcurl
   $(PROGRAM): $(LIBHTS)
 
   ifneq ($(filter /%,$(HTSSRC)),$(HTSSRC))
@@ -106,7 +106,7 @@ $(PROGRAM): version.h $(OBJ) $(LIBHTS)
 
 .PHONY: misc
 misc: $(LIBHTS) $(OBJ)
-	$(MAKE) -C misc HTSSRC=$(ABSPATH)
+	$(MAKE) -C misc HTSSRC=$(ABSPATH) FLAGS=$(FLAGS)
 
 # --- Automatisk afhængighedshåndtering ---
 -include $(OBJ:.o=.d)
