@@ -12,8 +12,7 @@
 #include <unistd.h>   // for isatty
 
 #include <map>  // for operator!=, map<>::iterator
-pthread_mutex_t mutex1 = PTHREAD_MUTEX_INITIALIZER;
-pthread_mutex_t mutex2 = PTHREAD_MUTEX_INITIALIZER;
+
 pars *pars_init() {
     pars *p = (pars *)calloc(1, sizeof(pars));
     p->htsfile = strdup("CHL_155_12485.sort.bam");
@@ -46,6 +45,7 @@ pars *pars_init() {
     p->ignore_errors = 0;
     p->useDump = 0;
     p->maxreads = -1;
+    p->rlens_flat_out = 0;
     return p;
 }
 
@@ -96,14 +96,18 @@ void *read_header_thread(void *ptr) {
     fprintf(stderr, "\t-> [thread1] Will read header\n");
     p->hts = hts_open(p->htsfile, "r");
     p->header = sam_hdr_read(p->hts);
+    if(p->header==NULL){
+      fprintf(stderr,"\t-> Problem reading header from file\n");
+      exit(1);
+    }
+
     if(checkIfSorted(p->header->text)){
       fprintf(stderr, "Input alignment file is not sorted.");
       if(!p->ignore_errors)
 	exit(1);
     }
-    assert(p->header);
+  
     fprintf(stderr, "\t-> [thread1] Done reading header: %.2f sec, header contains: %d \n", (float)(time(NULL) - t), p->header->n_targets);
-    pthread_mutex_unlock(&mutex1);
     return NULL;
 }
 
@@ -158,7 +162,8 @@ char2int *ass2bin(const char *fname, int redo) {
                 gzwrite(FP, &key_l, sizeof(int));
                 gzwrite(FP, key, key_l);
                 gzwrite(FP, &val, sizeof(int));
-                fprintf(stderr, "key_l: %d key:%s val:%d\n", key_l, key, val);
+		if(0)
+		  fprintf(stderr, "key_l: %d key:%s val:%d\n", key_l, key, val);
             }
             if (cm->find(key) != cm->end())
                 fprintf(stderr, "\t-> Duplicate entries found \'%s\'\n", key);
@@ -174,14 +179,8 @@ char2int *ass2bin(const char *fname, int redo) {
     return cm;
 }
 
-void *read_ass2taxid_thread(void *ptr) {
-    pars *p = (pars *)ptr;
-    p->charref2taxid = ass2bin(p->acc2taxfile, 0);
-    pthread_mutex_unlock(&mutex2);
-    return NULL;
-}
-
 pars *get_pars(int argc, char **argv) {
+
     pars *p = pars_init();
     if (argc % 2) {
         fprintf(stderr, "\t-> Must supply arguments in the form -pattern value\n");
@@ -190,7 +189,7 @@ pars *get_pars(int argc, char **argv) {
     }
 
     int make_used_reads = 1;
-    int make_famout_reads = 1;
+    int make_famout_reads = 0;
 
     while (*argv) {
         char *key = *argv;
@@ -252,6 +251,8 @@ pars *get_pars(int argc, char **argv) {
 	    p->useDump = atoi(val);
 	else if (!strcasecmp("--ignore_errors", key)||!strcasecmp("-i", key))
 	    p->ignore_errors++;
+	else if (!strcasecmp("--rlens_flat_out", key)||!strcasecmp("-rfo", key))
+	  p->rlens_flat_out = atoi(val);
         else if (!strcasecmp("--temp", key)) {
             free(p->tempfolder);
             p->tempfolder = strdup(val);
@@ -263,13 +264,12 @@ pars *get_pars(int argc, char **argv) {
 
         ++argv;
     }
-
     pthread_t thread1;
-    //  pthread_t thread2;
-    pthread_mutex_lock(&mutex1);
-    //  pthread_mutex_lock(&mutex2);
-    assert(pthread_create(&thread1, NULL, read_header_thread, (void *)p) == 0);
-    //  assert(pthread_create( &thread2, NULL, read_ass2taxid_thread, (void*) p)==0);
+
+    if(pthread_create(&thread1, NULL, read_header_thread, (void *)p) != 0){
+      fprintf(stderr,"\t-> Problem creating read_header_thread, will exit\n");
+      exit(1);
+    }
 
     char buf[1024];
     snprintf(buf, 1024, "%s.lca.gz", p->outnames);
@@ -295,14 +295,15 @@ pars *get_pars(int argc, char **argv) {
         fprintf(stderr, "\t-> Will output the reads that are used for damage file:\t\'%s\'\n", buf);
         p->usedreads_sam = strdup(buf);
     }
-    if (make_used_reads) {
+    if (make_famout_reads) {
       snprintf(buf, 1024, "%s.famoutreads.bam", p->outnames);
       fprintf(stderr, "\t-> Will output the reads that has lca below family :\t\'%s\'\n", buf);
       p->famout_sam = strdup(buf);
     }
-
-    pthread_mutex_lock(&mutex1);
-    pthread_mutex_lock(&mutex2);
+    if (pthread_join(thread1, NULL) != 0) {
+      fprintf(stderr, "\t-> Problem joining read_header_thread, will exit\n");
+      exit(1);
+    }
     return p;
 }
 
@@ -327,6 +328,7 @@ void print_pars(FILE *fp, pars *p) {
     fprintf(fp, "\t-> --ignore_errors\t%d\n", p->ignore_errors);
     fprintf(fp, "\t-> --temp\t%s\n", p->tempfolder);
     fprintf(fp, "\t-> --filtered_acc2tax\t%s\n", p->filteredAcc2taxfile);
+    fprintf(fp, "\t-> --rlens_flat_out\t%d\n", p->rlens_flat_out);
 }
 
 #ifdef __WITH_MAIN__

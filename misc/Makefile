@@ -9,7 +9,42 @@ CFLAGS    := $(FLAGS)
 CXXFLAGS  := $(FLAGS)
 CPPFLAGS  := $(CPPFLAGS) -Wall -Wextra
 LDFLAGS   := $(LDFLAGS)
-LIBS      := -lz -lm -lbz2 -llzma -lpthread -lcurl
+LIBS      := -lz -lm -lpthread 
+LDHTS     := -lbz2 -llzma -lcurl
+
+# --- Brugervalgte paths og biblioteker ---
+
+#$(info PREFIX before = '$(PREFIX)')
+ifneq ($(strip $(PREFIX)),)
+  override PREFIX := $(abspath $(PREFIX))
+endif
+#$(info PREFIX after  = '$(PREFIX)')
+
+ifneq ($(strip $(EXTRA_INC)),)
+  override EXTRA_INC := $(foreach d,$(EXTRA_INC),$(abspath $(d)))
+endif
+
+ifneq ($(strip $(EXTRA_LIB)),)
+  override EXTRA_LIB := $(foreach d,$(EXTRA_LIB),$(abspath $(d)))
+endif
+
+ifneq ($(strip $(PREFIX)),)
+  CPPFLAGS += -I$(PREFIX)/include
+  LDFLAGS  += -L$(PREFIX)/lib
+endif
+
+ifneq ($(strip $(EXTRA_INC)),)
+  CPPFLAGS += $(addprefix -I,$(EXTRA_INC))
+endif
+
+ifneq ($(strip $(EXTRA_LIB)),)
+  LDFLAGS  += $(addprefix -L,$(EXTRA_LIB))
+endif
+
+ifneq ($(strip $(EXTRA_LIBS)),)
+  LIBS += $(EXTRA_LIBS)
+endif
+
 
 # --- Crypto library detection ---
 HAVE_CRYPTO := $(shell echo 'int main(){}'|$(CXX) -x c++ - -lcrypto -o /dev/null 2>/dev/null && echo 0 || echo 1)
@@ -19,6 +54,11 @@ ifeq ($(HAVE_CRYPTO),0)
 else
   $(info Crypto library is not available to link; skipping -lcrypto)
 endif
+
+$(info [MISC DEBUG] HTSSRC='$(HTSSRC)')
+$(info [MISC DEBUG] PREFIX='$(PREFIX)')
+$(info [MISC DEBUG] EXTRA_INC='$(EXTRA_INC)')
+$(info [MISC DEBUG] EXTRA_LIB='$(EXTRA_LIB)')
 
 ifeq ($(HTSSRC),systemwide)
   $(info Using systemwide htslib installation)
@@ -35,7 +75,7 @@ else
   endif
   CPPFLAGS += -I$(HTSSRC)
   LIBHTS := $(HTSSRC)/libhts.a
-  LIBS := $(LIBHTS) $(LIBS)
+  LIBS := $(LIBHTS) $(LIBS) $(LDHTS)
 endif
 
 PROGRAMS := compressbam extract_reads
@@ -75,6 +115,12 @@ M3Load.o: M3Load.cpp
 	$(CXX) -MM $(CPPFLAGS) $(CXXFLAGS) M3Load.cpp > M3Load.d
 
 compressbam: compressbam.cpp
+	@echo "[MISC DEBUG] LINK compressbam"
+	@echo "[MISC DEBUG] CXX=$(CXX)"
+	@echo "[MISC DEBUG] CPPFLAGS=$(CPPFLAGS)"
+	@echo "[MISC DEBUG] CXXFLAGS=$(CXXFLAGS)"
+	@echo "[MISC DEBUG] LIBS=$(LIBS)"
+	@echo "[MISC DEBUG] LDFLAGS=$(LDFLAGS)"
 	$(CXX) $(CXXFLAGS) $(CPPFLAGS) compressbam.cpp -o compressbam $(LIBS) $(LDFLAGS)
 
 extract_reads: extract_reads.cpp ../shared.o
