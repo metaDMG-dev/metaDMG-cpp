@@ -4,6 +4,8 @@ CFLAGS    := $(FLAGS)
 CXXFLAGS  := $(FLAGS)
 CPPFLAGS  := $(CPPFLAGS) -Wall -Wextra
 LDFLAGS   := -lgsl -lgslcblas
+LIBS      := -lz -lm -lpthread 
+LDHTS     := -lbz2 -llzma -lcurl
 
 CC  ?= gcc
 CXX ?= g++
@@ -13,28 +15,42 @@ CSRC   := $(wildcard *.c)
 OBJ    := $(CSRC:.c=.o) $(CXXSRC:.cpp=.o)
 
 
+#$(info PREFIX before = '$(PREFIX)')
+ifneq ($(strip $(PREFIX)),)
+  override PREFIX := $(abspath $(PREFIX))
+endif
+#$(info PREFIX after  = '$(PREFIX)')
 
-# --- Brugervalgte paths og biblioteker ---
-ifdef PREFIX
-CPPFLAGS += -I$(PREFIX)/include
-LDFLAGS  := -L$(PREFIX)/lib $(LDFLAGS)
+ifneq ($(strip $(EXTRA_INC)),)
+  override EXTRA_INC := $(foreach d,$(EXTRA_INC),$(abspath $(d)))
 endif
 
-ifdef EXTRA_INC
-CPPFLAGS += $(addprefix -I,$(EXTRA_INC))
+ifneq ($(strip $(EXTRA_LIB)),)
+  override EXTRA_LIB := $(foreach d,$(EXTRA_LIB),$(abspath $(d)))
 endif
 
-ifdef EXTRA_LIB
-LDFLAGS  := $(addprefix -L,$(EXTRA_LIB)) $(LDFLAGS)
+ifneq ($(strip $(PREFIX)),)
+  CPPFLAGS += -I$(PREFIX)/include
+  LDFLAGS  += -L$(PREFIX)/lib
 endif
 
-ifdef EXTRA_LIBS
-LIBS += $(EXTRA_LIBS)
+ifneq ($(strip $(EXTRA_INC)),)
+  CPPFLAGS += $(addprefix -I,$(EXTRA_INC))
 endif
+
+ifneq ($(strip $(EXTRA_LIB)),)
+  LDFLAGS  += $(addprefix -L,$(EXTRA_LIB))
+endif
+
+ifneq ($(strip $(EXTRA_LIBS)),)
+  LIBS += $(EXTRA_LIBS)
+endif
+
+
 
 # --- Crypto library detektion ---
 HAVE_CRYPTO := $(shell echo 'int main(){}'|$(CXX) -x c++ - -lcrypto -o /dev/null 2>/dev/null && echo 0 || echo 1)
-LIBS := -lz -lm -lbz2 -llzma -lpthread -lcurl
+
 
 # --- Mål og bygning ---
 PROGRAM = metaDMG-cpp
@@ -65,7 +81,7 @@ else
   # Use HTSSRC directly for include path
   CPPFLAGS += -I$(HTSSRC)
   LIBHTS := $(HTSSRC)/libhts.a
-  LIBS := $(LIBHTS) $(LIBS)
+  LIBS := $(LIBHTS) $(LIBS) $(LDHTS)
   $(PROGRAM): $(LIBHTS)
 
   ifneq ($(filter /%,$(HTSSRC)),$(HTSSRC))
@@ -106,7 +122,7 @@ $(PROGRAM): version.h $(OBJ) $(LIBHTS)
 
 .PHONY: misc
 misc: $(LIBHTS) $(OBJ)
-	$(MAKE) -C misc HTSSRC=$(ABSPATH)
+	$(MAKE) -C misc HTSSRC=$(ABSPATH) PREFIX="$(PREFIX)"
 
 # --- Automatisk afhængighedshåndtering ---
 -include $(OBJ:.o=.d)

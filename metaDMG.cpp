@@ -1303,7 +1303,8 @@ int main_print_ugly(int argc, char **argv) {
         std::map<int, mydataD>::iterator itold = retmap.find(it->first);
         size_t nalign = 0;
         if (itold == retmap.end()) {
-	  fprintf(stderr, "[%s]\t-> Problem finding taxid: %d\n",__FUNCTION__, it->first);
+	  int abe=2;
+	  //fprintf(stderr, "[%s]\t-> Problem finding taxid: %d\n",__FUNCTION__, it->first);
             //      exit(0);
         } else
             nalign = itold->second.nal;
