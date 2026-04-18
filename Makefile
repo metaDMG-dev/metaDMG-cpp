@@ -1,11 +1,12 @@
 # --- Flags og kompileringsvalg ---
-FLAGS     := -O3
-CFLAGS    := $(FLAGS)
-CXXFLAGS  := $(FLAGS)
-CPPFLAGS  := $(CPPFLAGS) -Wall -Wextra
-LDFLAGS   := -lgsl -lgslcblas
-LIBS      := -lz -lm -lpthread 
-LDHTS     := -lbz2 -llzma -lcurl
+FLAGS     ?= -O2 -Wall -Wextra
+CFLAGS    += $(FLAGS) -MMD -MP
+CXXFLAGS  += $(FLAGS) -MMD -MP
+# CPPFLAGS  +=  <- dont think we need this
+
+LDFLAGS  +=
+LDLIBS   += -lgsl -lgslcblas -lz -lm -lpthread
+LDHTS    := -lbz2 -llzma -lcurl
 
 CC  ?= gcc
 CXX ?= g++
@@ -43,7 +44,7 @@ ifneq ($(strip $(EXTRA_LIB)),)
 endif
 
 ifneq ($(strip $(EXTRA_LIBS)),)
-  LIBS += $(EXTRA_LIBS)
+  LDLIBS += $(EXTRA_LIBS)
 endif
 
 
@@ -58,7 +59,7 @@ all: version.h $(PROGRAM) misc
 
 ifeq ($(HAVE_CRYPTO),0)
   $(info Crypto library is available to link; adding -lcrypto)
-  LIBS += -lcrypto
+  LDLIBS += -lcrypto
 else
   $(info Crypto library is not available to link; skipping -lcrypto)
 endif
@@ -75,13 +76,13 @@ endif
 ABSPATH=$(HTSSRC) #donkykong
 ifeq ($(HTSSRC),systemwide)
   $(info HTSSRC set to systemwide; using systemwide installation)
-  LIBS += -lhts
+  LDLIBS += -lhts
   LIBHTS :=
 else
   # Use HTSSRC directly for include path
   CPPFLAGS += -I$(HTSSRC)
   LIBHTS := $(HTSSRC)/libhts.a
-  LIBS := $(LIBHTS) $(LIBS) $(LDHTS)
+  LDLIBS := $(LIBHTS) $(LIBS) $(LDHTS) $(LDLIBS)
   $(PROGRAM): $(LIBHTS)
 
   ifneq ($(filter /%,$(HTSSRC)),$(HTSSRC))
@@ -118,7 +119,7 @@ version.h:
 	@rm -f version.h.tmp
 
 $(PROGRAM): version.h $(OBJ) $(LIBHTS)
-	$(CXX) $(CXXFLAGS) $(CPPFLAGS) -o $@ $(OBJ) $(LIBS) $(LDFLAGS)
+	$(CXX) $(CXXFLAGS) $(CPPFLAGS) -o $@ $(OBJ) $(LDFLAGS) $(LDLIBS)
 
 .PHONY: misc
 misc: $(LIBHTS) $(OBJ)
@@ -129,18 +130,39 @@ misc: $(LIBHTS) $(OBJ)
 
 %.o: %.c $(LIBHTS)
 	$(CC) -c $(CPPFLAGS) $(CFLAGS) $< -o $@
-	$(CC) -MM $(CPPFLAGS) $(CFLAGS) $< > $*.d
 
 %.o: %.cpp $(LIBHTS)
 	$(CXX) -c $(CPPFLAGS) $(CXXFLAGS) $< -o $@
-	$(CXX) -MM $(CPPFLAGS) $(CXXFLAGS) $< > $*.d
+
 
 # --- Rens og tests ---
 .PHONY: clean test testclean force
 
+.PHONY: print
+print:
+	@echo "---- COMPILER ----"
+	@echo "CC       = $(CC)"
+	@echo "CXX      = $(CXX)"
+	@echo ""
+	@echo "---- FLAGS ----"
+	@echo "CFLAGS   = $(CFLAGS)"
+	@echo "CXXFLAGS = $(CXXFLAGS)"
+	@echo "CPPFLAGS = $(CPPFLAGS)"
+	@echo "LDFLAGS  = $(LDFLAGS)"
+	@echo "LDLIBS   = $(LDLIBS)"
+	@echo ""
+	@echo "---- ORIGIN ----"
+	@echo "CFLAGS origin   = $(origin CFLAGS)"
+	@echo "CXXFLAGS origin = $(origin CXXFLAGS)"
+	@echo "CPPFLAGS origin = $(origin CPPFLAGS)"
+	@echo "LDFLAGS origin  = $(origin LDFLAGS)"
+	@echo "LDLIBS origin   = $(origin LDLIBS)"
+
 clean: 
 	rm -f *.o *.d $(PROGRAM) version.h *~
+ifneq ($(HTSSRC),systemwide)
 	rm -rf $(HTSSRC)
+endif
 	$(MAKE) -C misc clean
 
 testclean:

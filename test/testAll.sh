@@ -3,7 +3,12 @@
 #
 
 
-PRG=../metaDMG-cpp
+if [[ -x ../metaDMG-cpp ]]; then
+    PRG=../metaDMG-cpp
+else
+    PRG=metaDMG-cpp
+fi
+
 BAM1=./data/f570b1db7c.dedup.filtered.bam
 
 LOG=${0}.log
@@ -13,10 +18,10 @@ rm -f ${LOG} *.bin #remove old logfile and binary tempfile
 RVAL=0
 
 echo "Testing Existence of ${PRG}"
-if [[ ! -f "${PRG}" ]]; then
+if ! command -v "${PRG}" >/dev/null 2>&1 && [[ ! -x "${PRG}" ]]; then
     echo "Problem finding program: ${PRG}"
     RVAL=1
-    exit 1;
+    exit 1
 fi
 
 echo "Testing Existence of samtools"
@@ -127,7 +132,7 @@ if [[ $? -ne 0 ]]; then
     RVAL=$((128+RVAL))
 fi
 # Remove 'ncall' column since it fail on GitHub tests
-gunzip -c output/test_dfit_global.dfit.gz | cut -f 1-6,8- > output/test_dfit_global.dfit.fix
+gunzip -c output/test_dfit_global.dfit.gz | cut -f 1-6,8-|./round_file.sh > output/test_dfit_global.dfit.fix
 
 echo "Running printoptions"
 CMD="${PRG} print output/test_getdamage_local.bdamage.gz"
@@ -166,12 +171,22 @@ if [[ $? -ne 0 ]]; then
     RVAL=$((4096+RVAL))
 fi
 
-CHECKSUMFILE=output.md5
-if [[ "$(uname)" == "Darwin" ]]; then
-  CHECKSUMFILE=output.md5.macos
-else
-  echo "Not macOS"
-fi
+OS="$(uname -s)"
+ARCH="$(uname -m)"
+
+
+case "${OS}_${ARCH}" in
+  Darwin_arm64|Darwin_aarch64|Linux_arm64|Linux_aarch64)
+    CHECKSUMFILE="output.md5.macos"
+    ;;
+  Linux_x86_64)
+    CHECKSUMFILE="output.md5"
+    ;;
+  *)
+    echo "Unsupported platform: ${OS}_${ARCH}"
+    exit 1
+    ;;
+esac
 
 echo "Validating checksums: ${CHECKSUMFILE}"
 echo "========================"

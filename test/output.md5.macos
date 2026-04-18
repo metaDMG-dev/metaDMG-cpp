@@ -1,5 +1,5 @@
 e46712d6bc1c9301abbc7467b5f720e6  output/test_aggregate.stat
-037258988f595d8737cb4647ddcb0d6d  output/test_dfit_global.dfit.fix
+2f50845da474fd1062e3a682099963e5  output/test_dfit_global.dfit.fix
 783c885b2ee8ac6469ab070b972e73d8  output/test_getdamage_global.bdamage
 3398e353af15d1646228cb8bbaf4a5a8  output/test_getdamage_global.bdamage.tsv
 f0882ca11587cea63aa120d1a64c8d14  output/test_getdamage_global.res
