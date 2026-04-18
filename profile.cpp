@@ -13,11 +13,26 @@
 #include <cstring>    // for strlen, strtok, memset, strdup
 #include <vector>     // for vector
 
+
+void my_bgzf_write(BGZF *what, const void *the, size_t fuck ){
+  if(bgzf_write(what,the,fuck)!=(ssize_t) fuck){
+    fprintf(stderr,"\t-> Problem writing to file\n");
+    exit(1);
+  }
+}
+
+void my_bgzf_read(BGZF *what, void *the, size_t fuck ){
+  if(bgzf_read(what,the,fuck)!=(ssize_t) fuck){
+    fprintf(stderr,"\t-> Problem writing to file\n");
+    exit(1);
+  }
+}
+
 float **getmatrix(size_t x, size_t y) {
     float **ret = new float *[x];
     for (size_t i = 0; i < x; i++) {
         ret[i] = new float[y];
-        for (int j = 0; j < 16; j++)
+        for (size_t j = 0; j < y; j++)
             ret[i][j] = 0;
     }
     return ret;
@@ -174,8 +189,8 @@ void reconstructRefWithPosHTS(const bam1_t *b, std::pair<kstring_t *, std::vecto
 
     // combine the CIGAR and MD into one single string
     int mdVectorIndex = 0;
-
-    for (unsigned int i = 0; i < strlen(reconstructedTemp); i++) {
+    unsigned int funkydonky = at;
+    for (unsigned int i = 0; i < funkydonky; i++) {
         if (reconstructedTemp[i] == 'M') {  // only look at matches and indels
 
             if (mdVectorIndex < (int)parsedMD.size()) {  // still have mismatches
@@ -212,8 +227,8 @@ void reconstructRefWithPosHTS(const bam1_t *b, std::pair<kstring_t *, std::vecto
         }
     }
 
-    if (strlen(pp.first->s) != b->core.l_qseq) {
-        fprintf(stderr, "Could not recreate the sequence for read: %s pp.first->s: %s strlen():%lu\n", bam_get_qname(b), pp.first->s, strlen(pp.first->s));
+    if (strlen(pp.first->s) !=(size_t) b->core.l_qseq) {
+        fprintf(stderr, "Could not recreate the sequence for read: %s pp.first->s: %s strlen():%zu\n", bam_get_qname(b), pp.first->s, strlen(pp.first->s));
         exit(1);
     }
 
@@ -223,7 +238,7 @@ void reconstructRefWithPosHTS(const bam1_t *b, std::pair<kstring_t *, std::vecto
     }
 }
 
-inline void increaseCounters(const bam1_t *b, const char *reconstructedReference, const std::vector<int> &reconstructedReferencePos, const int &minQualBase, int MAXLENGTH, float **mm5p, float **mm3p, float incval) {
+inline void increaseCounters(const bam1_t *b, const char *reconstructedReference, const int &minQualBase, int MAXLENGTH, float **mm5p, float **mm3p, float incval) {
     const char *alphabetHTSLIB = "NACNGNNNTNNNNNNN";
     char refeBase;
     char readBase;
@@ -261,79 +276,102 @@ inline void increaseCounters(const bam1_t *b, const char *reconstructedReference
             refeBase = readBase;
         }
 
-        refeBase = refToChar[refeBase];
-        readBase = refToChar[readBase];
-
-        if (refeBase != 4 && readBase != 4) {
-            int dist5p = i;
-            int dist3p = b->core.l_qseq - 1 - i;
-
-            if (bam_is_rev(b)) {
-                refeBase = com[refeBase];
-                readBase = com[readBase];
-                // dist5p=int(al.QueryBases.size())-1-i;
-                dist5p = int(b->core.l_qseq) - 1 - i;
-                dist3p = i;
-            }
-
-            if (dist5p < MAXLENGTH)
-                mm5p[dist5p][toIndex[refeBase][readBase]] += incval;
-            if (dist3p < MAXLENGTH)
-                mm3p[dist3p][toIndex[refeBase][readBase]] += incval;
+        refeBase = refToChar[(unsigned char)refeBase];
+        readBase = refToChar[(unsigned char)readBase];
+	if(refeBase<4 && readBase <4){
+	  int dist5p = i;
+	  int dist3p = b->core.l_qseq - 1 - i;
+	  
+	  if (bam_is_rev(b)) {
+	    refeBase = com[(unsigned char)refeBase];
+	    readBase = com[(unsigned char)readBase];
+	    // dist5p=int(al.QueryBases.size())-1-i;
+	    dist5p = int(b->core.l_qseq) - 1 - i;
+	    dist3p = i;
+	  }
+	  
+	  if (dist5p < MAXLENGTH)
+	    mm5p[dist5p][toIndex[(unsigned char)refeBase][(unsigned char)readBase]] += incval;
+	  if (dist3p < MAXLENGTH)
+	    mm3p[dist3p][toIndex[(unsigned char)refeBase][(unsigned char)readBase]] += incval;
         }
     }
 }
 
+//this function will not get a commen
+void mysuperduper_function(triple &t, size_t old_m, size_t new_m) {
+  assert(t.rlens!=NULL&&old_m<new_m);
+  assert((size_t)t.rlens_m == old_m);//just so ser ser double sure
+  size_t *tmp = new size_t[new_m];
+  memset(tmp, 0, new_m * sizeof(size_t));
+  memcpy(tmp, t.rlens, t.rlens_m * sizeof(size_t));
+  delete [] t.rlens;
+  
+  t.rlens = tmp;
+  t.rlens_m = new_m;
+}
+
 int damage::damage_analysis(bam1_t *b, int which, float incval) {
+  size_t rlen = (size_t)b->core.l_qseq;
   //  fprintf(stderr,"\t-> incval: %f\n",incval);
+  //ok we need to do something
+  if (rlen + 10 >= temp_len) {//so lets be sure,
+    temp_len = b->core.l_qseq+10;//and then be really sure
+    kroundup32(temp_len);
+    free(reconstructedTemp);
+    reconstructedTemp = (char *)calloc(temp_len, 1);
+    
+  }
+  memset(reconstructedTemp, 0, temp_len);//maybe bottleneck, should not be needed.
+  
   if (assoc.find(which) == assoc.end()) {
-    triple val = {0, getmatrix(MAXLENGTH, 16), getmatrix(MAXLENGTH, 16),new size_t[500]};
-    for(int i=0;i<500;i++)
-      val.rlens[i] = 0;
+    triple val = {0, getmatrix(MAXLENGTH, 16), getmatrix(MAXLENGTH, 16),new size_t[temp_len],temp_len};
+    memset(val.rlens, 0, temp_len * sizeof(size_t));
     assoc[which] = val;
-    mm5pF = val.mm5pF;
-    mm3pF = val.mm3pF;
+    //mm5pF = val.mm5pF;
+    //mm3pF = val.mm3pF;
     //    fprintf(stderr,"has added which: %d\n",which);
   }
-    std::map<int, triple>::iterator it = assoc.find(which);
-    it->second.nreads++;
-    //    fprintf(stderr,"[%s] it->first:%d it->second.nreads:%d\n",__FUNCTION__,it->first,it->second.nreads);
-    assert(b->core.l_qseq<500);
-    it->second.rlens[b->core.l_qseq] =  it->second.rlens[b->core.l_qseq] + 1; 
-    if (b->core.l_qseq - 10 > temp_len) {
-        temp_len = b->core.l_qseq;
-        kroundup32(temp_len);
-        free(reconstructedTemp);
-        reconstructedTemp = (char *)calloc(temp_len, 1);
-    }
-    memset(reconstructedTemp, 0, temp_len);
-    reconstructRefWithPosHTS(b, reconstructedReference, reconstructedTemp);
-    increaseCounters(b, reconstructedReference.first->s, reconstructedReference.second, minQualBase, MAXLENGTH, it->second.mm5pF, it->second.mm3pF, incval);
-    return 0;
+
+  
+  std::map<int, triple>::iterator it = assoc.find(which);
+  //so lets make sure that 
+  if (rlen +10 >= it->second.rlens_m) {
+    size_t new_m = rlen + 10;
+    kroundup32(new_m);
+    mysuperduper_function(it->second, it->second.rlens_m, new_m);
+  }
+  
+  it->second.nreads++;
+  it->second.rlens[rlen]++;
+  //  fprintf(stderr,"er vi her fprintf%zu rlen: %zu\n",it->second.nreads,rlen);
+  reconstructRefWithPosHTS(b, reconstructedReference, reconstructedTemp);
+  increaseCounters(b, reconstructedReference.first->s, minQualBase, MAXLENGTH, it->second.mm5pF, it->second.mm3pF, incval);
+  return 0;
 }
 
 void damage::write(char *fname, bam_hdr_t *hdr) {
-    // fprintf(stderr,"Dumping asso.size(): %lu\n",assoc.size());
-    char *outname = strdup("metaout");
-    if (fname) {
-        free(outname);
-        outname = fname;
-    }
+    // fprintf(stderr,"Dumping asso.size(): %zu\n",assoc.size());
+  const char *outname = fname ? fname : "metaout";
     kstring_t kstr;
     kstr.l = kstr.m = 0;
     kstr.s = NULL;
     char onam[1024];
     snprintf(onam, 1024, "%s.res.gz", outname);
-    fprintf(stderr, "\t-> Will dump: \'%s\' this contains damage patterns for: %lu items\n", onam, assoc.size());
+    fprintf(stderr, "\t-> Will dump: \'%s\' this contains damage patterns for: %zu items\n", onam, assoc.size());
     BGZF *fp = my_bgzf_open(onam, nthreads);
 
     for (std::map<int, triple>::iterator it = assoc.begin(); it != assoc.end(); it++) {
         if (it->second.nreads == 0)  // should never happen
             continue;
-        if (hdr != NULL)
-	  ksprintf(&kstr, "%s\t%lu", hdr->target_name[it->first], it->second.nreads);
-        else
-            ksprintf(&kstr, "%lu", it->second.nreads);
+        if (hdr != NULL){
+	  if (it->first < 0 || it->first >= hdr->n_targets) {
+	    fprintf(stderr, "Invalid target index: %d\n", it->first);
+	    exit(1);
+	  }
+	  ksprintf(&kstr, "%s\t%zu", hdr->target_name[it->first], it->second.nreads);
+        }else
+            ksprintf(&kstr, "%zu", it->second.nreads);
         for (int l = 0; l < MAXLENGTH; l++) {
             for (int i = 0; i < 16; i++)
                 ksprintf(&kstr, "\t%.0f", it->second.mm5pF[l][i]);
@@ -343,58 +381,76 @@ void damage::write(char *fname, bam_hdr_t *hdr) {
                 ksprintf(&kstr, "\t%.0f", it->second.mm3pF[l][i]);
         }
         ksprintf(&kstr, "\n");
-        assert(bgzf_write(fp, kstr.s, kstr.l) == kstr.l);
+        my_bgzf_write(fp, kstr.s, kstr.l);
         kstr.l = 0;
     }
     bgzf_close(fp);
     free(kstr.s);
 }
 
-void damage::bwrite(char *fname) {
+//default output in rlens is ref bin:count[], FLAT_OUT 1 is ref tab bin tab count newline
+void damage::bwrite(char *fname,int FLAT_OUT = 0) {
 
     char onam[1024];
     snprintf(onam, 1024, "%s.bdamage.gz", fname);
-    fprintf(stderr, "\t-> Will dump: \'%s\' this contains damage patterns for: %lu items\n", onam, assoc.size());
+    fprintf(stderr, "\t-> Will dump: \'%s\' this contains damage patterns for: %zu items\n", onam, assoc.size());
     BGZF *fp = my_bgzf_open(onam, nthreads);
-    assert(bgzf_write(fp, &MAXLENGTH, sizeof(int)) == sizeof(int));
+    my_bgzf_write(fp, &MAXLENGTH, sizeof(int));
 
     for (std::map<int, triple>::iterator it = assoc.begin(); it != assoc.end(); it++) {
         if (it->second.nreads == 0)  // should never happen
             continue;
-        assert(bgzf_write(fp, &it->first, sizeof(int)) == sizeof(int));
-        assert(bgzf_write(fp, &it->second.nreads, sizeof(int)) == sizeof(int));
+        my_bgzf_write(fp, &it->first, sizeof(int));
+	int32_t nreads_out;
+	
+	if (it->second.nreads > std::numeric_limits<int32_t>::max()) {
+	  fprintf(stderr, "nreads overflow\n");
+	  exit(1);
+	}
+	
+	nreads_out = static_cast<int32_t>(it->second.nreads); 
+
+	
+        my_bgzf_write(fp, &nreads_out, sizeof(int));
         for (int l = 0; l < MAXLENGTH; l++)
-            assert(bgzf_write(fp, it->second.mm5pF[l], sizeof(int) * 16) == sizeof(int) * 16);
+            my_bgzf_write(fp, it->second.mm5pF[l], sizeof(float) * 16);
 
         for (int l = 0; l < MAXLENGTH; l++)
-            assert(bgzf_write(fp, it->second.mm3pF[l], sizeof(int) * 16) == sizeof(int) * 16);
+            my_bgzf_write(fp, it->second.mm3pF[l], sizeof(float) * 16);
     }
     bgzf_close(fp);
 
     snprintf(onam, 1024, "%s.rlens.gz", fname);
-    fprintf(stderr, "\t-> Will dump: \'%s\' this contains read length distributions for: %lu items\n", onam, assoc.size());
+    fprintf(stderr, "\t-> Will dump: \'%s\' this contains read length distributions for: %zu items\n", onam, assoc.size());
     fp = my_bgzf_open(onam, nthreads);
     kstring_t kstr3000;
     kstr3000.s = NULL;
     kstr3000.l = kstr3000.m = 0;
-    ksprintf(&kstr3000,"id");
-    for(int i=0;i<500;i++)
-      ksprintf(&kstr3000,"\trlen%d",i);
-    ksprintf(&kstr3000,"\n");
+    if(FLAT_OUT ==0 )
+      ksprintf(&kstr3000,"id\trlen:count\n");
+    else
+      ksprintf(&kstr3000,"ID\trlen\tcount\n");
     for (std::map<int, triple>::iterator it = assoc.begin(); it != assoc.end(); it++) {
         if (it->second.nreads == 0)  // should never happen
             continue;
-	ksprintf(&kstr3000,"%d",it->first);
-	for(int i=0;i<500-1;i++)
-	  ksprintf(&kstr3000,"\t%lu",it->second.rlens[i]);
-	ksprintf(&kstr3000,"\t%lu\n",it->second.rlens[499]);
+	if(FLAT_OUT==0)
+	  ksprintf(&kstr3000,"%d",it->first);
+	for(size_t i=0;i<it->second.rlens_m;i++)
+	  if(it->second.rlens[i]>0){
+	    if(FLAT_OUT == 0)
+	      ksprintf(&kstr3000,"\t%zu:%zu",i,it->second.rlens[i]);
+	    else
+	      ksprintf(&kstr3000,"%d\t%zu\t%zu\n",it->first,i,it->second.rlens[i]);
+	  }
+	if(FLAT_OUT==0)
+	  ksprintf(&kstr3000,"\n");
 	if(kstr3000.l>1000000){
-	  assert(bgzf_write(fp,kstr3000.s,kstr3000.l)==kstr3000.l);
+	  my_bgzf_write(fp,kstr3000.s,kstr3000.l);
 	  kstr3000.l  = 0;
 	}
 	  
     }
-    assert(bgzf_write(fp,kstr3000.s,kstr3000.l)==kstr3000.l);
+    my_bgzf_write(fp,kstr3000.s,kstr3000.l);
     if(kstr3000.l>0)
       free(kstr3000.s);
     kstr3000.l  = 0;
@@ -412,14 +468,17 @@ int printresults_grenaud2(FILE *fp, float **mm5p, int lengthMaxToPrint) {
     for (int l = 0; l < lengthMaxToPrint; l++) {
         fprintf(fp, "%*d\t", int(log10(lengthMaxToPrint)) + 1, l);
         for (int n1 = 0; n1 < 4; n1++) {
-            int totalObs = 0;
+            float totalObs = 0.0;
             for (int n2 = 0; n2 < 4; n2++)
                 totalObs += mm5p[l][4 * n1 + n2];
 
             for (int n2 = 0; n2 < 4; n2++) {
                 if (n1 == n2)
                     continue;
-                fprintf(fp, "%*.*f", 1 + 5 + 1, 5, std::max(0.0, double(mm5p[l][4 * n1 + n2]) / double(totalObs)));
+		if(totalObs>0)
+		  fprintf(fp, "%*.*f", 1 + 5 + 1, 5, std::max(0.0, double(mm5p[l][4 * n1 + n2]) / double(totalObs)));
+		else
+		  fprintf(fp,"0.0");
                 if (!(n1 == 3 && n2 == 2))
                     fprintf(fp, "\t");
             }
@@ -430,10 +489,12 @@ int printresults_grenaud2(FILE *fp, float **mm5p, int lengthMaxToPrint) {
 }
 
 void damage::printit(FILE *fp, int l) {
-    if (mm5pF)
-        printresults_grenaud2(fp, mm5pF, l);
-    if (mm3pF)
-        printresults_grenaud2(fp, mm3pF, l);
+  fprintf(fp,"Printing mismatchmatric for first entry\n");
+  if(assoc.size()==0)
+    return;
+  auto it = assoc.begin();
+  printresults_grenaud2(fp, it->second.mm5pF, l);
+  printresults_grenaud2(fp, it->second.mm3pF, l);
 }
 
 #ifdef __WITH_MAIN__
@@ -519,14 +580,14 @@ int main(int argc, char *argv[]) {
     sam_hdr_destroy(h);
     bam_destroy1(b);
     sam_close(fp);
-    fprintf(stderr, "nreads: %lu\n", dmg->assoc.begin()->second.nreads);
+    fprintf(stderr, "nreads: %zu\n", dmg->assoc.begin()->second.nreads);
     std::map<int,triple>::iterator it = dmg->assoc.begin();
     assert(it!=dmg->assoc.end());
     triple trpl = it->second;
     printresults_grenaud2(stdout, trpl.mm5pF, lengthMaxToPrint);
     printresults_grenaud2(stdout, trpl.mm3pF, lengthMaxToPrint);
     for (int i = 0; 0 & i < 16; i++)
-        fprintf(stdout, "%lu\t", dmg->mm5pF[0][i]);
+        fprintf(stdout, "%zu\t", dmg->mm5pF[0][i]);
     destroy_damage(dmg);
     return 0;
 }
@@ -542,28 +603,31 @@ std::map<int, double *> load_bdamage3(const char *fname, int howmany) {
 
     if (((bgfp = bgzf_open(infile, "r"))) == NULL) {
         fprintf(stderr, "Could not open input BDamage file: %s\n", infile);
-        exit(0);
+        exit(1);
     }
 
     std::map<int, double *> retmap;
 
     int printlength;
-    assert(sizeof(int) == bgzf_read(bgfp, &printlength, sizeof(int)));
+    my_bgzf_read(bgfp, &printlength, sizeof(int));
 
     if (howmany > printlength) {
         fprintf(stderr, "\t-> Problem binary file has data for: %d positions, but you are requesting merge with: %d positions \n", printlength, howmany);
         fprintf(stderr, "\t-> Solutions set -howmany to lower value\n");
-        exit(0);
+        exit(1);
     }
 
     int ref_nreads[2];
 
-    int data[16];
+
     while (1) {
         int nread = bgzf_read(bgfp, ref_nreads, 2 * sizeof(int));
         if (nread == 0)
             break;
-        assert(nread == 2 * sizeof(int));
+        if(nread!=2 * sizeof(int)){
+	  fprintf(stderr,"\t-> Tralala file looks corrupt\n");
+	  exit(1);
+	}
 
         double *formap = new double[1 + 3 * howmany];
         for (int i = 0; i < 1 + 3 * howmany; i++)
@@ -571,9 +635,9 @@ std::map<int, double *> load_bdamage3(const char *fname, int howmany) {
         //    fprintf(stderr,"formap: %p\n",formap);
         int incer = 0;
         formap[incer++] = ref_nreads[1];
-
+	float data[16];
         for (int at = 0; at < printlength; at++) {
-            assert(16 * sizeof(int) == bgzf_read(bgfp, data, sizeof(int) * 16));
+            my_bgzf_read(bgfp, data, sizeof(float) * 16);
             float flt[16];                 // this will contain the float representation of counts
             for (int i = 0; i < 4; i++) {  // loop over A*,C*,G*,T*
                 double tsum = 0;
@@ -597,7 +661,7 @@ std::map<int, double *> load_bdamage3(const char *fname, int howmany) {
             }
         }
         for (int at = 0; at < printlength; at++) {
-            assert(16 * sizeof(int) == bgzf_read(bgfp, data, sizeof(int) * 16));
+            my_bgzf_read(bgfp, data, sizeof(float) * 16);
 
             float flt[16];
             for (int i = 0; i < 4; i++) {
@@ -628,7 +692,7 @@ std::map<int, double *> load_bdamage3(const char *fname, int howmany) {
     //  exit(0);
     if (bgfp)
         bgzf_close(bgfp);
-    fprintf(stderr, "\t-> Done loading binary bdamage.gz file. It contains: %lu\n", retmap.size());
+    fprintf(stderr, "\t-> Done loading binary bdamage.gz file. It contains: %zu\n", retmap.size());
     for (std::map<int, double *>::iterator it = retmap.begin(); 0 && it != retmap.end(); it++)
         fprintf(stderr, "it->second:%p\n", it->second);
 
@@ -644,12 +708,12 @@ std::map<int, mydataD> load_bdamage_full(const char *fname, int &printlength) {
 
     if (((bgfp = bgzf_open(infile, "r"))) == NULL) {
         fprintf(stderr, "Could not open input BDamage file: %s\n", infile);
-        exit(0);
+        exit(1);
     }
 
     std::map<int, mydataD> retmap;
     printlength = 0;
-    assert(sizeof(int) == bgzf_read(bgfp, &printlength, sizeof(int)));
+    my_bgzf_read(bgfp, &printlength, sizeof(int));
 
     int ref_nreads[2];
 
@@ -657,7 +721,10 @@ std::map<int, mydataD> load_bdamage_full(const char *fname, int &printlength) {
         int nread = bgzf_read(bgfp, ref_nreads, 2 * sizeof(int));
         if (nread == 0)
             break;
-        assert(nread == 2 * sizeof(int));
+        if(nread!=2 * sizeof(int)){
+	  fprintf(stderr,"\t-> Tralala looks like a corrupt file\n");
+	  exit(1);
+	}
         mydataD md;
 	md.howmany = printlength;
         md.fwD = new double[16 * printlength];
@@ -666,13 +733,13 @@ std::map<int, mydataD> load_bdamage_full(const char *fname, int &printlength) {
 
         float tmp[16];
         for (int i = 0; i < printlength; i++) {
-            assert(16 * sizeof(float) == bgzf_read(bgfp, tmp, sizeof(float) * 16));
+            my_bgzf_read(bgfp, tmp, sizeof(float) * 16);
             for (int ii = 0; ii < 16; ii++)
                 md.fwD[i * 16 + ii] = tmp[ii];
         }
 
         for (int i = 0; i < printlength; i++) {
-            assert(16 * sizeof(float) == bgzf_read(bgfp, tmp, sizeof(float) * 16));
+            my_bgzf_read(bgfp, tmp, sizeof(float) * 16);
             for (int ii = 0; ii < 16; ii++)
                 md.bwD[i * 16 + ii] = tmp[ii];
         }
@@ -681,7 +748,7 @@ std::map<int, mydataD> load_bdamage_full(const char *fname, int &printlength) {
 
     if (bgfp)
         bgzf_close(bgfp);
-    fprintf(stderr, "\t-> Done loading binary bdamage.gz file. It contains: %lu\n", retmap.size());
+    fprintf(stderr, "\t-> Done loading binary bdamage.gz file. It contains: %zu\n", retmap.size());
 #if 0
   for(std::map<int,mydata>::iterator it = retmap.begin();it!=retmap.end();it++)
     fprintf(stderr,"it->second:%p\n",it->second);
@@ -720,7 +787,7 @@ std::map<int, mydata2> load_lcastat(const char *fname,int skipfirstline) {
     if (fp)
         gzclose(fp);
 
-    fprintf(stderr, "\t-> Done loading lcastat file It contains: %lu\n", retmap.size());
+    fprintf(stderr, "\t-> Done loading lcastat file It contains: %zu\n", retmap.size());
     for (std::map<int, mydata2>::iterator it = retmap.begin(); 0 && it != retmap.end(); it++)
         fprintf(stderr, "%d->(%d,%f,%f,%f,%f)\n", it->first, it->second.nreads, it->second.data[0], it->second.data[1], it->second.data[2], it->second.data[3]);
 

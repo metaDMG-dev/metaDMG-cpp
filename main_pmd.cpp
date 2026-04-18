@@ -15,8 +15,8 @@
 
 #include "profile.h"  // for reconstructRefWithPosHTS
 
-extern htsFormat *dingding2;
-htsFormat *dingding3 = dingding2;
+//extern htsFormat *dingding2;
+//htsFormat *dingding3 = dingding2;
 
 
 int nproc = 0;  // number of reads processed
@@ -159,7 +159,7 @@ void parse_sequencingdata(char *refName, char *fname, int mapped_only, int se_on
     kstr->s = NULL;
     mypair.first = kstr;
     samFile *in = NULL;
-
+    htsFormat *dingding3 = (htsFormat *)calloc(1, sizeof(htsFormat));
     if (refName) {
         char *ref = (char *)malloc(10 + strlen(refName) + 1);
         snprintf(ref,10 + strlen(refName) + 1, "reference=%s", refName);
@@ -241,6 +241,7 @@ void parse_sequencingdata(char *refName, char *fname, int mapped_only, int se_on
     sam_hdr_destroy(hdr);
     sam_close(in);
     free(fname);
+    free(dingding3);
 }
 
 int usage(FILE *fp, int val) {

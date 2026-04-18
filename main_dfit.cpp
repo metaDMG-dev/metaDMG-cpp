@@ -25,7 +25,7 @@
 #include "dfit_helppage.h"
 #include "mrand.h"
 
-extern htsFormat *dingding2;
+//extern htsFormat *dingding2;
 
 // the compare function for double values
 static int compare (const void * a, const void * b)
@@ -672,6 +672,7 @@ int main_dfit(int argc, char **argv) {
     double CI = 0.95;
     int doCI = 2;
     int rng_type = -1;
+    htsFormat *dingding2 = (htsFormat *)calloc(1, sizeof(htsFormat));
     while (*(++argv)) {
         if (strcasecmp("-h", *argv) == 0)
           HelpPageSimple(stderr);
@@ -947,7 +948,7 @@ int main_dfit(int argc, char **argv) {
       free(outfile_name);
     if(lib_prep)
       free(lib_prep);
-    
+    free(dingding2);
   gettimeofday(&end_time, NULL);
   long seconds = end_time.tv_sec - start_time.tv_sec;
   long microseconds = end_time.tv_usec - start_time.tv_usec;

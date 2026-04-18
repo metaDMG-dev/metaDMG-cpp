@@ -406,8 +406,8 @@ std::vector<int> purge(std::vector<int> &taxids, std::vector<int> &editdist) {
     return tmpnewvec;
 }
 
-void hts(gzFile fp, samFile *fp_in, int2int &i2i, int2int &parent, bam_hdr_t *hdr, int2char &rank, int2char &name_map, int minmapq, int discard, int editMin, int editMax, double scoreLow, double scoreHigh, int minlength, int lca_rank, char *prefix, int howmany, samFile *fp_usedreads, int skipnorank, int2int &rank2level, int nthreads, int weighttype,long maxreads,samFile *fp_famout) {
-  fprintf(stderr, "[%s] \t-> editMin:%d editmMax:%d scoreLow:%f scoreHigh:%f minlength:%d discard: %d prefix: %s howmany: %d skipnorank: %d weighttype: %d maxreads: %ld\n", __FUNCTION__, editMin, editMax, scoreLow, scoreHigh, minlength, discard, prefix, howmany, skipnorank, weighttype,maxreads);
+void hts(gzFile fp, samFile *fp_in, int2int &i2i, int2int &parent, bam_hdr_t *hdr, int2char &rank, int2char &name_map, int minmapq, int discard, int editMin, int editMax, double scoreLow, double scoreHigh, int minlength, int lca_rank, char *prefix, int howmany, samFile *fp_usedreads, int skipnorank, int2int &rank2level, int nthreads, int weighttype,long maxreads,samFile *fp_famout,int rlens_flat_out) {
+  fprintf(stderr, "[%s] \t-> editMin:%d editmMax:%d scoreLow:%f scoreHigh:%f minlength:%d discard: %d prefix: %s howmany: %d skipnorank: %d weighttype: %d maxreads: %ld rlens_flat_out: %d\n", __FUNCTION__, editMin, editMax, scoreLow, scoreHigh, minlength, discard, prefix, howmany, skipnorank, weighttype,maxreads,rlens_flat_out);
     assert(fp_in != NULL);
     damage *dmg = new damage(howmany, nthreads, 13);
     bam1_t *aln = bam_init1();  // initialize an alignment
@@ -645,7 +645,7 @@ void hts(gzFile fp, samFile *fp_in, int2int &i2i, int2int &parent, bam_hdr_t *hd
         }
     }
     fprintf(stderr,"maxreads: %ld nreads: %ld\n",maxreads,nreads);
-    dmg->bwrite(prefix);
+    dmg->bwrite(prefix,rlens_flat_out);
 
     specs.clear();
     editdist.clear();
@@ -794,7 +794,7 @@ int main_lca(int argc, char **argv) {
 	fprintf(stderr, "writing headers to %s", p->famout_sam);
     }
     gzprintf(p->fp1,"queryid\tseq\tlen\tnaln\tgc\tlca\ttaxa_path\n");
-    hts(p->fp1, p->hts, *i2i, parent, p->header, rank, name_map, p->minmapq, p->discard, p->editdistMin, p->editdistMax, p->simscoreLow, p->simscoreHigh, p->minlength, lca_rank, p->outnames, p->howmany, usedreads_sam, p->skipnorank, tax2level, p->nthreads, p->weighttype,p->maxreads,famout_sam);
+    hts(p->fp1, p->hts, *i2i, parent, p->header, rank, name_map, p->minmapq, p->discard, p->editdistMin, p->editdistMax, p->simscoreLow, p->simscoreHigh, p->minlength, lca_rank, p->outnames, p->howmany, usedreads_sam, p->skipnorank, tax2level, p->nthreads, p->weighttype,p->maxreads,famout_sam,p->rlens_flat_out);
 
     fprintf(stderr, "\t-> Number of species with reads that map uniquely: %lu\n", specWeight.size());
 

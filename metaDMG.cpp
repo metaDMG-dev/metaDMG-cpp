@@ -29,7 +29,7 @@
 #include "regression.h"  // for main_regression
 #endif
 
-htsFormat *dingding2 = (htsFormat *)calloc(1, sizeof(htsFormat));
+
 typedef std::map<int, char *> int2char;
 int usage_getdamage(FILE *fp) {
     fprintf(fp, "\nUsage: metadamage getdamage [options] <in.bam>|<in.sam>|<in.cram>\n");
@@ -41,6 +41,7 @@ int usage_getdamage(FILE *fp) {
     fprintf(fp, "  -r/--run_mode\t\t 0: global estimate (default)\n\t\t\t 1: damage patterns will be calculated for each chr/scaffold contig\n");
     fprintf(fp, "  -i/--ignore_errors\t continue analyses even if there are errors.\n");
     fprintf(fp, "  -o/--out_prefix\t output prefix (default: meta)\n");
+    fprintf(fp, "  -z/--rlens_flat_out\t make flat output of bins. Nice for computers\n");
     return 1;
 }
 
@@ -88,7 +89,12 @@ std::map<int,mydataD> getval_full_norec(std::map<int, mydataD> &retmap, int2int 
   
   //funky modern syntax below
   //loop over all entries in retmap. lizard king 
-  for (const auto &[taxid, data] : retmap) {
+  //  for (const auto &[taxid, data] : retmap) {
+
+  for(  std::map<int, mydataD>::iterator it=retmap.begin();it!=retmap.end();it++){
+    int taxid = it->first;
+    mydataD data = it->second;
+    
     int current = taxid;
     //   fprintf(stderr,"taxid: %d\n",taxid);
      while (true) {
@@ -130,8 +136,8 @@ int mywarn =1;
 
 mydata2 getval_stats_unknownfunctionality(std::map<int, mydata2> &retmap, int2intvec &child, int taxid) {
   if(mywarn>0){
-  fprintf(stderr,"PAS PAA SATAN\n");
-  mywarn--;
+    fprintf(stderr,"PAS PAA SATAN\n");
+    mywarn--;
   }
     // fprintf(stderr,"getval\t%d\t%d\n",taxid,howmany);
     std::map<int, mydata2>::iterator it = retmap.find(taxid);
@@ -193,9 +199,12 @@ int main_getdamage(int argc, char **argv) {
     char *onam = strdup("meta");
     int nthreads = 4;
     int ignore_errors = 0;
+    int rlens_flat_out = 0;
+    htsFormat *dingding2 = (htsFormat *)calloc(1, sizeof(htsFormat));
     // fix thesepro
     static struct option lopts[] = {
         {"threads", required_argument, 0, 'n'},
+	{"rlens_flat_out", required_argument, 0, 'z'},
         {"fasta", required_argument, 0, 'f'},
         {"min_length", required_argument, 0, 'l'},
         {"print_length", required_argument, 0, 'p'},
@@ -207,14 +216,20 @@ int main_getdamage(int argc, char **argv) {
 
     int c;
     while ((c = getopt_long(argc, argv,
-                            "n:f:l:p:r:o:h",
+                            "iz:n:f:l:p:r:o:h",
                             lopts, NULL)) >= 0) {
       switch (c) {
+      case 'i':
+        ignore_errors = 1;
+        break;
       case 'n':
 	nthreads = atoi(optarg);
 	break;
       case 'f':
 	refName = strdup(optarg);
+	break;
+      case 'z':
+	rlens_flat_out = atoi(optarg);
 	break;
       case 'l':
 	minLength = atoi(optarg);
@@ -238,7 +253,7 @@ int main_getdamage(int argc, char **argv) {
     }
     if (optind < argc)
         fname = strdup(argv[optind]);
-    fprintf(stderr, "\t-> ./metaDMG-cpp refName: %s min_length: %d print_length: %d run_mode: %d out_prefix: %s nthreads: %d ignore_errors: %d\n", refName, minLength, printLength, runmode, onam, nthreads, ignore_errors);
+    fprintf(stderr, "\t-> ./metaDMG-cpp refName: %s min_length: %d print_length: %d run_mode: %d out_prefix: %s nthreads: %d ignore_errors: %d rlens_flat_out: %d\n", refName, minLength, printLength, runmode, onam, nthreads, ignore_errors,rlens_flat_out);
     if (fname == NULL) {
         usage_getdamage(stderr);
         return 0;
@@ -253,11 +268,15 @@ int main_getdamage(int argc, char **argv) {
 
     if ((fp = sam_open_format(fname, "r", dingding2)) == NULL) {
         fprintf(stderr, "[%s] nonexistant file: %s\n", __FUNCTION__, fname);
-        exit(0);
+        exit(1);
     }
 
     bam1_t *b = bam_init1();
     bam_hdr_t *hdr = sam_hdr_read(fp);
+    if(hdr==NULL){
+      fprintf(stderr,"\t-> Hello Doctor! im afraid there is an error reading the header\n");
+      exit(1);
+    }
     int checkIfSorted(char *str);
     if(checkIfSorted(hdr->text)){
       fprintf(stderr, "Input alignment file is not sorted.");
@@ -292,7 +311,7 @@ int main_getdamage(int argc, char **argv) {
         float mylen = b->core.l_qseq;
 
         int whichref = 0;
-        if (runmode == 1)
+        if (runmode == 1)//<- runmode 0 means local one means global
             whichref = b->core.tid;
         std::map<int, std::vector<float> >::iterator it = gcconts.find(whichref);
         if (it == gcconts.end()) {
@@ -314,7 +333,7 @@ int main_getdamage(int argc, char **argv) {
 
     dmg->printit(stdout, printLength);
     dmg->write(onam, runmode == 1 ? hdr : NULL);
-    dmg->bwrite(onam);
+    dmg->bwrite(onam,rlens_flat_out);
 
     // write stat
     char buf[1024];
@@ -331,8 +350,13 @@ int main_getdamage(int argc, char **argv) {
         assert(it3 != seqlens.end());
         if (0)
             gzprintf(fpstat, "%d\t%lu\t%f\t%f\t%f\t%f\tNA\tNA\n", it->first, it2->second.nreads, mean(it3->second), var(it3->second), mean(it->second), var(it->second));
-        else
-            gzprintf(fpstat, "%s\t%lu\t%f\t%f\t%f\t%f\tNA\tNA\n", sam_hdr_tid2name(hdr, it->first), it2->second.nreads, mean(it3->second), var(it3->second), mean(it->second), var(it->second));
+        else{
+	  if(runmode==1)
+	    gzprintf(fpstat, "%s\t%lu\t%f\t%f\t%f\t%f\tNA\tNA\n", sam_hdr_tid2name(hdr, it->first), it2->second.nreads, mean(it3->second), var(it3->second), mean(it->second), var(it->second));
+	  else
+	    gzprintf(fpstat, "global\t%lu\t%f\t%f\t%f\t%f\tNA\tNA\n", it2->second.nreads, mean(it3->second), var(it3->second), mean(it->second), var(it->second));
+	    
+	}
     }
     gzclose(fpstat);
 
@@ -342,26 +366,13 @@ int main_getdamage(int argc, char **argv) {
     destroy_damage(dmg);
     free(fname);
     free(onam);
-    return 0;
-}
-
-int main_index(int argc, char **argv) {
-    char *infile = argv[1];
-    fprintf(stderr, "infile: %s\n", infile);
-    char onam[strlen(infile) + 20];
-    snprintf(onam,strlen(infile) + 20, "%s.idx", infile);
-    fprintf(stderr, "outfile: %s\n", onam);
-    FILE *fp = NULL;
-    if (((fp = fopen(onam, "wb"))) == NULL) {
-        fprintf(stderr, "Problem opening file\n");
-        return 0;
-    }
-
-    fclose(fp);
+    if(refName) free(refName);
+    free(dingding2);
     return 0;
 }
 
 int main_print(int argc, char **argv) {
+  //  fprintf(stderr,"\nYOYOYOYOYYOOYOOY\n");
     if (argc == 1) {
         fprintf(stderr, "./metaDMG-cpp print file.bdamage.gz [-names names.gz -bam file.bam -ctga -countout -nodes -howmany -r -doOld -nodes]\n");
         return 0;
@@ -416,7 +427,7 @@ int main_print(int argc, char **argv) {
     if (search != -1 && doold == 0) {
         std::map<int, double *> retmap = load_bdamage3(infile, howmany);
         double *dbl = getval(retmap, child, search, howmany);
-        double dbldbl[3 * howmany + 1];  // 3 because ct,ga,other
+        double *dbldbl = new double[3 * howmany + 1];  // 3 because ct,ga,other
         dbldbl[0] = dbl[0];
         for (int i = 0; i < 3 * howmany; i++)
             dbldbl[i + 1] = dbl[1 + i] / dbl[0];
@@ -425,6 +436,7 @@ int main_print(int argc, char **argv) {
         for (int i = 0; i < 3 * howmany; i++)
             fprintf(stdout, "\t%f", dbldbl[1 + i]);
         fprintf(stdout, "\n");
+	delete [] dbldbl;
         return 0;
     }
 
@@ -473,7 +485,7 @@ int main_print(int argc, char **argv) {
         assert(nread == 2 * sizeof(int));
         for (int at = 0; at < printlength; at++) {
             assert(16 * sizeof(float) == bgzf_read(bgfp, data, sizeof(float) * 16));
-            if (at > howmany)
+            if (at >= howmany)
                 continue;
             if (search == -1 || search == ref_nreads[0]) {
                 if (ctga == 0) {
@@ -527,8 +539,8 @@ int main_print(int argc, char **argv) {
         }
 
         for (int at = 0; at < printlength; at++) {
-            assert(16 * sizeof(int) == bgzf_read(bgfp, data, sizeof(float) * 16));
-            if (at > howmany)
+            assert(16 * sizeof(float) == bgzf_read(bgfp, data, sizeof(float) * 16));
+            if (at >= howmany)
                 continue;
             if (search == -1 || search == ref_nreads[0]) {
                 if (ctga == 0) {
@@ -654,7 +666,7 @@ int main_print2(int argc, char **argv) {
     if (search != -1 && doold == 0) {
         std::map<int, double *> retmap = load_bdamage3(infile, howmany);
         double *dbl = getval(retmap, child, search, howmany);
-        double dbldbl[3 * howmany + 1];  // 3 because ct,ga,other
+        double *dbldbl = new double [3 * howmany + 1];  // 3 because ct,ga,other
         dbldbl[0] = dbl[0];
         for (int i = 0; i < 3 * howmany; i++)
             dbldbl[i + 1] = dbl[1 + i] / dbl[0];
@@ -663,6 +675,7 @@ int main_print2(int argc, char **argv) {
         for (int i = 0; i < 3 * howmany; i++)
             fprintf(stdout, "\t%f", dbldbl[1 + i]);
         fprintf(stdout, "\n");
+	delete [] dbldbl;
         return 0;
     }
 
@@ -710,7 +723,7 @@ int main_print2(int argc, char **argv) {
         fprintf(stdout, "\n");
     }
 
-    int data[16];
+    float data[16];
 
     while (1) {
         int nread = bgzf_read(bgfp, ref_nreads, 2 * sizeof(int));
@@ -720,7 +733,7 @@ int main_print2(int argc, char **argv) {
         fprintf(stderr, "ref: %d nreads: %d\n", ref_nreads[0], ref_nreads[1]);
         assert(nread == 2 * sizeof(int));
         for (int at = 0; at < printlength; at++) {
-            assert(16 * sizeof(int) == bgzf_read(bgfp, data, sizeof(int) * 16));
+            assert(16 * sizeof(float) == bgzf_read(bgfp, data, sizeof(float) * 16));
             if ((at + 1) > howmany)
                 continue;
             if (search == -1 || search == ref_nreads[0]) {
@@ -742,7 +755,7 @@ int main_print2(int argc, char **argv) {
                 }
                 if (countout == 1) {
                     for (int i = 0; i < 16; i++)
-                        fprintf(stdout, "\t%d", data[i]);
+                        fprintf(stdout, "\t%f", data[i]);
                     fprintf(stdout, "\n");
                 } else {
                     float flt[16];
@@ -775,7 +788,7 @@ int main_print2(int argc, char **argv) {
         }
 
         for (int at = 0; at < printlength; at++) {
-            assert(16 * sizeof(int) == bgzf_read(bgfp, data, sizeof(int) * 16));
+            assert(16 * sizeof(float) == bgzf_read(bgfp, data, sizeof(float) * 16));
             if (at + 1 > howmany)
                 continue;
             if (search == -1 || search == ref_nreads[0]) {
@@ -794,7 +807,7 @@ int main_print2(int argc, char **argv) {
                 }
                 if (countout == 1) {
                     for (int i = 0; i < 16; i++)
-                        fprintf(stdout, "\t%d", data[i]);
+                        fprintf(stdout, "\t%f", data[i]);
                     fprintf(stdout, "\n");
                 } else {
                     float flt[16];
@@ -959,22 +972,32 @@ int main_merge(int argc, char **argv) {
 int2int getlcadist(char *fname) {
     //  fprintf(stderr,"fname: %s\n",fname);
     int2int lcadist;
-    int tlen = strlen(fname) + 10;
-    char tmp[tlen];
-    snprintf(tmp, tlen, "%s.stat", fname);
+    if(strlen(fname)>1000){
+      fprintf(stderr,"\t-> Ridiculus long filename: \'%s\'\n",fname);
+      exit(1);
+    }
+    char tmp[1024];
+    snprintf(tmp, 1000, "%s.stat", fname);
     fprintf(stderr, "tmp: %s\n", tmp);
     FILE *fp = NULL;
     fp = fopen(tmp, "rb");
     assert(fp != NULL);
     char buf[4096];
     while (fgets(buf, 4096, fp)) {
-        int key = atoi(strtok(buf, "\t\n "));
-        int val = atoi(strtok(NULL, "\t\n "));
-        lcadist[key] = val;
+      char *tok1 = strtok(buf, "\t\n ");
+      char *tok2 = strtok(NULL, "\t\n ");
+      if(!tok1||!tok2)
+	continue;
+      int key = atoi(tok1);
+      int val = atoi(tok2);
+      lcadist[key] = val;
     }
     fprintf(stderr, "\t-> Done reading: %lu entries from file: \'%s\'\n", lcadist.size(), tmp);
+    fclose(fp);
     return lcadist;
 }
+
+
 
 std::map<int, double *> getcsv(char *fname) {
     std::map<int, double *> ret;
@@ -1095,20 +1118,18 @@ int main_merge2(int argc, char **argv) {
 }
 
 int main_print_all(int argc, char **argv) {
-    fprintf(stderr, "./metaDMG-cpp print_all file.bdamage.gz -names file.gz [-howmany 5] -nodes trestructure.gz -names fil.gz\n");
+    fprintf(stderr, "./metaDMG-cpp print_all file.bdamage.gz -names file.gz -nodes trestructure.gz -names fil.gz\n");
     if (argc <= 2)
         return 0;
     char *infile_bdamage = NULL;
     char *infile_nodes = NULL;
     char *infile_names = NULL;
-    int howmany = 5;
+
 
     while (*(++argv)) {
         if (strcasecmp("-names", *argv) == 0)
             infile_names = strdup(*(++argv));
-        else if (strcasecmp("-howmany", *argv) == 0)
-            howmany = atoi(*(++argv));
-        else if (strcasecmp("-nodes", *argv) == 0)
+	else if (strcasecmp("-nodes", *argv) == 0)
             infile_nodes = strdup(*(++argv));
         else
             infile_bdamage = strdup(*argv);
@@ -1125,15 +1146,15 @@ int main_print_all(int argc, char **argv) {
 
     if (infile_nodes != NULL)
         parse_nodes(infile_nodes, rank, parent, child, 1);
-
+    int howmany = 5;
     std::map<int, double *> retmap = load_bdamage3(infile_bdamage, howmany);
     fprintf(stderr, "\t-> number of entries in damage pattern file: %lu\n", retmap.size());
     int2char name = parse_names(infile_names);
 
     BGZF *bgfp = NULL;
-    samFile *samfp = NULL;
-
+    
     float presize = retmap.size();
+
     getval(retmap, child, 1, howmany);  // this will do everything
     float postsize = retmap.size();
     fprintf(stderr, "\t-> pre: %f post:%f grownbyfactor: %f\n", presize, postsize, postsize / presize);
@@ -1167,6 +1188,7 @@ int main_print_all(int argc, char **argv) {
 }
 
 int main_print_ugly(int argc, char **argv) {
+  htsFormat *dingding2 = (htsFormat *)calloc(1, sizeof(htsFormat));
   if(1)
     fprintf(stderr,"\t-> print_ugly functionality will be removed\n");
   
@@ -1247,7 +1269,7 @@ int main_print_ugly(int argc, char **argv) {
 
     for (std::map<int, mydataD>::iterator it = retmap.begin(); it != retmap.end(); it++) {
         int taxid = it->first;
-        mydataD md = it->second;
+        //mydataD md = it->second;
         if (it->second.nal == 0)
             continue;
         /*
@@ -1359,6 +1381,7 @@ int main_print_ugly(int argc, char **argv) {
       free(infile_lcastat);
     free(kstr->s);
     delete kstr;
+    free(dingding2);
     return 0;
 }
 
@@ -1407,8 +1430,6 @@ int main(int argc, char **argv) {
         return main_pmd(argc, argv);
     if (!strcmp(argv[0], "getdamage"))
         main_getdamage(argc, argv);
-    if (!strcmp(argv[0], "index"))
-        main_index(argc, argv);
     if (!strcmp(argv[0], "print"))
         main_print(argc, argv);
     if (!strcmp(argv[0], "print_all"))
@@ -1429,8 +1450,8 @@ int main(int argc, char **argv) {
         main_lca(argc, argv);
     if (!strcmp(argv[0], "mergedamage"))
       main_mergedamage(argc, argv);
-    free(dingding2);
-    //  fprintf(stderr, "\t[ALL done] cpu-time used =  %.2f sec\n", (float)(clock() - t) / CLOCKS_PER_SEC);
-    // fprintf(stderr, "\t[ALL done] walltime used =  %.2f sec\n", (float)(time(NULL) - t2));
+
+    fprintf(stderr, "\t[ALL done] cpu-time used =  %.2f sec\n", (float)(clock() - t) / CLOCKS_PER_SEC);
+    fprintf(stderr, "\t[ALL done] walltime used =  %.2f sec\n", (float)(time(NULL) - t2));
     return 0;
 }
