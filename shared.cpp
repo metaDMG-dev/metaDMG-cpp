@@ -8,7 +8,6 @@
 #include <unistd.h>       // for isatty
 #include <zlib.h>         // for gzclose, gzgets, gzopen, Z_NULL, gzFile
 
-#include <cassert>  // for assert
 #include <cstdio>   // for fprintf, stderr, snprintf, NULL, size_t
 #include <cstdlib>  // for atoi, exit, malloc
 #include <ctime>    // for time
@@ -365,8 +364,11 @@ int2int *bamRefId2tax(bam_hdr_t *hdr, char *acc2taxfile, char *bamfile, int2int 
             nprocs++;
 
             if (fp != NULL)
-                assert(bgzf_write(fp, &valinbam, sizeof(int)) == sizeof(int) &&
-                       bgzf_write(fp, &val, sizeof(int)) == sizeof(int));
+	      if (bgzf_write(fp, &valinbam, sizeof(int)) != sizeof(int) ||
+		  bgzf_write(fp, &val, sizeof(int)) != sizeof(int)) {
+		fprintf(stderr, "\t-> Error: failed to write expected number of bytes with bgzf_write, will exit\n");
+		exit(1);
+	      }
 
             if (am->find(valinbam) != am->end())
                 fprintf(stderr, "\t-> Duplicate entries found '%s'\n", key);
@@ -385,8 +387,11 @@ int2int *bamRefId2tax(bam_hdr_t *hdr, char *acc2taxfile, char *bamfile, int2int 
     } else {
         int valinbam, val;
         while (bgzf_read(fp, &valinbam, sizeof(int))) {
-            assert(bgzf_read(fp, &val, sizeof(int)) == sizeof(int));
-            (*am)[valinbam] = val;
+	  if (bgzf_read(fp, &val, sizeof(int)) != sizeof(int)) {
+	    fprintf(stderr, "\t-> Error: failed to read expected number of bytes for int value with bgzf_read, will exit\n");
+	    exit(1);
+	  }
+	  (*am)[valinbam] = val;
         }
     }
 
