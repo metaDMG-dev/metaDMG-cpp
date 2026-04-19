@@ -1,5 +1,4 @@
 #include <cmath>
-#include <cassert>
 #include <cstring>
 #include <vector>
 #include <cstdio>
@@ -12,7 +11,10 @@
 double **read1_ugly_matrix(const char *fname){
   fprintf(stderr,"\t-> Reading file: \'%s\'\n",fname);
   gzFile gz = Z_NULL;
-  assert((gz=gzopen(fname,"rb"))!=Z_NULL);
+  if((gz=gzopen(fname,"rb"))==Z_NULL){
+    fprintf(stderr,"\t-> Problem opening file: %s will exit\n",fname);
+    exit(1);
+  }
   char buf[4096];
   char *taxid = NULL;
   gzgets(gz,buf,4096);
@@ -24,9 +26,12 @@ double **read1_ugly_matrix(const char *fname){
     char *tok = strtok(buf,"\t\n ");
     if(taxid==NULL)
       taxid = strdup(tok);
-    else
-      assert(strcmp(taxid,tok)==0);
-
+    else{
+      if (strcmp(taxid, tok) != 0) {
+	fprintf(stderr, "\t-> Error: taxid mismatch (%s vs %s) will exit\n", taxid, tok);
+	exit(1);
+      }
+    }
     tok = strtok(NULL,"\t\n ");
     int is5 = 1;
     if(strcmp(tok,"3'")==0)
