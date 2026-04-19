@@ -23,7 +23,6 @@
 #include "shared.h"      // for parse_names, parse_nodes
 #include "types.h"       // for int2intvec, int2int
 #include "version.h"     // for METADAMAGE_VERSION
-#include "merge_bdamage.h" //for merging multiple bdmage files
 
 #ifdef __REGRESSION__
 #include "regression.h"  // for main_regression
@@ -1425,32 +1424,31 @@ int main(int argc, char **argv) {
         return main_regression(argc, argv);
 #endif
     if (!strcmp(argv[0], "pmd"))
-        return main_pmd(argc, argv);
-    if (!strcmp(argv[0], "pmd"))
-        return main_pmd(argc, argv);
-    if (!strcmp(argv[0], "getdamage"))
+        main_pmd(argc, argv);
+    else if (!strcmp(argv[0], "getdamage"))
         main_getdamage(argc, argv);
-    if (!strcmp(argv[0], "print"))
+    else if (!strcmp(argv[0], "print"))
         main_print(argc, argv);
-    if (!strcmp(argv[0], "print_all"))
+    else if (!strcmp(argv[0], "print_all"))
         main_print_all(argc, argv);
-    if (!strcmp(argv[0], "print_ugly"))
+    else if (!strcmp(argv[0], "print_ugly"))
         main_print_ugly(argc, argv);
-    if (!strcmp(argv[0], "dfit"))
+    else if (!strcmp(argv[0], "dfit"))
       main_dfit(argc, argv);
-    if (!strcmp(argv[0], "aggregate"))
+    else if (!strcmp(argv[0], "aggregate"))
       main_aggregate(argc, argv);
-    if (!strcmp(argv[0], "print2"))
+    else if (!strcmp(argv[0], "print2"))
         main_print2(argc, argv);
-    if (!strcmp(argv[0], "merge"))
+    else if (!strcmp(argv[0], "merge"))
         main_merge(argc, argv);
-    if (!strcmp(argv[0], "merge2"))
+    else if (!strcmp(argv[0], "merge2"))
         main_merge2(argc, argv);
-    if (!strcmp(argv[0], "lca"))
+    else if (!strcmp(argv[0], "lca"))
         main_lca(argc, argv);
-    if (!strcmp(argv[0], "mergedamage"))
-      main_mergedamage(argc, argv);
-
+    else{
+      fprintf(stderr, "\t-> Unknown command: %s will exit error\n", argv[0]);
+      return 1;
+    }
     fprintf(stderr, "\t[ALL done] cpu-time used =  %.2f sec\n", (float)(clock() - t) / CLOCKS_PER_SEC);
     fprintf(stderr, "\t[ALL done] walltime used =  %.2f sec\n", (float)(time(NULL) - t2));
     return 0;

@@ -1,3 +1,4 @@
+
 #!/bin/bash
 #test script for metadamage, 
 #
@@ -99,7 +100,8 @@ fi
 # Remove 'ncall' column and round values, since it fails on GitHub tests
 echo "Running test of output/test_dfit_local.dfit.gz by gzip -t  output/test_dfit_local.dfit.gz "
 gzip -t  output/test_dfit_local.dfit.gz
-echo -ne "Return value of test $?\nWill now run gunzip -c output/test_dfit_local.dfit.gz|wc -c\n"
+echo "Return value of test $?"
+echo "Will now run gunzip -c output/test_dfit_local.dfit.gz|wc -c\n"
 gunzip -c output/test_dfit_local.dfit.gz | wc -c
 
 gunzip -c output/test_dfit_local.dfit.gz | \
@@ -163,13 +165,6 @@ if [[ $? -ne 0 ]]; then
     RVAL=$((1024+RVAL))
 fi
 
-echo "Running mergedamage test with 2 bdamage and 2 rlens files"
-CMD="${PRG} mergedamage -b output/test_getdamage_local.bdamage.gz output/test_getdamage_global.bdamage.gz -r output/test_lca.rlens.gz output/test_lca.rlens.gz -out output/test_mergedamage"
-${CMD} >> ${LOG} 2>&1
-if [[ $? -ne 0 ]]; then
-    echo "Problem running mergedamage: ${CMD}"
-    RVAL=$((4096+RVAL))
-fi
 
 OS="$(uname -s)"
 ARCH="$(uname -m)"
@@ -191,7 +186,13 @@ esac
 echo "Validating checksums: ${CHECKSUMFILE}"
 echo "========================"
 gunzip -f output/*.gz
-md5sum -c ${CHECKSUMFILE}
+
+awk '!/^[[:space:]]*#/ {print $2}' ${CHECKSUMFILE} | while read -r f; do
+  [ -f "$f" ] || { echo "Missing: $f"; exit 1; }
+done || exit 1
+
+grep -v '^[[:space:]]*#' ${CHECKSUMFILE} | md5sum -c -
+
 if [[ $? -ne 0 ]]; then
     echo "Problem with md5sums"
     RVAL=$((2048+${RVAL}))
