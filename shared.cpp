@@ -38,19 +38,33 @@ BGZF *getbgzf(const char *str1, const char *mode, int nthreads) {
 }
 
 BGZF *getbgzf2(const char *str1, const char *str2, const char *mode, int nthreads) {
-    unsigned tmp_l = strlen(str1) + strlen(str2) + 5;
-    char tmp[tmp_l];
+    unsigned tmp_l = strlen(str1) + strlen(str2) + 1;  // +1 for '\0'
+
+    char *tmp = (char*)malloc(tmp_l);
+    if (!tmp) {
+        fprintf(stderr, "\t-> Error: failed to allocate memory for tmp, will exit\n");
+        exit(1);
+    }
+
     snprintf(tmp, tmp_l, "%s%s", str1, str2);
-    return getbgzf(tmp, mode, nthreads);
+
+    BGZF *ret = getbgzf(tmp, mode, nthreads);
+    free(tmp);
+    return ret;
 }
 
 BGZF *getbgzf3(const char *str1, const char *str2, const char *str3, const char *mode, int nthreads) {
-    unsigned tmp_l = strlen(str1) + strlen(str2) + strlen(str3) + 5;
-    char tmp[tmp_l];
+    size_t tmp_l = strlen(str1) + strlen(str2) + strlen(str3) + 1;
+    char *tmp = (char *)malloc(tmp_l);
+    if (tmp == NULL) {
+        fprintf(stderr, "\t-> Error: failed to allocate memory for tmp, will exit\n");
+        exit(1);
+    }
     snprintf(tmp, tmp_l, "%s%s%s", str1, str2, str3);
-    return getbgzf(tmp, mode, nthreads);
+    BGZF *ret = getbgzf(tmp, mode, nthreads);
+    free(tmp);
+    return ret;
 }
-
 char *getfilename4(const char *str1, const char *str2, const char *str3, const char *str4) {
     unsigned tmp_l = strlen(str1) + strlen(str2) + strlen(str3) + strlen(str4) + 5;
     char *tmp=(char*)calloc(tmp_l,1);
@@ -59,12 +73,20 @@ char *getfilename4(const char *str1, const char *str2, const char *str3, const c
 }
 
 
-
 BGZF *getbgzf4(const char *str1, const char *str2, const char *str3, const char *str4, const char *mode, int nthreads) {
-    unsigned tmp_l = strlen(str1) + strlen(str2) + strlen(str3) + strlen(str4) + 5;
-    char tmp[tmp_l];
+    size_t tmp_l = strlen(str1) + strlen(str2) + strlen(str3) + strlen(str4) + 1;
+
+    char *tmp = (char *)malloc(tmp_l);
+    if (tmp == NULL) {
+        fprintf(stderr, "\t-> Error: failed to allocate memory for tmp, will exit\n");
+        exit(1);
+    }
+
     snprintf(tmp, tmp_l, "%s%s%s%s", str1, str2, str3, str4);
-    return getbgzf(tmp, mode, nthreads);
+
+    BGZF *ret = getbgzf(tmp, mode, nthreads);
+    free(tmp);
+    return ret;
 }
 
 int fexists(const char *str) {  ///@param str Filename given as a string.
@@ -74,12 +96,20 @@ int fexists(const char *str) {  ///@param str Filename given as a string.
 }
 
 int fexists2(const char *str1, const char *str2) {
-    unsigned tmp_l = strlen(str1) + strlen(str2) + 5;
-    char tmp[tmp_l];
-    snprintf(tmp, tmp_l, "%s%s", str1, str2);
-    return fexists(tmp);
-}
+    size_t tmp_l = strlen(str1) + strlen(str2) + 1;
 
+    char *tmp = (char *)malloc(tmp_l);
+    if (tmp == NULL) {
+        fprintf(stderr, "\t-> Error: failed to allocate memory for tmp, will exit\n");
+        exit(1);
+    }
+
+    snprintf(tmp, tmp_l, "%s%s", str1, str2);
+
+    int ret = fexists(tmp);
+    free(tmp);
+    return ret;
+}
 size_t fsize(const char *fname) {
     struct stat st;
     stat(fname, &st);
@@ -87,22 +117,40 @@ size_t fsize(const char *fname) {
 }
 
 int fexists3(const char *str1, const char *str2, const char *str3) {
-    unsigned tmp_l = strlen(str1) + strlen(str2) + strlen(str3) + 5;
-    char tmp[tmp_l];
+    size_t tmp_l = strlen(str1) + strlen(str2) + strlen(str3) + 1;
+
+    char *tmp = (char *)malloc(tmp_l);
+    if (tmp == NULL) {
+        fprintf(stderr, "\t-> Error: failed to allocate memory for tmp, will exit\n");
+        exit(1);
+    }
+
     snprintf(tmp, tmp_l, "%s%s%s", str1, str2, str3);
+
     size_t fs = fsize(tmp);
-    return fexists(tmp) && fs > 0;
+    int ret = fexists(tmp) && fs > 0;
+
+    free(tmp);
+    return ret;
 }
 
 int fexists4(const char *str1, const char *str2, const char *str3, const char *str4) {
-    unsigned tmp_l = strlen(str1) + strlen(str2) + strlen(str3) + strlen(str4) + 5;
-    char tmp[tmp_l];
-    snprintf(tmp, tmp_l, "%s%s%s%s", str1, str2, str3, str4);
-    //  fprintf(stderr,"\t-> checking if : %s exists\n",tmp );
-    size_t fs = fsize(tmp);
-    return fexists(tmp) && fs > 0;
-}
+    size_t tmp_l = strlen(str1) + strlen(str2) + strlen(str3) + strlen(str4) + 1;
 
+    char *tmp = (char *)malloc(tmp_l);
+    if (tmp == NULL) {
+        fprintf(stderr, "\t-> Error: failed to allocate memory for tmp, will exit\n");
+        exit(1);
+    }
+
+    snprintf(tmp, tmp_l, "%s%s%s%s", str1, str2, str3, str4);
+
+    size_t fs = fsize(tmp);
+    int ret = fexists(tmp) && fs > 0;
+
+    free(tmp);
+    return ret;
+}
 // usefull little function to split
 char *strpop(char **str, char split) {
     char *tok = *str;
@@ -204,7 +252,6 @@ void parse_nodes(const char *fname, int2char &rank, int2int &parent, int2intvec 
         exit(1);
     }
     char buf[4096];
-    int at = 0;
     char **toks = new char *[5];
 
     while (gzgets(gz, buf, 4096)) {
