@@ -132,7 +132,7 @@ int main() {
 
     int num_rows, num_cols;
     read_count_matrix("MycoBactBamSEOutSortMDSortN.mismatches.txt.gz", M3,tax_id,dir,&num_rows, &num_cols);
-    Alter_count_matrix(M3,tax_id,dir,num_rows,num_cols);
+    Alter_count_matrix(M3,tax_id,dir,num_rows);
 
     int n_priors=8;
     double* priors = (double*) malloc(n_priors*sizeof(double));

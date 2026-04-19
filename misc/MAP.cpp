@@ -357,7 +357,7 @@ void M3Print_to_OutStat(int argc,char **argv){
         const char* filename = mypars-> OutputStat; //"outputtest.txt.gz";
 
         read_count_matrix(M3file, M3,tax_id,dir,&num_rows, &num_cols);
-        Alter_count_matrix(M3,tax_id,dir,num_rows,num_cols);
+        Alter_count_matrix(M3,tax_id,dir,num_rows);
 
         int numpars = 5;
         double* LlhRes = (double*) malloc(numpars*sizeof(double));    
