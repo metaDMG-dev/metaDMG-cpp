@@ -1,6 +1,5 @@
 #include "ngsLCA_cli.h"
 
-#include <assert.h>      // for assert
 #include <htslib/hts.h>  // for hts_open
 #include <pthread.h>     // for pthread_mutex_lock, pthre...
 #include <pthread.h>
@@ -125,9 +124,17 @@ char2int *ass2bin(const char *fname, int redo) {
 
         while (sizeof(int) == gzread(FP, &key_l, sizeof(int))) {
             char *key = (char *)calloc(key_l + 1, sizeof(char));
-            assert((key_l = gzread(FP, key, key_l)));
-            int val;
-            assert(sizeof(int) == gzread(FP, &val, sizeof(int)));
+	    key_l = gzread(FP, key, key_l);
+	    if (key_l <= 0) {
+	      fprintf(stderr, "\t-> Error: failed to read key with gzread, will exit\n");
+	      exit(1);
+	    }
+
+	    int val;
+            if (gzread(FP, &val, sizeof(int)) != sizeof(int)) {
+	      fprintf(stderr, "\t-> Error: failed to read expected number of bytes for int value with gzread, will exit\n");
+	      exit(1);
+	    }
             if (cm->find(key) != cm->end()) {
                 fprintf(stderr, "\t-> Duplicate entries found \'%s\'\n", key);
             } else
@@ -275,12 +282,18 @@ pars *get_pars(int argc, char **argv) {
     snprintf(buf, 1024, "%s.lca.gz", p->outnames);
     fprintf(stderr, "\t-> Will output lca results in file:\t\t\'%s\'\n", buf);
     p->fp1 = gzopen(buf, "wb");
-    assert(p->fp1);
+    if (!p->fp1) {
+      fprintf(stderr, "\t-> Error: p->fp1 is NULL (file pointer not initialized), will exit\n");
+      exit(1);
+    }
     snprintf(buf, 1024, "%s.stat.gz", p->outnames);
     fprintf(stderr, "\t-> Will output lca distribution in file:\t\t\'%s\'\n", buf);
     p->fp_lcadist = NULL;
     p->fp_lcadist = gzopen(buf, "wb");
-    assert(p->fp_lcadist);
+    if (!p->fp_lcadist) {
+      fprintf(stderr, "\t-> Error: p->fp_lcadist is NULL (file pointer not initialized), will exit\n");
+      exit(1);
+    }
     snprintf(buf, 1024, "%s.wlca.gz", p->outnames);
     fprintf(stderr, "\t-> Will output lca weight in file:\t\t\'%s\'\n", buf);
     //  p->fp2 = gzopen(buf,"wb");
@@ -288,7 +301,10 @@ pars *get_pars(int argc, char **argv) {
     snprintf(buf, 1024, "%s.log", p->outnames);
     fprintf(stderr, "\t-> Will output log info (problems) in file:\t\'%s\'\n", buf);
     p->fp3 = fopen(buf, "wb");
-    assert(p->fp3);
+    if (!p->fp3) {
+      fprintf(stderr, "\t-> Error: p->fp3 is NULL (file pointer not initialized), will exit\n");
+      exit(1);
+    }
 #endif
     if (make_used_reads) {
         snprintf(buf, 1024, "%s.usedreads.bam", p->outnames);
@@ -334,8 +350,10 @@ void print_pars(FILE *fp, pars *p) {
 #ifdef __WITH_MAIN__
 int main(int argc, char **argv) {
     pars *p = get_pars(--argc, ++argv);
-    assert(p);
-
+    if (!p) {
+      fprintf(stderr, "\t-> Error: get_pars returned NULL, will exit\n");
+      exit(1);
+    }
     print_pars(stdout, p);
 }
 #endif

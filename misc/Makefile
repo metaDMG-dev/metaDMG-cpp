@@ -84,8 +84,9 @@ $(LIBHTS):
 		exit 1; \
 	fi
 
+KMATH_CXXFLAGS := $(filter-out -Wall -Wextra,$(CXXFLAGS)) -w
 kmath.o: bfgs.cpp bfgs.h
-	$(CXX) -c $(CPPFLAGS) $(CXXFLAGS) bfgs.cpp -o kmath.o
+	$(CXX) -c $(CPPFLAGS) $(KMATH_CXXFLAGS) bfgs.cpp -o kmath.o
 
 Likelihood.o: Likelihood.cpp
 	$(CXX) -c $(CPPFLAGS) $(CXXFLAGS) Likelihood.cpp -o Likelihood.o

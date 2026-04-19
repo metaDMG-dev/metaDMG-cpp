@@ -4,7 +4,6 @@
 #include <cstring>
 #include <cstdlib>
 #include <htslib/sam.h>
-#include <cassert>
 #include <ctype.h>
 #include "../shared.h"
 
@@ -122,10 +121,14 @@ int2int getkeysint(const char *key,int value){
 void doflush(queue *myq,int2int &keeplist,bam_hdr_t *hdr,samFile *outhts,int strict){
   // fprintf(stderr,"flush: %lu strictk:%d\n",myq->l,strict);
   if(strict==1){//will only print specific match
-    for(size_t i=0;i<myq->l;i++){
-      int2int::iterator it=keeplist.find(myq->ary[i]->core.tid);
-      if(it!=keeplist.end())
-	assert(sam_write1(outhts, hdr,myq->ary[i])>=0);
+    for (size_t i = 0; i < myq->l; i++) {
+      int2int::iterator it = keeplist.find(myq->ary[i]->core.tid);
+      if (it != keeplist.end()) {
+        if (sam_write1(outhts, hdr, myq->ary[i]) < 0) {
+	  fprintf(stderr, "\t-> Error: failed to write alignment with sam_write1, will exit\n");
+	  exit(1);
+        }
+      }
     }
   }
   if(strict==0){
@@ -140,7 +143,10 @@ void doflush(queue *myq,int2int &keeplist,bam_hdr_t *hdr,samFile *outhts,int str
     }
     if(writedata>0){
       for(size_t i=0;i<myq->l;i++){
-	assert(sam_write1(outhts, hdr,myq->ary[i])>=0);
+	if (sam_write1(outhts, hdr, myq->ary[i]) < 0) {
+	  fprintf(stderr, "\t-> Error: failed to write alignment with sam_write1, will exit\n");
+	  exit(1);
+	}
       }
     }
   }
@@ -180,7 +186,10 @@ void runextract_int2int(int2int &keeplist,samFile *htsfp,bam_hdr_t *hdr,const ch
       myq->l = 0;
       last=strdup(qname);
     }
-    assert(bam_copy1(myq->ary[myq->l],aln)!=NULL);
+    if (bam_copy1(myq->ary[myq->l], aln) == NULL) {
+      fprintf(stderr, "\t-> Error: bam_copy1 returned NULL, will exit\n");
+      exit(1);
+    }
     myq->l++;
     if(myq->l==myq->m)
       expand_queue(myq);
@@ -220,11 +229,17 @@ void runextract_readid(char2int &keeplist,samFile *htsfp,bam_hdr_t *hdr,const ch
       isthere=1;
       it->second = it->second + 1;
     }
-    if(complement==0&&isthere==1)
-      assert(sam_write1(outhts, hdr,aln)>=0);
-    else if(complement==1&&isthere==0)
-      assert(sam_write1(outhts, hdr,aln)>=0);
-    
+    if(complement==0&&isthere==1){
+      if (sam_write1(outhts, hdr, aln) < 0) {
+	fprintf(stderr, "\t-> Error: failed to write alignment with sam_write1, will exit\n");
+	exit(1);
+      }
+    }else if(complement==1&&isthere==0){
+      if (sam_write1(outhts, hdr, aln) < 0) {
+	fprintf(stderr, "\t-> Error: failed to write alignment with sam_write1, will exit\n");
+	exit(1);
+      }
+    }
   }
   for(char2int::iterator it=keeplist.begin();it!=keeplist.end();it++){
     if(it->second==0)
@@ -290,7 +305,14 @@ int main_byrefid(int argc,char**argv){
     ++argv;
   }
   
-  fprintf(stderr,"\t-> key: %s \n\t-> hts: %s \n\t-> type: %s \n\t-> outfile: %s\n\t-> strict: %d\n",keyfile,hts,type,outfile,strict);
+  fprintf(stderr,
+	  "\t-> key: %s \n\t-> hts: %s \n\t-> type: %s \n\t-> outfile: %s\n\t-> strict: %d\n",
+	  keyfile ? keyfile : "NULL",
+	  hts     ? hts     : "NULL",
+	  type    ? type    : "NULL",
+	  outfile ? outfile : "NULL",
+	  strict
+	  );
 
   //open inputfile and parse header
   samFile *htsfp = hts_open(hts,"r");
@@ -363,7 +385,7 @@ int main_bytaxid(int argc,char**argv){
   char *hts = NULL;
   char *taxid = NULL;
   char *nodefile = NULL;
-  char out_mode[5] = "wb";
+  //  char out_mode[5] = "wb";
   char *acc2tax = NULL;
   int strict = 0;
   char *type = NULL;
@@ -396,7 +418,21 @@ int main_bytaxid(int argc,char**argv){
     ++argv;
   }
   
-  fprintf(stderr,"\t-> key: %s \n\t-> hts: %s \n\t-> nodefile: %s \n\t-> acc2tax: %s \n\t-> taxid: %s\n\t-> taxnames: %s \n\t-> strict: %d \n\t-> type: %s \n\t-> outfile: %s\n\t-> forcedump:%d\n\t-> accout:%s\n\t-> names: %s\n",keyfile,hts,nodefile, acc2tax, taxid,taxnames,strict,type,outfile,forcedump,accout,names);
+  fprintf(stderr,
+	  "\t-> key: %s \n\t-> hts: %s \n\t-> nodefile: %s \n\t-> acc2tax: %s \n\t-> taxid: %s\n\t-> taxnames: %s \n\t-> strict: %d \n\t-> type: %s \n\t-> outfile: %s\n\t-> forcedump:%d\n\t-> accout:%s\n\t-> names: %s\n",
+	  keyfile   ? keyfile   : "NULL",
+	  hts       ? hts       : "NULL",
+	  nodefile  ? nodefile  : "NULL",
+	  acc2tax   ? acc2tax   : "NULL",
+	  taxid     ? taxid     : "NULL",
+	  taxnames  ? taxnames  : "NULL",
+	  strict,
+	  type      ? type      : "NULL",
+	  outfile   ? outfile   : "NULL",
+	  forcedump,
+	  accout    ? accout    : "NULL",
+	  names     ? names     : "NULL"
+	  );
 
   if(taxid ==NULL&&taxnames==NULL){
     fprintf(stderr,"\t-> Need to supply -taxid and/or -taxnames\n");
@@ -509,7 +545,10 @@ int main_bytaxid(int argc,char**argv){
   int2int keeplist;
   for(char2int::iterator it=cmap.begin();it!=cmap.end();it++){
     int tokeep = sam_hdr_name2tid(hdr,it->first);
-    assert(tokeep>=0);
+    if (tokeep < 0) {
+      fprintf(stderr, "\t-> Error: tokeep is negative (%d), will exit\n", tokeep);
+      exit(1);
+    }
     keeplist[tokeep] =1;
 
   }

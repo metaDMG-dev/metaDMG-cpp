@@ -1,5 +1,4 @@
 #include <cmath>
-#include <cassert>
 #include <cstring>
 #include <vector>
 #include <cstdio>
@@ -10,7 +9,12 @@
 double **read1_ugly_matrix(const char *fname){
   fprintf(stderr,"\t-> Reading file: \'%s\'\n",fname);
   gzFile gz = Z_NULL;
-  assert((gz=gzopen(fname,"rb"))!=Z_NULL);
+  gz = gzopen(fname, "rb");
+  if (gz == Z_NULL) {
+    fprintf(stderr, "\t-> Error: failed to open gz file %s, will exit\n", fname);
+    exit(1);
+  }
+  
   char buf[4096];
   char *taxid = NULL;
   gzgets(gz,buf,4096);
@@ -19,12 +23,25 @@ double **read1_ugly_matrix(const char *fname){
   std::vector<double> ncol;
   
   while(gzgets(gz,buf,4096)){
-    char *tok = strtok(buf,"\t\n ");
-    if(taxid==NULL)
+    char *tok = strtok(buf, "\t\n ");
+    
+    if (tok == NULL) {
+      fprintf(stderr, "\t-> Error: failed to parse token from buffer, will exit\n");
+      exit(1);
+    }
+    
+    if (taxid == NULL) {
       taxid = strdup(tok);
-    else
-      assert(strcmp(taxid,tok)==0);
-
+      if (taxid == NULL) {
+        fprintf(stderr, "\t-> Error: failed to allocate memory for taxid, will exit\n");
+        exit(1);
+      }
+    } else {
+      if (strcmp(taxid, tok) != 0) {
+        fprintf(stderr, "\t-> Error: taxid mismatch (%s vs %s), will exit\n", taxid, tok);
+        exit(1);
+      }
+    }
     tok = strtok(NULL,"\t\n ");
     int is5 = 1;
     if(strcmp(tok,"3'")==0)
@@ -229,7 +246,14 @@ int main(int argc,char **argv){
   double **dat = read1_ugly_matrix(fname);
   double pars[6] = {0.1,0.1,0.01,1000};//last one will contain the llh,and the ncall for the objective function
   optimoptim(pars,dat,nopt);
-  double stats[2+2*(int)dat[0][0]];
+
+  int n = 2 + 2 * (int)dat[0][0];
+  
+  double *stats = (double *)malloc(n * sizeof(double));
+  if (stats == NULL) {
+    fprintf(stderr, "\t-> Error: failed to allocate memory for stats, will exit\n");
+    exit(1);
+  }
   getstat(dat,pars,stats);
 
   //printit
@@ -249,6 +273,7 @@ int main(int argc,char **argv){
   dx_conf = stats+2+nrows+ncycle;
   for(int i=0;i<ncycle;i++)
     fprintf(stderr,"3\t%d\t%.0f\t%0.f\t%f\t%f\n",i,dat[1][i+ncycle],dat[2][i+ncycle],dx[i],dx_conf[i]);
+  free(stats);
 }
 
 #endif

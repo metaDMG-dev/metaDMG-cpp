@@ -2,7 +2,6 @@
 #include <cstring>
 #include <cstdlib>
 #include <ctime>
-#include <cassert>
 #include <cstdint>
 #include <iostream>
 #include <math.h>

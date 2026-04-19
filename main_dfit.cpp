@@ -79,6 +79,7 @@ void make_bootstrap_data(double **in,double **out,int howmany,mrand_t *rand_allo
 }
 
 void print_dat(double **dat, int howmany, int libprep) {
+  (void) libprep;
     int rows = 4;  // [metadata, kvec, nvec, freq]
     int cols = 2 * howmany; 
     printf("printing d:\n");
@@ -503,7 +504,13 @@ void slave_block(std::map<int, mydataD> &retmap,int howmany,sam_hdr_t *hdr,int2c
     }
     
     // Sigma and Z
-    double stats[2+2*(int)dat[0][0]];
+    int n = 2 + 2 * (int)dat[0][0];
+    
+    double *stats = (double *)malloc(n * sizeof(double));
+    if (stats == NULL) {
+      fprintf(stderr, "\t-> Error: failed to allocate memory for stats, will exit\n");
+      exit(1);
+    }
     getstat(dat,pars,stats);
       
     // stats contains standard deviation, then significance, then the calculated Dx for each position then the normalized 
@@ -626,7 +633,7 @@ void slave_block(std::map<int, mydataD> &retmap,int howmany,sam_hdr_t *hdr,int2c
     }
     ksprintf(kstr,"\n");
     delete[] CI_val;  // Free the array of pointers
-
+    free(stats);
   }
 
   // Free the memory
@@ -772,9 +779,9 @@ int main_dfit(int argc, char **argv) {
       snprintf(bootbuf, 1024, "%s.boot.stat.gz", outfile_name);
       bootfp = bgzf_open(bootbuf, "wb");    
       ksprintf(bootkstr,"taxid\tA_b\tq_b\tc_b\tphi_b\n");
-      if(bgzf_write(bootfp,bootkstr->s,bootkstr->l)!=bootkstr->l){
+      if(bgzf_write(bootfp,bootkstr->s,bootkstr->l)!=(ssize_t)bootkstr->l){
 	fprintf(stderr,"\t-> Problem writing boot file\n");
-	exit(0);
+	exit(1);
       }
       bootkstr->l = 0;
     }
@@ -884,7 +891,12 @@ int main_dfit(int argc, char **argv) {
           dings[i].bootkstr = bootkstr;
           dings[i].showfits = showfits;
         }
-        pthread_t mythreads[nthreads];
+
+	pthread_t *mythreads = (pthread_t *)malloc(nthreads * sizeof(pthread_t));
+	if (mythreads == NULL) {
+	  fprintf(stderr, "\t-> Error: failed to allocate memory for threads, will exit\n");
+	  exit(1);
+	}
         for(size_t i=0;i<nthreads;i++)
           pthread_create(&mythreads[i],NULL,slaveslave, &dings[i]);
         
@@ -898,7 +910,7 @@ int main_dfit(int argc, char **argv) {
       }
     }
     
-    if(bgzf_write(fpfpfp,kstr->s,kstr->l) != kstr->l){
+    if(bgzf_write(fpfpfp,kstr->s,kstr->l) != (ssize_t) kstr->l){
       fprintf(stderr, "\t-> Problems write to output BGZ file\n");
       exit(1);
     }
@@ -907,7 +919,7 @@ int main_dfit(int argc, char **argv) {
     
     
     if(doboot>0){
-      if(bgzf_write(bootfp,bootkstr->s,bootkstr->l) != bootkstr->l){
+      if(bgzf_write(bootfp,bootkstr->s,bootkstr->l) != (ssize_t) bootkstr->l){
         fprintf(stderr, "\t-> Problemst write to output BGZ file\n");
         exit(1);
       }

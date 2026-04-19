@@ -8,7 +8,6 @@
 #include <unistd.h>       // for isatty
 #include <zlib.h>         // for gzclose, gzgets, gzopen, Z_NULL, gzFile
 
-#include <cassert>  // for assert
 #include <cstdio>   // for fprintf, stderr, snprintf, NULL, size_t
 #include <cstdlib>  // for atoi, exit, malloc
 #include <ctime>    // for time
@@ -39,19 +38,33 @@ BGZF *getbgzf(const char *str1, const char *mode, int nthreads) {
 }
 
 BGZF *getbgzf2(const char *str1, const char *str2, const char *mode, int nthreads) {
-    unsigned tmp_l = strlen(str1) + strlen(str2) + 5;
-    char tmp[tmp_l];
+    unsigned tmp_l = strlen(str1) + strlen(str2) + 1;  // +1 for '\0'
+
+    char *tmp = (char*)malloc(tmp_l);
+    if (!tmp) {
+        fprintf(stderr, "\t-> Error: failed to allocate memory for tmp, will exit\n");
+        exit(1);
+    }
+
     snprintf(tmp, tmp_l, "%s%s", str1, str2);
-    return getbgzf(tmp, mode, nthreads);
+
+    BGZF *ret = getbgzf(tmp, mode, nthreads);
+    free(tmp);
+    return ret;
 }
 
 BGZF *getbgzf3(const char *str1, const char *str2, const char *str3, const char *mode, int nthreads) {
-    unsigned tmp_l = strlen(str1) + strlen(str2) + strlen(str3) + 5;
-    char tmp[tmp_l];
+    size_t tmp_l = strlen(str1) + strlen(str2) + strlen(str3) + 1;
+    char *tmp = (char *)malloc(tmp_l);
+    if (tmp == NULL) {
+        fprintf(stderr, "\t-> Error: failed to allocate memory for tmp, will exit\n");
+        exit(1);
+    }
     snprintf(tmp, tmp_l, "%s%s%s", str1, str2, str3);
-    return getbgzf(tmp, mode, nthreads);
+    BGZF *ret = getbgzf(tmp, mode, nthreads);
+    free(tmp);
+    return ret;
 }
-
 char *getfilename4(const char *str1, const char *str2, const char *str3, const char *str4) {
     unsigned tmp_l = strlen(str1) + strlen(str2) + strlen(str3) + strlen(str4) + 5;
     char *tmp=(char*)calloc(tmp_l,1);
@@ -60,12 +73,20 @@ char *getfilename4(const char *str1, const char *str2, const char *str3, const c
 }
 
 
-
 BGZF *getbgzf4(const char *str1, const char *str2, const char *str3, const char *str4, const char *mode, int nthreads) {
-    unsigned tmp_l = strlen(str1) + strlen(str2) + strlen(str3) + strlen(str4) + 5;
-    char tmp[tmp_l];
+    size_t tmp_l = strlen(str1) + strlen(str2) + strlen(str3) + strlen(str4) + 1;
+
+    char *tmp = (char *)malloc(tmp_l);
+    if (tmp == NULL) {
+        fprintf(stderr, "\t-> Error: failed to allocate memory for tmp, will exit\n");
+        exit(1);
+    }
+
     snprintf(tmp, tmp_l, "%s%s%s%s", str1, str2, str3, str4);
-    return getbgzf(tmp, mode, nthreads);
+
+    BGZF *ret = getbgzf(tmp, mode, nthreads);
+    free(tmp);
+    return ret;
 }
 
 int fexists(const char *str) {  ///@param str Filename given as a string.
@@ -75,12 +96,20 @@ int fexists(const char *str) {  ///@param str Filename given as a string.
 }
 
 int fexists2(const char *str1, const char *str2) {
-    unsigned tmp_l = strlen(str1) + strlen(str2) + 5;
-    char tmp[tmp_l];
-    snprintf(tmp, tmp_l, "%s%s", str1, str2);
-    return fexists(tmp);
-}
+    size_t tmp_l = strlen(str1) + strlen(str2) + 1;
 
+    char *tmp = (char *)malloc(tmp_l);
+    if (tmp == NULL) {
+        fprintf(stderr, "\t-> Error: failed to allocate memory for tmp, will exit\n");
+        exit(1);
+    }
+
+    snprintf(tmp, tmp_l, "%s%s", str1, str2);
+
+    int ret = fexists(tmp);
+    free(tmp);
+    return ret;
+}
 size_t fsize(const char *fname) {
     struct stat st;
     stat(fname, &st);
@@ -88,22 +117,40 @@ size_t fsize(const char *fname) {
 }
 
 int fexists3(const char *str1, const char *str2, const char *str3) {
-    unsigned tmp_l = strlen(str1) + strlen(str2) + strlen(str3) + 5;
-    char tmp[tmp_l];
+    size_t tmp_l = strlen(str1) + strlen(str2) + strlen(str3) + 1;
+
+    char *tmp = (char *)malloc(tmp_l);
+    if (tmp == NULL) {
+        fprintf(stderr, "\t-> Error: failed to allocate memory for tmp, will exit\n");
+        exit(1);
+    }
+
     snprintf(tmp, tmp_l, "%s%s%s", str1, str2, str3);
+
     size_t fs = fsize(tmp);
-    return fexists(tmp) && fs > 0;
+    int ret = fexists(tmp) && fs > 0;
+
+    free(tmp);
+    return ret;
 }
 
 int fexists4(const char *str1, const char *str2, const char *str3, const char *str4) {
-    unsigned tmp_l = strlen(str1) + strlen(str2) + strlen(str3) + strlen(str4) + 5;
-    char tmp[tmp_l];
-    snprintf(tmp, tmp_l, "%s%s%s%s", str1, str2, str3, str4);
-    //  fprintf(stderr,"\t-> checking if : %s exists\n",tmp );
-    size_t fs = fsize(tmp);
-    return fexists(tmp) && fs > 0;
-}
+    size_t tmp_l = strlen(str1) + strlen(str2) + strlen(str3) + strlen(str4) + 1;
 
+    char *tmp = (char *)malloc(tmp_l);
+    if (tmp == NULL) {
+        fprintf(stderr, "\t-> Error: failed to allocate memory for tmp, will exit\n");
+        exit(1);
+    }
+
+    snprintf(tmp, tmp_l, "%s%s%s%s", str1, str2, str3, str4);
+
+    size_t fs = fsize(tmp);
+    int ret = fexists(tmp) && fs > 0;
+
+    free(tmp);
+    return ret;
+}
 // usefull little function to split
 char *strpop(char **str, char split) {
     char *tok = *str;
@@ -205,7 +252,6 @@ void parse_nodes(const char *fname, int2char &rank, int2int &parent, int2intvec 
         exit(1);
     }
     char buf[4096];
-    int at = 0;
     char **toks = new char *[5];
 
     while (gzgets(gz, buf, 4096)) {
@@ -282,6 +328,7 @@ int SIG_COND = 1;
 int2int *bamRefId2tax(bam_hdr_t *hdr, char *acc2taxfile, char *bamfile, int2int &errmap,
                       char *tempfolder, int usedump, char *filteredAcc2taxfile,
                       char2int *acc2taxidmap) {
+  (void) errmap;
     fprintf(stderr, "\t-> Starting to extract (acc->taxid) from binary file: '%s'\n", acc2taxfile);
     fflush(stderr);
 
@@ -365,8 +412,11 @@ int2int *bamRefId2tax(bam_hdr_t *hdr, char *acc2taxfile, char *bamfile, int2int 
             nprocs++;
 
             if (fp != NULL)
-                assert(bgzf_write(fp, &valinbam, sizeof(int)) == sizeof(int) &&
-                       bgzf_write(fp, &val, sizeof(int)) == sizeof(int));
+	      if (bgzf_write(fp, &valinbam, sizeof(int)) != sizeof(int) ||
+		  bgzf_write(fp, &val, sizeof(int)) != sizeof(int)) {
+		fprintf(stderr, "\t-> Error: failed to write expected number of bytes with bgzf_write, will exit\n");
+		exit(1);
+	      }
 
             if (am->find(valinbam) != am->end())
                 fprintf(stderr, "\t-> Duplicate entries found '%s'\n", key);
@@ -385,8 +435,11 @@ int2int *bamRefId2tax(bam_hdr_t *hdr, char *acc2taxfile, char *bamfile, int2int 
     } else {
         int valinbam, val;
         while (bgzf_read(fp, &valinbam, sizeof(int))) {
-            assert(bgzf_read(fp, &val, sizeof(int)) == sizeof(int));
-            (*am)[valinbam] = val;
+	  if (bgzf_read(fp, &val, sizeof(int)) != sizeof(int)) {
+	    fprintf(stderr, "\t-> Error: failed to read expected number of bytes for int value with bgzf_read, will exit\n");
+	    exit(1);
+	  }
+	  (*am)[valinbam] = val;
         }
     }
 

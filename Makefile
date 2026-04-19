@@ -128,6 +128,9 @@ misc: $(LIBHTS) $(OBJ)
 # --- Automatisk afhængighedshåndtering ---
 -include $(OBJ:.o=.d)
 
+bfgs.o: bfgs.cpp $(LIBHTS)
+	$(CXX) -c $(CPPFLAGS) $(filter-out -Wall -Wextra,$(CXXFLAGS)) -w $< -o $@
+
 %.o: %.c $(LIBHTS)
 	$(CC) -c $(CPPFLAGS) $(CFLAGS) $< -o $@
 

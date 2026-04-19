@@ -8,7 +8,6 @@
 #include <stdint.h>          // for int32_t, uint32_t, uint8_t
 
 #include <algorithm>  // for max
-#include <cassert>    // for assert
 #include <cmath>      // for log10
 #include <cstring>    // for strlen, strtok, memset, strdup
 #include <vector>     // for vector
@@ -59,7 +58,10 @@ void destroy_damage(damage *dmg) {
 BGZF *my_bgzf_open(const char *name, int nthreads) {
     BGZF *ret = NULL;
     ret = bgzf_open(name, "wb");
-    assert(ret != NULL);
+    if (ret == NULL) {
+      fprintf(stderr, "\t-> Error: ret is NULL, will exit\n");
+      exit(1);
+    }
     if (nthreads > 1) {
         fprintf(stderr, "\t-> Setting threads to: %d \n", nthreads);
         bgzf_mt(ret, nthreads, 64);
@@ -300,8 +302,14 @@ inline void increaseCounters(const bam1_t *b, const char *reconstructedReference
 
 //this function will not get a commen
 void mysuperduper_function(triple &t, size_t old_m, size_t new_m) {
-  assert(t.rlens!=NULL&&old_m<new_m);
-  assert((size_t)t.rlens_m == old_m);//just so ser ser double sure
+  if (t.rlens == NULL || !(old_m < new_m)) {
+    fprintf(stderr, "\t-> Error: invalid state (t.rlens NULL or old_m >= new_m), will exit\n");
+    exit(1);
+  }
+  if ((size_t)t.rlens_m != old_m) {
+    fprintf(stderr, "\t-> Error: t.rlens_m does not match old_m, will exit\n");
+    exit(1);
+  }
   size_t *tmp = new size_t[new_m];
   memset(tmp, 0, new_m * sizeof(size_t));
   memcpy(tmp, t.rlens, t.rlens_m * sizeof(size_t));
