@@ -418,7 +418,17 @@ int main_print(int argc, char **argv) {
             infile = strdup(*argv);
     }
 
-    fprintf(stderr, "infile: %s inbam: %s search: %d ctga: %d countout: %d nodes: %s names: %s howmany: %d\n", infile, inbam, search, ctga, countout, infile_nodes, infile_names, howmany);
+    fprintf(stderr,
+	    "infile: %s inbam: %s search: %d ctga: %d countout: %d nodes: %s names: %s howmany: %d\n",
+	    infile ? infile : "NULL",
+	    inbam ? inbam : "NULL",
+	    search,
+	    ctga,
+	    countout,
+	    infile_nodes ? infile_nodes : "NULL",
+	    infile_names ? infile_names : "NULL",
+	    howmany
+	    );
     if (!infile) {
       fprintf(stderr, "\t-> Error: infile is NULL or could not be opened, will exit\n");
       exit(1);
@@ -679,7 +689,16 @@ int main_print2(int argc, char **argv) {
             infile = strdup(*argv);
     }
 
-    fprintf(stderr, "infile: %s inbam: %s names: %s search: %d ctga: %d countout: %d nodes: %s\n", infile, inbam, acc2tax, search, ctga, countout, infile_nodes);
+    fprintf(stderr,
+	    "infile: %s inbam: %s names: %s search: %d ctga: %d countout: %d nodes: %s\n",
+	    infile ? infile : "NULL",
+	    inbam ? inbam : "NULL",
+	    acc2tax ? acc2tax : "NULL",
+	    search,
+	    ctga,
+	    countout,
+	    infile_nodes ? infile_nodes : "NULL"
+	    );
     if (!infile) {
       fprintf(stderr, "\t-> Error: infile is NULL or could not be opened, will exit\n");
       exit(1);
@@ -920,13 +939,20 @@ int main_print2(int argc, char **argv) {
 int2int getlcadist(char *fname) {
     //  fprintf(stderr,"fname: %s\n",fname);
     int2int lcadist;
-    if(strlen(fname)>1000){
-      fprintf(stderr,"\t-> Ridiculus long filename: \'%s\'\n",fname);
+    if (fname == NULL) {
+      fprintf(stderr, "\t-> Error: fname is NULL, will exit\n");
       exit(1);
     }
+    
     char tmp[1024];
-    snprintf(tmp, 1000, "%s.stat", fname);
-    fprintf(stderr, "tmp: %s\n", tmp);
+    
+    size_t len = strlen(fname);
+    if (len + 5 >= sizeof(tmp)) {  // ".stat" + '\0' = 5
+      fprintf(stderr,"\t-> Ridiculus long filename: \'%s\'\n",fname);//<- harry potter    
+      exit(1);
+    }
+    snprintf(tmp, sizeof(tmp), "%s.stat", fname);
+
     FILE *fp = NULL;
     fp = fopen(tmp, "rb");
     if (fp == NULL) {

@@ -263,10 +263,26 @@ int main_aggregate(int argc, char **argv) {
       fprintf(stderr,"\t-> --names file.txt.gz must be defined with --nodes is defined\n");
       exit(1);
     }
-    fprintf(stderr,"aggregate infile_bdamage: %s infile_names: %s infile_nodes: %s infile_lcastat: %s infile_dfit: %s outfile_name: %s\n",infile_bdamage,infile_names,infile_nodes,infile_lcastat,infile_dfit,outfile_name);
+    fprintf(stderr,
+	    "aggregate infile_bdamage: %s infile_names: %s infile_nodes: %s infile_lcastat: %s infile_dfit: %s outfile_name: %s\n",
+	    infile_bdamage ? infile_bdamage : "NULL",
+	    infile_names   ? infile_names   : "NULL",
+	    infile_nodes   ? infile_nodes   : "NULL",
+	    infile_lcastat ? infile_lcastat : "NULL",
+	    infile_dfit    ? infile_dfit    : "NULL",
+	    outfile_name   ? outfile_name   : "NULL"
+	    );
     if(outfile_name==NULL)
       outfile_name = strdup(infile_bdamage);
-    fprintf(stderr,"aggregate infile_bdamage: %s infile_names: %s infile_nodes: %s infile_lcastat: %s infile_dfit: %s outfile_name: %s\n",infile_bdamage,infile_names,infile_nodes,infile_lcastat,infile_dfit,outfile_name);
+    fprintf(stderr,
+	    "aggregate infile_bdamage: %s infile_names: %s infile_nodes: %s infile_lcastat: %s infile_dfit: %s outfile_name: %s\n",
+	    infile_bdamage ? infile_bdamage : "NULL",
+	    infile_names   ? infile_names   : "NULL",
+	    infile_nodes   ? infile_nodes   : "NULL",
+	    infile_lcastat ? infile_lcastat : "NULL",
+	    infile_dfit    ? infile_dfit    : "NULL",
+	    outfile_name   ? outfile_name   : "NULL"
+	    );
     char buf[1024];
     snprintf(buf, 1024, "%s.stat.gz", outfile_name);
     fprintf(stderr, "\t-> Dumping file: \'%s\'\n", buf);

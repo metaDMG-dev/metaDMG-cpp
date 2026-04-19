@@ -15,10 +15,6 @@
 
 #include "profile.h"  // for reconstructRefWithPosHTS
 
-//extern htsFormat *dingding2;
-//htsFormat *dingding3 = dingding2;
-
-
 int nproc = 0;  // number of reads processed
 
 extern char refToChar[256];
@@ -231,7 +227,6 @@ void parse_sequencingdata(char *refName, char *fname, int mapped_only, int se_on
     }
 
     bam_destroy1(b);
-    free(dingding3);
     sam_hdr_destroy(hdr);
     sam_close(in);
     free(fname);
