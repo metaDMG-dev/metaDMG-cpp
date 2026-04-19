@@ -55,6 +55,7 @@ double log_exponential(double x, double loc, double scale){
 }
 
 double compute_log_likelihood(const double DMGparam[], const void *dats){
+  (void) dats;
     //Compute the log-likelihood across all positions and return the result
     /*double part1=0;
     double part2=0;

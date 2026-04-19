@@ -328,6 +328,7 @@ int SIG_COND = 1;
 int2int *bamRefId2tax(bam_hdr_t *hdr, char *acc2taxfile, char *bamfile, int2int &errmap,
                       char *tempfolder, int usedump, char *filteredAcc2taxfile,
                       char2int *acc2taxidmap) {
+  (void) errmap;
     fprintf(stderr, "\t-> Starting to extract (acc->taxid) from binary file: '%s'\n", acc2taxfile);
     fflush(stderr);
 
