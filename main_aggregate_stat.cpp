@@ -173,7 +173,7 @@ std::map<int,char *> read_dfit(char *fname){
   BGZF *fpfpfp = NULL;
   fpfpfp = bgzf_open(fname, "rb");
   if(fpfpfp==NULL){
-    fprintf(stderr,"\t-> Problem opening file: %s will exit\n");
+    fprintf(stderr,"\t-> Problem opening file: %s will exit\n",fname);
     exit(1);
   }
   
