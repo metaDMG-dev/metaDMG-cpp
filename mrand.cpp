@@ -3,7 +3,6 @@
 #include <iostream>
 #include <climits>
 #include "mrand.h"
-#include <cassert>
 
 mrand_t *mrand_alloc(int type_a,long int seedval){
   mrand_t *ret = (mrand_t *) malloc(sizeof(mrand_t));
@@ -72,8 +71,10 @@ double mrand_pop(mrand_t *mr){
     fprintf(stderr,"Random parameter %d is not supported\n",mr->type);
     exit(0);
   }
-  assert(res!=0.0);
-  assert(res!=1.0);
+  if(res==0||res==1){
+    fprintf(stderr,"\t-> Unclear and unobvious subtle strange error message, will exit mrand_pop\n");
+    exit(1);
+  }
   return res;
 }
 long mrand_pop_long(mrand_t *mr){
