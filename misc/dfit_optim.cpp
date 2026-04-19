@@ -246,7 +246,14 @@ int main(int argc,char **argv){
   double **dat = read1_ugly_matrix(fname);
   double pars[6] = {0.1,0.1,0.01,1000};//last one will contain the llh,and the ncall for the objective function
   optimoptim(pars,dat,nopt);
-  double stats[2+2*(int)dat[0][0]];
+
+  int n = 2 + 2 * (int)dat[0][0];
+  
+  double *stats = (double *)malloc(n * sizeof(double));
+  if (stats == NULL) {
+    fprintf(stderr, "\t-> Error: failed to allocate memory for stats, will exit\n");
+    exit(1);
+  }
   getstat(dat,pars,stats);
 
   //printit
@@ -266,6 +273,7 @@ int main(int argc,char **argv){
   dx_conf = stats+2+nrows+ncycle;
   for(int i=0;i<ncycle;i++)
     fprintf(stderr,"3\t%d\t%.0f\t%0.f\t%f\t%f\n",i,dat[1][i+ncycle],dat[2][i+ncycle],dx[i],dx_conf[i]);
+  free(stats);
 }
 
 #endif
