@@ -34,7 +34,7 @@ double pmd_stat(char *seq, char *ref, int len, char *qs) {
     // make revcom
     static char compref1[512];
     for (int i = 0; i < len; i++)
-        compref1[i] = revTable[ref[len - i - 1]];
+      compref1[i] = revTable[(unsigned char)ref[len - i - 1]];
 
     // do flipcount
     int count[2] = {0, 0};
@@ -45,17 +45,11 @@ double pmd_stat(char *seq, char *ref, int len, char *qs) {
             count[1] = count[1] + 1;
     }
 
-    char *myref = NULL;
-    if (count[0] > count[1])
-        myref = compref1;
-    else
-        myref = ref;
-
     // do stat
     double llh1 = 0;
     double llh2 = 0;
     for (int i = 0; i < len; i++) {
-        double eps = qsToProp[qs[i]];
+      double eps = qsToProp[(unsigned char)qs[i]];
         if (ref[i] == 'C') {
             double Dz = C0 + p * pow(1 - p, i + 1);
             double pm1 = (1 - ppi) * (1 - eps) * (1 - Dz) + ppi * eps / 3 * (1 - Dz) + ppi / 3 * (1 - eps) * Dz + (1 - ppi) * eps / 3 * Dz;
@@ -83,7 +77,7 @@ double pmd_stat(char *seq, char *ref, int len, char *qs) {
     return llh1 - llh2;
 }
 
-void wrapper(const bam1_t *b, const char *reconstructedReference, const std::vector<int> &reconstructedReferencePos, const int &minQualBase, int MAXLENGTH, float **mm5p, float **mm3p, float incval, char myread[512], char myref[512]) {
+void wrapper(const bam1_t *b, const char *reconstructedReference, const std::vector<int> /*&reconstructedReferencePos*/, const int &minQualBase, int /*MAXLENGTH*/, float /***mm5p*/, float /***mm3p*/, float /*incval*/, char myread[512], char myref[512]) {
     const char *alphabetHTSLIB = "NACNGNNNTNNNNNNN";
     char refeBase;
     char readBase;
@@ -225,7 +219,7 @@ void parse_sequencingdata(char *refName, char *fname, int mapped_only, int se_on
         memset(myread, 'N', 512);
         memset(myrefe, 'N', 512);
         reconstructRefWithPosHTS(b, mypair, reconstructedRef);
-        wrapper(b, mypair.first->s, mypair.second, 0, 0, NULL, NULL, 1, myread, myrefe);
+        wrapper(b, mypair.first->s, mypair.second, 0, 0, 0, 0, 1, myread, myrefe);
 #if 0
     fprintf(stderr,"\nmyread:\n%.*s\nmyReference:\n%.*s\n",b->core.l_qseq,myread,b->core.l_qseq,myrefe);
     fprintf(stderr,"---read[%d]----\n",nproc);
@@ -359,6 +353,7 @@ int main_pmd(int argc, char **argv) {
             "\t[ALL done] cpu-time used =  %.2f sec\n"
             "\t[ALL done] walltime used =  %.2f sec\n",
             (float)(clock() - t) / CLOCKS_PER_SEC, (float)(time(NULL) - t2));
+    (void)nthreads;//<- avoid compiler complain.
     return 0;
 }
 
