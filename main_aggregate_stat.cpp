@@ -13,7 +13,6 @@
 #include <sys/time.h>
 #include <math.h>
 #include <algorithm> // for std::sort
-#include <cassert>
 
 #include <iostream>
 #include "profile.h"
@@ -173,7 +172,11 @@ std::map<int,char *> read_dfit(char *fname){
   
   BGZF *fpfpfp = NULL;
   fpfpfp = bgzf_open(fname, "rb");
-  assert(fpfpfp!=NULL);
+  if(fpfpfp==NULL){
+    fprintf(stderr,"\t-> Problem opening file: %s will exit\n");
+    exit(1);
+  }
+  
   kstring_t *kstr = new kstring_t;
   kstr->s=NULL;kstr->l=kstr->m = 0;
   while(bgzf_getline(fpfpfp,'\n',kstr)){
@@ -200,25 +203,6 @@ std::map<int,char *> read_dfit(char *fname){
   return ret;
 }
 
-/*
-void aggr_stat3000(std::map<int, mydata2> &stats,int2int &parent){
-  std::map<int,int> dasmap;
-  for(std::map<int,mydata2>::iterator it = stats.begin();it!=stats.end();it++)
-    dasmap[it->first] = it->second.nreads;
-  //fprintf(stderr,"dasmap.size(): %lu stats.size():%lu\n",dasmap.size(), stats.size());
-
-  for(std::map<int,int>::iterator itt=dasmap.begin();itt!=dasmap.end();itt++){
-  //  for(int i=0;i<dasvector.size();i++){
-    int focal_taxid = itt->first;
-    int2int::iterator it = parent.find(focal_taxid);
-    assert(it!=parent.end());
-    int target = it->second;
-    to_root(focal_taxid,target,stats,parent,itt->second);
-  }
-  
-}
-
-*/
 void aggr_stat3000(std::map<int, mydata2> &stats,int2int &parent){
   std::map<int,int> dasmap;
   std::map<int,double *> datamap;
@@ -234,7 +218,10 @@ void aggr_stat3000(std::map<int, mydata2> &stats,int2int &parent){
   for(std::map<int,int>::iterator itt=dasmap.begin();itt!=dasmap.end();itt++){
     int focal_taxid = itt->first;
     int2int::iterator it = parent.find(focal_taxid);
-    assert(it!=parent.end());
+    if (it == parent.end()) {
+      fprintf(stderr, "\t-> Error: iterator reached end (key:%d not found),will exit\n",focal_taxid);
+      exit(1);
+    }
     int target = it->second;
 
     if(target!=focal_taxid)
@@ -328,7 +315,10 @@ int main_aggregate(int argc, char **argv) {
     }
     if(dfit_int_char.size()>0){
       std::map<int, char *>::iterator it = dfit_int_char.find(-1);
-      assert(it!=dfit_int_char.end());
+      if (it == dfit_int_char.end()) {
+	fprintf(stderr, "\t-> Error: iterator reached end in dfit_int_char, will exit\n");
+	exit(1);
+      }
       ksprintf(kstr,"\t%s",it->second);
     }
     ksprintf(kstr,"\n");
