@@ -10,12 +10,9 @@
 #include <htslib/sam.h>
 #include <htslib/thread_pool.h>
 #include <htslib/bgzf.h>
-#include <cassert>
 #include <ctype.h>
 #include <htslib/kstring.h>
 #include <htslib/hfile.h>
-
-//#include "../shared.h"
 
 #define VERSION "0.1"
 
@@ -82,9 +79,16 @@ size_t getrefused(samFile *htsfp,bam_hdr_t *hdr,int *keeplist,int &nkeep,int min
 int VERB2[2]={5,5};
 void writemod(const char *outfile ,bam_hdr_t *hdr,int *keeplist,samFile *htsfp,char *mycl,int minmatch){
   BGZF *fp = NULL;
-  fp=bgzf_open(outfile,"w5");//write bgzf with compression level5. Maybe this should be changed.
-  bgzf_mt(fp,nthreads,256);
-  assert(fp!=NULL);
+  fp = bgzf_open(outfile, "w5");
+  
+  if (fp == NULL) {
+    fprintf(stderr, "\t-> Error: failed to open BGZF file %s, will exit\n", outfile);
+    exit(1);
+  }
+  if (bgzf_mt(fp, nthreads, 256) != 0) {
+    fprintf(stderr, "\t-> Error: failed to initialize BGZF multithreading, will exit\n");
+    exit(1);
+  }
   
   kstring_t kstmp ={0,0,NULL};
   kstring_t newhdr_ks ={0,0,NULL};
@@ -99,11 +103,19 @@ void writemod(const char *outfile ,bam_hdr_t *hdr,int *keeplist,samFile *htsfp,c
       continue;
     //    fprintf(stderr,"SQ: it->first: %d\n",it->first);
     kstmp.l =0;
-    assert(sam_hdr_find_line_pos(hdr,"SQ",i,&kstmp)==0);
+
+    if (sam_hdr_find_line_pos(hdr, "SQ", i, &kstmp) != 0) {
+      fprintf(stderr, "\t-> Error: failed to find SQ line at position %d in header, will exit\n", i);
+      exit(1);
+    }
+    
     kputs(kstmp.s,&newhdr_ks);
     kputc('\n',&newhdr_ks);
     if(newhdr_ks.l>10000000){
-      assert(bgzf_write(fp,newhdr_ks.s,newhdr_ks.l)==(ssize_t)newhdr_ks.l);
+      if (bgzf_write(fp, newhdr_ks.s, newhdr_ks.l) != (ssize_t)newhdr_ks.l) {
+	fprintf(stderr, "\t-> Error: failed to write expected number of bytes for new header, will exit\n");
+	exit(1);
+      }
       newhdr_ks.l =0;
     }
     
@@ -111,29 +123,44 @@ void writemod(const char *outfile ,bam_hdr_t *hdr,int *keeplist,samFile *htsfp,c
 
   for(int i=0;i<sam_hdr_count_lines(hdr,"RG");i++){
     kstmp.l =0;
-    assert(sam_hdr_find_line_pos(hdr,"RG",i,&kstmp)==0);
+    if (sam_hdr_find_line_pos(hdr, "RG", i, &kstmp) != 0) {
+      fprintf(stderr, "\t-> Error: failed to find RG line at position %d in header, will exit\n", i);
+      exit(1);
+    }
     kputs(kstmp.s,&newhdr_ks);
     kputc('\n',&newhdr_ks);
     if(newhdr_ks.l>10000000){
-      assert(bgzf_write(fp,newhdr_ks.s,newhdr_ks.l)==(ssize_t)newhdr_ks.l);
+      if (bgzf_write(fp, newhdr_ks.s, newhdr_ks.l) != (ssize_t)newhdr_ks.l) {
+	fprintf(stderr, "\t-> Error: failed to write expected number of bytes for new header, will exit\n");
+	exit(1);
+      }
       newhdr_ks.l =0;
     }
   }
   for(int i=0;i<sam_hdr_count_lines(hdr,"PG");i++){
     kstmp.l =0;
-    assert(sam_hdr_find_line_pos(hdr,"PG",i,&kstmp)==0);
+    if (sam_hdr_find_line_pos(hdr, "PG", i, &kstmp) != 0) {
+      fprintf(stderr, "\t-> Error: failed to find PG line at position %d in header, will exit\n", i);
+      exit(1);
+    }
     kputs(kstmp.s,&newhdr_ks);
     kputc('\n',&newhdr_ks);
   }
   for(int i=0;i<sam_hdr_count_lines(hdr,"CO");i++){
     kstmp.l =0;
-    assert(sam_hdr_find_line_pos(hdr,"CO",i,&kstmp)==0);
+    if (sam_hdr_find_line_pos(hdr, "CO", i, &kstmp) != 0) {
+      fprintf(stderr, "\t-> Error: failed to find CO line at position %d in header, will exit\n", i);
+      exit(1);
+    }
     kputs(kstmp.s,&newhdr_ks);
     kputc('\n',&newhdr_ks);
   }
 
 
-  assert(bgzf_write(fp,newhdr_ks.s,newhdr_ks.l)==(ssize_t)newhdr_ks.l);
+  if (bgzf_write(fp, newhdr_ks.s, newhdr_ks.l) != (ssize_t)newhdr_ks.l) {
+    fprintf(stderr, "\t-> Error: failed to write expected number of bytes for new header, will exit\n");
+    exit(1);
+  }
   free(newhdr_ks.s);
   free(kstmp.s);
   bgzf_close(fp);
@@ -141,10 +168,16 @@ void writemod(const char *outfile ,bam_hdr_t *hdr,int *keeplist,samFile *htsfp,c
 
   samFile *tmpfp = NULL;
   tmpfp = hts_open(outfile,"r");
-  assert(tmpfp!=NULL);
+  if (tmpfp == NULL) {
+    fprintf(stderr, "\t-> Error: failed to open file %s with hts_open, will exit\n", outfile);
+    exit(1);
+  }
   sam_hdr_t *newhdr = NULL;
   newhdr = sam_hdr_read(tmpfp);
-  assert(newhdr!=NULL);
+  if (newhdr == NULL) {
+    fprintf(stderr, "\t-> Error: failed to read SAM header from file, will exit\n");
+    exit(1);
+  }
   sam_close(tmpfp);
 
   //fprintf(stderr,"newhdr: %s\n",sam_hdr_str(newhdr));
@@ -170,12 +203,18 @@ void writemod(const char *outfile ,bam_hdr_t *hdr,int *keeplist,samFile *htsfp,c
       continue;
 
     keeplist[i] = sam_hdr_name2tid(newhdr,sam_hdr_tid2name(hdr,i));
-    assert(keeplist[i]>=0);
+    if (keeplist[i] < 0) {
+      fprintf(stderr, "\t-> Error: keeplist[%d] is negative (%d), will exit\n", i, keeplist[i]);
+      exit(1);
+    }
   }
   sam_hdr_add_pg(newhdr,"compressbam","VN",VERSION,"CL",mycl,NULL);
 
   int ret = sam_hdr_write(outhts,newhdr);
-  assert(ret>=0);
+  if (ret < 0) {
+    fprintf(stderr, "\t-> Error: return value ret is negative (%d), will exit\n", ret);
+    exit(1);
+  }
   fprintf(stderr,"\t-> Done writing new header as binary\n");fflush(stderr);
   //now mainloop
   bam1_t *aln = bam_init1();
@@ -201,7 +240,10 @@ void writemod(const char *outfile ,bam_hdr_t *hdr,int *keeplist,samFile *htsfp,c
    aln->core.tid = keeplist[aln->core.tid];
     if(aln->core.mtid!=-1)
       aln->core.mtid = keeplist[aln->core.mtid];
-    assert(sam_write1(outhts, newhdr,aln)>=0);
+    if (sam_write1(outhts, newhdr, aln) < 0) {
+      fprintf(stderr, "\t-> Error: failed to write alignment with sam_write1, will exit\n");
+      exit(1);
+    }
   }
   sam_flush(htsfp);
   sam_hdr_destroy(newhdr);
@@ -219,7 +261,7 @@ int main(int argc,char**argv){
 
   if(argc==1){
     fprintf(stderr,"./compressbam --threads <INT> --input <FILE> --ref <FILE> --output <FILE> [--min-match <int>]\n");
-    return -1;
+    return 0;
   }
   char *mycl = stringify_argv(argc,argv);
   fprintf(stderr,"\t-> compressbam: (%s;%s;%s): \'%s\'\n",__FILE__,__DATE__,__TIME__,mycl);  

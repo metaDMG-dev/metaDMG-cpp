@@ -4,7 +4,6 @@
 #include <zlib.h>
 #include <iostream>
 #include <math.h>
-#include <cassert>
 
 #include "bfgs.h"
 #include "M3Load.h"
@@ -35,7 +34,7 @@ int HelpPage(FILE *fp){
   return 0;
 }
  
-argStruct *getpars(int argc,char ** argv){
+argStruct *getpars(int /*argc*/,char ** argv){
   argStruct *mypars = new argStruct;
   mypars->M3_matrix_print = NULL;
   mypars->OutputStat = NULL;
@@ -57,7 +56,7 @@ argStruct *getpars(int argc,char ** argv){
   return mypars;
 }
 
-void MAP(double M3[MAX_ROWS][MAX_COLS],double* MAP){
+void MAP(double* MAP){
     double lowbound[] = {0.00000001,0.00000001,0.00000001,2};
     double upbound[] = {1-0.00000001,1-0.00000001,1-0.00000001,100000};
     int nbd[] = {2,2,2,1};
@@ -226,7 +225,7 @@ const char** getColumnNames(int* colnumber) {
 
     columnNames[0] = "sample";
     columnNames[1] = "tax_id";
-
+    /*
     int N_sum = 0;
     int N_sum_fwd = 0;
     int N_sum_rev = 0;
@@ -244,7 +243,7 @@ const char** getColumnNames(int* colnumber) {
             K_sum_rev += M3[i][KCOL];
         }
     }
-
+    */
     columnNames[2] = "N_x=1_forward";
     columnNames[3] = "N_x=1_reverse";
     columnNames[4] = "N_sum_total";
@@ -362,7 +361,7 @@ void M3Print_to_OutStat(int argc,char **argv){
 
         int numpars = 5;
         double* LlhRes = (double*) malloc(numpars*sizeof(double));    
-        MAP(M3,LlhRes);
+        MAP(LlhRes);
         //fprintf(stderr,"A: %f \t q: %f \t c: %f \t phi: %f \t llh: %f \n",LlhRes[0],LlhRes[1],LlhRes[2],LlhRes[3],LlhRes[4]);
 
         int colnumber = 0;
@@ -370,7 +369,10 @@ void M3Print_to_OutStat(int argc,char **argv){
 
         gzFile gz = Z_NULL;
         gz = gzopen(filename,"w");
-        assert(gz!=Z_NULL);
+	if (gz == Z_NULL) {
+	  fprintf(stderr, "\t-> Error: gz file handle is NULL, will exit\n");
+	  exit(1);
+	}
 
         if (columnNames != NULL) {
             for (int i = 0; i < colnumber; i++) {
