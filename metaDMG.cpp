@@ -495,7 +495,11 @@ int main_print(int argc, char **argv) {
     float data[16];
     while (1) {
         int nread = bgzf_read(bgfp, ref_nreads, 2 * sizeof(int));
-        double ctgas[2 * printlength];
+	double *ctgas = (double *)malloc(2 * printlength * sizeof(double));
+	if (ctgas == NULL) {
+	  fprintf(stderr, "\t-> Error: failed to allocate memory for ctgas, will exit\n");
+	  exit(1);
+	}
         if (nread == 0)
             break;
 	if (nread != 2 * sizeof(int)) {
@@ -615,6 +619,7 @@ int main_print(int argc, char **argv) {
                 fprintf(stdout, "\n");
             }
         }
+	free(ctgas);
     }
     //cleanup
     for(int2char::iterator it=name_map.begin();it!=name_map.end();it++)
@@ -759,7 +764,12 @@ int main_print2(int argc, char **argv) {
 
     while (1) {
         int nread = bgzf_read(bgfp, ref_nreads, 2 * sizeof(int));
-        double ctgas[2 * printlength];
+	double *ctgas = (double *)malloc(2 * printlength * sizeof(double));
+	if (ctgas == NULL) {
+	  fprintf(stderr, "\t-> Error: failed to allocate memory for ctgas, will exit\n");
+	  exit(1);
+	}
+        
         if (nread == 0)
             break;
         fprintf(stderr, "ref: %d nreads: %d\n", ref_nreads[0], ref_nreads[1]);
@@ -880,6 +890,7 @@ int main_print2(int argc, char **argv) {
                 fprintf(stdout, "\n");
             }
         }
+	free(ctgas);
     }
     //clean up
     for(int2char::iterator it=name_map.begin();it!=name_map.end();it++)
@@ -903,113 +914,6 @@ int main_print2(int argc, char **argv) {
       free(inbam);
     if(acc2tax)
       free(acc2tax);
-    return 0;
-}
-
-int main_merge(int argc, char **argv) {
-
-    fprintf(stderr, "./metaDMG-cpp merge file.lca file.bdamage.gz [-names file.gz -bam file.bam -howmany 5 -nodes trestructure.gz]\n");
-    if (argc <= 2)
-        return 0;
-    char *infile_lca = argv[1];
-    char *infile_bdamage = argv[2];
-    char *infile_nodes = NULL;
-
-    char *inbam = NULL;
-    char *acc2tax = NULL;
-    int howmany = 5;
-    ++argv;
-    while (*(++argv)) {
-        if (strcasecmp("-names", *argv) == 0)
-            acc2tax = strdup(*(++argv));
-        if (strcasecmp("-bam", *argv) == 0)
-            inbam = strdup(*(++argv));
-        if (strcasecmp("-howmany", *argv) == 0)
-            howmany = atoi(*(++argv));
-        if (strcasecmp("-nodes", *argv) == 0)
-            infile_nodes = strdup(*(++argv));
-    }
-
-    fprintf(stderr, "infile_lca: %s infile_bdamage: %s nodes: %s\n", infile_lca, infile_bdamage, infile_nodes);
-
-    // map of taxid -> taxid
-    int2int parent;
-    // map of taxid -> rank
-    int2char rank;
-    // map of parent -> child taxids
-    int2intvec child;
-
-    if (infile_nodes != NULL)
-        parse_nodes(infile_nodes, rank, parent, child, 1);
-
-    std::map<int, double *> retmap = load_bdamage3(infile_bdamage, howmany);
-    //  fprintf(stderr,"retmap.size():%lu\n",retmap.size());
-    int2char name_map;
-    if (acc2tax != NULL)
-        name_map = parse_names(acc2tax);
-
-    BGZF *bgfp = NULL;
-    samFile *samfp = NULL;
-    bam_hdr_t *hdr = NULL;
-
-    if (inbam != NULL) {
-        if (((bgfp = bgzf_open(inbam, "r"))) == NULL) {
-            fprintf(stderr, "Could not open input BAM file: %s\n", inbam);
-            return 1;
-        }
-    }
-
-    if (inbam != NULL) {
-        if (((samfp = sam_open_format(inbam, "r", NULL))) == NULL) {
-            fprintf(stderr, "Could not open input BAM file: %s\n", inbam);
-            return 1;
-        }
-        if (((hdr = sam_hdr_read(samfp))) == NULL) {
-            fprintf(stderr, "Could not read header for: %s\n", inbam);
-            return 1;
-        }
-    }
-
-    gzFile fp = Z_NULL;
-    fp = gzopen(infile_lca, "rb");
-    if (fp == Z_NULL) {
-      fprintf(stderr, "\t-> Error: failed to open gz file %s, will exit\n", infile_lca);
-      exit(1);
-    }
-    char buf[4096];
-    char orig[4096];
-    gzgets(fp, buf, 4096);  // skipheader
-    buf[strlen(buf) - 1] = '\0';
-    fprintf(stderr, "%s: VERSION:%s\n", buf, METADAMAGE_VERSION);
-    float presize = retmap.size();
-    while (gzgets(fp, buf, 4096)) {
-        strncpy(orig, buf, 4096);
-        //    fprintf(stderr,"buf: %s\n",buf);
-        char *tok = strtok(buf, "\t\n ");
-        int taxid = atoi(strtok(NULL, ":"));
-        //    fprintf(stderr,"taxid: %d\n",taxid);
-        double *dbl = getval(retmap, child, taxid, howmany);
-        double dbldbl[3 * howmany + 1];  // 3 because ct,ga,other
-        dbldbl[0] = dbl[0];
-        for (int i = 0; i < 3 * howmany; i++)
-            dbldbl[i + 1] = dbl[1 + i] / dbl[0];
-
-        orig[strlen(orig) - 1] = '\0';
-        fprintf(stdout, "%s\t%d:%.0f", orig, taxid, dbldbl[0]);
-        for (int i = 0; i < 3 * howmany; i++)
-            fprintf(stdout, "\t%f", dbldbl[1 + i]);
-        fprintf(stdout, "\n");
-    }
-    float postsize = retmap.size();
-    fprintf(stderr, "\t-> pre: %f post:%f grownbyfactor: %f\n", presize, postsize, postsize / presize);
-    if (bgfp)
-        bgzf_close(bgfp);
-    if (hdr)
-        bam_hdr_destroy(hdr);
-    if (samfp)
-        sam_close(samfp);
-    if (fp != Z_NULL)
-        gzclose(fp);
     return 0;
 }
 
@@ -1044,8 +948,6 @@ int2int getlcadist(char *fname) {
     return lcadist;
 }
 
-
-
 std::map<int, double *> getcsv(char *fname) {
     std::map<int, double *> ret;
     FILE *fp = NULL;
@@ -1070,185 +972,116 @@ std::map<int, double *> getcsv(char *fname) {
     return ret;
 }
 
-int main_merge2(int argc, char **argv) {
-    fprintf(stderr, "./metaDMG-cpp merge2 file.lca file.bdamage.gz christian.csv [-names file.gz -bam file.bam -howmany 5 -nodes trestructure.gz]\n");
-    if (argc <= 3)
-        return 0;
-    char *infile_lca = argv[1];
-    char *infile_bdamage = argv[2];
-    char *infile_christian = argv[3];
-    char *infile_nodes = NULL;
-
-    char *acc2tax = NULL;
-    int howmany = 5;
-    fprintf(stdout, "#./metaDMG-cpp ");
-    for (int i = 0; i < argc; i++)
-        fprintf(stdout, "%s ", argv[i]);
-    fprintf(stdout, "\n");
-    ++argv;
-    while (*(++argv)) {
-        if (strcasecmp("-names", *argv) == 0)
-            acc2tax = strdup(*(++argv));
-        if (strcasecmp("-howmany", *argv) == 0)
-            howmany = atoi(*(++argv));
-        if (strcasecmp("-nodes", *argv) == 0)
-            infile_nodes = strdup(*(++argv));
-    }
-
-    fprintf(stderr, "infile_lca: %s infile_bdamage: %s nodes: %s\n", infile_lca, infile_bdamage, infile_nodes);
-
-    int2int lcadist = getlcadist(infile_lca);
-    std::map<int, double *> chris = getcsv(infile_christian);
-    // map of taxid -> taxid
-    int2int parent;
-    // map of taxid -> rank
-    int2char rank;
-    // map of parent -> child taxids
-    int2intvec child;
-
-    if (infile_nodes != NULL)
-        parse_nodes(infile_nodes, rank, parent, child, 1);
-
-    std::map<int, double *> retmap = load_bdamage3(infile_bdamage, howmany);
-    fprintf(stderr, "\t-> Number of entries in damage pattern file: %lu\n", retmap.size());
-
-    int2char name_map;
-    if (acc2tax != NULL)
-        name_map = parse_names(acc2tax);
-
-    BGZF *bgfp = NULL;
-
-    gzFile fp = Z_NULL;
-    fp = gzopen(infile_lca, "rb");
-    if (fp == Z_NULL) {
-      fprintf(stderr, "\t-> Error: failed to open gz file %s, will exit\n", infile_lca);
-      exit(1);
-    }
-    char buf[4096];
-    char orig[4096];
-    gzgets(fp, buf, 4096);  // skipheader
-    buf[strlen(buf) - 1] = '\0';
-    fprintf(stdout, "%s: VERSION:%s\n", buf, METADAMAGE_VERSION);
-    float presize = retmap.size();
-    double *rawval = new double[2];
-    rawval[0] = rawval[1] = -1.0;
-    while (gzgets(fp, buf, 4096)) {
-        strncpy(orig, buf, 4096);
-        //    fprintf(stderr,"buf: %s\n",buf);
-        char *tok = strtok(buf, "\t\n ");
-        int taxid = atoi(strtok(NULL, ":"));
-        //    fprintf(stderr,"taxid: %d\n",taxid);
-        int nclass = -1;
-        int2int::iterator itit = lcadist.find(taxid);
-        if (itit != lcadist.end())
-            nclass = itit->second;
-        double *valval = rawval;
-        std::map<int, double *>::iterator ititit = chris.find(taxid);
-        if (ititit != chris.end())
-            valval = ititit->second;
-        double *dbl = getval(retmap, child, taxid, howmany);
-        double dbldbl[3 * howmany + 1];  // 3 because ct,ga,other
-        dbldbl[0] = dbl[0];
-        for (int i = 0; i < 3 * howmany; i++)
-            dbldbl[i + 1] = dbl[1 + i] / dbl[0];
-
-        //  orig[strlen(orig)-1] = '\0';
-        // rollout results
-        tok = strtok(orig, "\t\n ");
-        fprintf(stdout, "%s\t%d:%.0f:%d:%f:%f\t", tok, taxid, dbldbl[0], nclass, valval[0], valval[1]);
-        for (int i = 0; i < 3 * howmany - 1; i++)
-            fprintf(stdout, "%f:", dbldbl[1 + i]);
-        fprintf(stdout, "%f", dbldbl[3 * howmany]);
-        while (((tok = strtok(NULL, "\t\n ")))) {
-            fprintf(stdout, "\t%s", tok);
-        }
-        fprintf(stdout, "\n");
-    }
-    float postsize = retmap.size();
-    fprintf(stderr, "\t-> pre: %f post:%f grownbyfactor: %f\n", presize, postsize, postsize / presize);
-    if (bgfp)
-        bgzf_close(bgfp);
-    if (fp != Z_NULL)
-        gzclose(fp);
-    return 0;
-}
-
+//this very verbose function is translated by a thinking machine
 int main_print_all(int argc, char **argv) {
-    fprintf(stderr, "./metaDMG-cpp print_all file.bdamage.gz -names file.gz -nodes trestructure.gz -names fil.gz\n");
+    fprintf(stderr, "./metaDMG-cpp print_all file.bdamage.gz -names file.gz -nodes trestructure.gz\n");
+
     if (argc <= 2)
         return 0;
+
     char *infile_bdamage = NULL;
     char *infile_nodes = NULL;
     char *infile_names = NULL;
 
-
     while (*(++argv)) {
-        if (strcasecmp("-names", *argv) == 0)
+        if (strcasecmp("-names", *argv) == 0) {
+            if (*(argv + 1) == NULL) {
+                fprintf(stderr, "\t-> Error: -names requires an argument, will exit\n");
+                exit(1);
+            }
             infile_names = strdup(*(++argv));
-	else if (strcasecmp("-nodes", *argv) == 0)
+        } else if (strcasecmp("-nodes", *argv) == 0) {
+            if (*(argv + 1) == NULL) {
+                fprintf(stderr, "\t-> Error: -nodes requires an argument, will exit\n");
+                exit(1);
+            }
             infile_nodes = strdup(*(++argv));
-        else
+        } else {
             infile_bdamage = strdup(*argv);
+        }
     }
 
-    fprintf(stderr, "infile_names: %s infile_bdamage: %s nodes: %s ", infile_names, infile_bdamage, infile_nodes);
+    if (infile_bdamage == NULL) {
+        fprintf(stderr, "\t-> Error: no input bdamage file provided, will exit\n");
+        exit(1);
+    }
+    if (infile_names == NULL) {
+        fprintf(stderr, "\t-> Error: no names file provided, will exit\n");
+        exit(1);
+    }
+
+    fprintf(stderr, "infile_names: %s infile_bdamage: %s nodes: %s ",
+            infile_names ? infile_names : "NULL",
+            infile_bdamage ? infile_bdamage : "NULL",
+            infile_nodes ? infile_nodes : "NULL");
     fprintf(stderr, "#VERSION:%s\n", METADAMAGE_VERSION);
-    // map of taxid -> taxid
+
     int2int parent;
-    // map of taxid -> rank
     int2char rank;
-    // map of parent -> child taxids
     int2intvec child;
 
     if (infile_nodes != NULL)
         parse_nodes(infile_nodes, rank, parent, child, 1);
+
     int howmany = 5;
     std::map<int, double *> retmap = load_bdamage3(infile_bdamage, howmany);
     fprintf(stderr, "\t-> number of entries in damage pattern file: %lu\n", retmap.size());
+
     int2char name = parse_names(infile_names);
 
-    BGZF *bgfp = NULL;
-    
-    float presize = retmap.size();
+    size_t presize = retmap.size();
 
-    getval(retmap, child, 1, howmany);  // this will do everything
-    float postsize = retmap.size();
-    fprintf(stderr, "\t-> pre: %f post:%f grownbyfactor: %f\n", presize, postsize, postsize / presize);
+    getval(retmap, child, 1, howmany);
+
+    size_t postsize = retmap.size();
+    fprintf(stderr, "\t-> pre: %lu post:%lu grownbyfactor: %f\n",
+            (unsigned long)presize,
+            (unsigned long)postsize,
+            presize ? (double)postsize / presize : 0.0);
+
     for (std::map<int, double *>::iterator it = retmap.begin(); it != retmap.end(); it++) {
         int taxid = it->first;
         double *dbl = it->second;
+
         char *myrank = NULL;
         char *myname = NULL;
+
         int2char::iterator itc = rank.find(taxid);
         if (itc != rank.end())
             myrank = itc->second;
+
         itc = name.find(taxid);
         if (itc != name.end())
             myname = itc->second;
-        double dbldbl[3 * howmany + 1];  // 3 because ct,ga,other
-        dbldbl[0] = dbl[0];
-        for (int i = 0; i < 3 * howmany; i++)
-            dbldbl[i + 1] = dbl[1 + i] / dbl[0];
-        if (dbldbl[0] > 0) {
-            fprintf(stdout, "%d:\"%s\":\"%s\":%.0f", taxid, myname, myrank, dbldbl[0]);
+
+        if (dbl[0] > 0) {
+            double dbldbl[3 * 5 + 1];
+            dbldbl[0] = dbl[0];
+            for (int i = 0; i < 3 * howmany; i++)
+                dbldbl[i + 1] = dbl[1 + i] / dbl[0];
+
+            fprintf(stdout, "%d:\"%s\":\"%s\":%.0f",
+                    taxid,
+                    myname ? myname : "NULL",
+                    myrank ? myrank : "NULL",
+                    dbldbl[0]);
             for (int i = 0; i < 3 * howmany; i++)
                 fprintf(stdout, "\t%f", dbldbl[1 + i]);
             fprintf(stdout, "\n");
-        };
+        }
     }
 
-    if (bgfp)
-        bgzf_close(bgfp);
+    free(infile_bdamage);
+    free(infile_nodes);
+    free(infile_names);
 
     return 0;
 }
-
 int main_print_ugly(int argc, char **argv) {
   htsFormat *dingding2 = (htsFormat *)calloc(1, sizeof(htsFormat));
-  if(1)
-    fprintf(stderr,"\t-> print_ugly functionality will be removed\n");
+  fprintf(stderr,"\t-> print_ugly functionality will be removed\n");
   
-    fprintf(stderr, "./metaDMG-cpp print_ugly file.bdamage.gz --names file.gz --nodes trestructure.gz --lcastat file.gz --out_prefix out\n");
+  fprintf(stderr, "./metaDMG-cpp print_ugly file.bdamage.gz --names file.gz --nodes trestructure.gz --lcastat file.gz --out_prefix out\n");
     if (argc <= 1)
         return 0;
     char *infile_bdamage = NULL;
@@ -1258,6 +1091,7 @@ int main_print_ugly(int argc, char **argv) {
     char *infile_bam = NULL;
     char *out_prefix = NULL;
     int howmany;
+    int abe = 4;//<- monkey
 
     while (*(++argv)) {
         if (strcasecmp("--names", *argv) == 0)
@@ -1381,9 +1215,9 @@ int main_print_ugly(int argc, char **argv) {
         std::map<int, mydataD>::iterator itold = retmap.find(it->first);
         size_t nalign = 0;
         if (itold == retmap.end()) {
-	  int abe=2;
-	  //fprintf(stderr, "[%s]\t-> Problem finding taxid: %d\n",__FUNCTION__, it->first);
-            //      exit(0);
+	  if(abe>0)
+	    fprintf(stderr, "[%s]\t-> Problem finding taxid: %d will stop print this in: %d\n",__FUNCTION__, it->first,abe--);
+	  
         } else
             nalign = itold->second.nal;
         char *myrank = NULL;
@@ -1455,10 +1289,7 @@ int main(int argc, char **argv) {
 #endif
         fprintf(stderr, "./metaDMG-cpp pmd [other options]\n");
         fprintf(stderr, "./metaDMG-cpp getdamage file.bam\n");
-        fprintf(stderr, "./metaDMG-cpp mergedamage -b *bdamage.gz -r *rlens.gz\n");
         fprintf(stderr, "./metaDMG-cpp index files.damage.gz\n");
-        fprintf(stderr, "./metaDMG-cpp merge files.lca files.bdamage.gz\n");
-        fprintf(stderr, "./metaDMG-cpp merge2 files.lca files.bdamage.gz christian.csv\n");
         fprintf(stderr, "./metaDMG-cpp lca [many options]\n");
         fprintf(stderr, "./metaDMG-cpp print bdamage.gz\n");
         fprintf(stderr, "./metaDMG-cpp print2 [many options] bdamage.gz\n");
@@ -1496,10 +1327,6 @@ int main(int argc, char **argv) {
       main_aggregate(argc, argv);
     else if (!strcmp(argv[0], "print2"))
         main_print2(argc, argv);
-    else if (!strcmp(argv[0], "merge"))
-        main_merge(argc, argv);
-    else if (!strcmp(argv[0], "merge2"))
-        main_merge2(argc, argv);
     else if (!strcmp(argv[0], "lca"))
         main_lca(argc, argv);
     else{
