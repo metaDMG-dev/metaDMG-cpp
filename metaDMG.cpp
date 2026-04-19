@@ -8,7 +8,6 @@
 #include <zlib.h>         // for gzprintf, gzclose, gzgets, gzopen, Z_NULL
 #include <climits>
 
-#include <cassert>  // for assert
 #include <cstdio>   // for fprintf, NULL, stderr, stdout, fopen
 #include <cstdlib>  // for atoi, exit, free, atof, calloc, malloc
 #include <cstring>  // for strdup, strcmp, strtok, strlen, strncpy
@@ -321,10 +320,13 @@ int main_getdamage(int argc, char **argv) {
 	  tmp2.push_back(mylen);
 	  seqlens[whichref] = tmp2;
         } else {
-	  if(it->second.size()<1000000)
+	  if(it->second.size()<1000000)//<- we dont need more than a million values do we?
             it->second.push_back(mygc);
 	  it = seqlens.find(whichref);
-	  assert(it != seqlens.end());
+	  if (it == seqlens.end()) {
+	    fprintf(stderr, "\t-> Error: iterator reached end in seqlens, will exit\n");
+	    exit(1);
+	  }
 	  if(it->second.size()<1000000)
             it->second.push_back(mylen);
         }
@@ -340,13 +342,22 @@ int main_getdamage(int argc, char **argv) {
     fprintf(stderr, "\t-> Outputting overall statistic in file: \"%s\"\n", buf);
 
     gzFile fpstat = NULL;
-    assert((fpstat = gzopen(buf, "wb")) != NULL);
+    if((fpstat = gzopen(buf, "wb")) == NULL){
+      fprintf(stderr,"\t-> Error problem opening file %s will exit\n",buf);
+      exit(1);
+    }
     gzprintf(fpstat,"taxid\tnreads\tmean_len\tvar_len\tmean_gc\tvar_gc\tlca\trank\n");
     for (std::map<int, std::vector<float> >::iterator it = gcconts.begin(); it != gcconts.end(); it++) {
         std::map<int, triple>::iterator it2 = dmg->assoc.find(it->first);
-        assert(it2 != dmg->assoc.end());
+	if (it2 == dmg->assoc.end()) {
+	  fprintf(stderr, "\t-> Error: iterator reached end in dmg->assoc, will exit\n");
+	  exit(1);
+	}
         std::map<int, std::vector<float> >::iterator it3 = seqlens.find(it->first);
-        assert(it3 != seqlens.end());
+	if (it3 == seqlens.end()) {
+	  fprintf(stderr, "\t-> Error: iterator reached end in seqlens (it3), will exit\n");
+	  exit(1);
+	}
         if (0)
             gzprintf(fpstat, "%d\t%lu\t%f\t%f\t%f\t%f\tNA\tNA\n", it->first, it2->second.nreads, mean(it3->second), var(it3->second), mean(it->second), var(it->second));
         else{
@@ -408,8 +419,11 @@ int main_print(int argc, char **argv) {
     }
 
     fprintf(stderr, "infile: %s inbam: %s search: %d ctga: %d countout: %d nodes: %s names: %s howmany: %d\n", infile, inbam, search, ctga, countout, infile_nodes, infile_names, howmany);
+    if (!infile) {
+      fprintf(stderr, "\t-> Error: infile is NULL or could not be opened, will exit\n");
+      exit(1);
+    }
 
-    assert(infile);
     int2char name_map;
     if (infile_names != NULL)
         name_map = parse_names(infile_names);
@@ -460,7 +474,10 @@ int main_print(int argc, char **argv) {
     }
 
     int printlength;
-    assert(sizeof(int) == bgzf_read(bgfp, &printlength, sizeof(int)));
+    if (bgzf_read(bgfp, &printlength, sizeof(int)) != sizeof(int)) {
+      fprintf(stderr, "\t-> Error: failed to read expected number of bytes from bgzf file, will exit\n");
+      exit(1);
+    }
     fprintf(stderr, "\t-> printlength(howmany) from inputfile: %d\n", printlength);
 
     int ref_nreads[2];
@@ -481,9 +498,16 @@ int main_print(int argc, char **argv) {
         double ctgas[2 * printlength];
         if (nread == 0)
             break;
-        assert(nread == 2 * sizeof(int));
+	if (nread != 2 * sizeof(int)) {
+	  fprintf(stderr, "\t-> Error: unexpected number of bytes read (nread != 2*sizeof(int)), will exit\n");
+	  exit(1);
+	}
         for (int at = 0; at < printlength; at++) {
-            assert(16 * sizeof(float) == bgzf_read(bgfp, data, sizeof(float) * 16));
+	  if (bgzf_read(bgfp, data, sizeof(float) * 16) != 16 * sizeof(float)) {
+	    fprintf(stderr, "\t-> Error: failed to read expected number of bytes (16 floats) from bgzf file, will exit\n");
+	    exit(1);
+	  }
+	    
             if (at >= howmany)
                 continue;
             if (search == -1 || search == ref_nreads[0]) {
@@ -538,7 +562,10 @@ int main_print(int argc, char **argv) {
         }
 
         for (int at = 0; at < printlength; at++) {
-            assert(16 * sizeof(float) == bgzf_read(bgfp, data, sizeof(float) * 16));
+	  if (bgzf_read(bgfp, data, sizeof(float) * 16) != 16 * sizeof(float)) {
+	    fprintf(stderr, "\t-> Error: failed to read expected number of bytes (16 floats) from bgzf file, will exit\n");
+	    exit(1);
+	  }
             if (at >= howmany)
                 continue;
             if (search == -1 || search == ref_nreads[0]) {
@@ -648,7 +675,10 @@ int main_print2(int argc, char **argv) {
     }
 
     fprintf(stderr, "infile: %s inbam: %s names: %s search: %d ctga: %d countout: %d nodes: %s\n", infile, inbam, acc2tax, search, ctga, countout, infile_nodes);
-    assert(infile);
+    if (!infile) {
+      fprintf(stderr, "\t-> Error: infile is NULL or could not be opened, will exit\n");
+      exit(1);
+    }
     int2char name_map;
     if (acc2tax != NULL)
         name_map = parse_names(acc2tax);
@@ -699,7 +729,10 @@ int main_print2(int argc, char **argv) {
     }
 
     int printlength;
-    assert(sizeof(int) == bgzf_read(bgfp, &printlength, sizeof(int)));
+    if (bgzf_read(bgfp, &printlength, sizeof(int)) != sizeof(int)) {
+      fprintf(stderr, "\t-> Error: failed to read expected number of bytes for printlength, will exit\n");
+      exit(1);
+    }
     fprintf(stderr, "\t-> printlength(howmany) from inputfile: %d\n", printlength);
 
     int ref_nreads[2];
@@ -730,9 +763,15 @@ int main_print2(int argc, char **argv) {
         if (nread == 0)
             break;
         fprintf(stderr, "ref: %d nreads: %d\n", ref_nreads[0], ref_nreads[1]);
-        assert(nread == 2 * sizeof(int));
-        for (int at = 0; at < printlength; at++) {
-            assert(16 * sizeof(float) == bgzf_read(bgfp, data, sizeof(float) * 16));
+	if (nread != 2 * sizeof(int)) {
+	  fprintf(stderr, "\t-> Error: unexpected number of bytes read (nread != 2*sizeof(int)), will exit\n");
+	  exit(1);
+	}
+	for (int at = 0; at < printlength; at++) {
+	  if (bgzf_read(bgfp, data, sizeof(float) * 16) != 16 * sizeof(float)) {
+	    fprintf(stderr, "\t-> Error: failed to read expected number of bytes (16 floats) from bgzf file, will exit\n");
+	    exit(1);
+	  }
             if ((at + 1) > howmany)
                 continue;
             if (search == -1 || search == ref_nreads[0]) {
@@ -787,7 +826,10 @@ int main_print2(int argc, char **argv) {
         }
 
         for (int at = 0; at < printlength; at++) {
-            assert(16 * sizeof(float) == bgzf_read(bgfp, data, sizeof(float) * 16));
+	  if (bgzf_read(bgfp, data, sizeof(float) * 16) != 16 * sizeof(float)) {
+	    fprintf(stderr, "\t-> Error: failed to read expected number of bytes (16 floats) from bgzf file, will exit\n");
+	    exit(1);
+	  }
             if (at + 1 > howmany)
                 continue;
             if (search == -1 || search == ref_nreads[0]) {
@@ -930,7 +972,10 @@ int main_merge(int argc, char **argv) {
 
     gzFile fp = Z_NULL;
     fp = gzopen(infile_lca, "rb");
-    assert(fp != Z_NULL);
+    if (fp == Z_NULL) {
+      fprintf(stderr, "\t-> Error: failed to open gz file %s, will exit\n", infile_lca);
+      exit(1);
+    }
     char buf[4096];
     char orig[4096];
     gzgets(fp, buf, 4096);  // skipheader
@@ -980,7 +1025,10 @@ int2int getlcadist(char *fname) {
     fprintf(stderr, "tmp: %s\n", tmp);
     FILE *fp = NULL;
     fp = fopen(tmp, "rb");
-    assert(fp != NULL);
+    if (fp == NULL) {
+      fprintf(stderr, "\t-> Error: failed to open file %s, will exit\n", tmp);
+      exit(1);
+    }
     char buf[4096];
     while (fgets(buf, 4096, fp)) {
       char *tok1 = strtok(buf, "\t\n ");
@@ -1002,9 +1050,15 @@ std::map<int, double *> getcsv(char *fname) {
     std::map<int, double *> ret;
     FILE *fp = NULL;
     fp = fopen(fname, "rb");
-    assert(fp != NULL);
+    if (fp == NULL) {
+      fprintf(stderr, "\t-> Error: failed to open file %s, will exit\n", fname);
+      exit(1);
+    }
     char buf[4096];
-    assert(fgets(buf, 4096, fp) != NULL);  // skip header
+    if (fgets(buf, 4096, fp) == NULL) {
+      fprintf(stderr, "\t-> Error: failed to read header line from file, will exit\n");
+      exit(1);
+    }
     while (fgets(buf, 4096, fp)) {
         int key = atoi(strtok(buf, "\t\n, "));
         double *valval = new double[2];
@@ -1066,7 +1120,10 @@ int main_merge2(int argc, char **argv) {
 
     gzFile fp = Z_NULL;
     fp = gzopen(infile_lca, "rb");
-    assert(fp != Z_NULL);
+    if (fp == Z_NULL) {
+      fprintf(stderr, "\t-> Error: failed to open gz file %s, will exit\n", infile_lca);
+      exit(1);
+    }
     char buf[4096];
     char orig[4096];
     gzgets(fp, buf, 4096);  // skipheader
