@@ -1,4 +1,3 @@
-
 #!/bin/bash
 #test script for metadamage, 
 #
