@@ -45,10 +45,13 @@ mrand_t *mrand_alloc(int type_a,long int seedval){
 }
 
 double mrand_pop(mrand_t *mr){
-  double res;
+  double res = -1;
   if(mr->type==0){
     #if defined(__linux__) || defined(__unix__)
     drand48_r((struct drand48_data*)&mr->buf0,&res);
+#else
+    fprintf(stderr,"\t-> Error: mr->type==0 is not supported on this platform, will exit\n");
+    exit(1);
     #endif
   }
   else if(mr->type==1){
@@ -71,19 +74,22 @@ double mrand_pop(mrand_t *mr){
     fprintf(stderr,"Random parameter %d is not supported\n",mr->type);
     exit(0);
   }
-  if(res==0||res==1){
+  if (!(res > 0.0 && res < 1.0)) {
     fprintf(stderr,"\t-> Unclear and unobvious subtle strange error message, will exit mrand_pop\n");
     exit(1);
   }
   return res;
 }
 long mrand_pop_long(mrand_t *mr){
-  long res;
+  long res = 0;
   if(mr->type==0){
-    #if defined(__linux__) || defined(__unix__)
+#if defined(__linux__) || defined(__unix__)
     lrand48_r((struct drand48_data*)&mr->buf0,&res);
     res >>= 4;
-    #endif
+#else
+    fprintf(stderr, "\t-> Error: mr->type==0 is not supported on this platform, will exit\n");
+    exit(1);
+#endif
   }
   else if(mr->type==1){
     res =  mr->distrInt(mr->eng);
