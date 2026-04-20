@@ -110,7 +110,7 @@ $(LIBHTS): .clone_htslib
 # --- Versionsnummer og version.h ---
 PACKAGE_VERSION := 0.4.3
 ifneq ("$(wildcard .git)","")
-  PACKAGE_VERSION := $(shell git describe --always --dirty)
+  PACKAGE_VERSION := $(shell git describe --tags --always --dirty)
 endif
 
 version.h:
