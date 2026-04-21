@@ -458,8 +458,9 @@ void slave_block(std::map<int, mydataD> &retmap,int howmany,sam_hdr_t *hdr,int2c
 	
       if(doCI == 1){
         for (int j = 0; j < npars; j++) {
+	  square_diff[j] = 0.0;
           for (int i = 0; i < nbootstrap; i++) {
-            square_diff[i] += (bootcidata[i][j] - cistat[j])*(bootcidata[i][j] - cistat[j]);
+            square_diff[j] += (bootcidata[i][j] - cistat[j])*(bootcidata[i][j] - cistat[j]);
           }
           cistat[j+npars] = sqrt(square_diff[j] / (nbootstrap - 1));
           margin_error[j] = z_score * (cistat[j+npars]);
