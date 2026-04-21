@@ -99,44 +99,46 @@ void make_dfit_format(mydataD &md,double **dat,int howmany,int libprep){
   /*
   for double-stranded lib prep we would observe both C>T and G>A
   for single-stranded lib prep we would only observe C>T (at both ends)
-  for a mixture of libraries we want to look at just C>T
+  for a mixture of libraries we want to look at just C>T <- this will be removed i think
 
   Therefore the columns extracted from the MisMatchMatrix will differ
   */
 
   int col_5p = 7; // ct for ds
-  int col_3p = 8; // ga for da
+  int col_3p = 8; // ga for ds
   if(libprep == 1){
     col_3p = 7; //only ct for ss
   }
 
-  dat[0][0] = 2 * howmany; // Adjust size if using just 5'
-  dat[0][1] = 0;
+  dat[0][0] = 2 * howmany; // Maybe adjust size if using just 5'
+  dat[0][1] = 0; //<- this is the function call counter
+
+  //this loop is 5'
   for(int i=0;i<howmany;i++){
     dat[0][i+2] =i;//plug in position
+    dat[1][i] = md.fwD[i*16+col_5p];//plugin ct at kcol
 
     dat[2][i] = 0;//initialize kcol to zero, a few lines down we will sum over all C*
-    dat[1][i] = md.fwD[i*16+col_5p];//plugin ct at kcol
-    
     for(int at=0;at<4;at++)
       dat[2][i] = dat[2][i]+md.fwD[i*16+4+at];
 
-    dat[3][i] = (double) dat[1][i]/dat[2][i];
-
+    dat[3][i] = dat[2][i] > 0 ? (double) dat[1][i]/dat[2][i] : 0.0;
   }
   // if using a mix of libraries we don't care about the 3' end 
   if (libprep!=2){
-    // In the 3' end, for ds we use the GA col (8), for ss we use CA col (7)
+    // In the 3' end, for ds we use the GA col (8), for ss we use Ct col (7)
     for(int i=0;i<howmany;i++){
       dat[0][howmany+i+2] =i;//plug in position
 
-      dat[2][howmany+i] = 0;//initialize kcol to zero, a few lines dows we will sum over all G*
       dat[1][howmany+i] = md.bwD[i*16+col_3p];//plugin ga at kcol
-      
+      dat[2][howmany+i] = 0;//initialize kcol to zero, a few lines dows we will sum over all G*
       for(int at=0;at<4;at++)
-        dat[2][howmany+i] = dat[2][howmany+i]+md.bwD[i*16+col_3p+at];
-
-      dat[3][howmany+i] = (double) dat[1][howmany+i]/dat[2][howmany+i];
+	if(libprep==0)
+	  dat[2][howmany+i] = dat[2][howmany+i]+md.bwD[i*16+8+at];//offset at ga
+	else if(libprep==1)
+	  dat[2][howmany+i] = dat[2][howmany+i]+md.bwD[i*16+4+at];//offset at ca
+      
+     dat[3][howmany+i] = dat[2][howmany+i] > 0 ? (double) dat[1][howmany+i]/dat[2][howmany+i] : 0.0;
     }
   }
 
@@ -841,21 +843,21 @@ int main_dfit(int argc, char **argv) {
     make_dfit_header(kstr,showfits,nbootstrap,howmany);
 
     {//loop over threads, for now we have no threads
-      if(nthreads==1){
-      kstring_t *kstr_block = new kstring_t;
-      kstr_block->s = NULL; kstr_block->l = kstr_block->m = 0;
-      
-      kstring_t *bootkstr_block = new kstring_t;
-      bootkstr_block->s = NULL; bootkstr_block->l = bootkstr_block->m = 0;
-      slave_block(retmap,howmany,hdr,name_map,libprep,nopt,nbootstrap,CI,doCI,sigtype,seed,rng_type,doboot,kstr_block,bootkstr_block,showfits);
-      
-      ksprintf(kstr,"%s",kstr_block->s);
-      ksprintf(bootkstr,"%s",bootkstr_block->s);
-
-      free(kstr_block->s);
-      delete kstr_block;
-      free(bootkstr_block->s);
-      delete bootkstr_block;
+      if(nthreads==1) {
+	kstring_t *kstr_block = new kstring_t;
+	kstr_block->s = NULL; kstr_block->l = kstr_block->m = 0;
+	
+	kstring_t *bootkstr_block = new kstring_t;
+	bootkstr_block->s = NULL; bootkstr_block->l = bootkstr_block->m = 0;
+	slave_block(retmap,howmany,hdr,name_map,libprep,nopt,nbootstrap,CI,doCI,sigtype,seed,rng_type,doboot,kstr_block,bootkstr_block,showfits);
+	
+	ksprintf(kstr,"%s",kstr_block->s);
+	ksprintf(bootkstr,"%s",bootkstr_block->s);
+	
+	free(kstr_block->s);
+	delete kstr_block;
+	free(bootkstr_block->s);
+	delete bootkstr_block;
       }
       else{
         std::map<int, mydataD> *ary = new std::map<int, mydataD>[nthreads];
