@@ -1,11 +1,10 @@
 #include <stdlib.h>
 #include <random>
-#include <iostream>
 #include <climits>
 #include "mrand.h"
 
 mrand_t *mrand_alloc(int type_a,long int seedval){
-  mrand_t *ret = (mrand_t *) malloc(sizeof(mrand_t));
+  mrand_t *ret =  new mrand_t();
   ret->type = type_a;
 
 #ifdef __APPLE__
@@ -33,7 +32,6 @@ mrand_t *mrand_alloc(int type_a,long int seedval){
   if(ret->type==4){
     unsigned long long tmp = -1;
     ret->nr_inv_rec = 1/((double) tmp);//(2^64-1)^-1
-    tmp = seedval;
     ret->nr_uvw[1] = 4101842887655102017LL;
     ret->nr_uvw[2] = 1LL;
     ret->nr_uvw[0] = seedval ^ ret->nr_uvw[1];ret->nr_int64();
@@ -42,6 +40,10 @@ mrand_t *mrand_alloc(int type_a,long int seedval){
 
   }
   return ret;
+}
+
+void mrand_destroy(mrand_t *mr) {
+    delete mr;
 }
 
 double mrand_pop(mrand_t *mr){
@@ -72,55 +74,14 @@ double mrand_pop(mrand_t *mr){
   }
   else{
     fprintf(stderr,"Random parameter %d is not supported\n",mr->type);
-    exit(0);
-  }
-  if (!(res > 0.0 && res < 1.0)) {
-    fprintf(stderr,"\t-> Unclear and unobvious subtle strange error message, will exit mrand_pop\n");
     exit(1);
   }
-  return res;
-}
-long mrand_pop_long(mrand_t *mr){
-  long res = 0;
-  if(mr->type==0){
-#if defined(__linux__) || defined(__unix__)
-    lrand48_r((struct drand48_data*)&mr->buf0,&res);
-    res >>= 4;
-#else
-    fprintf(stderr, "\t-> Error: mr->type==0 is not supported on this platform, will exit\n");
+  if (!(res >= 0.0 && res < 1.0)) {
+    fprintf(stderr, "mrand_pop: value out of range: %.17g (type=%d)\n", res, mr->type);
     exit(1);
-#endif
   }
-  else if(mr->type==1){
-    res =  mr->distrInt(mr->eng);
-  }
-  else if(mr->type==2){
-    res = rand_r(&mr->rand_r_seed) ;
-  }
-  else if(mr->type==3){
-    res = abs(jrand48(mr->xsubi));
-  }
-  else if(mr->type==4){
-    res = (long) mr->nr_int64();
-  }
-  else{
-    fprintf(stderr,"Random parameter %d is not supported\n",mr->type);
-    exit(0);
-  }
+  
   return res;
-}
-
-
-int Random_geometric_k(const double p,mrand_t *mr)
-{
-  double u = mrand_pop(mr);
-  int k;
-
-  if (p == 1){k = 1;}
-  else if(p == 0){k=0;}
-  else{k = log (u) / log (1 - p);}
-
-  return floor(k);
 }
 
 
@@ -148,9 +109,6 @@ int main(int argc,char **argv){
       sum += mrand_pop(myrand);
     }
     fprintf(stdout,"type %d\tseed: %d\tsum:%f\tnitems in mio:%f mean: %f\n",type,seed,sum,nitems/1e6,sum/((double)nitems));
-  }else{
-    for(long long i=0;i<nitems;i++)
-      fprintf(stdout,"%d\n",Random_geometric_k(dogeom,myrand));
   }
   
   return 0;
