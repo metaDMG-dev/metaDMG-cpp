@@ -47,26 +47,26 @@ typedef struct{
   int sigtype;
   int seed;
   int rng_type;
-  int doboot;
+  int printboot;
   kstring_t *kstr;
   kstring_t *bootkstr;
   int showfits;
 }ding;
 
 void make_bootstrap_data(double **in,double **out,int howmany,mrand_t *rand_alloc){
-
   double *xcol_in = in[0];
   double *kvec_in = in[1];
   double *nvec_in = in[2];
   double *xcol_out = out[0];
   double *kvec_out = out[1];
   double *nvec_out = out[2];
+  double *fvec_out = out[3];
 
   xcol_out[0] = xcol_in[0];
   xcol_out[1] = xcol_in[1];
   for(int p = 0;p < 2*howmany;p++){
     xcol_out[p+2] = xcol_in[p+2];
-    double prob =(double) kvec_in[p]/nvec_in[p];
+    double prob = nvec_in[p] > 0 ? (double) kvec_in[p] / nvec_in[p] : 0.0;
     //    fprintf(stderr,"Prob: %f\n",prob);
     kvec_out[p] = nvec_out[p] = 0;
     for(int i =0;i<(int)nvec_in[p];i++){
@@ -74,7 +74,8 @@ void make_bootstrap_data(double **in,double **out,int howmany,mrand_t *rand_allo
       if(mrand_pop(rand_alloc)<prob)
 	      kvec_out[p] +=1;
     }
-    //   fprintf(stderr,"k: %f n: %f\n",kvec_out[p],nvec_out[p]);
+    //    fprintf(stderr,"k: %f n: %f\n",kvec_out[p],nvec_out[p]);
+    fvec_out[p] = nvec_out[p] > 0 ? kvec_out[p] / nvec_out[p] : 0.0;
   }
 }
 
@@ -165,23 +166,24 @@ void make_dfit_format_bootstrap(mydataD &md,double **dat,int howmany,mrand_t *ra
     double tsum[4] = {0,0,0,0};
     for(int r=0;r<4;r++)//loop over ref
       for(int o=0;o<4;o++)//loop over obs
-	      tsum[r] += md.fwD[i*16+r*4+o];
-    //  fprintf(stderr,"tsum: %f %f\n",tsum[1],tsum[2]);
-    double prob1 = tsum[1]/(tsum[0]+tsum[1]+tsum[2]+tsum[3]);//prob of ref=c
-    double prob2 =((double) md.fwD[i*16+7])/tsum[1];//prob of obs=t, with ref=c
-    //  fprintf(stderr,"probl1: %f %f\n",prob1,prob2);
-    dat[2][i] = 0;//initialize kcol to zero, a few lines down we will sum over all C*
+	tsum[r] += md.fwD[i*16+r*4+o];
+
+    double total = tsum[0]+tsum[1]+tsum[2]+tsum[3];
+    double prob1 = total > 0 ? tsum[1]/total : 0.0; // P(ref=C)
+    double prob2 = tsum[1] > 0 ? ((double) md.fwD[i*16+7])/tsum[1] : 0.0; // P(C>T | C)
+
+    dat[1][i] = 0;
+    dat[2][i] = 0;
 
     for(int f=0;f<tsum[0]+tsum[1]+tsum[2]+tsum[3];f++){
       if(mrand_pop(rand_alloc)<prob1){//if reference is c
         if(mrand_pop(rand_alloc)<prob2)//if observertion is t
           dat[1][i] += 1;
-	
-	      dat[2][i] += 1;//we are at ref=c, so increment the nvec
+	dat[2][i] += 1;//we are at ref=c, so increment the nvec
       }
     }
     
-    dat[3][i] = (double) dat[1][i]/dat[2][i];
+    dat[3][i] = dat[2][i] > 0 ? (double) dat[1][i]/dat[2][i] : 0.0;
   }
 
   //do 3' if not mixture
@@ -193,30 +195,37 @@ void make_dfit_format_bootstrap(mydataD &md,double **dat,int howmany,mrand_t *ra
       double tsum[4] = {0,0,0,0};
       for(int r=0;r<4;r++)
         for(int o=0;o<4;o++)
-  	      tsum[r] += md.bwD[i*16+r*4+o];
+	  tsum[r] += md.bwD[i*16+r*4+o];
       
-      double prob1 = tsum[2]/(tsum[0]+tsum[1]+tsum[2]+tsum[3]);//sum over all
-      double prob2 =((double) md.bwD[i*16+8])/tsum[2];//ga over sum of g*
-      dat[2][howmany+i] = 0;//initialize kcol to zero, a few lines dows we will sum over all G*
-      for(int f=0;f<tsum[0]+tsum[1]+tsum[2]+tsum[3];f++){
+      double total = tsum[0]+tsum[1]+tsum[2]+tsum[3];
+      double prob1 = total > 0 ? tsum[2]/total : 0.0;  
+      double prob2 = tsum[2] > 0 ? ((double) md.bwD[i*16+8])/tsum[2] : 0.0;
+
+      if(libprep==1){
+	prob1 = total > 0 ? tsum[1]/total : 0.0;
+        prob2 = tsum[1] > 0 ? ((double) md.bwD[i*16+7])/tsum[1] : 0.0; 
+      }
+      dat[1][howmany+i] = 0;
+      dat[2][howmany+i] = 0;//initialize kcol to zero,
+      for(int f=0;f<(int)total;f++){
         if(mrand_pop(rand_alloc)<prob1){//if reference is g
           if(mrand_pop(rand_alloc)<prob2)//if observertion is a
             dat[1][howmany+i] += 1;
-          
-          dat[2][howmany+i] += 1;//we are at ref=g, so increment the nvec
+	  dat[2][howmany+i] += 1;//we are at ref=g, so increment the nvec
         }
       }
 
-      dat[3][howmany+i] = (double) dat[1][howmany+i]/dat[2][howmany+i];
+      dat[3][howmany+i] = dat[2][howmany+i] > 0 ? (double) dat[1][howmany+i]/dat[2][howmany+i] : 0.0;
     }
   }
 }
 
-void make_dfit_format_bootstrap2(mydataD &md,double **dat,int howmany,int seed, int libprep){
-  static std::random_device rd;
-  static std::mt19937 gen(rd());
-  
-  srand48(seed);
+void make_dfit_format_bootstrap2(mydataD &md,double **dat,int howmany,std::mt19937 &gen, int libprep){
+  if(libprep==2){
+    fprintf(stderr,"\t-> libprep is not allowd to be two\n");
+    exit(1);
+  }
+ 
   dat[0][0] =  2 * howmany; // Adjust size for 'mix'
   dat[0][1] = 0;
 
@@ -224,45 +233,47 @@ void make_dfit_format_bootstrap2(mydataD &md,double **dat,int howmany,int seed, 
   for(int i=0;i<howmany;i++){
     dat[0][i+2] =i;
 
-    double tsum[4] = {0,0,0,0};
+    double tsum[4] = {0,0,0,0};//{AA+AC+AG+AT,CC+}
     for(int r=0;r<4;r++)//loop over ref
       for(int o=0;o<4;o++)//loop over obs
-	      tsum[r] += md.fwD[i*16+r*4+o];
-    //  fprintf(stderr,"tsum: %f %f\n",tsum[1],tsum[2]);
-    double prob1 = tsum[1]/(tsum[0]+tsum[1]+tsum[2]+tsum[3]);//prob of ref=c
-    double prob2 =((double) md.fwD[i*16+7])/tsum[1];//prob of obs=t, with ref=c
-    // fprintf(stderr,"probl1: %f %f\n",prob1,prob2);
-    std::binomial_distribution<> d(tsum[0]+tsum[1]+tsum[2]+tsum[3], prob1);
-    dat[2][i] = d(gen);
+	tsum[r] += md.fwD[i*16+r*4+o];
+    double total = tsum[0]+tsum[1]+tsum[2]+tsum[3];
+    double prob1 = total > 0 ? tsum[1]/total : 0.0;//<- sum of ca,cc,cg,ct
+    double prob2 = tsum[1] > 0 ? ((double) md.fwD[i*16+7])/tsum[1] : 0.0;
+ 
+    std::binomial_distribution<> d(total, prob1);
+    dat[2][i] = d(gen);// <- N for pos i
     std::binomial_distribution<> d2(dat[2][i], prob2);
     dat[1][i] = d2(gen);
     
-    dat[3][i] = (double) dat[1][i]/dat[2][i];
+    dat[3][i] =  dat[2][i] > 0 ? (double) dat[1][i]/dat[2][i] : 0.0;
   }
 
   //do 3' if not mixture
-  if (libprep!=2){
-    for(int i=0;i<howmany;i++){
-      dat[0][howmany+i+2] =i;
 
-      double tsum[4] = {0,0,0,0};
-      for(int r=0;r<4;r++)
-        for(int o=0;o<4;o++)
-  	      tsum[r] += md.bwD[i*16+r*4+o];
-      
-      double prob1 = tsum[2]/(tsum[0]+tsum[1]+tsum[2]+tsum[3]);//sum over all
-      double prob2 =((double) md.bwD[i*16+8])/tsum[2];//ga over sum of g*
-
-      std::binomial_distribution<> d(tsum[0]+tsum[1]+tsum[2]+tsum[3], prob1);
-      
-      dat[2][howmany+i] = d(gen);
-      std::binomial_distribution<> d2(dat[2][i], prob2);
-      dat[2][howmany+i] = d2(gen);
-
-
-      dat[3][howmany+i] = (double) dat[1][howmany+i]/dat[2][howmany+i];
+  for(int i=0;i<howmany;i++){
+    dat[0][howmany+i+2] =i;
+    
+    double tsum[4] = {0,0,0,0};
+    for(int r=0;r<4;r++)
+      for(int o=0;o<4;o++)
+	tsum[r] += md.bwD[i*16+r*4+o];
+    
+    //always assume ds in 3, we correct afterwards if needed' its ss
+    double total = tsum[0]+tsum[1]+tsum[2]+tsum[3];
+    double prob1 = total > 0 ? tsum[2]/total : 0.0;//sum over all G
+    double prob2 = tsum[2] > 0 ? ((double) md.bwD[i*16+8])/tsum[2] : 0.0;
+    if(libprep==1){
+      prob1 = total > 0 ? tsum[1]/total : 0.0;//sum over all c
+      prob2 = tsum[1] > 0 ? ((double) md.bwD[i*16+7])/tsum[1] : 0.0;
     }
-  }
+    
+    std::binomial_distribution<> d(total, prob1);
+    dat[2][howmany+i] = d(gen);
+    std::binomial_distribution<> d2(dat[2][howmany+i], prob2);
+    dat[1][howmany+i] = d2(gen);
+    dat[3][howmany+i] = dat[2][howmany+i] > 0 ? (double) dat[1][howmany+i]/dat[2][howmany+i] : 0.0;
+    }
 }
 
 std::map<int,mydataD> getval_full_norec(std::map<int, mydataD> &retmap, int2int &parent, int howmany);
@@ -322,98 +333,109 @@ void make_dfit_header(kstring_t *kstr,int showfits,int nbootstrap,int howmany ){
   }
 }
 
-void slave_block(std::map<int, mydataD> &retmap,int howmany,sam_hdr_t *hdr,int2char &name_map,int libprep,int nopt,int nbootstrap,double CI, int doCI,int sigtype,int seed,int rng_type,int doboot,kstring_t *kstr,kstring_t *bootkstr,int showfits);
+void slave_block(std::map<int, mydataD> &retmap,int howmany,sam_hdr_t *hdr,int2char &name_map,int libprep,int nopt,int nbootstrap,double CI, int doCI,int sigtype,int seed,int rng_type,int printboot,kstring_t *kstr,kstring_t *bootkstr,int showfits);
 
 void *slaveslave(void *ptr){
   ding *dng = (ding *)ptr;
-  slave_block(*(dng->retmap),dng->howmany,dng->hdr,*dng->name_map,dng->libprep,dng->nopt,dng->nbootstrap,dng->CI,dng->doCI,dng->sigtype,dng->seed,dng->rng_type,dng->doboot,dng->kstr,dng->bootkstr,dng->showfits);//<-fill in the rest from the struct
+  slave_block(*(dng->retmap),dng->howmany,dng->hdr,*dng->name_map,dng->libprep,dng->nopt,dng->nbootstrap,dng->CI,dng->doCI,dng->sigtype,dng->seed,dng->rng_type,dng->printboot,dng->kstr,dng->bootkstr,dng->showfits);//<-fill in the rest from the struct
   return NULL;
 }
 
-void slave_block(std::map<int, mydataD> &retmap,int howmany,sam_hdr_t *hdr,int2char &name_map,int libprep,int nopt,int nbootstrap,double CI, int doCI,int sigtype,int seed,int rng_type,int doboot,kstring_t *kstr,kstring_t *bootkstr,int showfits){
-  mrand_t *rand_alloc = mrand_alloc(rng_type,seed);
-  int npars = 4;
+void slave_block(std::map<int, mydataD> &retmap,int howmany,sam_hdr_t *hdr,int2char &name_map,int libprep,int nopt,int nbootstrap,double CI, int doCI,int sigtype,int seed,int rng_type,int printboot,kstring_t *kstr,kstring_t *bootkstr,int showfits){
 
-  double **dat = new double*[npars];
-  dat[0] = new double[2+2*howmany];
-  dat[1] = new double [2*howmany];
-  dat[2] = new double [2*howmany];
-  dat[3] = new double [2*howmany];
+  //allocate and seed the random number generators once per thread.
+  int mythreadseed = seed;
+  std::mt19937 gen_boot(mythreadseed);
+  mrand_t *rand_alloc_boot = mrand_alloc(rng_type,mythreadseed+12345);
+  mrand_t *rand_alloc = mrand_alloc(rng_type,mythreadseed+54321);
+  
+  int npars = 4;//A,c,q,phi, or A,q,c,phi
 
+  double **dat = new double*[npars];//used to hold a representation of metainformation and counts
+  dat[0] = new double[2+2*howmany];//[#N,ncall,index] <<- these should be ints
+  dat[1] = new double [2*howmany];//K counts of damage
+  dat[2] = new double [2*howmany];//N total counts of relevant reference
+  dat[3] = new double [2*howmany];//K/N frequency
+
+  
+  double **bootdata = NULL;//Bootstrapping datastructure, same intepration as above but can be sampled in 3 different ways
+  double **bootcidata = NULL;
+  if(nbootstrap>1){
+    bootdata = new double*[npars];
+    bootdata[0] = new double[2+2*howmany];
+    bootdata[1] = new double [2*howmany];
+    bootdata[2] = new double [2*howmany];
+    bootdata[3] = new double [2*howmany];
+
+    bootcidata = new double*[nbootstrap];
+    for (int b = 0; b < nbootstrap; b++) 
+      bootcidata[b] = new double[npars];
+  
+  }
+  double **CI_val = new double*[npars];
+  //store the confidence interval  values, only used if nbootstrap>1.
+  for (int j = 0; j < npars; j++)
+    CI_val[j] = new double [2];
+      
+
+  //loop over taxid
   for (std::map<int, mydataD>::iterator it = retmap.begin(); it != retmap.end(); it++) {
+    if(1){//we are reseeding once per taxid
+      int mytaxidseed = seed+100000*it->first;//<- does this overflow or cause issues, only god knows.
+      gen_boot.seed(mytaxidseed);
+      mrand_seed(rand_alloc_boot,mytaxidseed+12345);
+      mrand_seed(rand_alloc,mytaxidseed+54321);
+    }
+    
+    if(nbootstrap>1){
+      for (int b = 0; b < nbootstrap; b++) {
+	for (int j = 0; j < npars; j++) {
+	  bootcidata[b][j] = 0.0;
+	}
+      }
+    }
+
     //int taxid = it->first;
     mydataD md = it->second;
     if (it->second.nal == 0)
       continue;
     
-    if(hdr!=NULL){
+    if(hdr!=NULL)
       ksprintf(kstr, "%s\t", sam_hdr_tid2name(hdr, it->first));
-    }
-    else{
+    else
       ksprintf(kstr,"%d\t",it->first);
-    }
+
     
     make_dfit_format(md,dat,howmany,libprep);
-    //fprintf(stderr,"after make_dfit_format\n");
+
     double pars[6] = {0.1,0.1,0.01,1000};//last one will contain the llh,and the ncall for the objective function
     optimoptim(pars,dat,nopt,rand_alloc);
       
     double pars_b[6] = {0.1,0.1,0.01,1000};//last one will contain the llh,and the ncall for the objective function
     
-    double cistat[12] = {0,0,0,0,0,0,0,0,0,0,0,0};
+    double cistat[8]; //mean(A),mean(q),mean(c),mean(phi),sd(A),sd(q),sd(c),sd(phi) 
     double square_diff[6] = {0,0,0,0,0,0};
     double margin_error[6] = {0,0,0,0,0,0};
-      
-    double **CI_val = new double*[npars];
     
-    if(nbootstrap>1){
-	    //Bootstrapping procedure
-      //do bootstrap, print to screen for now
-      double **bootdata = new double*[npars];
-      bootdata[0] = new double[2+2*howmany];
-      bootdata[1] = new double [2*howmany];
-      bootdata[2] = new double [2*howmany];
-      bootdata[3] = new double [2*howmany];
-      
+    if(nbootstrap>1) {
       double z_score = calculate_z_score(CI);
-      
-      double** bootcidata = (double**)malloc(nbootstrap * sizeof(double*));
-      
       double acumtmp = 0; double qcumtmp = 0; double ccumtmp = 0; double phicumtmp = 0;
-	
-      //store the confidence interval  values
-      for (int j = 0; j < npars; j++){
-        CI_val[j] = new double [2];
-      }
       
-      // allocate
-      for (int i = 0; i < nbootstrap; i++){
-        bootcidata[i] = (double*)malloc(npars * sizeof(double));
-        for (int j = 0; j < npars; j++) {
-          bootcidata[i][j] = 0.0; // You can replace this with your initialization values
-        }
-      }
-	
-      //fprintf(stdout,"Bootstrap estimates\n");
       for(int b=0;b<nbootstrap;b++){
-        if(sigtype==1){
-          mrand_t *rand_alloc_boot = mrand_alloc(rng_type,seed+b);
+	
+        if(sigtype==1)
           make_bootstrap_data(dat,bootdata,howmany,rand_alloc_boot); //(int)(seed+b)
-        }
-        else if(sigtype==2){
-          mrand_t *rand_alloc_boot = mrand_alloc(rng_type,seed+b);
+        else if(sigtype==2)
           make_dfit_format_bootstrap(md,bootdata,howmany,rand_alloc_boot,libprep);//<-this makes a new dat that has been resampled
-        }
-        else if(sigtype==3){
-          make_dfit_format_bootstrap2(md,bootdata,howmany,(int)(seed+b),libprep);//<-this makes a new dat that has been resampled
-        }
+        else if(sigtype==3)
+	  make_dfit_format_bootstrap2(md,bootdata,howmany,gen_boot,libprep);//<-this makes a new dat that has been resampled
+
         
         pars_b[0] = 0.1;pars_b[1]=0.1,pars_b[2]=0.01,pars_b[3]=1000,pars_b[4]=0,pars_b[5]=0;
         optimoptim(pars_b,bootdata,nopt,rand_alloc);
 
-        for(int ii=0;ii<npars;ii++){
+        for(int ii=0;ii<npars;ii++)
           bootcidata[b][ii] = pars_b[ii];
-        }
         
         //fprintf(stdout,"\n");    
         acumtmp += bootcidata[b][0];
@@ -422,20 +444,20 @@ void slave_block(std::map<int, mydataD> &retmap,int howmany,sam_hdr_t *hdr,int2c
         phicumtmp += bootcidata[b][3];
         
         //fprintf(stdout,"%f\n",pars[5]);
-        if(doboot>0){
+	if(printboot>0) {
           if(hdr!=NULL){
             ksprintf(bootkstr, "%s", sam_hdr_tid2name(hdr, it->first));
           }
           else{
             if(name_map.size()==0)
-        ksprintf(bootkstr,"%d",it->first);
+	      ksprintf(bootkstr,"%d",it->first);
             else{
-        int2char::iterator nit = name_map.find(it->first);
-        if(nit==name_map.end()){
-          fprintf(stderr,"\t-> Problem finding taxid: %ds\n",it->first);
-          exit(1);
-        }
-        ksprintf(bootkstr,"%d:%s",it->first,nit->second);
+	      int2char::iterator nit = name_map.find(it->first);
+	      if(nit==name_map.end()){
+		fprintf(stderr,"\t-> Problem finding taxid: %ds\n",it->first);
+		exit(1);
+	      }
+	      ksprintf(bootkstr,"%d:%s",it->first,nit->second);
             }
           }
           for (int ii = 0; ii < npars; ii++) {
@@ -446,11 +468,8 @@ void slave_block(std::map<int, mydataD> &retmap,int howmany,sam_hdr_t *hdr,int2c
           ksprintf(bootkstr,"\n");
         }
       }
-      for(int i=0;i<npars;i++){
-        delete[] bootdata[i];
-      }
-      delete[] bootdata;  // Free the array of pointers*/
 
+   
       cistat[0] = acumtmp/nbootstrap;
       cistat[1] = qcumtmp/nbootstrap;
       cistat[2] = ccumtmp/nbootstrap;
@@ -498,12 +517,6 @@ void slave_block(std::map<int, mydataD> &retmap,int howmany,sam_hdr_t *hdr,int2c
           //std::cout << CI_val[j][0] << " sad " << CI_val[j][1] << std::endl;
         }
       }
-      
-      //for(int i=0;i<4;i++){delete[] CI_val[i];}
-	
-    	// Free allocated memory
-      for (int i = 0; i < nbootstrap; i++){free(bootcidata[i]);}
-      free(bootcidata);
     }
     
     // Sigma and Z
@@ -635,14 +648,32 @@ void slave_block(std::map<int, mydataD> &retmap,int howmany,sam_hdr_t *hdr,int2c
       }
     }
     ksprintf(kstr,"\n");
-    delete[] CI_val;  // Free the array of pointers
+
     free(stats);
   }
-
+  for(int i=0;i<npars;i++)
+    delete [] CI_val[i];
+  delete[] CI_val;  // Free the array of pointers
+  
   // Free the memory
   for(int i=0;i<npars;i++){
     delete[] dat[i];
   }
+  if(bootdata!=NULL){
+    for(int i=0;i<npars;i++)
+        delete[] bootdata[i];
+    delete[] bootdata;  // Free the array of pointers*/
+  }
+    
+  if (bootcidata != NULL) {
+    for (int b = 0; b < nbootstrap; b++)
+      delete[] bootcidata[b];
+    delete[] bootcidata;
+  }
+
+  
+  mrand_destroy(rand_alloc);
+  mrand_destroy(rand_alloc_boot);
   delete[] dat;  // Free the array of pointers
 }
 
@@ -659,7 +690,7 @@ int main_dfit(int argc, char **argv) {
     fprintf(stderr, "\tEstimate damage patterns for each chr/scaffold contig (local mode), using lca stats\n");
     fprintf(stderr, "\t\t./metaDMG-cpp dfit file.bdamage.gz -names file.gz -nodes trestructure.gz -bam file.bam -showfits int -nopt int -nbootstrap int -seed int -doCI int -CI float -lib <ds,ss> -out file\n");
     fprintf(stderr, "\tEstimate one global damage pattern \n");
-    fprintf(stderr, "\t\t./metaDMG-cpp dfit metaDMG-cpp/metaDMG-cpp dfit Pitch6getDMG.bdamage.gz -doboot 1 -nbootstrap 5 -nopt 10 -showfits 0\n");
+    fprintf(stderr, "\t\t./metaDMG-cpp dfit metaDMG-cpp/metaDMG-cpp dfit Pitch6getDMG.bdamage.gz -printboot 1 -nbootstrap 5 -nopt 10 -showfits 0\n");
     */
     if (argc <= 1){
       HelpPageSimple(stderr);
@@ -676,7 +707,7 @@ int main_dfit(int argc, char **argv) {
     int nopt = 10;
     int sigtype = 1;
     int nbootstrap = 1;
-    int doboot = 0;
+    int printboot = 0;
     int seed = time(NULL);
     size_t nthreads = 1;
     double CI = 0.95;
@@ -704,8 +735,8 @@ int main_dfit(int argc, char **argv) {
           showfits = atoi(*(++argv));
         else if (strcasecmp("--nbootstrap", *argv) == 0)
           nbootstrap = atoi(*(++argv));
-        else if (strcasecmp("--doboot", *argv) == 0)
-          doboot = atoi(*(++argv));
+        else if (strcasecmp("--printboot", *argv) == 0)
+          printboot = atoi(*(++argv));
         else if (strcasecmp("--seed", *argv) == 0)
           seed = atoi(*(++argv));
         else if(strcasecmp("--rand", *argv) ==0)
@@ -778,7 +809,7 @@ int main_dfit(int argc, char **argv) {
     BGZF *bootfp = NULL;
     kstring_t *bootkstr = new kstring_t;
     bootkstr->s = NULL; bootkstr->l = bootkstr->m = 0;
-    if(doboot>0){
+    if(printboot>0){
       snprintf(bootbuf, 1024, "%s.boot.stat.gz", outfile_name);
       bootfp = bgzf_open(bootbuf, "wb");    
       ksprintf(bootkstr,"taxid\tA_b\tq_b\tc_b\tphi_b\n");
@@ -850,7 +881,7 @@ int main_dfit(int argc, char **argv) {
 	
 	kstring_t *bootkstr_block = new kstring_t;
 	bootkstr_block->s = NULL; bootkstr_block->l = bootkstr_block->m = 0;
-	slave_block(retmap,howmany,hdr,name_map,libprep,nopt,nbootstrap,CI,doCI,sigtype,seed,rng_type,doboot,kstr_block,bootkstr_block,showfits);
+	slave_block(retmap,howmany,hdr,name_map,libprep,nopt,nbootstrap,CI,doCI,sigtype,seed,rng_type,printboot,kstr_block,bootkstr_block,showfits);
 	
 	ksprintf(kstr,"%s",kstr_block->s);
 	ksprintf(bootkstr,"%s",bootkstr_block->s);
@@ -860,7 +891,7 @@ int main_dfit(int argc, char **argv) {
 	free(bootkstr_block->s);
 	delete bootkstr_block;
       }
-      else{
+      else {
         std::map<int, mydataD> *ary = new std::map<int, mydataD>[nthreads];
         int cnt = 0;
         for (std::map<int, mydataD>::iterator it = retmap.begin(); it != retmap.end(); it++){
@@ -868,7 +899,7 @@ int main_dfit(int argc, char **argv) {
           cnt++;
         }
 	
-	      ding *dings = new ding[nthreads];
+	ding *dings = new ding[nthreads];
         for(size_t i=0;i<nthreads;i++){
           dings[i].retmap = &(ary[i]);
           dings[i].howmany = howmany;
@@ -880,9 +911,9 @@ int main_dfit(int argc, char **argv) {
           dings[i].CI = CI;
           dings[i].doCI = doCI;
           dings[i].sigtype = sigtype;
-          dings[i].seed = (seed+i)*100;
+          dings[i].seed = seed;
           dings[i].rng_type = rng_type;
-          dings[i].doboot = doboot;
+          dings[i].printboot = printboot;
           fprintf(stderr, "\t-> Initiating thread %lu with thread specific seed %d inferred from global seed %d with pseudo-random number generator type  %d\n",i,dings[i].seed/100,seed,rng_type);
           //fprintf(stderr,"INITIATED THREAD WHAT %lu WITH SEED VALUE WHAT %d WITH SPECIFIC SEED %d and seedtype %d \n",i,seed,dings[i].seed,rng_type);
 
@@ -893,7 +924,7 @@ int main_dfit(int argc, char **argv) {
           bootkstr->s = NULL; bootkstr->l = bootkstr->m = 0;
           dings[i].bootkstr = bootkstr;
           dings[i].showfits = showfits;
-        }
+	}
 
 	pthread_t *mythreads = (pthread_t *)malloc(nthreads * sizeof(pthread_t));
 	if (mythreads == NULL) {
@@ -908,8 +939,13 @@ int main_dfit(int argc, char **argv) {
           
         for(size_t i=0;i<nthreads;i++){
           ksprintf(kstr,"%s",dings[i].kstr->s);
+	  free(dings[i].kstr->s); delete dings[i].kstr;
           ksprintf(bootkstr,"%s",dings[i].bootkstr->s);
+	  free(dings[i].bootkstr->s); delete dings[i].bootkstr;
         }
+	delete [] ary;
+	delete [] dings;
+	delete [] mythreads;
       }
     }
     
@@ -921,7 +957,7 @@ int main_dfit(int argc, char **argv) {
     bgzf_close(fpfpfp);
     
     
-    if(doboot>0){
+    if(printboot>0){
       if(bgzf_write(bootfp,bootkstr->s,bootkstr->l) != (ssize_t) bootkstr->l){
         fprintf(stderr, "\t-> Problemst write to output BGZ file\n");
         exit(1);

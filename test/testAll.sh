@@ -171,7 +171,7 @@ ARCH="$(uname -m)"
 
 case "${OS}_${ARCH}" in
   Darwin_arm64|Darwin_aarch64|Linux_arm64|Linux_aarch64)
-    CHECKSUMFILE="output.md5.macos"
+    CHECKSUMFILE="output.md5" ##this used to be output.md5.macos
     ;;
   Linux_x86_64)
     CHECKSUMFILE="output.md5"
