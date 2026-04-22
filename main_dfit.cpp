@@ -693,9 +693,9 @@ int main_dfit(int argc, char **argv) {
     htsFormat *dingding2 = (htsFormat *)calloc(1, sizeof(htsFormat));
     while (*(++argv)) {
         if (strcasecmp("-h", *argv) == 0)
-          print_usage(stderr);
+          return print_usage(stderr);
         else if (strcasecmp("--help", *argv) == 0)
-         print_help(stderr);
+         return print_help(stderr);
         else if (strcasecmp("--names", *argv) == 0)
             infile_names = strdup(*(++argv));
         else if (strcasecmp("--nodes", *argv) == 0)
@@ -904,7 +904,7 @@ int main_dfit(int argc, char **argv) {
           dings[i].showfits = showfits;
 	}
 
-	pthread_t *mythreads = (pthread_t *)malloc(nthreads * sizeof(pthread_t));
+	pthread_t *mythreads = new pthread_t[nthreads];
 	if (mythreads == NULL) {
 	  fprintf(stderr, "\t-> Error: failed to allocate memory for threads, will exit\n");
 	  exit(1);

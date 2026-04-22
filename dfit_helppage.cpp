@@ -163,5 +163,6 @@ int print_help(FILE *fp){
   fprintf(fp, "Examples:\n");
   fprintf(fp, "  metaDMG-cpp dfit file.bdamage.gz\n");
   fprintf(fp, "  metaDMG-cpp dfit file.bdamage.gz --nbootstrap 100\n");
-  exit(0);
+  fprintf(fp, "../metaDMG-cpp dfit output/test_getdamage_global.bdamage --showfits 2 --seed 12345 --lib ds --out output/test_dfit_global --nbootstrap 2 --printboot 1");
+  return 0;
 }
