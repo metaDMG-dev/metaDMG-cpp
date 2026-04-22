@@ -99,8 +99,6 @@ void make_dfit_format(mydataD &md,double **dat,int howmany,int libprep){
   /*
   for double-stranded lib prep we would observe both C>T and G>A
   for single-stranded lib prep we would only observe C>T (at both ends)
-  for a mixture of libraries we want to look at just C>T <- this will be removed i think
-
   Therefore the columns extracted from the MisMatchMatrix will differ
   */
 
@@ -110,7 +108,7 @@ void make_dfit_format(mydataD &md,double **dat,int howmany,int libprep){
     col_3p = 7; //only ct for ss
   }
 
-  dat[0][0] = 2 * howmany; // Maybe adjust size if using just 5'
+  dat[0][0] = 2 * howmany;
   dat[0][1] = 0; //<- this is the function call counter
 
   //this loop is 5'
@@ -124,7 +122,6 @@ void make_dfit_format(mydataD &md,double **dat,int howmany,int libprep){
 
     dat[3][i] = dat[2][i] > 0 ? (double) dat[1][i]/dat[2][i] : 0.0;
   }
-  // if using a mix of libraries we don't care about the 3' end 
   // In the 3' end, for ds we use the GA col (8), for ss we use Ct col (7)
   for(int i=0;i<howmany;i++){
     dat[0][howmany+i+2] =i;//plug in position
@@ -152,7 +149,7 @@ void make_dfit_format(mydataD &md,double **dat,int howmany,int libprep){
   |dat[3]| = 2*howmany; freq(k) = kvec/nvec
  */
 void make_dfit_format_bootstrap(mydataD &md,double **dat,int howmany,mrand_t *rand_alloc, int libprep){
-  dat[0][0] = 2 * howmany; // Adjust size for 'mix'
+  dat[0][0] = 2 * howmany;
   dat[0][1] = 0;
 
   //do 5'
@@ -213,7 +210,7 @@ void make_dfit_format_bootstrap(mydataD &md,double **dat,int howmany,mrand_t *ra
 }
 
 void make_dfit_format_bootstrap2(mydataD &md,double **dat,int howmany,std::mt19937 &gen, int libprep){
-  dat[0][0] =  2 * howmany; // Adjust size for 'mix'
+  dat[0][0] =  2 * howmany;
   dat[0][1] = 0;
 
   //do 5'
@@ -235,8 +232,6 @@ void make_dfit_format_bootstrap2(mydataD &md,double **dat,int howmany,std::mt199
     
     dat[3][i] =  dat[2][i] > 0 ? (double) dat[1][i]/dat[2][i] : 0.0;
   }
-
-  //do 3' if not mixture
 
   for(int i=0;i<howmany;i++){
     dat[0][howmany+i+2] =i;
