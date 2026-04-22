@@ -203,7 +203,7 @@ lca mode: 	  damage estimated over the lca tree at different ranks
 
 --threads:			 Number of threads, default = 1, i.e. no threading
 
---lib 				 double stranded (ds) use C>T (forward) and G>A (reverse); single stranded (ss) use C>T for both forward and reverse; mixed ss and ds bam files (mix) use just C>T (forward) (default ds)
+--lib 				 double stranded (ds) use C>T (forward) and G>A (reverse); single stranded (ss) use C>T for both forward and reverse (default ds)
 
 --nbootstrap		 number of bootstrap iterations. default: 1 -> use Beta-binomial model, -nbootstrap >1 use Binomial model 
 
@@ -335,4 +335,3 @@ Useful when aggregating results from multiple runs, libraries, or samples prior 
 --r 		two or more rlens.gz files 
 --out		Suffix of output name with the predetermined prefix
 ```
-
