@@ -84,6 +84,38 @@ double mrand_pop(mrand_t *mr){
   return res;
 }
 
+void mrand_seed(mrand_t *ret, long int seedval){
+#ifdef __APPLE__
+  if(ret->type==0){
+    fprintf(stderr,"\t-> Problem with drand48 reentrant, will default to erand48\n");
+    ret->type = 3;
+  }
+#else
+  if(ret->type==0)
+    srand48_r(seedval,(struct drand48_data *) &ret->buf0);
+#endif
+  if(ret->type==1){
+    ret->eng.seed(seedval);
+  }
+  if(ret->type==2)
+    ret->rand_r_seed = (unsigned int) seedval;
+  if(ret->type==3){
+    ret->rand_r_seed = (unsigned int) seedval;
+    ret->xsubi[2] = ret->rand_r_seed >> 16;
+    ret->xsubi[1] = ret->rand_r_seed & 0xffffl;
+    ret->xsubi[0] = 0x330e;
+  }
+  if(ret->type==4){
+    unsigned long long tmp = -1;
+    ret->nr_inv_rec = 1/((double) tmp);
+    ret->nr_uvw[1] = 4101842887655102017LL;
+    ret->nr_uvw[2] = 1LL;
+    ret->nr_uvw[0] = seedval ^ ret->nr_uvw[1]; ret->nr_int64();
+    ret->nr_uvw[1] = ret->nr_uvw[0]; ret->nr_int64();
+    ret->nr_uvw[2] = ret->nr_uvw[1]; ret->nr_int64();
+  }
+}
+
 
 #ifdef __WITH_MAIN__
 

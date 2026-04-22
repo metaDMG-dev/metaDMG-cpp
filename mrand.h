@@ -57,4 +57,5 @@ typedef struct mrand{
 mrand_t *mrand_alloc(int type_a, long int seedval);
 double mrand_pop(mrand_t *mr);
 void mrand_destroy(mrand_t *mr);
+void mrand_seed(mrand_t *ret, long int seedval);
 #endif
