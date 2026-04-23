@@ -66,10 +66,6 @@ char2int setlevels(int norank2species, char *key, int &value) {
 	fprintf(stderr, "\t-> Error: iterator reached end in c2i, will exit\n");
 	exit(1);
       }
-      if (it == c2i.end()) {
-	fprintf(stderr, "\t-> Error: iterator reached end in c2i, will exit\n");
-	exit(1);
-      }
       c2i[strdup("no rank")] = it->second;
     }
     fprintf(stderr, "\t-> Number of entries with level information: %lu \n", c2i.size());
@@ -334,6 +330,7 @@ int get_species1(int taxa, int2int &parent, int2char &rank) {
     return taxa;
 }
 
+#if 0
 int2int get_species(int2int &ref2tax, int2int &parent, int2char &rank, int2char &names, FILE *fp) {
     int2int ret;
     for (int2int::iterator it = ref2tax.begin(); it != ref2tax.end(); it++) {
@@ -347,6 +344,7 @@ int2int get_species(int2int &ref2tax, int2int &parent, int2char &rank, int2char 
     }
     return ret;
 }
+#endif
 //
 char *make_seq(bam1_t *aln) {
     int len = aln->core.l_qseq;
@@ -932,7 +930,9 @@ int main_lca(int argc, char **argv) {
                 namnam = it1->second;
             if (it2 != rank.end())
                 rankrank = it2->second;
-            gzprintf(p->fp_lcadist, "\t\"%s\"\t\"%s\"\n", namnam, rankrank);
+            gzprintf(p->fp_lcadist, "\t\"%s\"\t\"%s\"\n",
+                     namnam ? namnam : "<missing-name>",
+                     rankrank ? rankrank : "<missing-rank>");
         }
     }
 
