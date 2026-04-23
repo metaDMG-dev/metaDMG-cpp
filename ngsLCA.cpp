@@ -261,15 +261,11 @@ int do_lca(std::vector<int> &taxids, int2int &parent) {
 void print_chain1(kstring_t *kstr, int taxa, int2char &rank, int2char &name_map,char sep) {
     int2char::iterator it1 = name_map.find(taxa);
     int2char::iterator it2 = rank.find(taxa);
-    if (it1 == name_map.end()) {
-        fprintf(stderr, "\t-> Problem finding taxaid:%d\n", taxa);
-    }
-    if (it2 == rank.end()) {
-      fprintf(stderr, "\t-> Error: iterator reached end in rank, will exit\n");
-      exit(1);
-    }
     if (it1 == name_map.end() || it2 == rank.end()) {
-        fprintf(stderr, "taxa: %d %s doesnt exists will exit\n", taxa, it1->second);
+        fprintf(stderr, "taxa: %d name:%s rank:%s doesnt exists will exit\n",
+                taxa,
+                it1 != name_map.end() ? it1->second : "<missing-name>",
+                it2 != rank.end() ? it2->second : "<missing-rank>");
         exit(1);
     }
     ksprintf(kstr, "%c%d:\"%s\":\"%s\"",sep, taxa, it1->second, it2->second);
