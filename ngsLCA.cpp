@@ -393,6 +393,8 @@ float gccontent(char *seq) {
 
     float gcs = counts[1] + counts[2];
     float tot = counts[0] + counts[1] + counts[2] + counts[3];
+    if (tot == 0)
+        return 0.0f;
     return gcs / tot;
 }
 
@@ -406,6 +408,8 @@ float gccontent(bam1_t *aln) {
 
     float gcs = counts[1] + counts[2];
     float tot = counts[0] + counts[1] + counts[2] + counts[3];
+    if (tot == 0)
+        return 0.0f;
     return gcs / tot;
 }
 
