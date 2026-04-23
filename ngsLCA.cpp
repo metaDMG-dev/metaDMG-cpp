@@ -164,7 +164,7 @@ float var(std::vector<float> &vec) {
     }
     float mea = mean(vec);
     float tmp = 0;
-    for (size_t i = 1; i < vec.size(); i++)
+    for (size_t i = 0; i < vec.size(); i++)
         tmp += pow(vec[i] - mea, 2);
 
     return tmp / (vec.size() - 1);
