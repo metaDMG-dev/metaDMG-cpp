@@ -686,9 +686,9 @@ void hts(gzFile fp, samFile *fp_in, int2int &ref2tax, int2int &parent, bam_hdr_t
             if (isuniq(specs)) {
                 int2int::iterator it = specWeight.find(specs[0]);
                 if (it == specWeight.end())
-                    specWeight[specs[0]] = specs.size();
+                    specWeight[specs[0]] = 1;
                 else
-                    it->second = it->second + specs.size();
+                    it->second = it->second + 1;
             }
             // lca_rank is integer and is different from minus one
             int2int::iterator myit = rank2level.find(lca);
