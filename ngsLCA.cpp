@@ -79,7 +79,7 @@ char2int setlevels(int norank2species, char *key, int &value) {
 
 int2int rank2level(int2char &i2c, int norank2species, char *key, int &value) {
     char2int c2i = setlevels(norank2species, key, value);
-    int2int i2i;
+    int2int ref2tax;
     for (int2char::iterator it = i2c.begin(); it != i2c.end(); it++) {
         int key = -1;
         char2int::iterator it2 = c2i.find(it->second);
@@ -89,11 +89,11 @@ int2int rank2level(int2char &i2c, int norank2species, char *key, int &value) {
             if (strcmp(it->second, "no rank") != 0)
                 fprintf(stderr, "\t-> Problem finding level for rank: %s\n", it->second);
         }
-        i2i[it->first] = key;
+        ref2tax[it->first] = key;
     }
     for (char2int::iterator it = c2i.begin(); it != c2i.end(); it++)
         free(it->first);
-    return i2i;
+    return ref2tax;
 }
 
 // we are threading so we want make a nice signal handler for ctrl+c
@@ -338,14 +338,14 @@ int get_species1(int taxa, int2int &parent, int2char &rank) {
     return taxa;
 }
 
-int2int get_species(int2int &i2i, int2int &parent, int2char &rank, int2char &names, FILE *fp) {
+int2int get_species(int2int &ref2tax, int2int &parent, int2char &rank, int2char &names, FILE *fp) {
     int2int ret;
-    for (int2int::iterator it = i2i.begin(); it != i2i.end(); it++) {
+    for (int2int::iterator it = ref2tax.begin(); it != ref2tax.end(); it++) {
         // fprintf(stderr,"%d\t%d\n",it->first,it->second);
         int asdf = get_species1(it->second, parent, rank);
         if (asdf == -1) {
             fprintf(fp, "\t-> Removing pair(%d,%d) accnumber:%s since doesnt exists in node list\n", it->first, it->second, names[it->second]);
-            i2i.erase(it);
+            ref2tax.erase(it);
         } else
             ret[it->second] = asdf;  //
     }
@@ -449,7 +449,7 @@ void purge(std::vector<int> &taxids, std::vector<int> &specs, std::vector<int> &
   specs.swap(specs_kept);
 }
 
-void hts(gzFile fp, samFile *fp_in, int2int &i2i, int2int &parent, bam_hdr_t *hdr, int2char &rank, int2char &name_map, int minmapq, int discard, int editMin, int editMax, double scoreLow, double scoreHigh, int minlength, int lca_rank, char *prefix, int howmany, samFile *fp_usedreads, int skipnorank, int2int &rank2level, int nthreads, int weighttype,long maxreads,samFile *fp_famout,int rlens_flat_out) {
+void hts(gzFile fp, samFile *fp_in, int2int &ref2tax, int2int &parent, bam_hdr_t *hdr, int2char &rank, int2char &name_map, int minmapq, int discard, int editMin, int editMax, double scoreLow, double scoreHigh, int minlength, int lca_rank, char *prefix, int howmany, samFile *fp_usedreads, int skipnorank, int2int &rank2level, int nthreads, int weighttype,long maxreads,samFile *fp_famout,int rlens_flat_out) {
   fprintf(stderr, "[%s] \t-> editMin:%d editmMax:%d scoreLow:%f scoreHigh:%f minlength:%d discard: %d prefix: %s howmany: %d skipnorank: %d weighttype: %d maxreads: %ld rlens_flat_out: %d\n", __FUNCTION__, editMin, editMax, scoreLow, scoreHigh, minlength, discard, prefix, howmany, skipnorank, weighttype,maxreads,rlens_flat_out);
   if (fp_in == NULL) {
     fprintf(stderr, "\t-> Error: fp_in is NULL (failed to open input file), will exit\n");
@@ -567,9 +567,9 @@ void hts(gzFile fp, samFile *fp_in, int2int &i2i, int2int &parent, bam_hdr_t *hd
 			  if (apply_purge && !keep[i])
 			    continue;
 			  
-			  int2int::iterator it2k = i2i.find(myq->ary[i]->core.tid);
-			  if (it2k == i2i.end()) {
-			    fprintf(stderr, "\t-> Error: iterator reached end in i2i, will exit\n");
+			  int2int::iterator it2k = ref2tax.find(myq->ary[i]->core.tid);
+			  if (it2k == ref2tax.end()) {
+			    fprintf(stderr, "\t-> Error: iterator reached end in ref2tax, will exit\n");
 			    exit(1);
 			  }
 			  int2char::iterator ititit = rank.find(it2k->second);
@@ -627,13 +627,13 @@ void hts(gzFile fp, samFile *fp_in, int2int &i2i, int2int &parent, bam_hdr_t *hd
                 continue;
             }
         }
-        int2int::iterator it = i2i.find(chr);
         // See if cloests speciest exists and plug into closests species
         int dingdong = -1;
-        if (it != i2i.end()) {
-            int2int::iterator it2 = closest_species.find(chr);
+        int2int::iterator it = ref2tax.find(chr);
+        if (it != ref2tax.end()) {
+            int2int::iterator it2 = closest_species.find(it->second);
             if (it2 != closest_species.end())
-                dingdong = it->second;
+                dingdong = it2->second;
             else {
                 dingdong = get_species1(it->second, parent, rank);
                 if (dingdong != -1)
@@ -642,7 +642,7 @@ void hts(gzFile fp, samFile *fp_in, int2int &i2i, int2int &parent, bam_hdr_t *hd
             // fprintf(stderr,"\t-> closests size:%lu\n",closest_species.size());
         }
 
-        if (it == i2i.end() || dingdong == -1) {
+        if (it == ref2tax.end() || dingdong == -1) {
 	  int2int::iterator it2missing = i2i_missing.find(chr);
             if (it2missing == i2i_missing.end()) {
                 fprintf(stderr, "[log] \t-> problem finding chrid:%d chrname:%s (due to problem with missing entries in nodes.dmp or supporting files)\n", chr, hdr->target_name[chr]);
@@ -719,9 +719,9 @@ void hts(gzFile fp, samFile *fp_in, int2int &i2i, int2int &parent, bam_hdr_t *hd
 		    if (apply_purge && !keep[i])
 		        continue;
                     // dmg->damage_analysis(myq->ary[i],myq->ary[i]->core.tid);
-                    int2int::iterator ittt = i2i.find(myq->ary[i]->core.tid);
-		    if (ittt == i2i.end()) {
-		      fprintf(stderr, "\t-> Error: iterator reached end in i2i (ittt), will exit\n");
+                    int2int::iterator ittt = ref2tax.find(myq->ary[i]->core.tid);
+		    if (ittt == ref2tax.end()) {
+		      fprintf(stderr, "\t-> Error: iterator reached end in ref2tax (ittt), will exit\n");
 		      exit(1);
 		    }
                     int2char::iterator ititit = rank.find(ittt->second);
@@ -763,15 +763,15 @@ void hts(gzFile fp, samFile *fp_in, int2int &i2i, int2int &parent, bam_hdr_t *hd
     return;  // 0;
 }
 
-void print_ref_rank_species(bam_hdr_t *h, int2int &i2i, int2char &names, int2char &rank) {
+void print_ref_rank_species(bam_hdr_t *h, int2int &ref2tax, int2char &names, int2char &rank) {
     for (int i = 0; i < h->n_targets; i++) {
-        fprintf(stdout, "%d\t%s\t%s\n", i, names[i2i[i]], rank[i2i[i]]);
+        fprintf(stdout, "%d\t%s\t%s\n", i, names[ref2tax[i]], rank[ref2tax[i]]);
     }
 }
 
-int calc_valens(int2int &i2i, int2int &parent) {
+int calc_valens(int2int &ref2tax, int2int &parent) {
     int2int ret;
-    for (int2int::iterator it = i2i.begin(); it != i2i.end(); it++) {
+    for (int2int::iterator it = ref2tax.begin(); it != ref2tax.end(); it++) {
         int2int::iterator pit = parent.find(it->second);
         if (pit == parent.end() || pit->second == 1)
             continue;
@@ -788,9 +788,9 @@ int calc_valens(int2int &i2i, int2int &parent) {
     return 0;
 }
 
-int calc_dist2root(int2int &i2i, int2int &parent) {
+int calc_dist2root(int2int &ref2tax, int2int &parent) {
     int2int ret;
-    for (int2int::iterator it = i2i.begin(); it != i2i.end(); it++) {
+    for (int2int::iterator it = ref2tax.begin(); it != ref2tax.end(); it++) {
         int2int::iterator pit = parent.find(it->second);
         if (pit == parent.end() || pit->second == 1)
             continue;
@@ -842,10 +842,10 @@ int main_lca(int argc, char **argv) {
       gzprintf(p->fp1,"%s ",argv[i]);
     gzprintf(p->fp1,"\n");
     // map of bamref ->taxid
-    int2int *i2i = NULL;
+    int2int *ref2tax = NULL;
     //  fprintf(stderr,"p->header: %p\n",p->header);
     if (p->header)
-      i2i = bamRefId2tax(p->header, p->acc2taxfile, p->htsfile, errmap, p->tempfolder, p->useDump, p->filteredAcc2taxfile,NULL);
+      ref2tax = bamRefId2tax(p->header, p->acc2taxfile, p->htsfile, errmap, p->tempfolder, p->useDump, p->filteredAcc2taxfile,NULL);
     // map of taxid -> taxid
     int2int parent;
     // map of taxid -> rank
@@ -860,14 +860,14 @@ int main_lca(int argc, char **argv) {
     int lca_rank;
     // converts each taxid to a intrepresentation of the rank, we call this level
     int2int tax2level = rank2level(rank, p->norank2species, p->lca_rank, lca_rank);
-    //  calc_valens(i2i,parent);
+    //  calc_valens(ref2tax,parent);
     if (0) {
-        print_ref_rank_species(p->header, *i2i, name_map, rank);
+        print_ref_rank_species(p->header, *ref2tax, name_map, rank);
         return 0;
     }
 
     // closes species (direction of root) for a taxid
-    //   int2int closest_species=get_species(i2i,parent,rank,name_map,p->fp3);
+    //   int2int closest_species=get_species(ref2tax,parent,rank,name_map,p->fp3);
     //   fprintf(stderr,"\t-> Number of items in closest_species map:%lu\n",closest_species.size());
 
     if (p->fixdb) {
@@ -895,7 +895,7 @@ int main_lca(int argc, char **argv) {
 	fprintf(stderr, "writing headers to %s", p->famout_sam);
     }
     gzprintf(p->fp1,"queryid\tseq\tlen\tnaln\tgc\tlca\ttaxa_path\n");
-    hts(p->fp1, p->hts, *i2i, parent, p->header, rank, name_map, p->minmapq, p->discard, p->editdistMin, p->editdistMax, p->simscoreLow, p->simscoreHigh, p->minlength, lca_rank, p->outnames, p->howmany, usedreads_sam, p->skipnorank, tax2level, p->nthreads, p->weighttype,p->maxreads,famout_sam,p->rlens_flat_out);
+    hts(p->fp1, p->hts, *ref2tax, parent, p->header, rank, name_map, p->minmapq, p->discard, p->editdistMin, p->editdistMax, p->simscoreLow, p->simscoreHigh, p->minlength, lca_rank, p->outnames, p->howmany, usedreads_sam, p->skipnorank, tax2level, p->nthreads, p->weighttype,p->maxreads,famout_sam,p->rlens_flat_out);
 
     fprintf(stderr, "\t-> Number of species with reads that map uniquely: %lu\n", specWeight.size());
 
@@ -936,8 +936,8 @@ int main_lca(int argc, char **argv) {
         free(it->second);
     for (int2char::iterator it = rank.begin(); it != rank.end(); it++)
         free(it->second);
-    if (i2i)
-        delete i2i;
+    if (ref2tax)
+        delete ref2tax;
     free(dingding2);
     pars_free(p);
     return 0;
