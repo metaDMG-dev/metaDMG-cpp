@@ -846,6 +846,10 @@ int main_lca(int argc, char **argv) {
     //  fprintf(stderr,"p->header: %p\n",p->header);
     if (p->header)
       ref2tax = bamRefId2tax(p->header, p->acc2taxfile, p->htsfile, errmap, p->tempfolder, p->useDump, p->filteredAcc2taxfile,NULL);
+    if(ref2tax==NULL){
+      fprintf(stderr,"\t-> It is a requirement that the input bam/sam/cram contains a header\n");
+      exit(1);
+    }
     // map of taxid -> taxid
     int2int parent;
     // map of taxid -> rank
