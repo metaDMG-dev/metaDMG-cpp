@@ -411,25 +411,42 @@ float gccontent(bam1_t *aln) {
 
 int printonce = 1;
 
-std::vector<int> purge(std::vector<int> &taxids, std::vector<int> &editdist) {
-  std::vector<int> tmpnewvec;
-  if(editdist.size()==0)
-    return tmpnewvec;
-  
+void purge(std::vector<int> &taxids, std::vector<int> &specs, std::vector<int> &editdist, std::vector<char> &keep) {
+  keep.assign(taxids.size(), 1);
+  if (editdist.empty())
+    return;
+
   if (printonce == 1)
     fprintf(stderr, "\t-> purging taxids oldsize:%lu\n", taxids.size());
+  if (taxids.size() != specs.size()) {
+    fprintf(stderr, "\t-> Error: taxids and specs sizes do not match, will exit\n");
+    exit(1);
+  }
   if (taxids.size() != editdist.size()) {
     fprintf(stderr, "\t-> Error: taxids and editdist sizes do not match, will exit\n");
     exit(1);
   }
-  
-  int mylow = *std::min_element(editdist.begin(), editdist.end());
-  for (size_t i = 0; i < taxids.size(); i++)
-    if (editdist[i] <= mylow)
-      tmpnewvec.push_back(taxids[i]);
+
+  std::vector<int> taxids_kept;
+  std::vector<int> specs_kept;
+  taxids_kept.reserve(taxids.size());
+  specs_kept.reserve(specs.size());
+
+  const int mylow = *std::min_element(editdist.begin(), editdist.end());
+  for (size_t i = 0; i < taxids.size(); i++) {
+    if (editdist[i] <= mylow) {
+      taxids_kept.push_back(taxids[i]);
+      specs_kept.push_back(specs[i]);
+      keep[i] = 1;
+    } else {
+      keep[i] = 0;
+    }
+  }
+
   if (printonce-- == 1)
-    fprintf(stderr, "\t-> purging taxids newsize:%lu this info is only printed once\n", tmpnewvec.size());
-  return tmpnewvec;
+    fprintf(stderr, "\t-> purging taxids newsize:%lu this info is only printed once\n", taxids_kept.size());
+  taxids.swap(taxids_kept);
+  specs.swap(specs_kept);
 }
 
 void hts(gzFile fp, samFile *fp_in, int2int &i2i, int2int &parent, bam_hdr_t *hdr, int2char &rank, int2char &name_map, int minmapq, int discard, int editMin, int editMax, double scoreLow, double scoreHigh, int minlength, int lca_rank, char *prefix, int howmany, samFile *fp_usedreads, int skipnorank, int2int &rank2level, int nthreads, int weighttype,long maxreads,samFile *fp_famout,int rlens_flat_out) {
@@ -446,6 +463,7 @@ void hts(gzFile fp, samFile *fp_in, int2int &i2i, int2int &parent, bam_hdr_t *hd
     std::vector<int> taxids;
     std::vector<int> specs;
     std::vector<int> editdist;
+    std::vector<char> keep;
     queue *myq = init_queue(500);
 
     int lca;
@@ -496,20 +514,21 @@ void hts(gzFile fp, samFile *fp_in, int2int &i2i, int2int &parent, bam_hdr_t *hd
 		  fprintf(stderr, "\t-> Error: size does not match myq->l, will exit\n");
 		  exit(1);
 		}
-                if (editMin == -1 && editMax == -1)
-                    taxids = purge(taxids, editdist);
+                const bool apply_purge = (editMin == -1 && editMax == -1 && !editdist.empty());
+                if (apply_purge)
+                    purge(taxids, specs, editdist, keep);
 		nreads++;
                 lca = do_lca(taxids, parent);
                 //	fprintf(stderr,"myq->l: %d\n",myq->l);
                 if (lca != -1) {
-                    gzprintf(fp, "%s\t%s\t%lu\t%d\t%f", last, seq, strlen(seq), size, gccontent(seq));
+                    const size_t nused = apply_purge ? taxids.size() : size;
+                    gzprintf(fp, "%s\t%s\t%lu\t%lu\t%f", last, seq, strlen(seq), nused, gccontent(seq));
 		   
 		    print_chain(kstr, lca, parent, rank, name_map,1);
 		    gzwrite(fp,kstr->s,kstr->l);
 		    kstr->l =0;
 
-                    int varisunique = isuniq(specs);
-                    if (varisunique) {
+                    if ( isuniq(specs)) {
                         int2int::iterator it = specWeight.find(specs[0]);
                         if (it == specWeight.end())
                             specWeight[specs[0]] = 1;
@@ -526,39 +545,45 @@ void hts(gzFile fp, samFile *fp_in, int2int &i2i, int2int &parent, bam_hdr_t *hd
 		    //write to family out
 		    if (myit->second != -1 && (myit->second <= 16)) {
 		      //family is 16, see rank2level.txt
-		       for (size_t i = 0; i < myq->l; i++)
+		       for (size_t i = 0; i < myq->l; i++) {
+			 if (apply_purge && !keep[i])
+			   continue;
 			 if(fp_famout){
 			   if (sam_write1(fp_famout, hdr, myq->ary[i]) < 0) {
 			     fprintf(stderr, "\t-> Error: failed to write record with sam_write1, will exit\n");
 			     exit(1);
 			   }
 			 }
+		       }
 		    }
 		    //standard analyses
 		    if (myit->second != -1 && (myit->second <= lca_rank)) {
                         adder(lca, strlen(seq), gccontent(seq));
+			const float dmgw = (weighttype == 0) ? 1.0f : (1.0f / (float)(apply_purge ? taxids.size() : myq->l));
 			            //fprintf(stderr,"Looping through alignments we have :%d \n",myq->l);
                         for (size_t i = 0; i < myq->l; i++) {
+			  if (apply_purge && !keep[i])
+			    continue;
 			  
-                            int2int::iterator it2k = i2i.find(myq->ary[i]->core.tid);
-			    if (it2k == i2i.end()) {
-			      fprintf(stderr, "\t-> Error: iterator reached end in i2i, will exit\n");
+			  int2int::iterator it2k = i2i.find(myq->ary[i]->core.tid);
+			  if (it2k == i2i.end()) {
+			    fprintf(stderr, "\t-> Error: iterator reached end in i2i, will exit\n");
+			    exit(1);
+			  }
+			  int2char::iterator ititit = rank.find(it2k->second);
+			  if (ititit == rank.end()) {
+			    fprintf(stderr, "\t-> Potential problem no rank for taxid: %d\n", it2k->second);
+			    continue;
+			  }
+			  if (skipnorank == 1 && strcasecmp(ititit->second, "no rank") == 0)
+			    continue;
+			  dmg->damage_analysis(myq->ary[i], it2k->second, dmgw);
+			  if (fp_usedreads){
+			    if (sam_write1(fp_usedreads, hdr, myq->ary[i]) < 0) {
+			      fprintf(stderr, "\t-> Error: failed to write record with sam_write1 (fp_usedreads), will exit\n");
 			      exit(1);
 			    }
-                            int2char::iterator ititit = rank.find(it2k->second);
-                            if (ititit == rank.end()) {
-                                fprintf(stderr, "\t-> Potential problem no rank for taxid: %d\n", it2k->second);
-                                continue;
-                            }
-                            if (skipnorank == 1 && strcasecmp(ititit->second, "no rank") == 0)
-                                continue;
-                            dmg->damage_analysis(myq->ary[i], it2k->second, weighttype == 0 ? 1 : (1.0 / (float)myq->l));
-                            if (fp_usedreads){
-			      if (sam_write1(fp_usedreads, hdr, myq->ary[i]) < 0) {
-				fprintf(stderr, "\t-> Error: failed to write record with sam_write1 (fp_usedreads), will exit\n");
-				exit(1);
-			      }
-			    }
+			  }
                         }
                     }
                 }
@@ -566,6 +591,7 @@ void hts(gzFile fp, samFile *fp_in, int2int &i2i, int2int &parent, bam_hdr_t *hd
             skip = 0;
             specs.clear();
             editdist.clear();
+            keep.clear();
             myq->l = 0;
             free(last);
             delete[] seq;
@@ -641,15 +667,17 @@ void hts(gzFile fp, samFile *fp_in, int2int &i2i, int2int &parent, bam_hdr_t *hd
 	  fprintf(stderr, "\t-> Error: size does not match myq->l, will exit\n");
 	  exit(1);
 	}
-        if (editMin == -1 && editMax == -1)
-            taxids = purge(taxids, editdist);
+        const bool apply_purge = (editMin == -1 && editMax == -1 && !editdist.empty());
+        if (apply_purge)
+            purge(taxids, specs, editdist, keep);
 
         //  fprintf(stderr,"ntaxids: %lu\n",taxids.size());
 	nreads++;
         lca = do_lca(taxids, parent);
         //    fprintf(stderr,"myq->l: %d lca: %d \n",myq->l,lca);
         if (lca != -1) {
-            gzprintf(fp, "%s\t%s\t%lu\t%d\t%f", last, seq, strlen(seq), size, gccontent(seq));
+            const size_t nused = apply_purge ? taxids.size() : size;
+            gzprintf(fp, "%s\t%s\t%lu\t%lu\t%f", last, seq, strlen(seq), nused, gccontent(seq));
             print_chain(kstr, lca, parent, rank, name_map,1);
 	    gzwrite(fp,kstr->s,kstr->l);
 	    kstr->l = 0;
@@ -669,19 +697,25 @@ void hts(gzFile fp, samFile *fp_in, int2int &i2i, int2int &parent, bam_hdr_t *hd
 	    //write to family out
 	    if (myit->second != -1 && (myit->second <= 16)) {
 	      //family is 16, see rank2level.txt
-	      for (size_t i = 0; i < myq->l; i++)
+	      for (size_t i = 0; i < myq->l; i++) {
+		if (apply_purge && !keep[i])
+		  continue;
 		if(fp_famout){
 		  if (sam_write1(fp_famout, hdr, myq->ary[i]) < 0) {
 		    fprintf(stderr, "\t-> Error: failed to write record with sam_write1 (fp_famout), will exit\n");
 		    exit(1);
 		  }
 		}
+	      }
 	    }
             if (myit->second != -1 && (myit->second <= lca_rank)) {
                 adder(lca, strlen(seq), gccontent(seq));
+		const float dmgw = (weighttype == 0) ? 1.0f : (1.0f / (float)(apply_purge ? taxids.size() : myq->l));
                 //      if(correct_rank(lca_rank,lca,rank,norank2species)){
 		        //fprintf(stderr,"Looping through alignments we have :%d \n",myq->l);
                 for (size_t i = 0; i < myq->l; i++) {
+		    if (apply_purge && !keep[i])
+		        continue;
                     // dmg->damage_analysis(myq->ary[i],myq->ary[i]->core.tid);
                     int2int::iterator ittt = i2i.find(myq->ary[i]->core.tid);
 		    if (ittt == i2i.end()) {
@@ -697,7 +731,7 @@ void hts(gzFile fp, samFile *fp_in, int2int &i2i, int2int &parent, bam_hdr_t *hd
                     if (skipnorank == 1 && strcasecmp(ititit->second, "no rank") == 0)
                         continue;
                     //	  fprintf(stderr,"uaua\n");
-                    dmg->damage_analysis(myq->ary[i], ittt->second, weighttype == 0 ? 1 : (1.0 / (float)myq->l));
+                    dmg->damage_analysis(myq->ary[i], ittt->second, dmgw);
                     if (fp_usedreads){
 		      if (sam_write1(fp_usedreads, hdr, myq->ary[i]) < 0) {
 			fprintf(stderr, "\t-> Error: failed to write record with sam_write1 (fp_usedreads), will exit\n");
@@ -713,6 +747,7 @@ void hts(gzFile fp, samFile *fp_in, int2int &i2i, int2int &parent, bam_hdr_t *hd
 
     specs.clear();
     editdist.clear();
+    keep.clear();
     bam_destroy1(aln);
     sam_close(fp_in);
 
