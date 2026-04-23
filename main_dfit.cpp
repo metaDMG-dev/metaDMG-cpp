@@ -269,10 +269,10 @@ void make_dfit_header(kstring_t *kstr,int showfits,int nbootstrap,int howmany ){
     //fprintf(stderr,"INSIDE THE FIRST SHOWFITS loop 0 \n");
     // Without bootstrap
     if(nbootstrap < 2){
-      ksprintf(kstr,"taxid\tA\tq\tc\tphi\tllh\tncall\tsigmaD\tZfit\n");
+      ksprintf(kstr,"taxid\tA\tq\tc\tphi\tllh\tncall\tsigmaD_old\tZfit_old\tsigmaD_new\tZfit_new\n");
     }
     else{
-      ksprintf(kstr,"taxid\tA\tq\tc\tphi\tllh\tncall\tsigmaD\tZfit\tA_b\tq_b\tc_b\tphi_b\tA_CI_l\tA_CI_h\tq_CI_l\tq_CI_h\tc_CI_l\tc_CI_h\tphi_CI_l\tphi_CI_h\n");
+      ksprintf(kstr,"taxid\tA\tq\tc\tphi\tllh\tncall\tsigmaD_old\tZfit_old\tsigmaD_new\tZfit_new\tA_b\tq_b\tc_b\tphi_b\tA_CI_l\tA_CI_h\tq_CI_l\tq_CI_h\tc_CI_l\tc_CI_h\tphi_CI_l\tphi_CI_h\n");
     }
   }
   else if(showfits==1){
@@ -280,10 +280,10 @@ void make_dfit_header(kstring_t *kstr,int showfits,int nbootstrap,int howmany ){
     // With bootstrap
       
     if(nbootstrap < 2){
-      ksprintf(kstr,"taxid\tA\tq\tc\tphi\tllh\tncall\tsigmaD\tZfit");
+      ksprintf(kstr,"taxid\tA\tq\tc\tphi\tllh\tncall\tsigmaD_old\tZfit_old\tsigmaD_new\tZfit_new");
     }
     else{
-      ksprintf(kstr,"taxid\tA\tq\tc\tphi\tllh\tncall\tsigmaD\tZfit\tA_b\tq_b\tc_b\tphi_b\tA_CI_l\tA_CI_h\tq_CI_l\tq_CI_h\tc_CI_l\tc_CI_h\tphi_CI_l\tphi_CI_h");
+      ksprintf(kstr,"taxid\tA\tq\tc\tphi\tllh\tncall\tsigmaD_old\tZfit_old\tsigmaD_new\tZfit_new\tA_b\tq_b\tc_b\tphi_b\tA_CI_l\tA_CI_h\tq_CI_l\tq_CI_h\tc_CI_l\tc_CI_h\tphi_CI_l\tphi_CI_h");
     }
     // And fwd + bwd dx and Conf information
     for(int i=0;i<howmany;i++){
@@ -299,10 +299,10 @@ void make_dfit_header(kstring_t *kstr,int showfits,int nbootstrap,int howmany ){
     //fprintf(stderr,"INSIDE THE FIRST SHOWFITS loop 2 \n");
     // With bootstrap
     if(nbootstrap < 2){
-      ksprintf(kstr,"taxid\tA\tq\tc\tphi\tllh\tncall\tsigmaD\tZfit");
+      ksprintf(kstr,"taxid\tA\tq\tc\tphi\tllh\tncall\tsigmaD_old\tZfit_old\tsigmaD_new\tZfit_new");
     }
     else{
-      ksprintf(kstr,"taxid\tA\tq\tc\tphi\tllh\tncall\tsigmaD\tZfit\tA_b\tq_b\tc_b\tphi_b\tA_CI_l\tA_CI_h\tq_CI_l\tq_CI_h\tc_CI_l\tc_CI_h\tphi_CI_l\tphi_CI_h");
+      ksprintf(kstr,"taxid\tA\tq\tc\tphi\tllh\tncall\tsigmaD_old\tZfit_old\tsigmaD_new\tZfit_new\tA_b\tq_b\tc_b\tphi_b\tA_CI_l\tA_CI_h\tq_CI_l\tq_CI_h\tc_CI_l\tc_CI_h\tphi_CI_l\tphi_CI_h");
     }
     // And fwd + bwd k, N, dx, f and Conf information
     for(int i=0;i<howmany;i++){
@@ -501,8 +501,8 @@ void slave_block(std::map<int, mydataD> &retmap,int howmany,sam_hdr_t *hdr,int2c
       }
     }
     
-    // Sigma and Z
-    int n = 2 + 2 * (int)dat[0][0];
+    // Old/new sigma and Z, then Dx and normalized Dx spread per position
+    int n = 4 + 2 * (int)dat[0][0];
     
     double *stats = (double *)malloc(n * sizeof(double));
     if (stats == NULL) {
@@ -511,14 +511,13 @@ void slave_block(std::map<int, mydataD> &retmap,int howmany,sam_hdr_t *hdr,int2c
     }
     getstat(dat,pars,stats);
       
-    // stats contains standard deviation, then significance, then the calculated Dx for each position then the normalized 
+    // stats contains old/new sigma+significance, then the calculated Dx for each position, then the normalized spread
     ksprintf(kstr,"%f",pars[0]);
     for(int i=1;i<6;i++){
 	    ksprintf(kstr,"\t%f",pars[i]);
     }
       
-    //std::cout << "stats " << stats[0] << " " << stats[1] << std::endl;
-    ksprintf(kstr,"\t%f\t%f",stats[0],stats[1]);
+    ksprintf(kstr,"\t%f\t%f\t%f\t%f",stats[0],stats[1],stats[2],stats[3]);
       
     if(showfits == 0){
       if(nbootstrap > 1){
@@ -565,8 +564,8 @@ void slave_block(std::map<int, mydataD> &retmap,int howmany,sam_hdr_t *hdr,int2c
       //fprintf(stderr,"-----------------\n");
       int nrows = (int) dat[0][0];
       int ncycle = nrows/2;
-      double *dx = stats+2;
-      double *dx_conf = stats+2+nrows;
+      double *dx = stats+4;
+      double *dx_conf = stats+4+nrows;
       //std::cout << stats[3] << std::endl;
       // beginning positions fwK0	fwN0	fwdx0	fwdxConf0
       for(int i=0;i<ncycle;i++){
@@ -575,8 +574,8 @@ void slave_block(std::map<int, mydataD> &retmap,int howmany,sam_hdr_t *hdr,int2c
         ksprintf(kstr,"\t%f\t%f",dx[i],dx_conf[i]);
       }
       
-      dx = stats+2+ncycle;
-      dx_conf = stats+2+nrows+ncycle;
+      dx = stats+4+ncycle;
+      dx_conf = stats+4+nrows+ncycle;
       
       for(int i=0;i<ncycle;i++){
         if (isnan(dx_conf[i])){dx_conf[i] = 0.0;}
@@ -601,8 +600,8 @@ void slave_block(std::map<int, mydataD> &retmap,int howmany,sam_hdr_t *hdr,int2c
       //fprintf(stderr,"-----------------\n");
       int nrows = (int) dat[0][0];
       int ncycle = nrows/2;
-      double *dx = stats+2;
-      double *dx_conf = stats+2+nrows;
+      double *dx = stats+4;
+      double *dx_conf = stats+4+nrows;
       //std::cout << stats[2] << " " << dx[0] << std::endl;
           
       // beginning positions fwK0	fwN0	fwdx0	fwdxConf0
@@ -613,8 +612,8 @@ void slave_block(std::map<int, mydataD> &retmap,int howmany,sam_hdr_t *hdr,int2c
         ksprintf(kstr,"\t%.0f\t%0.f\t%f\t%f\t%f",dat[1][i],dat[2][i],dat[3][i],dx[i],dx_conf[i]);
       }
 	
-      dx = stats+2+ncycle;
-      dx_conf = stats+2+nrows+ncycle;
+      dx = stats+4+ncycle;
+      dx_conf = stats+4+nrows+ncycle;
       
       for (int i = 0; i < ncycle; i++) {
 	// handle normal cases (ds or ss)

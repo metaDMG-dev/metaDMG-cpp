@@ -157,8 +157,9 @@ double optimoptim(double *invec,double **dat,int nopt,mrand_t *rand_alloc){
 
 /*
   function to fill in
-  std::significance::dxfit_{0...nrows}::dxfix_conf_{0...nrows}
-  statpars is therefore of length 2+2*numrows;
+  old_std::old_significance::new_std::new_significance::
+  dxfit_{0...nrows}::dxfix_conf_{0...nrows}
+  statpars is therefore of length 4+2*numrows;
  */
 void getstat(double **dat,double *pars,double *statpars){
     // MAP damage, damage_std Map_damage_significance
@@ -176,20 +177,25 @@ void getstat(double **dat,double *pars,double *statpars){
     if (N_pos < 1){
       N_pos = 1;
     }
-    //  id	    A        	q	        c	          phi     	llh     	ncall	sigmaD	Zfit
-    // 144905	1.000000	0.000000	0.250000	1000.000000	0.223144	27.000000	inf	0.000000
-    /*fprintf(stderr,"A %f \t %f \t %f\n",A,phi,N_pos);
-    fprintf(stderr,"Num 1 %f \n",A*(1-A));
-    fprintf(stderr,"Num 2 %f \n",phi+N_pos);
-    fprintf(stderr,"Num 2 %f \n",dat[2][0]);
-    fprintf(stderr,"Num 3 %f \n",A*(1-A)*(phi+N_pos));
-    fprintf(stderr,"Num 4 %f \n",(phi+1));
-    fprintf(stderr,"Num 4 %f \n",(phi+1)*N_pos);*/
-    double std = std::sqrt((A*(1-A)*(phi+N_pos))/((phi+1)*N_pos));
-    double significance = A/std;
-    statpars[0] = std;
-    statpars[1] = significance;
-    //fprintf(stderr,"STD %f \t SIGNIFICANCE %f \n",std,significance);
+
+    double N_eff = 0.0;
+    for (int i = 0; i < NUMROWS; i++) {
+      double w = pow((1 - q), fabs(XCOL[i]));
+      N_eff += NCOL[i] * w * w;
+    }
+    if (N_eff < 1.0) {
+      N_eff = 1.0;
+    }
+
+    double old_std = std::sqrt((A*(1-A)*(phi+N_pos))/((phi+1)*N_pos));
+    double old_significance = A/old_std;
+    double new_std = std::sqrt((A*(1-A)*(phi+N_eff))/((phi+1)*N_eff));
+    double new_significance = A/new_std;
+
+    statpars[0] = old_std;
+    statpars[1] = old_significance;
+    statpars[2] = new_std;
+    statpars[3] = new_significance;
     double alpha;
     double beta;
     double Dx_var_numerator;
@@ -199,7 +205,7 @@ void getstat(double **dat,double *pars,double *statpars){
     
     for(int i = 0; i < NUMROWS;i++){
       double Dx = A * pow((1 - q), fabs(XCOL[i])) + c;
-      statpars[i+2] = Dx;
+      statpars[i+4] = Dx;
       //fprintf(stderr,"i: %d val: %f\n",i,Dx);
       // gzprintf(file,"%f \t",Dx);
     }
@@ -212,7 +218,7 @@ void getstat(double **dat,double *pars,double *statpars){
         Dx_var_deumerator = pow((alpha+beta),2)*(alpha+beta+1);
         Dx_std = std::sqrt((Dx_var_numerator/Dx_var_deumerator));
         Dx_std_norm = Dx_std / NCOL[i];
-	      statpars[NUMROWS+2+i] = Dx_std_norm;
+	      statpars[NUMROWS+4+i] = Dx_std_norm;
 	//	fprintf(stderr,"at: %d val:%f\n",NUMROWS+2+i, Dx_std_norm);
 	//        gzprintf(file,"%f",Dx_std_norm);
 	

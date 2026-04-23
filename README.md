@@ -212,29 +212,31 @@ lca mode: 	  damage estimated over the lca tree at different ranks
 ------  Beta-binomial model ------
 
 --showfits: 			 Verbose parameter, stored in the .dfit.txt.gz, default = 0, see documentation for full description of columns
-	--showfits 0		 [id;A;q;c;phi;llh;ncall;sigmaD;Zfit] 
-				 id:contig; A:amplitute of damage; q:decrease in damage; c:offset (background noise); phi:variance between Beta-binomial and binomial model
-				 llh:minimized negative log-likelihood; ncall:optimization calls; sigmaD: standard deviation; Zfit: significance score
+		--showfits 0		 [id;A;q;c;phi;llh;ncall;sigmaD_old;Zfit_old;sigmaD_new;Zfit_new] 
+					 id:contig; A:amplitute of damage; q:decrease in damage; c:offset (background noise); phi:variance between Beta-binomial and binomial model
+					 llh:minimized negative log-likelihood; ncall:optimization calls
+					 sigmaD_old / Zfit_old: legacy standard deviation and score based on the original first-position approximation
+					 sigmaD_new / Zfit_new: updated standard deviation and score based on a weighted effective N across positions
 
-	--showfits 1		 [id;A;q;c;phi;llh;ncall;sigmaD;Zfit;
-				 fwdxi;fwdxConfi;..;fwdxn;fwdxConfn..;
-					 bwdx;dxConfn;..;bwdxn;bwdxConfn]
-				 fwdx: damage estimates forward strand; fwdxConf: confidence interval; fbwdx: reverse strand; bwdxConfn: confidence interval.
- 					 i position 1 to position n (zero-index)
+		--showfits 1		 [id;A;q;c;phi;llh;ncall;sigmaD_old;Zfit_old;sigmaD_new;Zfit_new;
+					 fwdxi;fwdxConfi;..;fwdxn;fwdxConfn..;
+						 bwdx;dxConfn;..;bwdxn;bwdxConfn]
+					 fwdx: damage estimates forward strand; fwdxConf: confidence interval; fbwdx: reverse strand; bwdxConfn: confidence interval.
+	 					 i position 1 to position n (zero-index)
 
-	--showfits 2		 [id;A;q;c;phi;llh;ncall;sigmaD;Zfit;
-				 fwKi;fwNi;fwdxi;fwf0;fwdxConfi;..;fwKi;fwNi;fwdxi;fwfi;fwdxConfi..;
-					 bwKi;bwNi;bwdxi;bwfi;bwdxConfi;..;bwKn;bwNn;bwdxn;fwfn;bwdxConfn]
-				 fwKi: Number of transitions forward strand (C>T); fwNi: Number reference counts forward strand (C); fwfi: C>T frequency based on forward strand from bdamage file
+		--showfits 2		 [id;A;q;c;phi;llh;ncall;sigmaD_old;Zfit_old;sigmaD_new;Zfit_new;
+					 fwKi;fwNi;fwdxi;fwf0;fwdxConfi;..;fwKi;fwNi;fwdxi;fwfi;fwdxConfi..;
+						 bwKi;bwNi;bwdxi;bwfi;bwdxConfi;..;bwKn;bwNn;bwdxn;fwfn;bwdxConfn]
+					 fwKi: Number of transitions forward strand (C>T); fwNi: Number reference counts forward strand (C); fwfi: C>T frequency based on forward strand from bdamage file
 				 bwKi: Number of transitions reverse strand (G>A); bwNi: Number reference counts reverse strand (G); bwfi: C>T frequency based on reverse strand from bdamage file
 
 
 ---------- Binomial model ----------
 
 --showfits: 			 Verbose parameter, stored in the .dfit.txt.gz, default = 0
-	--showfits 0		 [id;A;q;c;phi;llh;ncall;sigmaD;Zfit;A_b;q_b;c_b;phi_b;A_CI_l;A_CI_h;q_CI_l;q_CI_h;c_CI_l;c_CI_h;phi_CI_l;phi_CI_h] 
-					 id;A;q;c;phi;llh;ncall;sigmaD;Zfit estimates from beta-binomial (see above)
-					 A_b;q_b;c_b;phi_b;A_CI_l;A_CI_h;q_CI_l;q_CI_h;c_CI_l;c_CI_h;phi_CI_l;phi_CI_h estimates binomial model with bootstrap method (*_b), confidence interval (*_CI_l) and  (*_CI_h)
+		--showfits 0		 [id;A;q;c;phi;llh;ncall;sigmaD_old;Zfit_old;sigmaD_new;Zfit_new;A_b;q_b;c_b;phi_b;A_CI_l;A_CI_h;q_CI_l;q_CI_h;c_CI_l;c_CI_h;phi_CI_l;phi_CI_h] 
+						 id;A;q;c;phi;llh;ncall;sigmaD_old;Zfit_old;sigmaD_new;Zfit_new estimates from beta-binomial (see above)
+						 A_b;q_b;c_b;phi_b;A_CI_l;A_CI_h;q_CI_l;q_CI_h;c_CI_l;c_CI_h;phi_CI_l;phi_CI_h estimates binomial model with bootstrap method (*_b), confidence interval (*_CI_l) and  (*_CI_h)
 
 	--showfits 1		 similar columns added as described above, using the bootstrap estimated parameters;
 
