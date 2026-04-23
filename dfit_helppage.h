@@ -1,8 +1,7 @@
 #ifndef DFIT_HELPPAGE_H
 #define DFIT_HELPPAGE_H
 #include <cstdio>
-// -h or -v
-int HelpPage(FILE *fp);
-int HelpPageSimple(FILE *fp);
-
+// -h or --help
+int print_help(FILE *fp);
+int print_usage(FILE *fp);
 #endif

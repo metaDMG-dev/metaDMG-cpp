@@ -2,7 +2,6 @@
 #define MRAND_H
 
 #include <random>
-#include <iostream>
 #include <cstdlib>
 #include <climits>
 
@@ -30,7 +29,6 @@ typedef struct mrand{
   #if defined(__linux__) || defined(__unix__)
     struct drand48_data buf0;
   #endif
-  std::random_device rd;
   std::default_random_engine eng;
   std::uniform_real_distribution<double> distr;
   std::uniform_int_distribution<> distrInt;
@@ -58,6 +56,6 @@ typedef struct mrand{
 //type=4 is ran from nr
 mrand_t *mrand_alloc(int type_a, long int seedval);
 double mrand_pop(mrand_t *mr);
-long mrand_pop_long(mrand_t *mr);
-int Random_geometric_k(const double p,mrand_t *mr);
+void mrand_destroy(mrand_t *mr);
+void mrand_seed(mrand_t *ret, long int seedval);
 #endif

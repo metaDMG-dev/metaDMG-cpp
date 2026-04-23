@@ -6,7 +6,7 @@
 #include <iostream>
 #include <math.h>
 #include "dfit_helppage.h"
-
+#if 0
 int HelpPageSimple(FILE *fp){
   fprintf(fp,"Simple helppage damage estimation using numerical optimization\n");
   fprintf(fp,"Estimates damage in either local, global or lca mode depending on the bdamage input format\n");
@@ -94,7 +94,7 @@ int HelpPage(FILE *fp){
   fprintf(fp,"\n\t--showfits 1\t\t similar columns added as described above, using the bootstrap estimated parameters;\n");
   fprintf(fp,"\n\t--showfits 2\t\t similar columns added as described above, using the bootstrap estimated parameters;\n");
   fprintf(fp,"--nbootstrap: \t\t\t Number of bootstrap iterations, default = 0\n");
-  fprintf(fp,"--doboot: \t\t\t Store all bootstrap iterations of [id,A_b,q_b,c_b,phi_b] in seperate file, suffix: .bdamage.gz.boot.stat.txt.gz\n");
+  fprintf(fp,"--printboot: \t\t\t Print all bootstrap iterations of [id,A_b,q_b,c_b,phi_b] in seperate file, suffix: .bdamage.gz.boot.stat.txt.gz\n");
   fprintf(fp,"--sigtype \t\t\t Determines the bootstrap method <1,2,3>, default = 1\n");
   fprintf(fp,"\t0: \t\t\t\t Sample with replacement from the C>T frequency from the .bdamage format\n");
   fprintf(fp,"\t1: \t\t\t\t Sample with replacement from the K and N column from the .bdamage format and calculates f column\n");
@@ -112,5 +112,57 @@ int HelpPage(FILE *fp){
   fprintf(stderr, "\t Lca mode beta-binomial:\n \t\t ./metaDMG-cpp lca --names names.dmp --nodes nodes.dmp --acc2tax acc2taxid.map.gz --weight_type 1 --fix_ncbi 0 --bam Pitch6.bam --out Pitch6lcatest \n \t\t ./metaDMG-cpp dfit Pitch6lcatest.bdamage.gz --names names.dmp --nodes nodes.dmp --showfits 0\n");
 
   exit(1);
+  return 0;
+}
+#endif
+
+int print_usage(FILE *fp){
+  fprintf(fp, "Usage: metaDMG-cpp dfit <file.bdamage.gz> [options]\n\n");
+
+  fprintf(fp, "Fit damage model per taxon/contig.\n");
+  fprintf(fp, "Use --nbootstrap > 1 for bootstrap summaries.\n\n");
+
+  fprintf(fp, "Options:\n");
+  fprintf(fp, "  --nbootstrap INT   Bootstrap replicates (default: 1)\n");
+  fprintf(fp, "  --lib <ds|ss>      Library type (default: ds)\n");
+  fprintf(fp, "  --showfits INT     Output detail (0-2, default: 0)\n");
+  fprintf(fp, "  --out FILE         Output prefix\n");
+  fprintf(fp, "  --threads INT      Threads (default: 1)\n\n");
+
+  fprintf(fp, "Run with --help for full options.\n");
+  return 0;
+}
+
+int print_help(FILE *fp){
+  fprintf(fp, "Usage:\n");
+  fprintf(fp, "  metaDMG-cpp dfit file.bdamage.gz [options]\n\n");
+
+  fprintf(fp, "Description:\n");
+  fprintf(fp, "  Fit damage model per taxon/contig from .bdamage.gz.\n");
+  fprintf(fp, "  Use --nbootstrap > 1 to enable bootstrap summaries and confidence intervals.\n\n");
+
+  fprintf(fp, "Core options:\n");
+  fprintf(fp, "  --lib <ds|ss>        Library type (default: ds)\n");
+  fprintf(fp, "  --nopt INT           Optimizer runs (default: 10)\n");
+  fprintf(fp, "  --showfits INT       Output detail: 0=summary, 1=dx, 2=full (default: 0)\n\n");
+
+  fprintf(fp, "Bootstrap:\n");
+  fprintf(fp, "  --nbootstrap INT     # bootstrap replicates (default: 1)\n");
+  fprintf(fp, "  --sigtype <1|2|3>    Bootstrap method (default: 1)\n");
+  fprintf(fp, "  --doCI <1|2>         CI method: 1=mean/sd, 2=percentile (default: 2)\n");
+  fprintf(fp, "  --CI FLOAT           Confidence level (default: 0.95)\n\n");
+
+  fprintf(fp, "I/O and misc:\n");
+  fprintf(fp, "  --out FILE           Output prefix\n");
+  fprintf(fp, "  --bam FILE           Use BAM header for names\n");
+  fprintf(fp, "  --nodes FILE.gz      Taxonomy nodes\n");
+  fprintf(fp, "  --names FILE.gz      Taxonomy names (with --nodes)\n");
+  fprintf(fp, "  --threads INT        Threads (default: 1)\n");
+  fprintf(fp, "  --seed INT           Random seed\n\n");
+
+  fprintf(fp, "Examples:\n");
+  fprintf(fp, "  metaDMG-cpp dfit file.bdamage.gz\n");
+  fprintf(fp, "  metaDMG-cpp dfit file.bdamage.gz --nbootstrap 100\n");
+  fprintf(fp, "../metaDMG-cpp dfit output/test_getdamage_global.bdamage --showfits 2 --seed 12345 --lib ds --out output/test_dfit_global --nbootstrap 2 --printboot 1");
   return 0;
 }
