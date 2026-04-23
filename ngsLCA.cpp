@@ -412,20 +412,24 @@ float gccontent(bam1_t *aln) {
 int printonce = 1;
 
 std::vector<int> purge(std::vector<int> &taxids, std::vector<int> &editdist) {
-    if (printonce == 1)
-        fprintf(stderr, "\t-> purging taxids oldsize:%lu\n", taxids.size());
-    if (taxids.size() != editdist.size()) {
-      fprintf(stderr, "\t-> Error: taxids and editdist sizes do not match, will exit\n");
-      exit(1);
-    }
-    std::vector<int> tmpnewvec;
-    int mylow = *std::min_element(editdist.begin(), editdist.end());
-    for (size_t i = 0; i < taxids.size(); i++)
-        if (editdist[i] <= mylow)
-            tmpnewvec.push_back(taxids[i]);
-    if (printonce-- == 1)
-        fprintf(stderr, "\t-> purging taxids newsize:%lu this info is only printed once\n", tmpnewvec.size());
+  std::vector<int> tmpnewvec;
+  if(editdist.size()==0)
     return tmpnewvec;
+  
+  if (printonce == 1)
+    fprintf(stderr, "\t-> purging taxids oldsize:%lu\n", taxids.size());
+  if (taxids.size() != editdist.size()) {
+    fprintf(stderr, "\t-> Error: taxids and editdist sizes do not match, will exit\n");
+    exit(1);
+  }
+  
+  int mylow = *std::min_element(editdist.begin(), editdist.end());
+  for (size_t i = 0; i < taxids.size(); i++)
+    if (editdist[i] <= mylow)
+      tmpnewvec.push_back(taxids[i]);
+  if (printonce-- == 1)
+    fprintf(stderr, "\t-> purging taxids newsize:%lu this info is only printed once\n", tmpnewvec.size());
+  return tmpnewvec;
 }
 
 void hts(gzFile fp, samFile *fp_in, int2int &i2i, int2int &parent, bam_hdr_t *hdr, int2char &rank, int2char &name_map, int minmapq, int discard, int editMin, int editMax, double scoreLow, double scoreHigh, int minlength, int lca_rank, char *prefix, int howmany, samFile *fp_usedreads, int skipnorank, int2int &rank2level, int nthreads, int weighttype,long maxreads,samFile *fp_famout,int rlens_flat_out) {
@@ -571,7 +575,7 @@ void hts(gzFile fp, samFile *fp_in, int2int &i2i, int2int &parent, bam_hdr_t *hd
 
         // filter by nm
         uint8_t *nm = bam_aux_get(aln, "NM");
-        int thiseditdist;
+        int thiseditdist = -1;;
         if (nm != NULL) {
             thiseditdist = (int)bam_aux2i(nm);
             //      fprintf(stderr,"[%d] nm:%d\t",inc++,val);
@@ -627,10 +631,8 @@ void hts(gzFile fp, samFile *fp_in, int2int &i2i, int2int &parent, bam_hdr_t *hd
                 expand_queue(myq);
             taxids.push_back(it->second);
             specs.push_back(dingdong);
-            editdist.push_back(thiseditdist);
-
-            // fprintf(stderr,"it-.second:%d specs:%d thiseditdist:%d\n",it->second,dingdong,thiseditdist);
-            //       fprintf(stderr,"EDIT\t%d\n",thiseditdist);
+	    if(thiseditdist!=-1)
+	      editdist.push_back(thiseditdist);
         }
     }
     if (taxids.size() > 0 && skip == 0) {
