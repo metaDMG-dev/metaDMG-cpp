@@ -448,6 +448,10 @@ void purge(std::vector<int> &taxids, std::vector<int> &specs, std::vector<int> &
     fprintf(stderr, "\t-> purging taxids newsize:%lu this info is only printed once\n", taxids_kept.size());
   taxids.swap(taxids_kept);
   specs.swap(specs_kept);
+  if(specs.empty()){
+    fprintf(stderr,"\t-> After purging there is nothing left, will exit\n");
+    exit(1);
+  }
 }
 
 void hts(gzFile fp, samFile *fp_in, int2int &ref2tax, int2int &parent, bam_hdr_t *hdr, int2char &rank, int2char &name_map, int minmapq, int discard, int editMin, int editMax, double scoreLow, double scoreHigh, int minlength, int lca_rank, char *prefix, int howmany, samFile *fp_usedreads, int skipnorank, int2int &rank2level, int nthreads, int weighttype,long maxreads,samFile *fp_famout,int rlens_flat_out) {
@@ -562,7 +566,7 @@ void hts(gzFile fp, samFile *fp_in, int2int &ref2tax, int2int &parent, bam_hdr_t
 		    //standard analyses
 		    if (myit->second != -1 && (myit->second <= lca_rank)) {
                         adder(lca, strlen(seq), gccontent(seq));
-			const float dmgw = (weighttype == 0) ? 1.0f : (1.0f / (float)(apply_purge ? taxids.size() : myq->l));
+			const float dmgw = (weighttype == 0) ? 1.0f : (1.0f / (float)(apply_purge ? nused : myq->l));
 			            //fprintf(stderr,"Looping through alignments we have :%d \n",myq->l);
                         for (size_t i = 0; i < myq->l; i++) {
 			  if (apply_purge && !keep[i])
@@ -713,7 +717,7 @@ void hts(gzFile fp, samFile *fp_in, int2int &ref2tax, int2int &parent, bam_hdr_t
 	    }
             if (myit->second != -1 && (myit->second <= lca_rank)) {
                 adder(lca, strlen(seq), gccontent(seq));
-		const float dmgw = (weighttype == 0) ? 1.0f : (1.0f / (float)(apply_purge ? taxids.size() : myq->l));
+		const float dmgw = (weighttype == 0) ? 1.0f : (1.0f / (float)(apply_purge ? nused : myq->l));
                 //      if(correct_rank(lca_rank,lca,rank,norank2species)){
 		        //fprintf(stderr,"Looping through alignments we have :%d \n",myq->l);
                 for (size_t i = 0; i < myq->l; i++) {
@@ -727,7 +731,7 @@ void hts(gzFile fp, samFile *fp_in, int2int &ref2tax, int2int &parent, bam_hdr_t
 		    }
                     int2char::iterator ititit = rank.find(ittt->second);
                     if (ititit == rank.end()) {
-                        fprintf(stderr, "\t-> Potential problem no rank for taxid: %d\n", ititit->first);
+                        fprintf(stderr, "\t-> Potential problem no rank for taxid: %d\n", ittt->first);
                         continue;
                     }
                     //	  fprintf(stderr,"uaua: %s taxid: %d\n",ititit->second,ititit->first);
@@ -878,6 +882,7 @@ int main_lca(int argc, char **argv) {
     if (p->fixdb) {
         fprintf(stderr, "\t-> Will add some fixes of the ncbi database due to merged names\n");
         mod_db(mod_in, mod_out, parent, rank, name_map);
+	//DRAGON also fix the ref2tax entries so they point the correctplace, this is a minor bug
     }
     samFile *usedreads_sam = NULL;
     if (p->usedreads_sam != NULL) {  // p->usedreads sam is const *, sorry this is confusing
