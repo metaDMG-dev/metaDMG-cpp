@@ -487,9 +487,11 @@ void hts(gzFile fp, samFile *fp_in, int2int &i2i, int2int &parent, bam_hdr_t *hd
         int chr = aln->core.tid;  // contig name (chromosome)
         //    fprintf(stderr,"%d %d\n",aln->core.qual,minmapq);
         static int ntimes = 3;
-        if (aln->core.qual < minmapq && ntimes > 0) {
-            ntimes--;
-            fprintf(stderr, "Discarding due to low mapq, this message will only be printed three times\n");
+        if (aln->core.qual < minmapq) {
+            if (ntimes > 0) {
+                ntimes--;
+                fprintf(stderr, "Discarding due to low mapq, this message will only be printed three times\n");
+            }
             continue;
         }
 
