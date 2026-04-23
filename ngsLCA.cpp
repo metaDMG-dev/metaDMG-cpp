@@ -322,7 +322,10 @@ int get_species1(int taxa, int2int &parent, int2char &rank) {
         }
         if (!strcmp(val, "species"))
             return taxa;
-        int next = parent[taxa];
+        int2int::iterator pit = parent.find(taxa);
+        if (pit == parent.end())
+            return -1;
+        int next = pit->second;
         if (next == taxa)
             break;
         taxa = next;
