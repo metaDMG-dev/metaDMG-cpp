@@ -79,6 +79,75 @@ static int write_getdamage_stats(char *onam,
     return 0;
 }
 
+static int process_getdamage_reads(htsFile *fp,
+                                   bam_hdr_t *hdr,
+                                   bam1_t *b,
+                                   damage *dmg,
+                                   int minLength,
+                                   int runmode,
+                                   std::map<int, std::vector<float> > &gcconts,
+                                   std::map<int, std::vector<float> > &seqlens,
+                                   const char *fname) {
+    int ret;
+    int skipper[4] = {3, 3, 3, 3};
+
+    while ((ret = sam_read1(fp, hdr, b)) >= 0) {
+        if (bam_is_unmapped(b)) {
+            if (skipper[0])
+                fprintf(stderr, "skipping: %s unmapped, this msg is printed: %d times more\n",
+                        bam_get_qname(b), --skipper[0]);
+            continue;
+        }
+        if (bam_is_failed(b)) {
+            if (skipper[1])
+                fprintf(stderr, "skipping: %s failed: flags=%d, this msg is printed: %d times more\n",
+                        bam_get_qname(b), b->core.flag, --skipper[1]);
+            continue;
+        }
+        if (b->core.l_qseq < minLength) {
+            if (skipper[2])
+                fprintf(stderr, "skipping: %s too short, this msg is printed %d times more \n",
+                        bam_get_qname(b), --skipper[2]);
+            continue;
+        }
+
+        dmg->damage_analysis(b, runmode != 0 ? b->core.tid : 0, 1);
+
+        float mygc = gccontent(b);
+        float mylen = b->core.l_qseq;
+
+        int whichref = 0;
+        if (runmode == 1)
+            whichref = b->core.tid;
+        std::map<int, std::vector<float> >::iterator it = gcconts.find(whichref);
+        if (it == gcconts.end()) {
+            std::vector<float> tmp1;
+            tmp1.push_back(mygc);
+            gcconts[whichref] = tmp1;
+            std::vector<float> tmp2;
+            tmp2.push_back(mylen);
+            seqlens[whichref] = tmp2;
+        } else {
+            if (it->second.size() < 1000000)
+                it->second.push_back(mygc);
+            it = seqlens.find(whichref);
+            if (it == seqlens.end()) {
+                fprintf(stderr, "\t-> Error: iterator reached end in seqlens, will exit\n");
+                return 1;
+            }
+            if (it->second.size() < 1000000)
+                it->second.push_back(mylen);
+        }
+    }
+
+    if (ret < -1) {
+        fprintf(stderr, "\t-> Error: sam_read1 failed for input file: %s (ret=%d)\n", fname, ret);
+        return 1;
+    }
+
+    return 0;
+}
+
 static getdamage_args init_getdamage_args() {
     getdamage_args args;
     args.minLength = 35;
@@ -160,7 +229,6 @@ int main_getdamage(int argc, char **argv) {
     bam1_t *b = NULL;
     bam_hdr_t *hdr = NULL;
     damage *dmg = NULL;
-    int skipper[4] = {3, 3, 3, 3};  // this means one species, runmode=1 means multi species
     std::map<int, std::vector<float> > gcconts;
     std::map<int, std::vector<float> > seqlens;
     htsFormat *dingding2 = (htsFormat *)calloc(1, sizeof(htsFormat));
@@ -203,60 +271,10 @@ int main_getdamage(int argc, char **argv) {
         goto cleanup;
       }
     }
-    int ret;
     dmg = new damage(args.printLength, args.nthreads, 0);
-    while (((ret = sam_read1(fp, hdr, b))) >= 0) {
-        if (bam_is_unmapped(b)) {
-            if (skipper[0])
-                fprintf(stderr, "skipping: %s unmapped, this msg is printed: %d times more\n", bam_get_qname(b), --skipper[0]);
-            continue;
-        }
-        if (bam_is_failed(b)) {
-            if (skipper[1])
-                fprintf(stderr, "skipping: %s failed: flags=%d, this msg is printed: %d times more\n", bam_get_qname(b), b->core.flag, --skipper[1]);
-            continue;
-        }
-        if (b->core.l_qseq < args.minLength) {
-            if (skipper[2])
-                fprintf(stderr, "skipping: %s too short, this msg is printed %d times more \n", bam_get_qname(b), --skipper[2]);
-            continue;
-        }
-
-        dmg->damage_analysis(b, args.runmode != 0 ? b->core.tid : 0, 1);
-
-        float mygc = gccontent(b);
-        float mylen = b->core.l_qseq;
-
-        int whichref = 0;
-        if (args.runmode == 1)//<- runmode 0 means local one means global
-            whichref = b->core.tid;
-        std::map<int, std::vector<float> >::iterator it = gcconts.find(whichref);
-        if (it == gcconts.end()) {
-          std::vector<float> tmp1;
-          tmp1.push_back(mygc);
-          gcconts[whichref] = tmp1;
-          std::vector<float> tmp2;
-          tmp2.push_back(mylen);
-          seqlens[whichref] = tmp2;
-        } else {
-          if (it->second.size() < 1000000)//<- we dont need more than a million values do we?
-            it->second.push_back(mygc);
-          it = seqlens.find(whichref);
-          if (it == seqlens.end()) {
-            fprintf(stderr, "\t-> Error: iterator reached end in seqlens, will exit\n");
-            rc = 1;
-            goto cleanup;
-          }
-          if (it->second.size() < 1000000)
-            it->second.push_back(mylen);
-        }
-    }
-
-    if (ret < -1) {
-      fprintf(stderr, "\t-> Error: sam_read1 failed for input file: %s (ret=%d)\n", args.fname, ret);
-      rc = 1;
+    rc = process_getdamage_reads(fp, hdr, b, dmg, args.minLength, args.runmode, gcconts, seqlens, args.fname);
+    if (rc != 0)
       goto cleanup;
-    }
 
     dmg->printit(stdout, args.printLength);
     dmg->write(args.onam, args.runmode == 1 ? hdr : NULL);
