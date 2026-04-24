@@ -296,6 +296,11 @@ int main_getdamage(int argc, char **argv) {
         rc = usage_getdamage(stderr);
         goto cleanup;
     }
+    if (args.runmode != 0 && args.runmode != 1) {
+        fprintf(stderr, "\t-> Error: run_mode must be 0 or 1\n");
+        rc = 1;
+        goto cleanup;
+    }
 
     rc = open_getdamage_input(args, dingding2, fp, b, hdr);
     if (rc != 0)
