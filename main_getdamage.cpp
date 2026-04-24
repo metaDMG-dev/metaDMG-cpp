@@ -37,7 +37,7 @@ static int usage_getdamage(FILE *fp) {
     fprintf(fp, "  -i/--ignore_errors\t continue analyses even if there are errors.\n");
     fprintf(fp, "  -o/--out_prefix\t output prefix (default: meta)\n");
     fprintf(fp, "  -z/--rlens_flat_out\t make flat output of bins. Nice for computers\n");
-    return 1;
+    return 0;
 }
 
 static int write_getdamage_stats(char *onam,
@@ -257,6 +257,10 @@ static int open_getdamage_input(const getdamage_args &args,
     }
 
     b = bam_init1();
+    if (b == NULL) {
+      fprintf(stderr, "\t-> Error: failed to allocate BAM record\n");
+      return 1;
+    }
     hdr = sam_hdr_read(fp);
     if (hdr == NULL) {
       fprintf(stderr, "\t-> Hello Doctor! im afraid there is an error reading the header\n");
@@ -294,6 +298,21 @@ int main_getdamage(int argc, char **argv) {
     fprintf(stderr, "\t-> ./metaDMG-cpp refName: %s min_length: %d print_length: %d run_mode: %d out_prefix: %s nthreads: %d ignore_errors: %d rlens_flat_out: %d\n", args.refName ? args.refName : "NULL", args.minLength, args.printLength, args.runmode, args.onam, args.nthreads, args.ignore_errors, args.rlens_flat_out);
     if (args.fname == NULL) {
         rc = usage_getdamage(stderr);
+        goto cleanup;
+    }
+    if (args.nthreads <= 0) {
+        fprintf(stderr, "\t-> Error: threads must be greater than 0\n");
+        rc = 1;
+        goto cleanup;
+    }
+    if (args.printLength <= 0) {
+        fprintf(stderr, "\t-> Error: print_length must be greater than 0\n");
+        rc = 1;
+        goto cleanup;
+    }
+    if (args.minLength < 0) {
+        fprintf(stderr, "\t-> Error: min_length must be 0 or greater\n");
+        rc = 1;
         goto cleanup;
     }
     if (args.runmode != 0 && args.runmode != 1) {
