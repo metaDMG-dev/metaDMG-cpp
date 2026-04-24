@@ -183,6 +183,8 @@ static int parse_getdamage_args(int argc, char **argv, getdamage_args &args) {
         {"help", no_argument, 0, 'h'},
         {NULL, 0, NULL, 0}};
 
+    optind = 1;
+
     int c;
     while ((c = getopt_long(argc, argv,
                             "iz:n:f:l:p:r:o:h",
@@ -195,6 +197,7 @@ static int parse_getdamage_args(int argc, char **argv, getdamage_args &args) {
         args.nthreads = atoi(optarg);
         break;
       case 'f':
+        free(args.refName);
         args.refName = strdup(optarg);
         break;
       case 'z':
@@ -221,8 +224,15 @@ static int parse_getdamage_args(int argc, char **argv, getdamage_args &args) {
       }
     }
 
-    if (optind < argc)
+    if ((argc - optind) > 1) {
+        fprintf(stderr, "\t-> Error: expected exactly one input alignment file\n");
+        return 1;
+    }
+
+    if (optind < argc) {
+        free(args.fname);
         args.fname = strdup(argv[optind]);
+    }
 
     return 0;
 }
