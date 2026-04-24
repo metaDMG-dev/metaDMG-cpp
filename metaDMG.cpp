@@ -247,6 +247,7 @@ int main(int argc, char **argv) {
   fprintf(stderr,"\t-> metaDMG version: %s (htslib: %s) build(%s %s)\n",METADAMAGE_VERSION,hts_version(),__DATE__,__TIME__); 
     clock_t t = clock();
     time_t t2 = time(NULL);
+    int rc = 0;
 
     if (argc == 1) {
 #ifdef __REGRESSION__
@@ -274,31 +275,32 @@ int main(int argc, char **argv) {
     ++argv;
 #ifdef __REGRESSION__
     if (!strcmp(argv[0], "regression"))
-        return main_regression(argc, argv);
+        rc = main_regression(argc, argv);
+    else
 #endif
     if (!strcmp(argv[0], "pmd"))
-        main_pmd(argc, argv);
+        rc = main_pmd(argc, argv);
     else if (!strcmp(argv[0], "getdamage"))
-        main_getdamage(argc, argv);
+        rc = main_getdamage(argc, argv);
     else if (!strcmp(argv[0], "print"))
-        main_print(argc, argv);
+        rc = main_print(argc, argv);
     else if (!strcmp(argv[0], "print_all"))
-        main_print_all(argc, argv);
+        rc = main_print_all(argc, argv);
     else if (!strcmp(argv[0], "print_ugly"))
-        main_print_ugly(argc, argv);
+        rc = main_print_ugly(argc, argv);
     else if (!strcmp(argv[0], "dfit"))
-      main_dfit(argc, argv);
+      rc = main_dfit(argc, argv);
     else if (!strcmp(argv[0], "aggregate"))
-      main_aggregate(argc, argv);
+      rc = main_aggregate(argc, argv);
     else if (!strcmp(argv[0], "print2"))
-        main_print2(argc, argv);
+        rc = main_print2(argc, argv);
     else if (!strcmp(argv[0], "lca"))
-        main_lca(argc, argv);
+        rc = main_lca(argc, argv);
     else{
       fprintf(stderr, "\t-> Unknown command: %s will exit error\n", argv[0]);
-      return 1;
+      rc = 1;
     }
     fprintf(stderr, "\t[ALL done] cpu-time used =  %.2f sec\n", (float)(clock() - t) / CLOCKS_PER_SEC);
     fprintf(stderr, "\t[ALL done] walltime used =  %.2f sec\n", (float)(time(NULL) - t2));
-    return 0;
+    return rc;
 }
