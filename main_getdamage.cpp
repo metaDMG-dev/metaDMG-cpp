@@ -148,6 +148,14 @@ static int process_getdamage_reads(htsFile *fp,
     return 0;
 }
 
+static void write_getdamage_outputs(const getdamage_args &args,
+                                    bam_hdr_t *hdr,
+                                    damage *dmg) {
+    dmg->printit(stdout, args.printLength);
+    dmg->write(args.onam, args.runmode == 1 ? hdr : NULL);
+    dmg->bwrite(args.onam, args.rlens_flat_out);
+}
+
 static getdamage_args init_getdamage_args() {
     getdamage_args args;
     args.minLength = 35;
@@ -288,10 +296,7 @@ int main_getdamage(int argc, char **argv) {
     if (rc != 0)
       goto cleanup;
 
-    dmg->printit(stdout, args.printLength);
-    dmg->write(args.onam, args.runmode == 1 ? hdr : NULL);
-    dmg->bwrite(args.onam, args.rlens_flat_out);
-
+    write_getdamage_outputs(args, hdr, dmg);
     rc = write_getdamage_stats(args.onam, args.runmode, hdr, dmg, gcconts, seqlens);
     if (rc != 0)
       goto cleanup;
