@@ -112,7 +112,7 @@ int main_getdamage(int argc, char **argv) {
     }
     if (optind < argc)
         fname = strdup(argv[optind]);
-    fprintf(stderr, "\t-> ./metaDMG-cpp refName: %s min_length: %d print_length: %d run_mode: %d out_prefix: %s nthreads: %d ignore_errors: %d rlens_flat_out: %d\n", refName, minLength, printLength, runmode, onam, nthreads, ignore_errors,rlens_flat_out);
+    fprintf(stderr, "\t-> ./metaDMG-cpp refName: %s min_length: %d print_length: %d run_mode: %d out_prefix: %s nthreads: %d ignore_errors: %d rlens_flat_out: %d\n", refName ? refName : "NULL", minLength, printLength, runmode, onam, nthreads, ignore_errors,rlens_flat_out);
     if (fname == NULL) {
         usage_getdamage(stderr);
         return 0;
