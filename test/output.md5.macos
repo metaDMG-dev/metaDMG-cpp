@@ -1,20 +1,20 @@
 # Comments has to have space after hashtag because of different platforms
-e46712d6bc1c9301abbc7467b5f720e6  output/test_aggregate.stat
+32efba37eb7362a173b5ec09521b8563  output/test_aggregate.stat
 197881fb3261dbc475146a8b896b2118  output/test_dfit_global.dfit.fix
 783c885b2ee8ac6469ab070b972e73d8  output/test_getdamage_global.bdamage
 3398e353af15d1646228cb8bbaf4a5a8  output/test_getdamage_global.bdamage.tsv
 f0882ca11587cea63aa120d1a64c8d14  output/test_getdamage_global.res
-2052a9eb4a55313dafbf0ef80a6b751d  output/test_getdamage_global.stat
+ba1415f0e1889f819b430651dc56b4ff  output/test_getdamage_global.stat
 71308047bbc8f703fdd65c798de91cfa  output/test_getdamage_local.bdamage
 93ec5114d069f984ccaaa5079c15db1e  output/test_getdamage_local.bdamage.tsv
 d95e54a3886b9f411bde8d96de4af32e  output/test_getdamage_local.res
-3401f8b78adb9ab36f609d8e9e96b84a  output/test_getdamage_local.stat
+5f51536e977e54529cb2971462561315  output/test_getdamage_local.stat
 443b35425bc868259fde18dbe86011e3  output/test_lca.bdamage
 # d4532cede0b424946f92559b2e737899  output/test_lca.lca##this has been commented out because eithput is random between reqad and the reverse complement
 # 7a7363a09607cacbad8c432fdd46b26e  output/test_dfit_local.dfit.fix##commented out
-e6a34153420df3f15a7c00eb6bf082fc  output/test_lca.stat
+16ef4f34723088f7a5248f0f18a8aee0  output/test_lca.stat
 eaa8bb5f32aa0ef05bcf923d0c2bd711  output/test_lca_taxa.uglyprint.mismatch
-823ac0bcf53f3a69329ff7c3eaf6a25f  output/test_lca_taxa.uglyprint.stat
+c77597636abdd7811f7b3c0b78fb7ffd  output/test_lca_taxa.uglyprint.stat
 70363c8585d69e8d4457fc1d1ba7cd92  output/test_lca.uglyprint.mismatch
 1f9c4d0ab804d6a6e077573e6c8e736a  output/test_lca.uglyprint.stat
 dc5bf1edd27b494e23f72d41d718600d  data/f570b1db7c.dedup.filtered.bam

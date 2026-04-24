@@ -6,7 +6,7 @@
 input="${1:-/dev/stdin}"
 
 round_file() {
-  awk '
+  LC_NUMERIC=C awk '
   BEGIN { OFS = "\t" }
   {
     for (i = 1; i <= NF; i++) {
@@ -25,5 +25,4 @@ round_file() {
 }
 
 round_file "$input"
-
 

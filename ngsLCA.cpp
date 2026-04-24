@@ -66,10 +66,6 @@ char2int setlevels(int norank2species, char *key, int &value) {
 	fprintf(stderr, "\t-> Error: iterator reached end in c2i, will exit\n");
 	exit(1);
       }
-      if (it == c2i.end()) {
-	fprintf(stderr, "\t-> Error: iterator reached end in c2i, will exit\n");
-	exit(1);
-      }
       c2i[strdup("no rank")] = it->second;
     }
     fprintf(stderr, "\t-> Number of entries with level information: %lu \n", c2i.size());
@@ -79,7 +75,7 @@ char2int setlevels(int norank2species, char *key, int &value) {
 
 int2int rank2level(int2char &i2c, int norank2species, char *key, int &value) {
     char2int c2i = setlevels(norank2species, key, value);
-    int2int i2i;
+    int2int ref2tax;
     for (int2char::iterator it = i2c.begin(); it != i2c.end(); it++) {
         int key = -1;
         char2int::iterator it2 = c2i.find(it->second);
@@ -89,11 +85,11 @@ int2int rank2level(int2char &i2c, int norank2species, char *key, int &value) {
             if (strcmp(it->second, "no rank") != 0)
                 fprintf(stderr, "\t-> Problem finding level for rank: %s\n", it->second);
         }
-        i2i[it->first] = key;
+        ref2tax[it->first] = key;
     }
     for (char2int::iterator it = c2i.begin(); it != c2i.end(); it++)
         free(it->first);
-    return i2i;
+    return ref2tax;
 }
 
 // we are threading so we want make a nice signal handler for ctrl+c
@@ -110,7 +106,7 @@ int2int specWeight;    // Number of reads that map uniquely to a species.
 int2int i2i_missing;   // contains counter of missing hits for each taxid that doesnt exists in acc2taxid
 char2int c2i_missing;  // contains counter of missing hits for each taxid that doesnt exists in acc2taxid
 
-void mod_db(int *in, int *out, int2int &parent, int2char &rank, int2char &name_map) {
+void mod_db(int *in, int *out, int2int &parent, int2char &rank, int2char &name_map, int2int *ref2tax) {
     int2int::iterator iti;
     int2char::iterator itc;
     for (int i = 0; i < 24; i++) {
@@ -130,7 +126,10 @@ void mod_db(int *in, int *out, int2int &parent, int2char &rank, int2char &name_m
             rank.erase(itc);
             rank[out[i]] = oldval_char;
         }
-        name_map[in[i]] = strdup("satan");
+        name_map[in[i]] = strdup("satan");//possible leak
+	for (int2int::iterator it = ref2tax->begin(); it != ref2tax->end(); it++)
+	  if (it->second == in[i])
+	    it->second = out[i];
     }
 }
 
@@ -147,10 +146,14 @@ int nodes2root(int taxa, int2int &parent) {
 int2int dist2root;
 
 float mean(std::vector<float> &vec) {
-    float tmp = vec[0];
-    for (size_t i = 1; i < vec.size(); i++)
-        tmp += vec[i];
-    return tmp / vec.size();
+  if(vec.empty()){
+    fprintf(stderr,"mean called with empty vector\n");
+    exit(1);
+  }
+  float tmp = vec[0];
+  for (size_t i = 1; i < vec.size(); i++)
+    tmp += vec[i];
+  return tmp / vec.size();
 }
 
 int varinfo = 1;
@@ -164,7 +167,7 @@ float var(std::vector<float> &vec) {
     }
     float mea = mean(vec);
     float tmp = 0;
-    for (size_t i = 1; i < vec.size(); i++)
+    for (size_t i = 0; i < vec.size(); i++)
         tmp += pow(vec[i] - mea, 2);
 
     return tmp / (vec.size() - 1);
@@ -261,15 +264,11 @@ int do_lca(std::vector<int> &taxids, int2int &parent) {
 void print_chain1(kstring_t *kstr, int taxa, int2char &rank, int2char &name_map,char sep) {
     int2char::iterator it1 = name_map.find(taxa);
     int2char::iterator it2 = rank.find(taxa);
-    if (it1 == name_map.end()) {
-        fprintf(stderr, "\t-> Problem finding taxaid:%d\n", taxa);
-    }
-    if (it2 == rank.end()) {
-      fprintf(stderr, "\t-> Error: iterator reached end in rank, will exit\n");
-      exit(1);
-    }
     if (it1 == name_map.end() || it2 == rank.end()) {
-        fprintf(stderr, "taxa: %d %s doesnt exists will exit\n", taxa, it1->second);
+        fprintf(stderr, "taxa: %d name:%s rank:%s doesnt exists will exit\n",
+                taxa,
+                it1 != name_map.end() ? it1->second : "<missing-name>",
+                it2 != rank.end() ? it2->second : "<missing-rank>");
         exit(1);
     }
     ksprintf(kstr, "%c%d:\"%s\":\"%s\"",sep, taxa, it1->second, it2->second);
@@ -330,7 +329,10 @@ int get_species1(int taxa, int2int &parent, int2char &rank) {
         }
         if (!strcmp(val, "species"))
             return taxa;
-        int next = parent[taxa];
+        int2int::iterator pit = parent.find(taxa);
+        if (pit == parent.end())
+            return -1;
+        int next = pit->second;
         if (next == taxa)
             break;
         taxa = next;
@@ -338,19 +340,21 @@ int get_species1(int taxa, int2int &parent, int2char &rank) {
     return taxa;
 }
 
-int2int get_species(int2int &i2i, int2int &parent, int2char &rank, int2char &names, FILE *fp) {
+#if 0
+int2int get_species(int2int &ref2tax, int2int &parent, int2char &rank, int2char &names, FILE *fp) {
     int2int ret;
-    for (int2int::iterator it = i2i.begin(); it != i2i.end(); it++) {
+    for (int2int::iterator it = ref2tax.begin(); it != ref2tax.end(); it++) {
         // fprintf(stderr,"%d\t%d\n",it->first,it->second);
         int asdf = get_species1(it->second, parent, rank);
         if (asdf == -1) {
             fprintf(fp, "\t-> Removing pair(%d,%d) accnumber:%s since doesnt exists in node list\n", it->first, it->second, names[it->second]);
-            i2i.erase(it);
+            ref2tax.erase(it);
         } else
             ret[it->second] = asdf;  //
     }
     return ret;
 }
+#endif
 //
 char *make_seq(bam1_t *aln) {
     int len = aln->core.l_qseq;
@@ -393,6 +397,8 @@ float gccontent(char *seq) {
 
     float gcs = counts[1] + counts[2];
     float tot = counts[0] + counts[1] + counts[2] + counts[3];
+    if (tot == 0)
+        return 0.0f;
     return gcs / tot;
 }
 
@@ -406,29 +412,56 @@ float gccontent(bam1_t *aln) {
 
     float gcs = counts[1] + counts[2];
     float tot = counts[0] + counts[1] + counts[2] + counts[3];
+    if (tot == 0)
+        return 0.0f;
     return gcs / tot;
 }
 
 int printonce = 1;
 
-std::vector<int> purge(std::vector<int> &taxids, std::vector<int> &editdist) {
-    if (printonce == 1)
-        fprintf(stderr, "\t-> purging taxids oldsize:%lu\n", taxids.size());
-    if (taxids.size() != editdist.size()) {
-      fprintf(stderr, "\t-> Error: taxids and editdist sizes do not match, will exit\n");
-      exit(1);
+void purge(std::vector<int> &taxids, std::vector<int> &specs, std::vector<int> &editdist, std::vector<char> &keep) {
+  keep.assign(taxids.size(), 1);
+  if (editdist.empty())
+    return;
+
+  if (printonce == 1)
+    fprintf(stderr, "\t-> purging taxids oldsize:%lu\n", taxids.size());
+  if (taxids.size() != specs.size()) {
+    fprintf(stderr, "\t-> Error: taxids and specs sizes do not match, will exit\n");
+    exit(1);
+  }
+  if (taxids.size() != editdist.size()) {
+    fprintf(stderr, "\t-> Error: taxids and editdist sizes do not match, will exit\n");
+    exit(1);
+  }
+
+  std::vector<int> taxids_kept;
+  std::vector<int> specs_kept;
+  taxids_kept.reserve(taxids.size());
+  specs_kept.reserve(specs.size());
+
+  const int mylow = *std::min_element(editdist.begin(), editdist.end());
+  for (size_t i = 0; i < taxids.size(); i++) {
+    if (editdist[i] <= mylow) {
+      taxids_kept.push_back(taxids[i]);
+      specs_kept.push_back(specs[i]);
+      keep[i] = 1;
+    } else {
+      keep[i] = 0;
     }
-    std::vector<int> tmpnewvec;
-    int mylow = *std::min_element(editdist.begin(), editdist.end());
-    for (size_t i = 0; i < taxids.size(); i++)
-        if (editdist[i] <= mylow)
-            tmpnewvec.push_back(taxids[i]);
-    if (printonce-- == 1)
-        fprintf(stderr, "\t-> purging taxids newsize:%lu this info is only printed once\n", tmpnewvec.size());
-    return tmpnewvec;
+  }
+
+  if (printonce-- == 1)
+    fprintf(stderr, "\t-> purging taxids newsize:%lu this info is only printed once\n", taxids_kept.size());
+  taxids.swap(taxids_kept);
+  specs.swap(specs_kept);
+  if(specs.empty()){
+    fprintf(stderr,"\t-> After purging there is nothing left, will exit\n");
+    exit(1);
+  }
 }
 
-void hts(gzFile fp, samFile *fp_in, int2int &i2i, int2int &parent, bam_hdr_t *hdr, int2char &rank, int2char &name_map, int minmapq, int discard, int editMin, int editMax, double scoreLow, double scoreHigh, int minlength, int lca_rank, char *prefix, int howmany, samFile *fp_usedreads, int skipnorank, int2int &rank2level, int nthreads, int weighttype,long maxreads,samFile *fp_famout,int rlens_flat_out) {
+void hts(gzFile fp, samFile *fp_in, int2int &ref2tax, int2int &parent, bam_hdr_t *hdr, int2char &rank, int2char &name_map, int minmapq, int discard, int editMin, int editMax, double scoreLow, double scoreHigh, int minlength, int lca_rank, char *prefix, int howmany, samFile *fp_usedreads, int skipnorank, int2int &rank2level, int nthreads, int weighttype,long maxreads,samFile *fp_famout,int rlens_flat_out) {
   fprintf(stderr, "[%s] \t-> editMin:%d editmMax:%d scoreLow:%f scoreHigh:%f minlength:%d discard: %d prefix: %s howmany: %d skipnorank: %d weighttype: %d maxreads: %ld rlens_flat_out: %d\n", __FUNCTION__, editMin, editMax, scoreLow, scoreHigh, minlength, discard, prefix, howmany, skipnorank, weighttype,maxreads,rlens_flat_out);
   if (fp_in == NULL) {
     fprintf(stderr, "\t-> Error: fp_in is NULL (failed to open input file), will exit\n");
@@ -442,6 +475,7 @@ void hts(gzFile fp, samFile *fp_in, int2int &i2i, int2int &parent, bam_hdr_t *hd
     std::vector<int> taxids;
     std::vector<int> specs;
     std::vector<int> editdist;
+    std::vector<char> keep;
     queue *myq = init_queue(500);
 
     int lca;
@@ -451,6 +485,10 @@ void hts(gzFile fp, samFile *fp_in, int2int &i2i, int2int &parent, bam_hdr_t *hd
     kstr->s = NULL;kstr->l = kstr->m =0;
     long nreads = 0;
     while (sam_read1(fp_in, hdr, aln) >= 0) {
+      if(aln->core.l_qseq==0){
+	fprintf(stderr,"\t-> sequence in read has zero length, assumes corrupt sam/bam/cram will exit\n");
+	exit(1);
+      }
       if(maxreads!=-1&&nreads>=maxreads)
 	break;
       if (bam_is_unmapped(aln)) {
@@ -465,9 +503,11 @@ void hts(gzFile fp, samFile *fp_in, int2int &i2i, int2int &parent, bam_hdr_t *hd
         int chr = aln->core.tid;  // contig name (chromosome)
         //    fprintf(stderr,"%d %d\n",aln->core.qual,minmapq);
         static int ntimes = 3;
-        if (aln->core.qual < minmapq && ntimes > 0) {
-            ntimes--;
-            fprintf(stderr, "Discarding due to low mapq, this message will only be printed three times\n");
+        if (aln->core.qual < minmapq) {
+            if (ntimes > 0) {
+                ntimes--;
+                fprintf(stderr, "Discarding due to low mapq, this message will only be printed three times\n");
+            }
             continue;
         }
 
@@ -492,20 +532,21 @@ void hts(gzFile fp, samFile *fp_in, int2int &i2i, int2int &parent, bam_hdr_t *hd
 		  fprintf(stderr, "\t-> Error: size does not match myq->l, will exit\n");
 		  exit(1);
 		}
-                if (editMin == -1 && editMax == -1)
-                    taxids = purge(taxids, editdist);
+                const bool apply_purge = (editMin == -1 && editMax == -1 && !editdist.empty());
+                if (apply_purge)
+                    purge(taxids, specs, editdist, keep);
 		nreads++;
                 lca = do_lca(taxids, parent);
                 //	fprintf(stderr,"myq->l: %d\n",myq->l);
                 if (lca != -1) {
-                    gzprintf(fp, "%s\t%s\t%lu\t%d\t%f", last, seq, strlen(seq), size, gccontent(seq));
+                    const size_t nused = apply_purge ? taxids.size() : size;
+                    gzprintf(fp, "%s\t%s\t%lu\t%lu\t%f", last, seq, strlen(seq), nused, gccontent(seq));
 		   
 		    print_chain(kstr, lca, parent, rank, name_map,1);
 		    gzwrite(fp,kstr->s,kstr->l);
 		    kstr->l =0;
 
-                    int varisunique = isuniq(specs);
-                    if (varisunique) {
+                    if ( isuniq(specs)) {
                         int2int::iterator it = specWeight.find(specs[0]);
                         if (it == specWeight.end())
                             specWeight[specs[0]] = 1;
@@ -522,39 +563,45 @@ void hts(gzFile fp, samFile *fp_in, int2int &i2i, int2int &parent, bam_hdr_t *hd
 		    //write to family out
 		    if (myit->second != -1 && (myit->second <= 16)) {
 		      //family is 16, see rank2level.txt
-		       for (size_t i = 0; i < myq->l; i++)
+		       for (size_t i = 0; i < myq->l; i++) {
+			 if (apply_purge && !keep[i])
+			   continue;
 			 if(fp_famout){
 			   if (sam_write1(fp_famout, hdr, myq->ary[i]) < 0) {
 			     fprintf(stderr, "\t-> Error: failed to write record with sam_write1, will exit\n");
 			     exit(1);
 			   }
 			 }
+		       }
 		    }
 		    //standard analyses
 		    if (myit->second != -1 && (myit->second <= lca_rank)) {
                         adder(lca, strlen(seq), gccontent(seq));
+			const float dmgw = (weighttype == 0) ? 1.0f : (1.0f / (float)(apply_purge ? nused : myq->l));
 			            //fprintf(stderr,"Looping through alignments we have :%d \n",myq->l);
                         for (size_t i = 0; i < myq->l; i++) {
+			  if (apply_purge && !keep[i])
+			    continue;
 			  
-                            int2int::iterator it2k = i2i.find(myq->ary[i]->core.tid);
-			    if (it2k == i2i.end()) {
-			      fprintf(stderr, "\t-> Error: iterator reached end in i2i, will exit\n");
+			  int2int::iterator it2k = ref2tax.find(myq->ary[i]->core.tid);
+			  if (it2k == ref2tax.end()) {
+			    fprintf(stderr, "\t-> Error: iterator reached end in ref2tax, will exit\n");
+			    exit(1);
+			  }
+			  int2char::iterator ititit = rank.find(it2k->second);
+			  if (ititit == rank.end()) {
+			    fprintf(stderr, "\t-> Potential problem no rank for taxid: %d\n", it2k->second);
+			    continue;
+			  }
+			  if (skipnorank == 1 && strcasecmp(ititit->second, "no rank") == 0)
+			    continue;
+			  dmg->damage_analysis(myq->ary[i], it2k->second, dmgw);
+			  if (fp_usedreads){
+			    if (sam_write1(fp_usedreads, hdr, myq->ary[i]) < 0) {
+			      fprintf(stderr, "\t-> Error: failed to write record with sam_write1 (fp_usedreads), will exit\n");
 			      exit(1);
 			    }
-                            int2char::iterator ititit = rank.find(it2k->second);
-                            if (ititit == rank.end()) {
-                                fprintf(stderr, "\t-> Potential problem no rank for taxid: %d\n", it2k->second);
-                                continue;
-                            }
-                            if (skipnorank == 1 && strcasecmp(ititit->second, "no rank") == 0)
-                                continue;
-                            dmg->damage_analysis(myq->ary[i], it2k->second, weighttype == 0 ? 1 : (1.0 / (float)myq->l));
-                            if (fp_usedreads){
-			      if (sam_write1(fp_usedreads, hdr, myq->ary[i]) < 0) {
-				fprintf(stderr, "\t-> Error: failed to write record with sam_write1 (fp_usedreads), will exit\n");
-				exit(1);
-			      }
-			    }
+			  }
                         }
                     }
                 }
@@ -562,16 +609,17 @@ void hts(gzFile fp, samFile *fp_in, int2int &i2i, int2int &parent, bam_hdr_t *hd
             skip = 0;
             specs.clear();
             editdist.clear();
+            keep.clear();
             myq->l = 0;
             free(last);
             delete[] seq;
             last = strdup(qname);
             seq = make_seq(aln);
-        }
+        }//of readgroup analyses
 
         // filter by nm
         uint8_t *nm = bam_aux_get(aln, "NM");
-        int thiseditdist;
+        int thiseditdist = -1;;
         if (nm != NULL) {
             thiseditdist = (int)bam_aux2i(nm);
             //      fprintf(stderr,"[%d] nm:%d\t",inc++,val);
@@ -595,13 +643,14 @@ void hts(gzFile fp, samFile *fp_in, int2int &i2i, int2int &parent, bam_hdr_t *hd
                 continue;
             }
         }
-        int2int::iterator it = i2i.find(chr);
+	
         // See if cloests speciest exists and plug into closests species
-        int dingdong = -1;
-        if (it != i2i.end()) {
-            int2int::iterator it2 = closest_species.find(chr);
+        int dingdong = -1;//dingdong is obviously the taxid of the closests species
+        int2int::iterator it = ref2tax.find(chr);
+        if (it != ref2tax.end()) {
+            int2int::iterator it2 = closest_species.find(it->second);
             if (it2 != closest_species.end())
-                dingdong = it->second;
+                dingdong = it2->second;
             else {
                 dingdong = get_species1(it->second, parent, rank);
                 if (dingdong != -1)
@@ -610,7 +659,7 @@ void hts(gzFile fp, samFile *fp_in, int2int &i2i, int2int &parent, bam_hdr_t *hd
             // fprintf(stderr,"\t-> closests size:%lu\n",closest_species.size());
         }
 
-        if (it == i2i.end() || dingdong == -1) {
+        if (it == ref2tax.end() || dingdong == -1) {
 	  int2int::iterator it2missing = i2i_missing.find(chr);
             if (it2missing == i2i_missing.end()) {
                 fprintf(stderr, "[log] \t-> problem finding chrid:%d chrname:%s (due to problem with missing entries in nodes.dmp or supporting files)\n", chr, hdr->target_name[chr]);
@@ -627,10 +676,8 @@ void hts(gzFile fp, samFile *fp_in, int2int &i2i, int2int &parent, bam_hdr_t *hd
                 expand_queue(myq);
             taxids.push_back(it->second);
             specs.push_back(dingdong);
-            editdist.push_back(thiseditdist);
-
-            // fprintf(stderr,"it-.second:%d specs:%d thiseditdist:%d\n",it->second,dingdong,thiseditdist);
-            //       fprintf(stderr,"EDIT\t%d\n",thiseditdist);
+	    if(thiseditdist!=-1)
+	      editdist.push_back(thiseditdist);
         }
     }
     if (taxids.size() > 0 && skip == 0) {
@@ -639,24 +686,26 @@ void hts(gzFile fp, samFile *fp_in, int2int &i2i, int2int &parent, bam_hdr_t *hd
 	  fprintf(stderr, "\t-> Error: size does not match myq->l, will exit\n");
 	  exit(1);
 	}
-        if (editMin == -1 && editMax == -1)
-            taxids = purge(taxids, editdist);
+        const bool apply_purge = (editMin == -1 && editMax == -1 && !editdist.empty());
+        if (apply_purge)
+            purge(taxids, specs, editdist, keep);
 
         //  fprintf(stderr,"ntaxids: %lu\n",taxids.size());
 	nreads++;
         lca = do_lca(taxids, parent);
         //    fprintf(stderr,"myq->l: %d lca: %d \n",myq->l,lca);
         if (lca != -1) {
-            gzprintf(fp, "%s\t%s\t%lu\t%d\t%f", last, seq, strlen(seq), size, gccontent(seq));
+            const size_t nused = apply_purge ? taxids.size() : size;
+            gzprintf(fp, "%s\t%s\t%lu\t%lu\t%f", last, seq, strlen(seq), nused, gccontent(seq));
             print_chain(kstr, lca, parent, rank, name_map,1);
 	    gzwrite(fp,kstr->s,kstr->l);
 	    kstr->l = 0;
             if (isuniq(specs)) {
                 int2int::iterator it = specWeight.find(specs[0]);
                 if (it == specWeight.end())
-                    specWeight[specs[0]] = specs.size();
+                    specWeight[specs[0]] = 1;
                 else
-                    it->second = it->second + specs.size();
+                    it->second = it->second + 1;
             }
             // lca_rank is integer and is different from minus one
             int2int::iterator myit = rank2level.find(lca);
@@ -667,35 +716,41 @@ void hts(gzFile fp, samFile *fp_in, int2int &i2i, int2int &parent, bam_hdr_t *hd
 	    //write to family out
 	    if (myit->second != -1 && (myit->second <= 16)) {
 	      //family is 16, see rank2level.txt
-	      for (size_t i = 0; i < myq->l; i++)
+	      for (size_t i = 0; i < myq->l; i++) {
+		if (apply_purge && !keep[i])
+		  continue;
 		if(fp_famout){
 		  if (sam_write1(fp_famout, hdr, myq->ary[i]) < 0) {
 		    fprintf(stderr, "\t-> Error: failed to write record with sam_write1 (fp_famout), will exit\n");
 		    exit(1);
 		  }
 		}
+	      }
 	    }
             if (myit->second != -1 && (myit->second <= lca_rank)) {
                 adder(lca, strlen(seq), gccontent(seq));
+		const float dmgw = (weighttype == 0) ? 1.0f : (1.0f / (float)(apply_purge ? nused : myq->l));
                 //      if(correct_rank(lca_rank,lca,rank,norank2species)){
 		        //fprintf(stderr,"Looping through alignments we have :%d \n",myq->l);
                 for (size_t i = 0; i < myq->l; i++) {
+		    if (apply_purge && !keep[i])
+		        continue;
                     // dmg->damage_analysis(myq->ary[i],myq->ary[i]->core.tid);
-                    int2int::iterator ittt = i2i.find(myq->ary[i]->core.tid);
-		    if (ittt == i2i.end()) {
-		      fprintf(stderr, "\t-> Error: iterator reached end in i2i (ittt), will exit\n");
+                    int2int::iterator ittt = ref2tax.find(myq->ary[i]->core.tid);
+		    if (ittt == ref2tax.end()) {
+		      fprintf(stderr, "\t-> Error: iterator reached end in ref2tax (ittt), will exit\n");
 		      exit(1);
 		    }
                     int2char::iterator ititit = rank.find(ittt->second);
                     if (ititit == rank.end()) {
-                        fprintf(stderr, "\t-> Potential problem no rank for taxid: %d\n", ititit->first);
+                        fprintf(stderr, "\t-> Potential problem no rank for taxid: %d\n", ittt->first);
                         continue;
                     }
                     //	  fprintf(stderr,"uaua: %s taxid: %d\n",ititit->second,ititit->first);
                     if (skipnorank == 1 && strcasecmp(ititit->second, "no rank") == 0)
                         continue;
                     //	  fprintf(stderr,"uaua\n");
-                    dmg->damage_analysis(myq->ary[i], ittt->second, weighttype == 0 ? 1 : (1.0 / (float)myq->l));
+                    dmg->damage_analysis(myq->ary[i], ittt->second, dmgw);
                     if (fp_usedreads){
 		      if (sam_write1(fp_usedreads, hdr, myq->ary[i]) < 0) {
 			fprintf(stderr, "\t-> Error: failed to write record with sam_write1 (fp_usedreads), will exit\n");
@@ -711,6 +766,7 @@ void hts(gzFile fp, samFile *fp_in, int2int &i2i, int2int &parent, bam_hdr_t *hd
 
     specs.clear();
     editdist.clear();
+    keep.clear();
     bam_destroy1(aln);
     sam_close(fp_in);
 
@@ -724,15 +780,15 @@ void hts(gzFile fp, samFile *fp_in, int2int &i2i, int2int &parent, bam_hdr_t *hd
     return;  // 0;
 }
 
-void print_ref_rank_species(bam_hdr_t *h, int2int &i2i, int2char &names, int2char &rank) {
+void print_ref_rank_species(bam_hdr_t *h, int2int &ref2tax, int2char &names, int2char &rank) {
     for (int i = 0; i < h->n_targets; i++) {
-        fprintf(stdout, "%d\t%s\t%s\n", i, names[i2i[i]], rank[i2i[i]]);
+        fprintf(stdout, "%d\t%s\t%s\n", i, names[ref2tax[i]], rank[ref2tax[i]]);
     }
 }
 
-int calc_valens(int2int &i2i, int2int &parent) {
+int calc_valens(int2int &ref2tax, int2int &parent) {
     int2int ret;
-    for (int2int::iterator it = i2i.begin(); it != i2i.end(); it++) {
+    for (int2int::iterator it = ref2tax.begin(); it != ref2tax.end(); it++) {
         int2int::iterator pit = parent.find(it->second);
         if (pit == parent.end() || pit->second == 1)
             continue;
@@ -749,9 +805,9 @@ int calc_valens(int2int &i2i, int2int &parent) {
     return 0;
 }
 
-int calc_dist2root(int2int &i2i, int2int &parent) {
+int calc_dist2root(int2int &ref2tax, int2int &parent) {
     int2int ret;
-    for (int2int::iterator it = i2i.begin(); it != i2i.end(); it++) {
+    for (int2int::iterator it = ref2tax.begin(); it != ref2tax.end(); it++) {
         int2int::iterator pit = parent.find(it->second);
         if (pit == parent.end() || pit->second == 1)
             continue;
@@ -803,10 +859,14 @@ int main_lca(int argc, char **argv) {
       gzprintf(p->fp1,"%s ",argv[i]);
     gzprintf(p->fp1,"\n");
     // map of bamref ->taxid
-    int2int *i2i = NULL;
+    int2int *ref2tax = NULL;
     //  fprintf(stderr,"p->header: %p\n",p->header);
     if (p->header)
-      i2i = bamRefId2tax(p->header, p->acc2taxfile, p->htsfile, errmap, p->tempfolder, p->useDump, p->filteredAcc2taxfile,NULL);
+      ref2tax = bamRefId2tax(p->header, p->acc2taxfile, p->htsfile, errmap, p->tempfolder, p->useDump, p->filteredAcc2taxfile,NULL);
+    if(ref2tax==NULL){
+      fprintf(stderr,"\t-> It is a requirement that the input bam/sam/cram contains a header\n");
+      exit(1);
+    }
     // map of taxid -> taxid
     int2int parent;
     // map of taxid -> rank
@@ -821,19 +881,19 @@ int main_lca(int argc, char **argv) {
     int lca_rank;
     // converts each taxid to a intrepresentation of the rank, we call this level
     int2int tax2level = rank2level(rank, p->norank2species, p->lca_rank, lca_rank);
-    //  calc_valens(i2i,parent);
+    //  calc_valens(ref2tax,parent);
     if (0) {
-        print_ref_rank_species(p->header, *i2i, name_map, rank);
+        print_ref_rank_species(p->header, *ref2tax, name_map, rank);
         return 0;
     }
 
     // closes species (direction of root) for a taxid
-    //   int2int closest_species=get_species(i2i,parent,rank,name_map,p->fp3);
+    //   int2int closest_species=get_species(ref2tax,parent,rank,name_map,p->fp3);
     //   fprintf(stderr,"\t-> Number of items in closest_species map:%lu\n",closest_species.size());
 
     if (p->fixdb) {
         fprintf(stderr, "\t-> Will add some fixes of the ncbi database due to merged names\n");
-        mod_db(mod_in, mod_out, parent, rank, name_map);
+        mod_db(mod_in, mod_out, parent, rank, name_map,ref2tax);
     }
     samFile *usedreads_sam = NULL;
     if (p->usedreads_sam != NULL) {  // p->usedreads sam is const *, sorry this is confusing
@@ -856,7 +916,7 @@ int main_lca(int argc, char **argv) {
 	fprintf(stderr, "writing headers to %s", p->famout_sam);
     }
     gzprintf(p->fp1,"queryid\tseq\tlen\tnaln\tgc\tlca\ttaxa_path\n");
-    hts(p->fp1, p->hts, *i2i, parent, p->header, rank, name_map, p->minmapq, p->discard, p->editdistMin, p->editdistMax, p->simscoreLow, p->simscoreHigh, p->minlength, lca_rank, p->outnames, p->howmany, usedreads_sam, p->skipnorank, tax2level, p->nthreads, p->weighttype,p->maxreads,famout_sam,p->rlens_flat_out);
+    hts(p->fp1, p->hts, *ref2tax, parent, p->header, rank, name_map, p->minmapq, p->discard, p->editdistMin, p->editdistMax, p->simscoreLow, p->simscoreHigh, p->minlength, lca_rank, p->outnames, p->howmany, usedreads_sam, p->skipnorank, tax2level, p->nthreads, p->weighttype,p->maxreads,famout_sam,p->rlens_flat_out);
 
     fprintf(stderr, "\t-> Number of species with reads that map uniquely: %lu\n", specWeight.size());
 
@@ -889,7 +949,9 @@ int main_lca(int argc, char **argv) {
                 namnam = it1->second;
             if (it2 != rank.end())
                 rankrank = it2->second;
-            gzprintf(p->fp_lcadist, "\t\"%s\"\t\"%s\"\n", namnam, rankrank);
+            gzprintf(p->fp_lcadist, "\t\"%s\"\t\"%s\"\n",
+                     namnam ? namnam : "<missing-name>",
+                     rankrank ? rankrank : "<missing-rank>");
         }
     }
 
@@ -897,8 +959,8 @@ int main_lca(int argc, char **argv) {
         free(it->second);
     for (int2char::iterator it = rank.begin(); it != rank.end(); it++)
         free(it->second);
-    if (i2i)
-        delete i2i;
+    if (ref2tax)
+        delete ref2tax;
     free(dingding2);
     pars_free(p);
     return 0;
