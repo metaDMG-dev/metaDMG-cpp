@@ -14,7 +14,7 @@
 #include "ngsLCA.h"  // for gccontent, mean, var
 #include "profile.h" // for damage, destroy_damage, triple
 
-int usage_getdamage(FILE *fp) {
+static int usage_getdamage(FILE *fp) {
     fprintf(fp, "\nUsage: metadamage getdamage [options] <in.bam>|<in.sam>|<in.cram>\n");
     fprintf(fp, "\nExample: ./metaDMG-cpp getdamage -l 10 -p 5 --threads 8 ../data/subs.sam\nOptions:\n");
     fprintf(fp, "  -n/--threads\t\t number of threads used for reading/writing (default: 4)\n");
@@ -33,12 +33,20 @@ int main_getdamage(int argc, char **argv) {
         return usage_getdamage(stderr);
 
     //  int MAXLENGTH = 256;
+    int rc = 0;
     int minLength = 35;
     int printLength = 5;
     char *refName = NULL;
     char *fname = NULL;
     int runmode = 0;  // this means one species, runmode=1 means multi species
     htsFile *fp = NULL;
+    bam1_t *b = NULL;
+    bam_hdr_t *hdr = NULL;
+    damage *dmg = NULL;
+    gzFile fpstat = NULL;
+    int skipper[4] = {3, 3, 3, 3};
+    std::map<int, std::vector<float> > gcconts;
+    std::map<int, std::vector<float> > seqlens;
     char *onam = strdup("meta");
     int nthreads = 4;
     int ignore_errors = 0;
@@ -88,7 +96,8 @@ int main_getdamage(int argc, char **argv) {
         onam = strdup(optarg);
         break;
       case 'h':
-        return usage_getdamage(stdout);
+        rc = usage_getdamage(stdout);
+        goto cleanup;
       default:
         fprintf(stderr, "Never here: %s\n", optarg);
         break;
@@ -98,8 +107,8 @@ int main_getdamage(int argc, char **argv) {
         fname = strdup(argv[optind]);
     fprintf(stderr, "\t-> ./metaDMG-cpp refName: %s min_length: %d print_length: %d run_mode: %d out_prefix: %s nthreads: %d ignore_errors: %d rlens_flat_out: %d\n", refName ? refName : "NULL", minLength, printLength, runmode, onam, nthreads, ignore_errors, rlens_flat_out);
     if (fname == NULL) {
-        usage_getdamage(stderr);
-        return 0;
+        rc = usage_getdamage(stderr);
+        goto cleanup;
     }
     if (refName) {
       int lenlen = 10 + strlen(refName) + 1;
@@ -111,35 +120,27 @@ int main_getdamage(int argc, char **argv) {
 
     if ((fp = sam_open_format(fname, "r", dingding2)) == NULL) {
         fprintf(stderr, "[%s] nonexistant file: %s\n", __FUNCTION__, fname);
-        exit(1);
+        rc = 1;
+        goto cleanup;
     }
 
-    bam1_t *b = bam_init1();
-    bam_hdr_t *hdr = sam_hdr_read(fp);
+    b = bam_init1();
+    hdr = sam_hdr_read(fp);
     if (hdr == NULL) {
       fprintf(stderr, "\t-> Hello Doctor! im afraid there is an error reading the header\n");
-      exit(1);
+      rc = 1;
+      goto cleanup;
     }
     int checkIfSorted(char *str);
     if (checkIfSorted(hdr->text)) {
       fprintf(stderr, "Input alignment file is not sorted.");
       if (!ignore_errors) {
-        sam_hdr_destroy(hdr);
-        bam_destroy1(b);
-        sam_close(fp);
-        free(fname);
-        free(onam);
-        if (refName)
-          free(refName);
-        free(dingding2);
-        return 1;
+        rc = 1;
+        goto cleanup;
       }
     }
     int ret;
-    damage *dmg = new damage(printLength, nthreads, 0);
-    int skipper[4] = {3, 3, 3, 3};
-    std::map<int, std::vector<float> > gcconts;
-    std::map<int, std::vector<float> > seqlens;
+    dmg = new damage(printLength, nthreads, 0);
     while (((ret = sam_read1(fp, hdr, b))) >= 0) {
         if (bam_is_unmapped(b)) {
             if (skipper[0])
@@ -179,7 +180,8 @@ int main_getdamage(int argc, char **argv) {
           it = seqlens.find(whichref);
           if (it == seqlens.end()) {
             fprintf(stderr, "\t-> Error: iterator reached end in seqlens, will exit\n");
-            exit(1);
+            rc = 1;
+            goto cleanup;
           }
           if (it->second.size() < 1000000)
             it->second.push_back(mylen);
@@ -188,16 +190,8 @@ int main_getdamage(int argc, char **argv) {
 
     if (ret < -1) {
       fprintf(stderr, "\t-> Error: sam_read1 failed for input file: %s (ret=%d)\n", fname, ret);
-      sam_hdr_destroy(hdr);
-      bam_destroy1(b);
-      sam_close(fp);
-      destroy_damage(dmg);
-      free(fname);
-      free(onam);
-      if (refName)
-        free(refName);
-      free(dingding2);
-      return 1;
+      rc = 1;
+      goto cleanup;
     }
 
     dmg->printit(stdout, printLength);
@@ -209,22 +203,24 @@ int main_getdamage(int argc, char **argv) {
     snprintf(buf, 1024, "%s.stat.gz", onam);
     fprintf(stderr, "\t-> Outputting overall statistic in file: \"%s\"\n", buf);
 
-    gzFile fpstat = NULL;
     if ((fpstat = gzopen(buf, "wb")) == NULL) {
       fprintf(stderr, "\t-> Error problem opening file %s will exit\n", buf);
-      exit(1);
+      rc = 1;
+      goto cleanup;
     }
     gzprintf(fpstat, "taxid\tnreads\tmean_len\tvar_len\tmean_gc\tvar_gc\tlca\trank\n");
     for (std::map<int, std::vector<float> >::iterator it = gcconts.begin(); it != gcconts.end(); it++) {
         std::map<int, triple>::iterator it2 = dmg->assoc.find(it->first);
         if (it2 == dmg->assoc.end()) {
           fprintf(stderr, "\t-> Error: iterator reached end in dmg->assoc, will exit\n");
-          exit(1);
+          rc = 1;
+          goto cleanup;
         }
         std::map<int, std::vector<float> >::iterator it3 = seqlens.find(it->first);
         if (it3 == seqlens.end()) {
           fprintf(stderr, "\t-> Error: iterator reached end in seqlens (it3), will exit\n");
-          exit(1);
+          rc = 1;
+          goto cleanup;
         }
         if (0)
             gzprintf(fpstat, "%d\t%lu\t%f\t%f\t%f\t%f\tNA\tNA\n", it->first, it2->second.nreads, mean(it3->second), var(it3->second), mean(it->second), var(it->second));
@@ -235,16 +231,24 @@ int main_getdamage(int argc, char **argv) {
             gzprintf(fpstat, "global\t%lu\t%f\t%f\t%f\t%f\tNA\tNA\n", it2->second.nreads, mean(it3->second), var(it3->second), mean(it->second), var(it->second));
         }
     }
-    gzclose(fpstat);
-
-    sam_hdr_destroy(hdr);
-    bam_destroy1(b);
-    sam_close(fp);
-    destroy_damage(dmg);
-    free(fname);
-    free(onam);
+cleanup:
+    if (fpstat)
+      gzclose(fpstat);
+    if (hdr)
+      sam_hdr_destroy(hdr);
+    if (b)
+      bam_destroy1(b);
+    if (fp)
+      sam_close(fp);
+    if (dmg)
+      destroy_damage(dmg);
+    if (fname)
+      free(fname);
+    if (onam)
+      free(onam);
     if (refName)
       free(refName);
-    free(dingding2);
-    return 0;
+    if (dingding2)
+      free(dingding2);
+    return rc;
 }
