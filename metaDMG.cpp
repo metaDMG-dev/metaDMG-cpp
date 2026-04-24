@@ -139,8 +139,16 @@ int main_getdamage(int argc, char **argv) {
     int checkIfSorted(char *str);
     if(checkIfSorted(hdr->text)){
       fprintf(stderr, "Input alignment file is not sorted.");
-      if(!ignore_errors)
-	return 1;
+      if(!ignore_errors) {
+        sam_hdr_destroy(hdr);
+        bam_destroy1(b);
+        sam_close(fp);
+        free(fname);
+        free(onam);
+        if(refName) free(refName);
+        free(dingding2);
+        return 1;
+      }
     }
     int ret;
     damage *dmg = new damage(printLength, nthreads, 0);
