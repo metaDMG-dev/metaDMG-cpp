@@ -68,7 +68,7 @@ int main_getdamage(int argc, char **argv) {
         {"min_length", required_argument, 0, 'l'},
         {"print_length", required_argument, 0, 'p'},
         {"run_mode", required_argument, 0, 'r'},
-	{"ignore_errors", no_argument, &ignore_errors, 1},
+	{"ignore_errors", no_argument, 0, 'i'},
         {"out_prefix", required_argument, 0, 'o'},
         {"help", no_argument, 0, 'h'},
         {NULL, 0, NULL, 0}};
