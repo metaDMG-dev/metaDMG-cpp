@@ -219,6 +219,42 @@ static int parse_getdamage_args(int argc, char **argv, getdamage_args &args) {
     return 0;
 }
 
+static int open_getdamage_input(const getdamage_args &args,
+                                htsFormat *dingding2,
+                                htsFile *&fp,
+                                bam1_t *&b,
+                                bam_hdr_t *&hdr) {
+    if (args.refName) {
+      int lenlen = 10 + strlen(args.refName) + 1;
+      char *ref = (char *)malloc(lenlen);
+      snprintf(ref, lenlen, "reference=%s", args.refName);
+      hts_opt_add((hts_opt **)&dingding2->specific, ref);
+      free(ref);
+    }
+
+    fp = sam_open_format(args.fname, "r", dingding2);
+    if (fp == NULL) {
+        fprintf(stderr, "[%s] nonexistant file: %s\n", __FUNCTION__, args.fname);
+        return 1;
+    }
+
+    b = bam_init1();
+    hdr = sam_hdr_read(fp);
+    if (hdr == NULL) {
+      fprintf(stderr, "\t-> Hello Doctor! im afraid there is an error reading the header\n");
+      return 1;
+    }
+
+    int checkIfSorted(char *str);
+    if (checkIfSorted(hdr->text)) {
+      fprintf(stderr, "Input alignment file is not sorted.");
+      if (!args.ignore_errors)
+        return 1;
+    }
+
+    return 0;
+}
+
 int main_getdamage(int argc, char **argv) {
     if (argc == 1)
         return usage_getdamage(stderr);
@@ -242,35 +278,11 @@ int main_getdamage(int argc, char **argv) {
         rc = usage_getdamage(stderr);
         goto cleanup;
     }
-    if (args.refName) {
-      int lenlen = 10 + strlen(args.refName) + 1;
-      char *ref = (char *)malloc(lenlen);
-      snprintf(ref, lenlen, "reference=%s", args.refName);
-      hts_opt_add((hts_opt **)&dingding2->specific, ref);
-      free(ref);
-    }
 
-    if ((fp = sam_open_format(args.fname, "r", dingding2)) == NULL) {
-        fprintf(stderr, "[%s] nonexistant file: %s\n", __FUNCTION__, args.fname);
-        rc = 1;
-        goto cleanup;
-    }
-
-    b = bam_init1();
-    hdr = sam_hdr_read(fp);
-    if (hdr == NULL) {
-      fprintf(stderr, "\t-> Hello Doctor! im afraid there is an error reading the header\n");
-      rc = 1;
+    rc = open_getdamage_input(args, dingding2, fp, b, hdr);
+    if (rc != 0)
       goto cleanup;
-    }
-    int checkIfSorted(char *str);
-    if (checkIfSorted(hdr->text)) {
-      fprintf(stderr, "Input alignment file is not sorted.");
-      if (!args.ignore_errors) {
-        rc = 1;
-        goto cleanup;
-      }
-    }
+
     dmg = new damage(args.printLength, args.nthreads, 0);
     rc = process_getdamage_reads(fp, hdr, b, dmg, args.minLength, args.runmode, gcconts, seqlens, args.fname);
     if (rc != 0)
