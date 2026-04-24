@@ -28,6 +28,45 @@ static int usage_getdamage(FILE *fp) {
     return 1;
 }
 
+static int write_getdamage_stats(char *onam,
+                                 int runmode,
+                                 bam_hdr_t *hdr,
+                                 damage *dmg,
+                                 std::map<int, std::vector<float> > &gcconts,
+                                 std::map<int, std::vector<float> > &seqlens) {
+    char buf[1024];
+    snprintf(buf, 1024, "%s.stat.gz", onam);
+    fprintf(stderr, "\t-> Outputting overall statistic in file: \"%s\"\n", buf);
+
+    gzFile fpstat = NULL;
+    if ((fpstat = gzopen(buf, "wb")) == NULL) {
+      fprintf(stderr, "\t-> Error problem opening file %s will exit\n", buf);
+      return 1;
+    }
+    gzprintf(fpstat, "taxid\tnreads\tmean_len\tvar_len\tmean_gc\tvar_gc\tlca\trank\n");
+    for (std::map<int, std::vector<float> >::iterator it = gcconts.begin(); it != gcconts.end(); it++) {
+        std::map<int, triple>::iterator it2 = dmg->assoc.find(it->first);
+        if (it2 == dmg->assoc.end()) {
+          fprintf(stderr, "\t-> Error: iterator reached end in dmg->assoc, will exit\n");
+          gzclose(fpstat);
+          return 1;
+        }
+        std::map<int, std::vector<float> >::iterator it3 = seqlens.find(it->first);
+        if (it3 == seqlens.end()) {
+          fprintf(stderr, "\t-> Error: iterator reached end in seqlens (it3), will exit\n");
+          gzclose(fpstat);
+          return 1;
+        }
+        if (runmode == 1)
+          gzprintf(fpstat, "%s\t%lu\t%f\t%f\t%f\t%f\tNA\tNA\n", sam_hdr_tid2name(hdr, it->first), it2->second.nreads, mean(it3->second), var(it3->second), mean(it->second), var(it->second));
+        else
+          gzprintf(fpstat, "global\t%lu\t%f\t%f\t%f\t%f\tNA\tNA\n", it2->second.nreads, mean(it3->second), var(it3->second), mean(it->second), var(it->second));
+    }
+
+    gzclose(fpstat);
+    return 0;
+}
+
 int main_getdamage(int argc, char **argv) {
     if (argc == 1)
         return usage_getdamage(stderr);
@@ -43,7 +82,6 @@ int main_getdamage(int argc, char **argv) {
     bam1_t *b = NULL;
     bam_hdr_t *hdr = NULL;
     damage *dmg = NULL;
-    gzFile fpstat = NULL;
     int skipper[4] = {3, 3, 3, 3};
     std::map<int, std::vector<float> > gcconts;
     std::map<int, std::vector<float> > seqlens;
@@ -198,42 +236,10 @@ int main_getdamage(int argc, char **argv) {
     dmg->write(onam, runmode == 1 ? hdr : NULL);
     dmg->bwrite(onam, rlens_flat_out);
 
-    // write stat
-    char buf[1024];
-    snprintf(buf, 1024, "%s.stat.gz", onam);
-    fprintf(stderr, "\t-> Outputting overall statistic in file: \"%s\"\n", buf);
-
-    if ((fpstat = gzopen(buf, "wb")) == NULL) {
-      fprintf(stderr, "\t-> Error problem opening file %s will exit\n", buf);
-      rc = 1;
+    rc = write_getdamage_stats(onam, runmode, hdr, dmg, gcconts, seqlens);
+    if (rc != 0)
       goto cleanup;
-    }
-    gzprintf(fpstat, "taxid\tnreads\tmean_len\tvar_len\tmean_gc\tvar_gc\tlca\trank\n");
-    for (std::map<int, std::vector<float> >::iterator it = gcconts.begin(); it != gcconts.end(); it++) {
-        std::map<int, triple>::iterator it2 = dmg->assoc.find(it->first);
-        if (it2 == dmg->assoc.end()) {
-          fprintf(stderr, "\t-> Error: iterator reached end in dmg->assoc, will exit\n");
-          rc = 1;
-          goto cleanup;
-        }
-        std::map<int, std::vector<float> >::iterator it3 = seqlens.find(it->first);
-        if (it3 == seqlens.end()) {
-          fprintf(stderr, "\t-> Error: iterator reached end in seqlens (it3), will exit\n");
-          rc = 1;
-          goto cleanup;
-        }
-        if (0)
-            gzprintf(fpstat, "%d\t%lu\t%f\t%f\t%f\t%f\tNA\tNA\n", it->first, it2->second.nreads, mean(it3->second), var(it3->second), mean(it->second), var(it->second));
-        else {
-          if (runmode == 1)
-            gzprintf(fpstat, "%s\t%lu\t%f\t%f\t%f\t%f\tNA\tNA\n", sam_hdr_tid2name(hdr, it->first), it2->second.nreads, mean(it3->second), var(it3->second), mean(it->second), var(it->second));
-          else
-            gzprintf(fpstat, "global\t%lu\t%f\t%f\t%f\t%f\tNA\tNA\n", it2->second.nreads, mean(it3->second), var(it3->second), mean(it->second), var(it->second));
-        }
-    }
 cleanup:
-    if (fpstat)
-      gzclose(fpstat);
     if (hdr)
       sam_hdr_destroy(hdr);
     if (b)
