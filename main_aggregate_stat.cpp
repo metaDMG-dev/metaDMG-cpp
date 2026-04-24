@@ -23,12 +23,9 @@
 #include "dfit_optim.h"
 #include "pval.h"
 #include "dfit_helppage.h"
+#include "main_print.h"
 
 extern htsFormat *dingding2;
-
-//from metaDMG.cpp
-std::map<int,mydataD> getval_full_norec(std::map<int, mydataD> &retmap, int2int &parent, int howmany);
-mydata2 getval_stats(std::map<int, mydata2> &retmap, int2intvec &child, int taxid) ;
 
 int helppage_aggregate(FILE *fp){
   fprintf(fp,"Aggregation of lca produced statistics (mean length, variance length, mean GC, variance GC) when transversing up the nodes of the tree structure\n");
