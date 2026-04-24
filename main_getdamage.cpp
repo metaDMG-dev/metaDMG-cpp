@@ -14,6 +14,18 @@
 #include "ngsLCA.h"  // for gccontent, mean, var
 #include "profile.h" // for damage, destroy_damage, triple
 
+struct getdamage_args {
+    int minLength;
+    int printLength;
+    char *refName;
+    char *fname;
+    int runmode;
+    char *onam;
+    int nthreads;
+    int ignore_errors;
+    int rlens_flat_out;
+};
+
 static int usage_getdamage(FILE *fp) {
     fprintf(fp, "\nUsage: metadamage getdamage [options] <in.bam>|<in.sam>|<in.cram>\n");
     fprintf(fp, "\nExample: ./metaDMG-cpp getdamage -l 10 -p 5 --threads 8 ../data/subs.sam\nOptions:\n");
@@ -67,30 +79,21 @@ static int write_getdamage_stats(char *onam,
     return 0;
 }
 
-int main_getdamage(int argc, char **argv) {
-    if (argc == 1)
-        return usage_getdamage(stderr);
+static getdamage_args init_getdamage_args() {
+    getdamage_args args;
+    args.minLength = 35;
+    args.printLength = 5;
+    args.refName = NULL;
+    args.fname = NULL;
+    args.runmode = 0;
+    args.onam = strdup("meta");
+    args.nthreads = 4;
+    args.ignore_errors = 0;
+    args.rlens_flat_out = 0;
+    return args;
+}
 
-    //  int MAXLENGTH = 256;
-    int rc = 0;
-    int minLength = 35;
-    int printLength = 5;
-    char *refName = NULL;
-    char *fname = NULL;
-    int runmode = 0;  // this means one species, runmode=1 means multi species
-    htsFile *fp = NULL;
-    bam1_t *b = NULL;
-    bam_hdr_t *hdr = NULL;
-    damage *dmg = NULL;
-    int skipper[4] = {3, 3, 3, 3};
-    std::map<int, std::vector<float> > gcconts;
-    std::map<int, std::vector<float> > seqlens;
-    char *onam = strdup("meta");
-    int nthreads = 4;
-    int ignore_errors = 0;
-    int rlens_flat_out = 0;
-    htsFormat *dingding2 = (htsFormat *)calloc(1, sizeof(htsFormat));
-    // fix thesepro
+static int parse_getdamage_args(int argc, char **argv, getdamage_args &args) {
     static struct option lopts[] = {
         {"threads", required_argument, 0, 'n'},
         {"rlens_flat_out", required_argument, 0, 'z'},
@@ -109,55 +112,78 @@ int main_getdamage(int argc, char **argv) {
                             lopts, NULL)) >= 0) {
       switch (c) {
       case 'i':
-        ignore_errors = 1;
+        args.ignore_errors = 1;
         break;
       case 'n':
-        nthreads = atoi(optarg);
+        args.nthreads = atoi(optarg);
         break;
       case 'f':
-        refName = strdup(optarg);
+        args.refName = strdup(optarg);
         break;
       case 'z':
-        rlens_flat_out = atoi(optarg);
+        args.rlens_flat_out = atoi(optarg);
         break;
       case 'l':
-        minLength = atoi(optarg);
+        args.minLength = atoi(optarg);
         break;
       case 'p':
-        printLength = atoi(optarg);
+        args.printLength = atoi(optarg);
         break;
       case 'r':
-        runmode = atoi(optarg);
+        args.runmode = atoi(optarg);
         break;
       case 'o':
-        free(onam);
-        onam = strdup(optarg);
+        free(args.onam);
+        args.onam = strdup(optarg);
         break;
       case 'h':
-        rc = usage_getdamage(stdout);
-        goto cleanup;
+        return usage_getdamage(stdout);
       default:
         fprintf(stderr, "Never here: %s\n", optarg);
-        break;
+        return 1;
       }
     }
+
     if (optind < argc)
-        fname = strdup(argv[optind]);
-    fprintf(stderr, "\t-> ./metaDMG-cpp refName: %s min_length: %d print_length: %d run_mode: %d out_prefix: %s nthreads: %d ignore_errors: %d rlens_flat_out: %d\n", refName ? refName : "NULL", minLength, printLength, runmode, onam, nthreads, ignore_errors, rlens_flat_out);
-    if (fname == NULL) {
+        args.fname = strdup(argv[optind]);
+
+    return 0;
+}
+
+int main_getdamage(int argc, char **argv) {
+    if (argc == 1)
+        return usage_getdamage(stderr);
+
+    int rc = 0;
+    getdamage_args args = init_getdamage_args();
+    htsFile *fp = NULL;
+    bam1_t *b = NULL;
+    bam_hdr_t *hdr = NULL;
+    damage *dmg = NULL;
+    int skipper[4] = {3, 3, 3, 3};  // this means one species, runmode=1 means multi species
+    std::map<int, std::vector<float> > gcconts;
+    std::map<int, std::vector<float> > seqlens;
+    htsFormat *dingding2 = (htsFormat *)calloc(1, sizeof(htsFormat));
+
+    rc = parse_getdamage_args(argc, argv, args);
+    if (rc != 0)
+        goto cleanup;
+
+    fprintf(stderr, "\t-> ./metaDMG-cpp refName: %s min_length: %d print_length: %d run_mode: %d out_prefix: %s nthreads: %d ignore_errors: %d rlens_flat_out: %d\n", args.refName ? args.refName : "NULL", args.minLength, args.printLength, args.runmode, args.onam, args.nthreads, args.ignore_errors, args.rlens_flat_out);
+    if (args.fname == NULL) {
         rc = usage_getdamage(stderr);
         goto cleanup;
     }
-    if (refName) {
-      int lenlen = 10 + strlen(refName) + 1;
+    if (args.refName) {
+      int lenlen = 10 + strlen(args.refName) + 1;
       char *ref = (char *)malloc(lenlen);
-      snprintf(ref, lenlen, "reference=%s", refName);
+      snprintf(ref, lenlen, "reference=%s", args.refName);
       hts_opt_add((hts_opt **)&dingding2->specific, ref);
       free(ref);
     }
 
-    if ((fp = sam_open_format(fname, "r", dingding2)) == NULL) {
-        fprintf(stderr, "[%s] nonexistant file: %s\n", __FUNCTION__, fname);
+    if ((fp = sam_open_format(args.fname, "r", dingding2)) == NULL) {
+        fprintf(stderr, "[%s] nonexistant file: %s\n", __FUNCTION__, args.fname);
         rc = 1;
         goto cleanup;
     }
@@ -172,13 +198,13 @@ int main_getdamage(int argc, char **argv) {
     int checkIfSorted(char *str);
     if (checkIfSorted(hdr->text)) {
       fprintf(stderr, "Input alignment file is not sorted.");
-      if (!ignore_errors) {
+      if (!args.ignore_errors) {
         rc = 1;
         goto cleanup;
       }
     }
     int ret;
-    dmg = new damage(printLength, nthreads, 0);
+    dmg = new damage(args.printLength, args.nthreads, 0);
     while (((ret = sam_read1(fp, hdr, b))) >= 0) {
         if (bam_is_unmapped(b)) {
             if (skipper[0])
@@ -190,19 +216,19 @@ int main_getdamage(int argc, char **argv) {
                 fprintf(stderr, "skipping: %s failed: flags=%d, this msg is printed: %d times more\n", bam_get_qname(b), b->core.flag, --skipper[1]);
             continue;
         }
-        if (b->core.l_qseq < minLength) {
+        if (b->core.l_qseq < args.minLength) {
             if (skipper[2])
                 fprintf(stderr, "skipping: %s too short, this msg is printed %d times more \n", bam_get_qname(b), --skipper[2]);
             continue;
         }
 
-        dmg->damage_analysis(b, runmode != 0 ? b->core.tid : 0, 1);
+        dmg->damage_analysis(b, args.runmode != 0 ? b->core.tid : 0, 1);
 
         float mygc = gccontent(b);
         float mylen = b->core.l_qseq;
 
         int whichref = 0;
-        if (runmode == 1)//<- runmode 0 means local one means global
+        if (args.runmode == 1)//<- runmode 0 means local one means global
             whichref = b->core.tid;
         std::map<int, std::vector<float> >::iterator it = gcconts.find(whichref);
         if (it == gcconts.end()) {
@@ -227,16 +253,16 @@ int main_getdamage(int argc, char **argv) {
     }
 
     if (ret < -1) {
-      fprintf(stderr, "\t-> Error: sam_read1 failed for input file: %s (ret=%d)\n", fname, ret);
+      fprintf(stderr, "\t-> Error: sam_read1 failed for input file: %s (ret=%d)\n", args.fname, ret);
       rc = 1;
       goto cleanup;
     }
 
-    dmg->printit(stdout, printLength);
-    dmg->write(onam, runmode == 1 ? hdr : NULL);
-    dmg->bwrite(onam, rlens_flat_out);
+    dmg->printit(stdout, args.printLength);
+    dmg->write(args.onam, args.runmode == 1 ? hdr : NULL);
+    dmg->bwrite(args.onam, args.rlens_flat_out);
 
-    rc = write_getdamage_stats(onam, runmode, hdr, dmg, gcconts, seqlens);
+    rc = write_getdamage_stats(args.onam, args.runmode, hdr, dmg, gcconts, seqlens);
     if (rc != 0)
       goto cleanup;
 cleanup:
@@ -248,12 +274,12 @@ cleanup:
       sam_close(fp);
     if (dmg)
       destroy_damage(dmg);
-    if (fname)
-      free(fname);
-    if (onam)
-      free(onam);
-    if (refName)
-      free(refName);
+    if (args.fname)
+      free(args.fname);
+    if (args.onam)
+      free(args.onam);
+    if (args.refName)
+      free(args.refName);
     if (dingding2)
       free(dingding2);
     return rc;
