@@ -106,7 +106,7 @@ int2int specWeight;    // Number of reads that map uniquely to a species.
 int2int i2i_missing;   // contains counter of missing hits for each taxid that doesnt exists in acc2taxid
 char2int c2i_missing;  // contains counter of missing hits for each taxid that doesnt exists in acc2taxid
 
-void mod_db(int *in, int *out, int2int &parent, int2char &rank, int2char &name_map) {
+void mod_db(int *in, int *out, int2int &parent, int2char &rank, int2char &name_map, int2int *ref2tax) {
     int2int::iterator iti;
     int2char::iterator itc;
     for (int i = 0; i < 24; i++) {
@@ -126,7 +126,10 @@ void mod_db(int *in, int *out, int2int &parent, int2char &rank, int2char &name_m
             rank.erase(itc);
             rank[out[i]] = oldval_char;
         }
-        name_map[in[i]] = strdup("satan");
+        name_map[in[i]] = strdup("satan");//possible leak
+	for (int2int::iterator it = ref2tax->begin(); it != ref2tax->end(); it++)
+	  if (it->second == in[i])
+	    it->second = out[i];
     }
 }
 
@@ -143,10 +146,14 @@ int nodes2root(int taxa, int2int &parent) {
 int2int dist2root;
 
 float mean(std::vector<float> &vec) {
-    float tmp = vec[0];
-    for (size_t i = 1; i < vec.size(); i++)
-        tmp += vec[i];
-    return tmp / vec.size();
+  if(vec.empty()){
+    fprintf(stderr,"mean called with empty vector\n");
+    exit(1);
+  }
+  float tmp = vec[0];
+  for (size_t i = 1; i < vec.size(); i++)
+    tmp += vec[i];
+  return tmp / vec.size();
 }
 
 int varinfo = 1;
@@ -478,6 +485,10 @@ void hts(gzFile fp, samFile *fp_in, int2int &ref2tax, int2int &parent, bam_hdr_t
     kstr->s = NULL;kstr->l = kstr->m =0;
     long nreads = 0;
     while (sam_read1(fp_in, hdr, aln) >= 0) {
+      if(aln->core.l_qseq==0){
+	fprintf(stderr,"\t-> sequence in read has zero length, assumes corrupt sam/bam/cram will exit\n");
+	exit(1);
+      }
       if(maxreads!=-1&&nreads>=maxreads)
 	break;
       if (bam_is_unmapped(aln)) {
@@ -604,7 +615,7 @@ void hts(gzFile fp, samFile *fp_in, int2int &ref2tax, int2int &parent, bam_hdr_t
             delete[] seq;
             last = strdup(qname);
             seq = make_seq(aln);
-        }
+        }//of readgroup analyses
 
         // filter by nm
         uint8_t *nm = bam_aux_get(aln, "NM");
@@ -632,8 +643,9 @@ void hts(gzFile fp, samFile *fp_in, int2int &ref2tax, int2int &parent, bam_hdr_t
                 continue;
             }
         }
+	
         // See if cloests speciest exists and plug into closests species
-        int dingdong = -1;
+        int dingdong = -1;//dingdong is obviously the taxid of the closests species
         int2int::iterator it = ref2tax.find(chr);
         if (it != ref2tax.end()) {
             int2int::iterator it2 = closest_species.find(it->second);
@@ -881,8 +893,7 @@ int main_lca(int argc, char **argv) {
 
     if (p->fixdb) {
         fprintf(stderr, "\t-> Will add some fixes of the ncbi database due to merged names\n");
-        mod_db(mod_in, mod_out, parent, rank, name_map);
-	//DRAGON also fix the ref2tax entries so they point the correctplace, this is a minor bug
+        mod_db(mod_in, mod_out, parent, rank, name_map,ref2tax);
     }
     samFile *usedreads_sam = NULL;
     if (p->usedreads_sam != NULL) {  // p->usedreads sam is const *, sorry this is confusing
