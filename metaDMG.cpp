@@ -193,6 +193,19 @@ int main_getdamage(int argc, char **argv) {
         }
     }
 
+    if (ret < -1) {
+      fprintf(stderr, "\t-> Error: sam_read1 failed for input file: %s (ret=%d)\n", fname, ret);
+      sam_hdr_destroy(hdr);
+      bam_destroy1(b);
+      sam_close(fp);
+      destroy_damage(dmg);
+      free(fname);
+      free(onam);
+      if(refName) free(refName);
+      free(dingding2);
+      return 1;
+    }
+
     dmg->printit(stdout, printLength);
     dmg->write(onam, runmode == 1 ? hdr : NULL);
     dmg->bwrite(onam,rlens_flat_out);
