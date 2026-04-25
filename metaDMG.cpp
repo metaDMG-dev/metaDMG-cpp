@@ -28,7 +28,6 @@ static void print_top_level_usage(FILE *fp) {
     fprintf(fp, "./metaDMG-cpp index files.damage.gz\n");
     fprintf(fp, "./metaDMG-cpp lca [many options]\n");
     fprintf(fp, "./metaDMG-cpp print bdamage.gz\n");
-    fprintf(fp, "./metaDMG-cpp print2 [many options] bdamage.gz\n");
     fprintf(fp, "./metaDMG-cpp print_all [many options] bdamage.gz\n");
     fprintf(fp, "./metaDMG-cpp print_ugly [many options] bdamage.gz\n");
     fprintf(fp, "./metaDMG-cpp dfit [many options] bdamage.gz\n");
@@ -79,8 +78,6 @@ int main(int argc, char **argv) {
       rc = main_aggregate(argc, argv);
     else if (!strcmp(argv[0], "filter_bdamage"))
       rc = main_filter_bdamage(argc, argv);
-    else if (!strcmp(argv[0], "print2"))
-        rc = main_print2(argc, argv);
     else if (!strcmp(argv[0], "lca"))
         rc = main_lca(argc, argv);
     else{
