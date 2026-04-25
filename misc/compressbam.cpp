@@ -19,11 +19,6 @@
 
 
 
-htsFormat *dingding2 =(htsFormat*) calloc(1,sizeof(htsFormat));
-htsThreadPool p = {NULL, 0};
-int nthreads = 8;
-char out_mode[5]="ws";
-
 int matched_bases(const bam1_t *b){
     int matched = 0;
     uint32_t *cigar = bam_get_cigar(b);
@@ -45,6 +40,10 @@ int VERB[2]={5,5};
 size_t getrefused(samFile *htsfp,bam_hdr_t *hdr,int *keeplist,int &nkeep,int minmatch){
    //now mainloop
   bam1_t *aln = bam_init1();
+  if (aln == NULL) {
+    fprintf(stderr, "\t-> Error: failed to allocate BAM record, will exit\n");
+    exit(1);
+  }
 
   size_t at =0;
   while(sam_read1(htsfp,hdr,aln) >= 0) {
@@ -64,7 +63,17 @@ size_t getrefused(samFile *htsfp,bam_hdr_t *hdr,int *keeplist,int &nkeep,int min
     }
     
     keeplist[chr] = keeplist[chr]+1;
-    chr =aln->core.mtid; 
+    chr = aln->core.mtid;
+    if (chr == -1) {
+      continue;
+    }
+    if (chr < 0 || chr >= sam_hdr_nref(hdr)) {
+      fprintf(stderr,
+              "\t-> Error: invalid mate target id: %d (nref=%d), will exit\n",
+              chr,
+              sam_hdr_nref(hdr));
+      exit(1);
+    }
     if(chr!=-1)
       keeplist[chr] = keeplist[chr]+1;
   }
@@ -77,7 +86,9 @@ size_t getrefused(samFile *htsfp,bam_hdr_t *hdr,int *keeplist,int &nkeep,int min
 }
 
 int VERB2[2]={5,5};
-void writemod(const char *outfile ,bam_hdr_t *hdr,int *keeplist,samFile *htsfp,char *mycl,int minmatch){
+void writemod(const char *outfile ,bam_hdr_t *hdr,int *keeplist,samFile *htsfp,char *mycl,int minmatch,
+              int nthreads, const char *out_mode, htsFormat *dingding2){
+  htsThreadPool p = {NULL, 0};
   BGZF *fp = NULL;
   fp = bgzf_open(outfile, "w5");
   
@@ -218,6 +229,10 @@ void writemod(const char *outfile ,bam_hdr_t *hdr,int *keeplist,samFile *htsfp,c
   fprintf(stderr,"\t-> Done writing new header as binary\n");fflush(stderr);
   //now mainloop
   bam1_t *aln = bam_init1();
+  if (aln == NULL) {
+    fprintf(stderr, "\t-> Error: failed to allocate BAM record, will exit\n");
+    exit(1);
+  }
   size_t at =1;
   while(sam_read1(htsfp,hdr,aln) >= 0) {
     if((at++ %100000)==0  ){
@@ -237,9 +252,26 @@ void writemod(const char *outfile ,bam_hdr_t *hdr,int *keeplist,samFile *htsfp,c
      continue;
    }
    
+   if (aln->core.tid < 0 || aln->core.tid >= sam_hdr_nref(hdr)) {
+     fprintf(stderr, "\t-> Error: invalid target id: %d, will exit\n", aln->core.tid);
+     exit(1);
+   }
    aln->core.tid = keeplist[aln->core.tid];
-    if(aln->core.mtid!=-1)
-      aln->core.mtid = keeplist[aln->core.mtid];
+   if (aln->core.tid < 0) {
+     fprintf(stderr, "\t-> Error: remapped target id is negative, will exit\n");
+     exit(1);
+   }
+   if(aln->core.mtid!=-1) {
+     if (aln->core.mtid < 0 || aln->core.mtid >= sam_hdr_nref(hdr)) {
+       fprintf(stderr, "\t-> Error: invalid mate target id: %d, will exit\n", aln->core.mtid);
+       exit(1);
+     }
+     aln->core.mtid = keeplist[aln->core.mtid];
+     if (aln->core.mtid < 0) {
+       fprintf(stderr, "\t-> Error: remapped mate target id is negative, will exit\n");
+       exit(1);
+     }
+   }
     if (sam_write1(outhts, newhdr, aln) < 0) {
       fprintf(stderr, "\t-> Error: failed to write alignment with sam_write1, will exit\n");
       exit(1);
@@ -249,8 +281,22 @@ void writemod(const char *outfile ,bam_hdr_t *hdr,int *keeplist,samFile *htsfp,c
   sam_hdr_destroy(newhdr);
   bam_destroy1(aln);
   sam_close(outhts);
-  hts_tpool_destroy(p.pool);
+  if (p.pool != NULL) {
+    hts_tpool_destroy(p.pool);
+    p.pool = NULL;
+  }
 
+}
+
+int usage(FILE *fp) {
+  fprintf(fp,"./compressbam --threads <INT> --input <FILE> --ref <FILE> --output <FILE> [--min-match <int>]\n");
+  fprintf(fp,"\t-i, --input       Input SAM/BAM/CRAM file\n");
+  fprintf(fp,"\t-o, --output      Output SAM/BAM/CRAM file (extension decides format)\n");
+  fprintf(fp,"\t-n, --threads     Number of threads\n");
+  fprintf(fp,"\t-m, --min-match   Minimum number of matched bases to keep an alignment\n");
+  fprintf(fp,"\t    --ref         Reference fasta (reserved/optional)\n");
+  fprintf(fp,"\t-h, --help        Show this help message\n");
+  return 0;
 }
 
 int main(int argc,char**argv){
@@ -260,8 +306,7 @@ int main(int argc,char**argv){
   time_t t2=time(NULL);
 
   if(argc==1){
-    fprintf(stderr,"./compressbam --threads <INT> --input <FILE> --ref <FILE> --output <FILE> [--min-match <int>]\n");
-    return 0;
+    return usage(stderr);
   }
   char *mycl = stringify_argv(argc,argv);
   fprintf(stderr,"\t-> compressbam: (%s;%s;%s): \'%s\'\n",__FILE__,__DATE__,__TIME__,mycl);  
@@ -271,35 +316,95 @@ int main(int argc,char**argv){
   char *ref = NULL;
   char *outfile = strdup("tmp.sam");
   int minmatch = 30;
-  //  char out_mode[5]="ws";
-  //  int nthreads = 4; //this is now global
+  int nthreads = 8;
+  char out_mode[5]="ws";
   while(*argv){
     char *key=*argv;
-    char *val=*(++argv);
+    if(!strcasecmp("-h",key) || !strcasecmp("--help",key)) {
+      free(mycl);
+      free(outfile);
+      return usage(stdout);
+    }
+    char *val = NULL;
+    if (*(argv + 1) != NULL)
+      val = *(argv + 1);
     //fprintf(stderr,"key: %s val: %s\n",key,val);
-    if(!strcasecmp("-i",key) || !strcasecmp("--input",key)) hts=strdup(val);
+    if(!strcasecmp("-i",key) || !strcasecmp("--input",key)) {
+      if (val == NULL) {
+        fprintf(stderr,"\t-> Missing value for parameter: %s\n", key);
+        return -1;
+      }
+      hts=strdup(val);
+    }
     else if(!strcasecmp("-o",key) || !strcasecmp("--output",key)){
+      if (val == NULL) {
+        fprintf(stderr,"\t-> Missing value for parameter: %s\n", key);
+        return -1;
+      }
       free(outfile);
       outfile=strdup(val);
     }
-    else if(!strcasecmp("--ref",key)) ref=strdup(val);
-    else if(!strcasecmp("-n",key) || !strcasecmp("--threads",key)) nthreads=atoi(val);
-    else if(!strcasecmp("-m",key) || !strcasecmp("--min-match",key)) minmatch=atoi(val);
+    else if(!strcasecmp("--ref",key)) {
+      if (val == NULL) {
+        fprintf(stderr,"\t-> Missing value for parameter: %s\n", key);
+        return -1;
+      }
+      ref=strdup(val);
+    }
+    else if(!strcasecmp("-n",key) || !strcasecmp("--threads",key)) {
+      if (val == NULL) {
+        fprintf(stderr,"\t-> Missing value for parameter: %s\n", key);
+        return -1;
+      }
+      nthreads=atoi(val);
+    }
+    else if(!strcasecmp("-m",key) || !strcasecmp("--min-match",key)) {
+      if (val == NULL) {
+        fprintf(stderr,"\t-> Missing value for parameter: %s\n", key);
+        return -1;
+      }
+      minmatch=atoi(val);
+    }
     else{
-      fprintf(stderr,"\t Unknown parameter key:%s val:%s\n",key,val);
+      fprintf(stderr,"\t Unknown parameter key:%s val:%s\n",key,val ? val : "NULL");
       return -1;
     }
-    ++argv;
+    argv += 2;
   }
 
   // Infer output format
-  out_mode[1] = strrchr(outfile, '.')[1];
+  char *suffix = strrchr(outfile, '.');
+  if (suffix == NULL || suffix[1] == '\0') {
+    fprintf(stderr,"\t-> Output file must have an extension: %s\n", outfile);
+    return -1;
+  }
+  out_mode[1] = suffix[1];
   
   fprintf(stderr,"\t-> input: %s; output: %s; out format: %s; ref: %s; nthreads: %d\n",hts,outfile,out_mode,ref,nthreads);
   
   //open inputfile and parse header
+  htsFormat *dingding2 =(htsFormat*) calloc(1,sizeof(htsFormat));
   samFile *htsfp = hts_open(hts,"r");
+  if (htsfp == NULL) {
+    fprintf(stderr, "\t-> Error: failed to open input file: %s\n", hts ? hts : "NULL");
+    free(mycl);
+    free(outfile);
+    if (hts) free(hts);
+    if (ref) free(ref);
+    free(dingding2);
+    return 1;
+  }
   bam_hdr_t *hdr = sam_hdr_read(htsfp);
+  if (hdr == NULL) {
+    fprintf(stderr, "\t-> Error: failed to read header from input file: %s\n", hts);
+    sam_close(htsfp);
+    free(mycl);
+    free(outfile);
+    if (hts) free(hts);
+    if (ref) free(ref);
+    free(dingding2);
+    return 1;
+  }
   //  int64_t record_begin = htell(htsfp);
   //  int64_t ret = hts_tell_func(htsfp->fp); //this should work at some piont
   fprintf(stderr,"\t-> Header has now been read. Will now start list of refIDs to use\n");fflush(stderr);
@@ -313,8 +418,29 @@ int main(int argc,char**argv){
 
   sam_hdr_destroy(hdr);
   htsfp=hts_open(hts,"r" );
+  if (htsfp == NULL) {
+    fprintf(stderr, "\t-> Error: failed to reopen input file: %s\n", hts);
+    free(mycl);
+    free(outfile);
+    if (hts) free(hts);
+    if (ref) free(ref);
+    free(dingding2);
+    delete [] keeplist;
+    return 1;
+  }
   hdr = sam_hdr_read(htsfp);
-  writemod(outfile,hdr,keeplist,htsfp,mycl,minmatch);
+  if (hdr == NULL) {
+    fprintf(stderr, "\t-> Error: failed to reread header from input file: %s\n", hts);
+    sam_close(htsfp);
+    free(mycl);
+    free(outfile);
+    if (hts) free(hts);
+    if (ref) free(ref);
+    free(dingding2);
+    delete [] keeplist;
+    return 1;
+  }
+  writemod(outfile,hdr,keeplist,htsfp,mycl,minmatch,nthreads,out_mode,dingding2);
   fprintf(stderr,"\t-> Done writing file: \'%s\'\n",outfile);
   free(mycl);
   sam_close(htsfp);
@@ -323,8 +449,8 @@ int main(int argc,char**argv){
   if(outfile) free(outfile);
   if(ref) free(ref);
 
-  free(dingding2);
   sam_hdr_destroy(hdr);
+  free(dingding2);
   delete [] keeplist;
 
   fprintf(stderr, "\t-> [ALL done] cpu-time used =  %.2f sec walltime used =  %.2f sec\n", (float)(clock() - t) / CLOCKS_PER_SEC, (float)(time(NULL) - t2));

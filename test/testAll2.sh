@@ -62,6 +62,7 @@ prepare() {
     mkdir -p output_data2
     mkdir -p output_data2_gd
     mkdir -p output_compressbam
+    mkdir -p output_extract_reads
 }
 
 assert_file_contains() {
@@ -79,6 +80,17 @@ assert_file_not_contains() {
 
     if grep -F -- "${pattern}" "${file}" >/dev/null; then
         mark_fail "Unexpected pattern found in ${file}: ${pattern}"
+    fi
+}
+
+assert_file_line_count() {
+    local file="$1"
+    local expected="$2"
+    local actual
+
+    actual="$(wc -l < "${file}" | tr -d '[:space:]')"
+    if [[ "${actual}" != "${expected}" ]]; then
+        mark_fail "Unexpected line count in ${file}: expected ${expected}, got ${actual}"
     fi
 }
 
@@ -297,6 +309,103 @@ test_compressbam() {
     assert_file_contains "${reads_min}" $'read_mid\t0\trefC'
 }
 
+test_extract_reads() {
+    local extract_reads="../misc/extract_reads"
+    local input_sam="data_extract_reads/basic.sam"
+    local input_bam="output_extract_reads/basic.qname.bam"
+    local byreadid_sam="output_extract_reads/byreadid.read3.sam"
+    local byreadid_reads="output_extract_reads/byreadid.read3.reads.sam"
+    local byreadid_complement_sam="output_extract_reads/byreadid.read3.complement.sam"
+    local byreadid_complement_reads="output_extract_reads/byreadid.read3.complement.reads.sam"
+    local byreadid_stdout_reads="output_extract_reads/byreadid.read3.stdout.reads.sam"
+    local strict1_sam="output_extract_reads/byrefid.refC.strict1.sam"
+    local strict1_reads="output_extract_reads/byrefid.refC.strict1.reads.sam"
+    local strict0_sam="output_extract_reads/byrefid.refC.strict0.sam"
+    local strict0_reads="output_extract_reads/byrefid.refC.strict0.reads.sam"
+    local type_bam="output_extract_reads/byrefid.refD.strict1.bam"
+    local type_bam_reads="output_extract_reads/byrefid.refD.strict1.reads.sam"
+
+    note "Testing Existence of ${extract_reads}"
+    if [[ ! -x "${extract_reads}" ]]; then
+        mark_fail "Problem finding program: ${extract_reads}"
+        return 0
+    fi
+
+    if ! samtools view -b -o "${input_bam}" "${input_sam}"; then
+        mark_fail "Problem converting ${input_sam} to ${input_bam}"
+        return 0
+    fi
+
+    run_logged "Running extract_reads byreadid" \
+        "${extract_reads}" byreadid -i "${input_bam}" \
+        -N data_extract_reads/read3.txt -o "${byreadid_sam}" --output-fmt sam
+
+    if ! samtools view "${byreadid_sam}" > "${byreadid_reads}"; then
+        mark_fail "Problem extracting alignments from ${byreadid_sam}"
+    fi
+    assert_file_line_count "${byreadid_reads}" 3
+    assert_file_contains "${byreadid_reads}" $'read3\t0\trefA'
+    assert_file_contains "${byreadid_reads}" $'read3\t0\trefB'
+    assert_file_contains "${byreadid_reads}" $'read3\t0\trefC'
+    assert_file_not_contains "${byreadid_reads}" $'read4\t0\trefA'
+
+    if ! "${extract_reads}" byreadid -i "${input_bam}" -N data_extract_reads/read3.txt \
+        > "${byreadid_stdout_reads}"; then
+        mark_fail "Problem running extract_reads byreadid to stdout"
+    fi
+    assert_file_line_count "${byreadid_stdout_reads}" 9
+    assert_file_contains "${byreadid_stdout_reads}" $'@SQ\tSN:refC\tLN:1000'
+    assert_file_contains "${byreadid_stdout_reads}" $'read3\t0\trefA'
+    assert_file_contains "${byreadid_stdout_reads}" $'read3\t0\trefC'
+    assert_file_not_contains "${byreadid_stdout_reads}" $'read4\t0\trefA'
+
+    run_logged "Running extract_reads byreadid complement" \
+        "${extract_reads}" byreadid -i "${input_bam}" \
+        -N data_extract_reads/read3.txt -o "${byreadid_complement_sam}" \
+        --output-fmt sam --exclude
+
+    if ! samtools view "${byreadid_complement_sam}" > "${byreadid_complement_reads}"; then
+        mark_fail "Problem extracting alignments from ${byreadid_complement_sam}"
+    fi
+    assert_file_line_count "${byreadid_complement_reads}" 7
+    assert_file_not_contains "${byreadid_complement_reads}" $'read3\t0\trefA'
+    assert_file_contains "${byreadid_complement_reads}" $'read4\t0\trefD'
+
+    run_logged "Running extract_reads byrefid strict=1" \
+        "${extract_reads}" byrefid -i "${input_bam}" \
+        -R data_extract_reads/refC.txt -o "${strict1_sam}" --output-fmt sam --strict 1
+
+    if ! samtools view "${strict1_sam}" > "${strict1_reads}"; then
+        mark_fail "Problem extracting alignments from ${strict1_sam}"
+    fi
+    assert_file_line_count "${strict1_reads}" 2
+    assert_file_contains "${strict1_reads}" $'read3\t0\trefC'
+    assert_file_contains "${strict1_reads}" $'read4\t0\trefC'
+    assert_file_not_contains "${strict1_reads}" $'read3\t0\trefA'
+
+    run_logged "Running extract_reads byrefid strict=0" \
+        "${extract_reads}" byrefid -i "${input_bam}" \
+        -R data_extract_reads/refC.txt -o "${strict0_sam}" --output-fmt sam --strict 0
+
+    if ! samtools view "${strict0_sam}" > "${strict0_reads}"; then
+        mark_fail "Problem extracting alignments from ${strict0_sam}"
+    fi
+    assert_file_line_count "${strict0_reads}" 7
+    assert_file_contains "${strict0_reads}" $'read3\t0\trefA'
+    assert_file_contains "${strict0_reads}" $'read4\t0\trefD'
+    assert_file_not_contains "${strict0_reads}" $'read2\t0\trefA'
+
+    run_logged "Running extract_reads byrefid BAM output" \
+        "${extract_reads}" byrefid -i "${input_bam}" \
+        -R data_extract_reads/refD.txt -o "${type_bam}" -b --strict 1
+
+    if ! samtools view "${type_bam}" > "${type_bam_reads}"; then
+        mark_fail "Problem extracting alignments from ${type_bam}"
+    fi
+    assert_file_line_count "${type_bam_reads}" 1
+    assert_file_contains "${type_bam_reads}" $'read4\t0\trefD'
+}
+
 validate_checksums() {
     local checksum_file="output.md5"
 
@@ -346,7 +455,8 @@ main() {
     test_prints
     test_data2
     test_data2_getdamage
-    # test_compressbam
+    test_compressbam
+    test_extract_reads
     validate_checksums
 
     note "=====RVAL:${RVAL}======="
