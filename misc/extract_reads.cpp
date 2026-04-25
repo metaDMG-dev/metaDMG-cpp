@@ -77,14 +77,15 @@ void warn_if_replaced(const char *flag) {
   fprintf(stderr, "\t-> Warning: overriding previous value for %s\n", flag);
 }
 
+void free_char2int_keys(char2int &cmap) {
+  for(char2int::iterator it=cmap.begin();it!=cmap.end();++it)
+    free(it->first);
+  cmap.clear();
+}
+
 
 extern int SIG_COND;
 char2int getkeys(const char *key,int value,int nospace){
-  char *delim=NULL;
-  if(nospace==0)
-    delim = strdup("\n\t ");
-  else if(nospace==1)
-    delim = strdup("\n");
   char2int cmap;
   if(key==NULL)
     return cmap;
@@ -94,17 +95,20 @@ char2int getkeys(const char *key,int value,int nospace){
     fprintf(stderr,"\t-> Problem opening file: %s\n",key);
     exit(-1);
   }
+  const char *delim = nospace==1 ? "\n" : "\n\t ";
   char buf[4096];
   while(fgets(buf,4096,fp)){
     char *tok = strtok(buf,delim);
+    if(tok==NULL)
+      continue;
     if(cmap.find(tok)!=cmap.end()){
       fprintf(stderr,"\t-> key: %s already exist will skip\n",buf);
+      continue;
     }
     cmap[strdup(tok)] = value;
   }
   fprintf(stderr,"\t-> Done reading keys from: \'%s\' nitems: %lu\n",key,cmap.size());
   fclose(fp);
-  free(delim);
   return cmap;
 }
 
@@ -121,8 +125,11 @@ int2int getkeysint(const char *key,int value){
   char buf[4096];
   while(fgets(buf,4096,fp)){
     char *tok = strtok(buf,"\n\t ");
+    if(tok==NULL)
+      continue;
     if(cmap.find(atoi(tok))!=cmap.end()){
       fprintf(stderr,"\t-> key: %s already exist will skip\n",buf);
+      continue;
     }
     cmap[atoi(tok)] = value;
   }
@@ -422,6 +429,7 @@ int main_byrefid(int argc,char**argv){
   
   fprintf(stderr,"\t-> Number of refids to use: %lu from -key \'%s\'\n\t-> Number of refids notused: %lu\n",keeplist.size(),keyfile,counter[1]);
   runextract_int2int(keeplist,htsfp,hdr,outfile,type,strict);
+  free_char2int_keys(cmap);
   
   return 0;
 }
@@ -585,6 +593,7 @@ int main_bytaxid(int argc,char**argv){
 	}
 	taxids[it2->second] = 1;
       }
+      free_char2int_keys(tmp);
     }
   }
 
@@ -646,6 +655,7 @@ int main_bytaxid(int argc,char**argv){
     fprintf(stderr,"\t-> No ids to extract\n");
   else
     runextract_int2int(keeplist,htsfp,hdr,outfile,type,strict);
+  free_char2int_keys(cmap);
   
   return 0;
 }
@@ -715,6 +725,7 @@ int main_byreadid(int argc,char**argv){
   fprintf(stderr,"\t-> number of refids to use: %lu\n",cmap.size());
   
   runextract_readid(cmap,htsfp,hdr,outfile,type,docomplement);
+  free_char2int_keys(cmap);
   return 0;
 }
 
