@@ -839,8 +839,29 @@ int2node makeNodes(int2int &parent){
 
 int main_lca(int argc, char **argv) {
     htsFormat *dingding2 = (htsFormat *)calloc(1, sizeof(htsFormat));
-    if (argc == 1) {
-        fprintf(stderr, "\t-> ./metaDMG-cpp lca --names --nodes --acc2tax [-edit_dist_[min/max] --sim_score_[low/high] --min_mapq --bam --lca_rank  --filtered_acc2tax --used_reads [0,1] --weight_type [0,1] --famout [0,1] #%s \n", METADAMAGE_VERSION);
+    if (argc == 1 || (argc == 2 && (!strcmp(argv[1], "--help") || !strcmp(argv[1], "-h")))) {
+        fprintf(stderr, "\nUsage: ./metaDMG-cpp lca [options]\n");
+        fprintf(stderr, "Core options:\n");
+        fprintf(stderr, "  --bam FILE\n");
+        fprintf(stderr, "  --names FILE\n");
+        fprintf(stderr, "  --nodes FILE\n");
+        fprintf(stderr, "  --acc2tax FILE\n");
+        fprintf(stderr, "Filtering options:\n");
+        fprintf(stderr, "  --edit_dist_min INT      (default: -1 disabled)\n");
+        fprintf(stderr, "  --edit_dist_max INT      (default: -1 disabled)\n");
+        fprintf(stderr, "  --sim_score_low FLOAT    (default: 0)\n");
+        fprintf(stderr, "  --sim_score_high FLOAT   (default: 1)\n");
+        fprintf(stderr, "  --minAni/--min_ani FLOAT alias for --sim_score_low\n");
+        fprintf(stderr, "  --maxAni/--max_ani FLOAT alias for --sim_score_high\n");
+        fprintf(stderr, "  --min_mapq INT           (default: 0)\n");
+        fprintf(stderr, "  --min_length INT         (default: -1 disabled)\n");
+        fprintf(stderr, "Output/options:\n");
+        fprintf(stderr, "  --out_prefix STR         (default: outnames)\n");
+        fprintf(stderr, "  --lca_rank STR           (default: species)\n");
+        fprintf(stderr, "  --threads INT            (default: 4)\n");
+        fprintf(stderr, "  --used_reads <0|1>       (default: 1)\n");
+        fprintf(stderr, "  --famout <0|1>           (default: 1)\n");
+        fprintf(stderr, "Version: %s\n\n", METADAMAGE_VERSION);
         return 0;
     }
     catchkill();

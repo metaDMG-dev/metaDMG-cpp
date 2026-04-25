@@ -234,7 +234,9 @@ void parse_sequencingdata(char *refName, char *fname, int mapped_only, int se_on
 }
 
 int usage(FILE *fp, int val) {
-    fprintf(fp, "ERROR (%d)\nUsage:", val);
+    if (val != 0)
+        fprintf(fp, "ERROR (%d)\n", val);
+    fprintf(fp, "Usage:");
     fprintf(fp, "\t./metaDMG-cpp pmd [-T ref.fa -@ threads -a se_only -q minmapQ -v VERBOSE] file.bam\n");
     fprintf(fp, "\t-a is an integer zero or one, indicating if paired end reads should be discarded\n");
     return 0;
@@ -279,6 +281,7 @@ int main_pmd(int argc, char **argv) {
         {"add", 1, 0, 0},
         {"append", 0, 0, 0},
         {"delete", 1, 0, 0},
+        {"help", 0, 0, 'h'},
         {"verbose", 0, 0, 0},
         {"create", 1, 0, 'c'},
         {"file", 1, 0, 0},
@@ -286,7 +289,7 @@ int main_pmd(int argc, char **argv) {
 
     // x: means x has a param; is not a switch
     while ((c = getopt_long(argc, argv,
-                            "T:@:a:q:m:v:?",
+                            "T:@:a:q:m:v:h?",
                             lopts, NULL)) >= 0) {
         switch (c) {
             case 'T':
@@ -307,6 +310,8 @@ int main_pmd(int argc, char **argv) {
             case 'v':
                 VERBOSE = 1;
                 break;
+            case 'h':
+                return usage(stdout, 0);
             case '?':
                 if (optopt == '?') {  // '-?' appeared on command line
                     return usage(stdout, 0);

@@ -38,7 +38,6 @@ int helppage_aggregate(FILE *fp){
   fprintf(fp,"[--dfit] \t\t output from dfit function. Optional\n");
   fprintf(fp,"--out \t\t Suffix of outputname with the predetermined prefix (.stat.gz)\n");
 
-  exit(1);
   return 0;
 }
 /*
@@ -242,7 +241,7 @@ int main_aggregate(int argc, char **argv) {
     int howmany;//this is the cycle
     while (*(++argv)) {
       if (strcasecmp("-h", *argv) == 0 || strcasecmp("--help", *argv) == 0)
-	helppage_aggregate(stderr);
+	return helppage_aggregate(stderr);
       else if (strcasecmp("--names", *argv) == 0 || strcasecmp("-names", *argv) == 0)
 	infile_names = strdup(*(++argv));
       else if (strcasecmp("--nodes", *argv) == 0 || strcasecmp("-nodes", *argv) == 0)

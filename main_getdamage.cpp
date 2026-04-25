@@ -268,7 +268,8 @@ static int parse_getdamage_args(int argc, char **argv, getdamage_args &args) {
         args.onam = strdup(optarg);
         break;
       case 'h':
-        return usage_getdamage(stdout);
+        usage_getdamage(stdout);
+        return 2;
       default:
         fprintf(stderr, "Never here: %s\n", optarg);
         return 1;
@@ -343,6 +344,10 @@ int main_getdamage(int argc, char **argv) {
     htsFormat *dingding2 = (htsFormat *)calloc(1, sizeof(htsFormat));
 
     rc = parse_getdamage_args(argc, argv, args);
+    if (rc == 2) {
+        rc = 0;
+        goto cleanup;
+    }
     if (rc != 0)
         goto cleanup;
 

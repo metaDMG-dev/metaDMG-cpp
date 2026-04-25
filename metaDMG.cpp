@@ -17,6 +17,24 @@
 
 // from ngsLCA.cpp
 int main_lca(int argc, char **argv);
+
+static void print_top_level_usage(FILE *fp) {
+#ifdef __REGRESSION__
+    fprintf(fp, "./metaDMG-cpp regression [other options]\n");
+#endif
+    fprintf(fp, "./metaDMG-cpp pmd [other options]\n");
+    fprintf(fp, "./metaDMG-cpp getdamage file.bam\n");
+    fprintf(fp, "./metaDMG-cpp index files.damage.gz\n");
+    fprintf(fp, "./metaDMG-cpp lca [many options]\n");
+    fprintf(fp, "./metaDMG-cpp print bdamage.gz\n");
+    fprintf(fp, "./metaDMG-cpp print2 [many options] bdamage.gz\n");
+    fprintf(fp, "./metaDMG-cpp print_all [many options] bdamage.gz\n");
+    fprintf(fp, "./metaDMG-cpp print_ugly [many options] bdamage.gz\n");
+    fprintf(fp, "./metaDMG-cpp dfit [many options] bdamage.gz\n");
+    fprintf(fp, "./metaDMG-cpp aggregate [many options] bdamage.gz\n");
+    fprintf(fp, "\nUse './metaDMG-cpp <subcommand> --help' for command-specific help.\n");
+}
+
 int main(int argc, char **argv) {
   fprintf(stderr,"\t-> metaDMG version: %s (htslib: %s) build(%s %s)\n",METADAMAGE_VERSION,hts_version(),__DATE__,__TIME__); 
     clock_t t = clock();
@@ -24,20 +42,11 @@ int main(int argc, char **argv) {
     int rc = 0;
 
     if (argc == 1) {
-#ifdef __REGRESSION__
-        fprintf(stderr, "./metaDMG-cpp regression [other options]\n");
-#endif
-        fprintf(stderr, "./metaDMG-cpp pmd [other options]\n");
-        fprintf(stderr, "./metaDMG-cpp getdamage file.bam\n");
-        fprintf(stderr, "./metaDMG-cpp index files.damage.gz\n");
-        fprintf(stderr, "./metaDMG-cpp lca [many options]\n");
-        fprintf(stderr, "./metaDMG-cpp print bdamage.gz\n");
-        fprintf(stderr, "./metaDMG-cpp print2 [many options] bdamage.gz\n");
-        fprintf(stderr, "./metaDMG-cpp print_all [many options] bdamage.gz\n");
-        fprintf(stderr, "./metaDMG-cpp print_ugly [many options] bdamage.gz\n");
-	    fprintf(stderr, "./metaDMG-cpp dfit [many options] bdamage.gz\n");
-        fprintf(stderr, "./metaDMG-cpp aggregate [many options] bdamage.gz\n");
-
+        print_top_level_usage(stderr);
+        return 0;
+    }
+    if (!strcmp(argv[1], "--help") || !strcmp(argv[1], "-h") || !strcmp(argv[1], "help")) {
+        print_top_level_usage(stderr);
         return 0;
     }
     fprintf(stderr, "\t-> ");

@@ -63,6 +63,13 @@ git pull https://github.com/metaDMG-dev/metaDMG-cpp.git
 
 # Usage
 
+Top-level and subcommand help:
+```
+./metaDMG-cpp --help
+./metaDMG-cpp <subcommand> --help
+./metaDMG-cpp <subcommand> -h
+```
+
 ## Damage analysis (non-taxonomically assigned)
 metaDMG-cpp calculates substitutions between reads and reference sequences. It can operate in two modes:
 
@@ -86,6 +93,7 @@ Options:
                         1: **local** damage patterns will be calculated for each chr/scaffold contig.
   -i/--ignore_errors    continue analyses even if there are errors
   -o/--out_prefix	output prefix (default: meta)
+  -h/--help		show this help page
 ```
 ## metaDMG LCA analyses
 
@@ -139,6 +147,7 @@ Options:
   --temp			temp prefix
   -o/--out_prefix 	output prefix
   --filtered_acc2tax	outputs a acc2tax file using just the accessions and taxid in your dataset, given a filename
+  -h/--help		show this help page
 ```
 
  

@@ -158,12 +158,34 @@ mydata2 getval_stats(std::map<int, mydata2> &retmap, int2intvec &child, int taxi
 
     return ret;
 }
+
+static int usage_print(FILE *fp) {
+    fprintf(fp, "Usage: ./metaDMG-cpp print file.bdamage.gz [options]\n");
+    fprintf(fp, "Options: -names FILE -bam FILE -nodes FILE -r INT -howmany INT -ctga -countout -doOld\n");
+    return 0;
+}
+
+static int usage_print2(FILE *fp) {
+    fprintf(fp, "Usage: ./metaDMG-cpp print2 file.bdamage.gz [options]\n");
+    fprintf(fp, "Options: -acc2tax FILE -bam FILE -nodes FILE -r INT -howmany INT -ctga -countout -doOld\n");
+    return 0;
+}
+
+static int usage_print_all(FILE *fp) {
+    fprintf(fp, "Usage: ./metaDMG-cpp print_all file.bdamage.gz -names FILE [-nodes FILE]\n");
+    return 0;
+}
+
+static int usage_print_ugly(FILE *fp) {
+    fprintf(fp, "Usage: ./metaDMG-cpp print_ugly file.bdamage.gz --names FILE [options]\n");
+    fprintf(fp, "Options: --nodes FILE --lcastat FILE --bam FILE --out_prefix STR\n");
+    return 0;
+}
+
 int main_print(int argc, char **argv) {
   //  fprintf(stderr,"\nYOYOYOYOYYOOYOOY\n");
-    if (argc == 1) {
-        fprintf(stderr, "./metaDMG-cpp print file.bdamage.gz [-names names.gz -bam file.bam -ctga -countout -nodes -howmany -r -doOld -nodes]\n");
-        return 0;
-    }
+    if (argc == 1 || (argc == 2 && (!strcasecmp(argv[1], "-h") || !strcasecmp(argv[1], "--help"))))
+        return usage_print(stderr);
     char *infile = NULL;
     char *inbam = NULL;
     char *infile_nodes = NULL;
@@ -175,7 +197,9 @@ int main_print(int argc, char **argv) {
     int howmany = 15;
     int doold = 1;
     while (*(++argv)) {
-        if (strcasecmp("-names", *argv) == 0)
+        if (!strcasecmp("-h", *argv) || !strcasecmp("--help", *argv))
+            return usage_print(stderr);
+        else if (strcasecmp("-names", *argv) == 0)
             infile_names = strdup(*(++argv));
         else if (strcasecmp("-bam", *argv) == 0)
             inbam = strdup(*(++argv));
@@ -432,10 +456,8 @@ int main_print(int argc, char **argv) {
 }
 
 int main_print2(int argc, char **argv) {
-    if (argc == 1) {
-        fprintf(stderr, "./metaDMG-cpp print2 file.bdamage.gz [-acc2tax file.gz -bam file.bam -ctga -countout -nodes -howmany -r -doOld -nodes]\n");
-        return 0;
-    }
+    if (argc == 1 || (argc == 2 && (!strcasecmp(argv[1], "-h") || !strcasecmp(argv[1], "--help"))))
+        return usage_print2(stderr);
     char *infile = NULL;
     char *inbam = NULL;
     char *acc2tax = NULL;
@@ -446,7 +468,9 @@ int main_print2(int argc, char **argv) {
     int howmany = 15;
     int doold = 0;
     while (*(++argv)) {
-        if (strcasecmp("-acc2tax", *argv) == 0)
+        if (!strcasecmp("-h", *argv) || !strcasecmp("--help", *argv))
+            return usage_print2(stderr);
+        else if (strcasecmp("-acc2tax", *argv) == 0)
             acc2tax = strdup(*(++argv));
         else if (strcasecmp("-bam", *argv) == 0)
             inbam = strdup(*(++argv));
@@ -777,17 +801,17 @@ std::map<int, double *> getcsv(char *fname) {
 
 //this very verbose function is translated by a thinking machine
 int main_print_all(int argc, char **argv) {
-    fprintf(stderr, "./metaDMG-cpp print_all file.bdamage.gz -names file.gz -nodes trestructure.gz\n");
-
-    if (argc <= 2)
-        return 0;
+    if (argc <= 2 || (argc == 2 && (!strcasecmp(argv[1], "-h") || !strcasecmp(argv[1], "--help"))))
+        return usage_print_all(stderr);
 
     char *infile_bdamage = NULL;
     char *infile_nodes = NULL;
     char *infile_names = NULL;
 
     while (*(++argv)) {
-        if (strcasecmp("-names", *argv) == 0) {
+        if (!strcasecmp("-h", *argv) || !strcasecmp("--help", *argv)) {
+            return usage_print_all(stderr);
+        } else if (strcasecmp("-names", *argv) == 0) {
             if (*(argv + 1) == NULL) {
                 fprintf(stderr, "\t-> Error: -names requires an argument, will exit\n");
                 exit(1);
@@ -884,9 +908,8 @@ int main_print_ugly(int argc, char **argv) {
   htsFormat *dingding2 = (htsFormat *)calloc(1, sizeof(htsFormat));
   fprintf(stderr,"\t-> print_ugly functionality will be removed\n");
   
-  fprintf(stderr, "./metaDMG-cpp print_ugly file.bdamage.gz --names file.gz --nodes trestructure.gz --lcastat file.gz --out_prefix out\n");
-    if (argc <= 1)
-        return 0;
+    if (argc <= 1 || (argc == 2 && (!strcasecmp(argv[1], "-h") || !strcasecmp(argv[1], "--help"))))
+        return usage_print_ugly(stderr);
     char *infile_bdamage = NULL;
     char *infile_nodes = NULL;
     char *infile_names = NULL;
@@ -897,7 +920,9 @@ int main_print_ugly(int argc, char **argv) {
     int abe = 4;//<- monkey
 
     while (*(++argv)) {
-        if (strcasecmp("--names", *argv) == 0)
+        if (!strcasecmp("-h", *argv) || !strcasecmp("--help", *argv))
+            return usage_print_ugly(stderr);
+        else if (strcasecmp("--names", *argv) == 0)
             infile_names = strdup(*(++argv));
         else if (strcasecmp("--nodes", *argv) == 0)
             infile_nodes = strdup(*(++argv));
