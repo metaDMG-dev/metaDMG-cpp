@@ -19,8 +19,6 @@
 
 
 
-htsFormat *dingding2 =(htsFormat*) calloc(1,sizeof(htsFormat));
-
 int matched_bases(const bam1_t *b){
     int matched = 0;
     uint32_t *cigar = bam_get_cigar(b);
@@ -89,7 +87,7 @@ size_t getrefused(samFile *htsfp,bam_hdr_t *hdr,int *keeplist,int &nkeep,int min
 
 int VERB2[2]={5,5};
 void writemod(const char *outfile ,bam_hdr_t *hdr,int *keeplist,samFile *htsfp,char *mycl,int minmatch,
-              int nthreads, const char *out_mode){
+              int nthreads, const char *out_mode, htsFormat *dingding2){
   htsThreadPool p = {NULL, 0};
   BGZF *fp = NULL;
   fp = bgzf_open(outfile, "w5");
@@ -385,8 +383,28 @@ int main(int argc,char**argv){
   fprintf(stderr,"\t-> input: %s; output: %s; out format: %s; ref: %s; nthreads: %d\n",hts,outfile,out_mode,ref,nthreads);
   
   //open inputfile and parse header
+  htsFormat *dingding2 =(htsFormat*) calloc(1,sizeof(htsFormat));
   samFile *htsfp = hts_open(hts,"r");
+  if (htsfp == NULL) {
+    fprintf(stderr, "\t-> Error: failed to open input file: %s\n", hts ? hts : "NULL");
+    free(mycl);
+    free(outfile);
+    if (hts) free(hts);
+    if (ref) free(ref);
+    free(dingding2);
+    return 1;
+  }
   bam_hdr_t *hdr = sam_hdr_read(htsfp);
+  if (hdr == NULL) {
+    fprintf(stderr, "\t-> Error: failed to read header from input file: %s\n", hts);
+    sam_close(htsfp);
+    free(mycl);
+    free(outfile);
+    if (hts) free(hts);
+    if (ref) free(ref);
+    free(dingding2);
+    return 1;
+  }
   //  int64_t record_begin = htell(htsfp);
   //  int64_t ret = hts_tell_func(htsfp->fp); //this should work at some piont
   fprintf(stderr,"\t-> Header has now been read. Will now start list of refIDs to use\n");fflush(stderr);
@@ -400,8 +418,29 @@ int main(int argc,char**argv){
 
   sam_hdr_destroy(hdr);
   htsfp=hts_open(hts,"r" );
+  if (htsfp == NULL) {
+    fprintf(stderr, "\t-> Error: failed to reopen input file: %s\n", hts);
+    free(mycl);
+    free(outfile);
+    if (hts) free(hts);
+    if (ref) free(ref);
+    free(dingding2);
+    delete [] keeplist;
+    return 1;
+  }
   hdr = sam_hdr_read(htsfp);
-  writemod(outfile,hdr,keeplist,htsfp,mycl,minmatch,nthreads,out_mode);
+  if (hdr == NULL) {
+    fprintf(stderr, "\t-> Error: failed to reread header from input file: %s\n", hts);
+    sam_close(htsfp);
+    free(mycl);
+    free(outfile);
+    if (hts) free(hts);
+    if (ref) free(ref);
+    free(dingding2);
+    delete [] keeplist;
+    return 1;
+  }
+  writemod(outfile,hdr,keeplist,htsfp,mycl,minmatch,nthreads,out_mode,dingding2);
   fprintf(stderr,"\t-> Done writing file: \'%s\'\n",outfile);
   free(mycl);
   sam_close(htsfp);
@@ -410,8 +449,8 @@ int main(int argc,char**argv){
   if(outfile) free(outfile);
   if(ref) free(ref);
 
-  free(dingding2);
   sam_hdr_destroy(hdr);
+  free(dingding2);
   delete [] keeplist;
 
   fprintf(stderr, "\t-> [ALL done] cpu-time used =  %.2f sec walltime used =  %.2f sec\n", (float)(clock() - t) / CLOCKS_PER_SEC, (float)(time(NULL) - t2));
