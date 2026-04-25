@@ -14,8 +14,10 @@ htsFormat fmt{};//<- stupid syntax {} ls vs {0} rs
 void set_output_format_and_mode(const char *outname, const char *user_fmt_str) {
   
   // Determine format from file extension
-  htsExactFormat fmt_from_ext = bam;  // Default = BAMblam
-  if (strcmp(outname, "-") != 0) {
+  htsExactFormat fmt_from_ext = bam;  // Default = BAM
+  if (strcmp(outname, "-") == 0) {
+    fmt_from_ext = sam;  // Default stdout to SAM unless user overrides.
+  } else {
     const char *dot = strrchr(outname, '.');
     if (dot && dot[1]) {
       if (strcasecmp(dot + 1, "sam") == 0)
@@ -61,6 +63,18 @@ void set_output_format_and_mode(const char *outname, const char *user_fmt_str) {
     strcpy(out_mode, "wc");
   else
     strcpy(out_mode, "wb");  // BAM default
+}
+
+char *dup_cli_value(const char *flag, int argc, char **argv, int &i) {
+  if (i + 1 >= argc) {
+    fprintf(stderr, "Missing value for %s\n", flag);
+    exit(1);
+  }
+  return strdup(argv[++i]);
+}
+
+void warn_if_replaced(const char *flag) {
+  fprintf(stderr, "\t-> Warning: overriding previous value for %s\n", flag);
 }
 
 
@@ -203,12 +217,12 @@ void runextract_int2int(int2int &keeplist,samFile *htsfp,bam_hdr_t *hdr,const ch
 }
 
 
-void runextract_readid(char2int &keeplist,samFile *htsfp,bam_hdr_t *hdr,const char *outname,char out_mode[5],int complement){
-  htsFormat *dingding2 =(htsFormat*) calloc(1,sizeof(htsFormat));
+void runextract_readid(char2int &keeplist,samFile *htsfp,bam_hdr_t *hdr,const char *outname,char *type,int complement){
+  set_output_format_and_mode(outname,type);
 
   //open outputfile and write header
   samFile *outhts = NULL;
-  if ((outhts = sam_open_format(outname,out_mode, dingding2)) == 0) {
+  if ((outhts = sam_open_format(outname,out_mode, &fmt)) == 0) {
     fprintf(stderr,"Error opening file for writing: %s\n",outname);
     exit(-1);
   }
@@ -275,34 +289,76 @@ void gettaxids_to_use(int taxid,int2intvec &child,int2int &i2i){
 
 int main_byrefid(int argc,char**argv){
   if(argc==2){
-    fprintf(stderr,"./extract_reads byrefid -hts -key -out -type -strict \n");
+    fprintf(stderr,"Usage:\n");
+    fprintf(stderr,"  ./extract_reads byrefid -i IN -R REFS.txt [-o OUT] [--output-fmt sam|bam|cram] [--strict 0|1] [--exclude]\n");
+    fprintf(stderr,"\n");
+    fprintf(stderr,"Options:\n");
+    fprintf(stderr,"  -i, --input IN          Input SAM/BAM/CRAM file.\n");
+    fprintf(stderr,"  -R, --ref-file FILE     File with reference names to include, one per line.\n");
+    fprintf(stderr,"  -o, --output OUT        Output file. If omitted, write to stdout.\n");
+    fprintf(stderr,"  --output-fmt FMT        Output format: sam, bam, or cram.\n");
+    fprintf(stderr,"  -b                      Write BAM output.\n");
+    fprintf(stderr,"  -C                      Write CRAM output.\n");
+    fprintf(stderr,"  --strict 1              Write only matching alignments.\n");
+    fprintf(stderr,"  --strict 0              Write full read groups if any alignment matches.\n");
+    fprintf(stderr,"  --exclude               Invert the reference-name selection.\n");
+    fprintf(stderr,"\n");
+    fprintf(stderr,"Defaults:\n");
+    fprintf(stderr,"  If -o/--output is omitted, output is written to stdout.\n");
+    fprintf(stderr,"  Stdout defaults to SAM unless --output-fmt, -b, or -C is used.\n");
+    fprintf(stderr,"  byrefid defaults to --strict 1.\n");
+    fprintf(stderr,"\n");
+    fprintf(stderr,"Examples:\n");
+    fprintf(stderr,"  ./extract_reads byrefid -i in.bam -R refs.txt -o selected.sam --output-fmt sam --strict 1\n");
+    fprintf(stderr,"  ./extract_reads byrefid -i in.bam -R refs.txt --strict 0 -b > selected.bam\n");
+    fprintf(stderr,"  ./extract_reads byrefid -i in.bam -R refs.txt --exclude > not_selected.sam\n");
     return 0;
   }
-  argv++;
   char *keyfile = NULL;
   char *hts = NULL;
   char *type = NULL;
-  char *outfile = strdup("tmp.bam");
+  char *outfile = strdup("-");
   int docomplement = 0;
-  char out_mode[5] = "wb";
   int strict = 1;
-  while(*argv){
-    char *key=*argv;
-    char *val=*(++argv);
-    if(!strcasecmp("-hts",key)) hts=strdup(val);
-    else if(!strcasecmp("-key",key)) keyfile=strdup(val);
-    else if(!strcasecmp("-docomplement",key)) docomplement=atoi(val);
-    else if(!strcasecmp("-type",key)) {
-      type = strdup(val);
-      out_mode[1]=tolower(val[0]);
+  for(int i=1;i<argc;i++){
+    char *key = argv[i];
+    if(!strcasecmp("-hts",key) || !strcasecmp("-i",key) || !strcasecmp("--input",key)) {
+      if(hts!=NULL) warn_if_replaced(key);
+      hts = dup_cli_value(key,argc,argv,i);
     }
-    else if(!strcasecmp("-strict",key)) strict=atoi(val);
-    else if(!strcasecmp("-out",key)) outfile=strdup(val);
+    else if(!strcasecmp("-key",key) || !strcasecmp("-R",key) || !strcasecmp("--ref-file",key)) {
+      if(keyfile!=NULL) warn_if_replaced(key);
+      keyfile = dup_cli_value(key,argc,argv,i);
+    }
+    else if(!strcasecmp("-docomplement",key)) {
+      docomplement = atoi(dup_cli_value(key,argc,argv,i));
+    }
+    else if(!strcasecmp("--exclude",key)) {
+      docomplement = 1;
+    }
+    else if(!strcasecmp("-type",key) || !strcasecmp("--output-fmt",key)) {
+      if(type!=NULL) warn_if_replaced(key);
+      type = dup_cli_value(key,argc,argv,i);
+    }
+    else if(!strcasecmp("-b",key)) {
+      if(type!=NULL) warn_if_replaced(key);
+      type = strdup("bam");
+    }
+    else if(!strcasecmp("-C",key)) {
+      if(type!=NULL) warn_if_replaced(key);
+      type = strdup("cram");
+    }
+    else if(!strcasecmp("-strict",key) || !strcasecmp("--strict",key)) {
+      strict = atoi(dup_cli_value(key,argc,argv,i));
+    }
+    else if(!strcasecmp("-out",key) || !strcasecmp("-o",key) || !strcasecmp("--output",key)) {
+      if(outfile!=NULL) free(outfile);
+      outfile = dup_cli_value(key,argc,argv,i);
+    }
     else{
-      fprintf(stderr,"\t Unknown parameter key:%s val:%s\n",key,val);
+      fprintf(stderr,"\t Unknown parameter key:%s\n",key);
       return 0;
     }
-    ++argv;
   }
   
   fprintf(stderr,
@@ -365,57 +421,83 @@ int main_byrefid(int argc,char**argv){
   }
   
   fprintf(stderr,"\t-> Number of refids to use: %lu from -key \'%s\'\n\t-> Number of refids notused: %lu\n",keeplist.size(),keyfile,counter[1]);
-  runextract_int2int(keeplist,htsfp,hdr,outfile,out_mode,strict);
+  runextract_int2int(keeplist,htsfp,hdr,outfile,type,strict);
   
   return 0;
 }
 
 int main_bytaxid(int argc,char**argv){
   if(argc==2){
-    fprintf(stderr,"./extract_reads bytaxid -hts [-key file_with_refnames] -taxid -nodes -acc2tax -accout -strict -forcedump -out -type [s/b]am -taxnames\n");
-    fprintf(stderr,"-------\nAlso -forcedump 1 -accout filename.txt.gz\n-strict 1 means only alignments that match\n-strict 0 (default) means all alignments associated with a read if one of the alignments match\n---------\n");
-    fprintf(stderr,"examples:\n");
-    fprintf(stderr,"./extract_reads bytaxid -hts yo.bam -taxid 3258 -nodes /projects/caeg/data/db/aeDNA-refs/resources/20230825/ncbi/taxonomy/nodes.dmp -acc2tax /projects/caeg/data/db/mikkels/combined_accession2taxid_20221112.gz -type bam -out tmp3.bam -strict 0\n");
-    fprintf(stderr,"\nExtract all those reads where one of the alignments is a child to the node given by taxid 3258\n");
+    fprintf(stderr,"Usage:\n");
+    fprintf(stderr,"  ./extract_reads bytaxid -i IN (--taxid ID[,ID...] | --taxnames NAME[,NAME...]) --nodes NODES --acc2tax MAP [-o OUT] [--output-fmt sam|bam|cram]\n");
+    fprintf(stderr,"\n");
+    fprintf(stderr,"Options:\n");
+    fprintf(stderr,"  -i, --input IN          Input SAM/BAM/CRAM file.\n");
+    fprintf(stderr,"  --taxid IDS             Taxid or comma-separated list of taxids.\n");
+    fprintf(stderr,"  --taxnames NAMES        Taxon name or comma-separated list of taxon names.\n");
+    fprintf(stderr,"  --names FILE            NCBI names.dmp file, required with --taxnames.\n");
+    fprintf(stderr,"  --nodes FILE            NCBI nodes.dmp file.\n");
+    fprintf(stderr,"  --acc2tax FILE          Accession-to-taxid mapping file.\n");
+    fprintf(stderr,"  -R, --ref-file FILE     Optional file with reference names to include.\n");
+    fprintf(stderr,"  -o, --output OUT        Output file. If omitted, write to stdout.\n");
+    fprintf(stderr,"  --output-fmt FMT        Output format: sam, bam, or cram.\n");
+    fprintf(stderr,"  -b                      Write BAM output.\n");
+    fprintf(stderr,"  -C                      Write CRAM output.\n");
+    fprintf(stderr,"  --strict 1              Write only matching alignments.\n");
+    fprintf(stderr,"  --strict 0              Write full read groups if any alignment matches.\n");
+    fprintf(stderr,"  --forcedump 1           Force regeneration of temporary mapping output.\n");
+    fprintf(stderr,"  --accout FILE           Write accession-to-taxid output to FILE.\n");
+    fprintf(stderr,"\n");
+    fprintf(stderr,"Defaults:\n");
+    fprintf(stderr,"  If -o/--output is omitted, output is written to stdout.\n");
+    fprintf(stderr,"  Stdout defaults to SAM unless --output-fmt, -b, or -C is used.\n");
+    fprintf(stderr,"  bytaxid defaults to --strict 0.\n");
+    fprintf(stderr,"\n");
+    fprintf(stderr,"Examples:\n");
+    fprintf(stderr,"  ./extract_reads bytaxid -i in.bam --taxid 3258 --nodes nodes.dmp --acc2tax acc2tax.map -b -o taxa.bam\n");
+    fprintf(stderr,"  ./extract_reads bytaxid -i in.bam --taxid 3258 --nodes nodes.dmp --acc2tax acc2tax.map --strict 1 > taxa.sam\n");
+    fprintf(stderr,"  ./extract_reads bytaxid -i in.bam --taxnames \"Mammalia,Primates\" --names names.dmp --nodes nodes.dmp --acc2tax acc2tax.map > taxa.sam\n");
     return 0;
   }
 
-  argv++;
   char *keyfile = NULL;
   char *hts = NULL;
   char *taxid = NULL;
   char *nodefile = NULL;
-  //  char out_mode[5] = "wb";
   char *acc2tax = NULL;
   int strict = 0;
   char *type = NULL;
-  char *outfile = strdup("tmp.bam");
+  char *outfile = strdup("-");
   int forcedump = 0;
   char *accout = NULL;
   char *taxnames = NULL;
   char *names = NULL;
-  while(*argv){
-    char *key=*argv;
-    char *val=*(++argv);
-    //    fprintf(stderr,"key: %s val: %s\n",key,val);
-    if(!strcasecmp("-hts",key)) hts=strdup(val);
-    else if(!strcasecmp("-key",key)) keyfile=strdup(val);
-    else if(!strcasecmp("-taxid",key)) taxid=strdup(val);
-    else if(!strcasecmp("-taxnames",key)) taxnames=strdup(val);
-    else if(!strcasecmp("-names",key)) names=strdup(val);
-    else if(!strcasecmp("-nodes",key)) nodefile=strdup(val);
-    else if(!strcasecmp("-acc2tax",key)) acc2tax=strdup(val);
-    else if(!strcasecmp("-accout",key)) accout=strdup(val);
-    else if(!strcasecmp("-strict",key)) strict=atoi(val);
-    else if(!strcasecmp("-forcedump",key)) forcedump=atoi(val);
-    else if(!strcasecmp("-out",key)) outfile=strdup(val);
-    else if(!strcasecmp("-type",key))
-      type=strdup(val);
+  for(int i=1;i<argc;i++){
+    char *key = argv[i];
+    if(!strcasecmp("-hts",key) || !strcasecmp("-i",key) || !strcasecmp("--input",key)) hts=dup_cli_value(key,argc,argv,i);
+    else if(!strcasecmp("-key",key) || !strcasecmp("-R",key) || !strcasecmp("--ref-file",key)) keyfile=dup_cli_value(key,argc,argv,i);
+    else if(!strcasecmp("-taxid",key) || !strcasecmp("--taxid",key)) taxid=dup_cli_value(key,argc,argv,i);
+    else if(!strcasecmp("-taxnames",key) || !strcasecmp("--taxnames",key) || !strcasecmp("--taxnames-file",key)) taxnames=dup_cli_value(key,argc,argv,i);
+    else if(!strcasecmp("-names",key) || !strcasecmp("--names",key)) names=dup_cli_value(key,argc,argv,i);
+    else if(!strcasecmp("-nodes",key) || !strcasecmp("--nodes",key)) nodefile=dup_cli_value(key,argc,argv,i);
+    else if(!strcasecmp("-acc2tax",key) || !strcasecmp("--acc2tax",key)) acc2tax=dup_cli_value(key,argc,argv,i);
+    else if(!strcasecmp("-accout",key) || !strcasecmp("--accout",key)) accout=dup_cli_value(key,argc,argv,i);
+    else if(!strcasecmp("-strict",key) || !strcasecmp("--strict",key)) strict=atoi(dup_cli_value(key,argc,argv,i));
+    else if(!strcasecmp("-forcedump",key) || !strcasecmp("--forcedump",key)) forcedump=atoi(dup_cli_value(key,argc,argv,i));
+    else if(!strcasecmp("-out",key) || !strcasecmp("-o",key) || !strcasecmp("--output",key)) {
+      if(outfile!=NULL) free(outfile);
+      outfile=dup_cli_value(key,argc,argv,i);
+    }
+    else if(!strcasecmp("-type",key) || !strcasecmp("--output-fmt",key))
+      type=dup_cli_value(key,argc,argv,i);
+    else if(!strcasecmp("-b",key))
+      type=strdup("bam");
+    else if(!strcasecmp("-C",key))
+      type=strdup("cram");
     else{
-      fprintf(stderr,"\t Unknown parameter key:%s val:%s\n",key,val);
+      fprintf(stderr,"\t Unknown parameter key:%s\n",key);
       return 0;
     }
-    ++argv;
   }
   
   fprintf(stderr,
@@ -571,35 +653,58 @@ int main_bytaxid(int argc,char**argv){
 
 int main_byreadid(int argc,char**argv){
   if(argc==2){
-    fprintf(stderr,"./extract_reads byreadid -hts -key -out -type\n");
-    fprintf(stderr,"./extract_reads byreadid -key keyfile -hts compr.bam\n");
+    fprintf(stderr,"Usage:\n");
+    fprintf(stderr,"  ./extract_reads byreadid -i IN -N READS.txt [-o OUT] [--output-fmt sam|bam|cram] [--exclude]\n");
+    fprintf(stderr,"\n");
+    fprintf(stderr,"Options:\n");
+    fprintf(stderr,"  -i, --input IN          Input SAM/BAM/CRAM file.\n");
+    fprintf(stderr,"  -N, --qname-file FILE   File with read names to include, one per line.\n");
+    fprintf(stderr,"  -o, --output OUT        Output file. If omitted, write to stdout.\n");
+    fprintf(stderr,"  --output-fmt FMT        Output format: sam, bam, or cram.\n");
+    fprintf(stderr,"  -b                      Write BAM output.\n");
+    fprintf(stderr,"  -C                      Write CRAM output.\n");
+    fprintf(stderr,"  --exclude               Invert the read-name selection.\n");
+    fprintf(stderr,"\n");
+    fprintf(stderr,"Defaults:\n");
+    fprintf(stderr,"  If -o/--output is omitted, output is written to stdout.\n");
+    fprintf(stderr,"  Stdout defaults to SAM unless --output-fmt, -b, or -C is used.\n");
+    fprintf(stderr,"\n");
+    fprintf(stderr,"Examples:\n");
+    fprintf(stderr,"  ./extract_reads byreadid -i in.bam -N reads.txt -o selected.sam --output-fmt sam\n");
+    fprintf(stderr,"  ./extract_reads byreadid -i in.bam -N reads.txt --exclude > other_reads.sam\n");
+    fprintf(stderr,"  ./extract_reads byreadid -i in.bam -N reads.txt -b > selected.bam\n");
     return 0;
   }
   
-  argv++;
   char *keyfile = NULL;
   char *hts = NULL;
-  int type = 0;
-  char *outfile = strdup("tmp.bam");
-  char out_mode[5] = "wb";
+  char *type = NULL;
+  char *outfile = strdup("-");
   int docomplement = 0;
-  while(*argv){
-    char *key=*argv;
-    char *val=*(++argv);
-    //X    fprintf(stderr,"key: %s val: %s\n",key,val);
-    if(!strcasecmp("-hts",key)) hts=strdup(val);
-    else if(!strcasecmp("-key",key)) keyfile=strdup(val);
-    else if(!strcasecmp("-out",key)) outfile=strdup(val);
-    else if(!strcasecmp("-docomplement",key)) docomplement=atoi(val);
-    else if(!strcasecmp("-type",key)) out_mode[1]=tolower(val[0]);
+  for(int i=1;i<argc;i++){
+    char *key = argv[i];
+    if(!strcasecmp("-hts",key) || !strcasecmp("-i",key) || !strcasecmp("--input",key)) hts=dup_cli_value(key,argc,argv,i);
+    else if(!strcasecmp("-key",key) || !strcasecmp("-N",key) || !strcasecmp("--qname-file",key)) keyfile=dup_cli_value(key,argc,argv,i);
+    else if(!strcasecmp("-out",key) || !strcasecmp("-o",key) || !strcasecmp("--output",key)) {
+      if(outfile!=NULL) free(outfile);
+      outfile=dup_cli_value(key,argc,argv,i);
+    }
+    else if(!strcasecmp("-docomplement",key)) docomplement=atoi(dup_cli_value(key,argc,argv,i));
+    else if(!strcasecmp("--exclude",key)) docomplement=1;
+    else if(!strcasecmp("-type",key) || !strcasecmp("--output-fmt",key)) type=dup_cli_value(key,argc,argv,i);
+    else if(!strcasecmp("-b",key)) type=strdup("bam");
+    else if(!strcasecmp("-C",key)) type=strdup("cram");
     else{
-      fprintf(stderr,"\t Unknown parameter key:%s val:%s\n",key,val);
+      fprintf(stderr,"\t Unknown parameter key:%s\n",key);
       return 0;
     }
-    ++argv;
   }
   
-  fprintf(stderr,"\t-> key: %s \n\t-> hts: %s \n\t-> type: %d \n\t-> outfile: %s\n",keyfile,hts,type,outfile);
+  fprintf(stderr,"\t-> key: %s \n\t-> hts: %s \n\t-> type: %s \n\t-> outfile: %s\n",
+	  keyfile ? keyfile : "NULL",
+	  hts ? hts : "NULL",
+	  type ? type : "NULL",
+	  outfile ? outfile : "NULL");
 
   //open inputfile and parse header
   samFile *htsfp = hts_open(hts,"r");
@@ -609,7 +714,7 @@ int main_byreadid(int argc,char**argv){
   
   fprintf(stderr,"\t-> number of refids to use: %lu\n",cmap.size());
   
-  runextract_readid(cmap,htsfp,hdr,outfile,out_mode,docomplement);
+  runextract_readid(cmap,htsfp,hdr,outfile,type,docomplement);
   return 0;
 }
 
@@ -617,18 +722,41 @@ int main_byreadid(int argc,char**argv){
 int main(int argc,char**argv){
   
   if(argc==1){
-    fprintf(stderr,"./extract_reads bytaxid -hts [-key file_with_refnames] -taxid -nodes -acc2txt -out -strict -type [dev]\n");
-    fprintf(stderr,"./extract_reads byreadid -hts -key -out -type -docomplement\n");
-    fprintf(stderr,"./extract_reads byrefid -hts -key -out -type -docomplement\n");
-    fprintf(stderr,"-type is outputtype -type sam -type bam\n");
+    fprintf(stderr,"Usage:\n");
+    fprintf(stderr,"  ./extract_reads byreadid -i IN -N READS.txt [-o OUT] [--output-fmt sam|bam|cram] [--exclude]\n");
+    fprintf(stderr,"  ./extract_reads byrefid  -i IN -R REFS.txt  [-o OUT] [--output-fmt sam|bam|cram] [--strict 0|1] [--exclude]\n");
+    fprintf(stderr,"  ./extract_reads bytaxid  -i IN (--taxid IDS | --taxnames NAMES) --nodes NODES --acc2tax MAP [-o OUT] [--output-fmt sam|bam|cram]\n");
+    fprintf(stderr,"\n");
+    fprintf(stderr,"Common options:\n");
+    fprintf(stderr,"  -i, --input IN          Input SAM/BAM/CRAM file.\n");
+    fprintf(stderr,"  -o, --output OUT        Output file. If omitted, write to stdout.\n");
+    fprintf(stderr,"  --output-fmt FMT        Output format: sam, bam, or cram.\n");
+    fprintf(stderr,"  -b                      Write BAM output.\n");
+    fprintf(stderr,"  -C                      Write CRAM output.\n");
+    fprintf(stderr,"  --exclude               Invert the selection where supported.\n");
+    fprintf(stderr,"\n");
+    fprintf(stderr,"Defaults:\n");
+    fprintf(stderr,"  If -o/--output is omitted, output is written to stdout.\n");
+    fprintf(stderr,"  Stdout defaults to SAM unless --output-fmt, -b, or -C is used.\n");
+    fprintf(stderr,"  byreadid defaults to direct inclusion of listed read names.\n");
+    fprintf(stderr,"  byrefid defaults to --strict 1.\n");
+    fprintf(stderr,"  bytaxid defaults to --strict 0.\n");
+    fprintf(stderr,"\n");
+    fprintf(stderr,"Examples:\n");
+    fprintf(stderr,"  ./extract_reads byreadid -i in.bam -N reads.txt -o selected.sam --output-fmt sam\n");
+    fprintf(stderr,"  ./extract_reads byreadid -i in.bam -N reads.txt --exclude > other_reads.sam\n");
+    fprintf(stderr,"  ./extract_reads byrefid -i in.bam -R refs.txt --strict 1 -o selected.sam\n");
+    fprintf(stderr,"  ./extract_reads byrefid -i in.bam -R refs.txt --strict 0 -b > selected.bam\n");
+    fprintf(stderr,"  ./extract_reads bytaxid -i in.bam --taxid 3258 --nodes nodes.dmp --acc2tax acc2tax.map -b -o taxa.bam\n");
+    fprintf(stderr,"  ./extract_reads bytaxid -i in.bam --taxnames \"Mammalia,Primates\" --names names.dmp --nodes nodes.dmp --acc2tax acc2tax.map > taxa.sam\n");
     return 0;
   }
   if(strcasecmp(argv[1],"bytaxid")==0)
-    return main_bytaxid(argc--,++argv);
+    return main_bytaxid(argc-1,argv+1);
   if(strcasecmp(argv[1],"byreadid")==0)
-    return main_byreadid(argc--,++argv);
+    return main_byreadid(argc-1,argv+1);
    if(strcasecmp(argv[1],"byrefid")==0)
-    return main_byrefid(argc--,++argv);
+    return main_byrefid(argc-1,argv+1);
 
   fprintf(stderr,"\t-> Unknown options please use bytaxid or byreadid or byrefid\n");
   
