@@ -346,7 +346,7 @@ main() {
     test_prints
     test_data2
     test_data2_getdamage
-    # test_compressbam
+    test_compressbam
     validate_checksums
 
     note "=====RVAL:${RVAL}======="
