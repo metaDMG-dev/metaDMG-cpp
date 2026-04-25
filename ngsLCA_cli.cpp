@@ -228,6 +228,10 @@ pars *get_pars(int argc, char **argv) {
             p->simscoreLow = atof(val);
 	else if (!strcasecmp("--sim_score_high", key))
             p->simscoreHigh = atof(val);
+        else if (!strcasecmp("--minAni", key) || !strcasecmp("--min_ani", key))
+            p->simscoreLow = atof(val);
+        else if (!strcasecmp("--maxAni", key) || !strcasecmp("--max_ani", key))
+            p->simscoreHigh = atof(val);
         else if (!strcasecmp("--lca_rank", key)) {
             free(p->lca_rank);
             p->lca_rank = strdup(val);
@@ -334,6 +338,8 @@ void print_pars(FILE *fp, pars *p) {
     fprintf(fp, "\t-> --min_length\t%d\n", p->minlength);
     fprintf(fp, "\t-> --sim_score_low\t%f\n", p->simscoreLow);
     fprintf(fp, "\t-> --sim_score_high\t%f\n", p->simscoreHigh);
+    fprintf(fp, "\t-> --minAni\t%f\n", p->simscoreLow);
+    fprintf(fp, "\t-> --maxAni\t%f\n", p->simscoreHigh);
     fprintf(fp, "\t-> --out_prefix\t%s\n", p->outnames);
     fprintf(fp, "\t-> --lca_rank\t%s\n", p->lca_rank);
     fprintf(fp, "\t-> --fix_ncbi\t%d\n", p->fixdb);

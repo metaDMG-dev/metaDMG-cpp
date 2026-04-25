@@ -480,7 +480,6 @@ void hts(gzFile fp, samFile *fp_in, int2int &ref2tax, int2int &parent, bam_hdr_t
 
     int lca;
     int2int closest_species;
-    int skip = 0;
     kstring_t *kstr = new kstring_t;
     kstr->s = NULL;kstr->l = kstr->m =0;
     long nreads = 0;
@@ -524,7 +523,7 @@ void hts(gzFile fp, samFile *fp_in, int2int &ref2tax, int2int &parent, bam_hdr_t
             continue;
         // change of ref
         if (strcmp(last, qname) != 0) {
-            if (taxids.size() > 0 && skip == 0) {
+            if (taxids.size() > 0) {
                 //	fprintf(stderr,"length of taxids:%lu and other:%lu minedit:%d\n",taxids.size(),editdist.size(),*std::min_element(editdist.begin(),editdist.end()));
 
                 size_t size = taxids.size();
@@ -607,7 +606,6 @@ void hts(gzFile fp, samFile *fp_in, int2int &ref2tax, int2int &parent, bam_hdr_t
                     }
                 }
             }
-            skip = 0;
             specs.clear();
             editdist.clear();
             keep.clear();
@@ -635,8 +633,7 @@ void hts(gzFile fp, samFile *fp_in, int2int &ref2tax, int2int &parent, bam_hdr_t
             double myscore = 1.0 - (((double)thiseditdist) / seqlen);
             //      fprintf(stderr," score:%f\t",myscore);
             if (myscore > scoreHigh) {
-                // fprintf(stderr,"skipped2\n");
-                skip = 1;
+                // Drop only this alignment; keep the rest of the read group.
                 continue;
             } else if (myscore < scoreLow) {
                 //	fprintf(stderr,"continued2\n");
@@ -680,7 +677,7 @@ void hts(gzFile fp, samFile *fp_in, int2int &ref2tax, int2int &parent, bam_hdr_t
 	      editdist.push_back(thiseditdist);
         }
     }
-    if (taxids.size() > 0 && skip == 0) {
+    if (taxids.size() > 0) {
         size_t size = taxids.size();
 	if (size != myq->l) {
 	  fprintf(stderr, "\t-> Error: size does not match myq->l, will exit\n");

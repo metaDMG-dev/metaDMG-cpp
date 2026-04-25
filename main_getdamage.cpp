@@ -19,6 +19,8 @@ struct getdamage_args {
     int printLength;
     int editdistMin;
     int editdistMax;
+    double minAni;
+    double maxAni;
     char *refName;
     char *fname;
     int runmode;
@@ -36,6 +38,8 @@ static int usage_getdamage(FILE *fp) {
     fprintf(fp, "  -l/--min_length\t minimum read length (default: 35)\n");
     fprintf(fp, "  --edit_dist_min\t minimum read edit distance (default: -1, disabled)\n");
     fprintf(fp, "  --edit_dist_max\t maximum read edit distance (default: -1, disabled)\n");
+    fprintf(fp, "  --minAni/--min_ani\t minimum ANI from NM/read_length (default: -1, disabled)\n");
+    fprintf(fp, "  --maxAni/--max_ani\t maximum ANI from NM/read_length (default: -1, disabled)\n");
     fprintf(fp, "  -p/--print_length\t number of base pairs from read termini to estimate damage (default: 5)\n");
     fprintf(fp, "  -r/--run_mode\t\t 0: global estimate (default)\n\t\t\t 1: damage patterns will be calculated for each chr/scaffold contig\n");
     fprintf(fp, "  -i/--ignore_errors\t continue analyses even if there are errors.\n");
@@ -90,6 +94,8 @@ static int process_getdamage_reads(htsFile *fp,
                                    int minLength,
                                    int editMin,
                                    int editMax,
+                                   double minAni,
+                                   double maxAni,
                                    int runmode,
                                    std::map<int, std::vector<float> > &gcconts,
                                    std::map<int, std::vector<float> > &seqlens,
@@ -117,15 +123,23 @@ static int process_getdamage_reads(htsFile *fp,
             continue;
         }
         uint8_t *nm = bam_aux_get(b, "NM");
-	if(editMin!=-1||editMax!=-1){
-	  if (nm != NULL) {
+        if (nm != NULL) {
             const int thiseditdist = (int)bam_aux2i(nm);
             if (editMin != -1 && thiseditdist < editMin)
-	      continue;
+                continue;
             if (editMax != -1 && thiseditdist > editMax)
-	      continue;
-	  }
-	}
+                continue;
+
+            if (minAni != -1.0 || maxAni != -1.0) {
+                if (b->core.l_qseq <= 0)
+                    continue;
+                const double ani = 1.0 - (((double)thiseditdist) / ((double)b->core.l_qseq));
+                if (minAni != -1.0 && ani < minAni)
+                    continue;
+                if (maxAni != -1.0 && ani > maxAni)
+                    continue;
+            }
+        }
 	dmg->damage_analysis(b, runmode != 0 ? b->core.tid : 0, 1);
 
         float mygc = gccontent(b);
@@ -177,6 +191,8 @@ static getdamage_args init_getdamage_args() {
     args.printLength = 5;
     args.editdistMin = -1;
     args.editdistMax = -1;
+    args.minAni = -1.0;
+    args.maxAni = -1.0;
     args.refName = NULL;
     args.fname = NULL;
     args.runmode = 0;
@@ -195,6 +211,10 @@ static int parse_getdamage_args(int argc, char **argv, getdamage_args &args) {
         {"min_length", required_argument, 0, 'l'},
         {"edit_dist_min", required_argument, 0, 1000},
         {"edit_dist_max", required_argument, 0, 1001},
+        {"min_ani", required_argument, 0, 1002},
+        {"max_ani", required_argument, 0, 1003},
+        {"minAni", required_argument, 0, 1002},
+        {"maxAni", required_argument, 0, 1003},
         {"print_length", required_argument, 0, 'p'},
         {"run_mode", required_argument, 0, 'r'},
         {"ignore_errors", no_argument, 0, 'i'},
@@ -233,6 +253,12 @@ static int parse_getdamage_args(int argc, char **argv, getdamage_args &args) {
         break;
       case 1001:
         args.editdistMax = atoi(optarg);
+        break;
+      case 1002:
+        args.minAni = atof(optarg);
+        break;
+      case 1003:
+        args.maxAni = atof(optarg);
         break;
       case 'r':
         args.runmode = atoi(optarg);
@@ -320,7 +346,7 @@ int main_getdamage(int argc, char **argv) {
     if (rc != 0)
         goto cleanup;
 
-    fprintf(stderr, "\t-> ./metaDMG-cpp refName: %s min_length: %d edit_dist_min: %d edit_dist_max: %d print_length: %d run_mode: %d out_prefix: %s nthreads: %d ignore_errors: %d rlens_flat_out: %d\n", args.refName ? args.refName : "NULL", args.minLength, args.editdistMin, args.editdistMax, args.printLength, args.runmode, args.onam, args.nthreads, args.ignore_errors, args.rlens_flat_out);
+    fprintf(stderr, "\t-> ./metaDMG-cpp refName: %s min_length: %d edit_dist_min: %d edit_dist_max: %d minAni: %f maxAni: %f print_length: %d run_mode: %d out_prefix: %s nthreads: %d ignore_errors: %d rlens_flat_out: %d\n", args.refName ? args.refName : "NULL", args.minLength, args.editdistMin, args.editdistMax, args.minAni, args.maxAni, args.printLength, args.runmode, args.onam, args.nthreads, args.ignore_errors, args.rlens_flat_out);
     if (args.fname == NULL) {
         rc = usage_getdamage(stderr);
         goto cleanup;
@@ -355,6 +381,21 @@ int main_getdamage(int argc, char **argv) {
         rc = 1;
         goto cleanup;
     }
+    if (args.minAni < -1.0 || args.minAni > 1.0) {
+        fprintf(stderr, "\t-> Error: minAni/min_ani must be -1 (disabled) or between 0 and 1\n");
+        rc = 1;
+        goto cleanup;
+    }
+    if (args.maxAni < -1.0 || args.maxAni > 1.0) {
+        fprintf(stderr, "\t-> Error: maxAni/max_ani must be -1 (disabled) or between 0 and 1\n");
+        rc = 1;
+        goto cleanup;
+    }
+    if (args.minAni != -1.0 && args.maxAni != -1.0 && args.minAni > args.maxAni) {
+        fprintf(stderr, "\t-> Error: minAni/min_ani cannot be greater than maxAni/max_ani\n");
+        rc = 1;
+        goto cleanup;
+    }
     if (args.runmode != 0 && args.runmode != 1) {
         fprintf(stderr, "\t-> Error: run_mode must be 0 or 1\n");
         rc = 1;
@@ -366,7 +407,7 @@ int main_getdamage(int argc, char **argv) {
       goto cleanup;
 
     dmg = new damage(args.printLength, args.nthreads, 0);
-    rc = process_getdamage_reads(fp, hdr, b, dmg, args.minLength, args.editdistMin, args.editdistMax, args.runmode, gcconts, seqlens, args.fname);
+    rc = process_getdamage_reads(fp, hdr, b, dmg, args.minLength, args.editdistMin, args.editdistMax, args.minAni, args.maxAni, args.runmode, gcconts, seqlens, args.fname);
     if (rc != 0)
       goto cleanup;
 
