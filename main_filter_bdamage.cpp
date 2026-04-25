@@ -339,15 +339,29 @@ static int maybe_infer_companion_inputs(filter_bdamage_args &args) {
         return 0;
 
     if (args.stat_infile == NULL) {
-        std::string s = base + ".stat.gz";
-        if (fexists(s.c_str()))
-            args.stat_infile = strdup(s.c_str());
+        std::vector<std::string> candidates;
+        candidates.push_back(base + ".stat.gz");
+        candidates.push_back(base + ".stat");
+        for (size_t i = 0; i < candidates.size(); i++) {
+            if (fexists(candidates[i].c_str())) {
+                args.stat_infile = strdup(candidates[i].c_str());
+                break;
+            }
+        }
     }
+
     if (args.rlens_infile == NULL) {
-        std::string s = base + ".rlens.gz";
-        if (fexists(s.c_str()))
-            args.rlens_infile = strdup(s.c_str());
+        std::vector<std::string> candidates;
+        candidates.push_back(base + ".rlens.gz");
+        candidates.push_back(base + ".rlens");
+        for (size_t i = 0; i < candidates.size(); i++) {
+            if (fexists(candidates[i].c_str())) {
+                args.rlens_infile = strdup(candidates[i].c_str());
+                break;
+            }
+        }
     }
+
     return 0;
 }
 

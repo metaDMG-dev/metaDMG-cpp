@@ -103,6 +103,14 @@ assert_gzip_contains() {
     fi
 }
 
+assert_gzip_not_contains() {
+    local file="$1"
+    local pattern="$2"
+
+    if gunzip -c "${file}" | grep -F -- "${pattern}" >/dev/null; then
+        mark_fail "Unexpected pattern found in ${file}: ${pattern}"
+    fi
+}
 test_getdamage() {
     run_logged "Running getdamage global" \
         "${PRG}" getdamage --run_mode 0 --min_length 35 --print_length 5 \
@@ -260,6 +268,48 @@ test_data2_getdamage() {
 
     assert_gzip_contains output_data2_gd/sam5.stat.gz $'ref1\t1\t607.000000\t0.000000\t0.000000\t0.000000\tNA\tNA'
     assert_gzip_contains output_data2_gd/sam5.rlens.gz $'0\t607:1'
+}
+
+
+test_filter_bdamage() {
+    run_logged "Running filter_bdamage nodes expansion (lca taxid)" \
+        "${PRG}" filter_bdamage output_data2/sam3.bdamage.gz \
+        --id 10 --nodes data2/nodes.dmp --out_prefix output_data2/filter_nodes
+
+    require_file output_data2/filter_nodes.bdamage.gz || return 0
+    require_file output_data2/filter_nodes.stat.gz || return 0
+    require_file output_data2/filter_nodes.rlens.gz || return 0
+
+    assert_gzip_contains output_data2/filter_nodes.stat.gz $'11\t1\t30.000000\t0.000000\t0.000000\t0.000000\t"l__Bacteria"\t"subspecies"'
+    assert_gzip_not_contains output_data2/filter_nodes.stat.gz $'10\t1\t30.000000\t0.000000\t0.000000\t0.000000\t"l__Bacteria"\t"species"'
+
+    if ! "${PRG}" print output_data2/filter_nodes.bdamage.gz \
+        1>output_data2/filter_nodes.bdamage.tsv 2>>"${LOG}"; then
+        mark_fail "Problem running print on output_data2/filter_nodes.bdamage.gz"
+    fi
+    assert_file_line_count output_data2/filter_nodes.bdamage.tsv 61
+
+    run_logged "Running filter_bdamage resolve with BAM (getdamage local)" \
+        "${PRG}" filter_bdamage output_data2_gd/sam2.bdamage.gz \
+        --resolve ref2 --bam data2/sam2.sam --out_prefix output_data2_gd/filter_ref2
+
+    require_file output_data2_gd/filter_ref2.bdamage.gz || return 0
+    require_file output_data2_gd/filter_ref2.stat.gz || return 0
+    require_file output_data2_gd/filter_ref2.rlens.gz || return 0
+
+    assert_gzip_contains output_data2_gd/filter_ref2.stat.gz $'ref2\t1\t30.000000\t0.000000\t0.000000\t0.000000\tNA\tNA'
+    assert_gzip_not_contains output_data2_gd/filter_ref2.stat.gz $'ref1\t1\t30.000000\t0.000000\t0.000000\t0.000000\tNA\tNA'
+    assert_gzip_not_contains output_data2_gd/filter_ref2.stat.gz $'ref3\t1\t30.000000\t0.000000\t0.000000\t0.000000\tNA\tNA'
+
+    assert_gzip_contains output_data2_gd/filter_ref2.rlens.gz $'1\t30:1'
+    assert_gzip_not_contains output_data2_gd/filter_ref2.rlens.gz $'0\t30:1'
+    assert_gzip_not_contains output_data2_gd/filter_ref2.rlens.gz $'2\t30:1'
+
+    if ! "${PRG}" print output_data2_gd/filter_ref2.bdamage.gz \
+        1>output_data2_gd/filter_ref2.bdamage.tsv 2>>"${LOG}"; then
+        mark_fail "Problem running print on output_data2_gd/filter_ref2.bdamage.gz"
+    fi
+    assert_file_line_count output_data2_gd/filter_ref2.bdamage.tsv 11
 }
 
 test_compressbam() {
@@ -455,6 +505,7 @@ main() {
     test_prints
     test_data2
     test_data2_getdamage
+    test_filter_bdamage
     test_compressbam
     test_extract_reads
     validate_checksums
