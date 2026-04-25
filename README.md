@@ -70,6 +70,34 @@ Top-level and subcommand help:
 ./metaDMG-cpp <subcommand> -h
 ```
 
+## Filter existing bdamage output
+`filter_bdamage` creates a subset of an existing `.bdamage.gz` file and (when available) matching `.stat.gz` and `.rlens.gz` files.
+
+Important ID semantics:
+- For `lca` output, IDs are taxids.
+- For `getdamage --run_mode 1`, IDs are BAM reference offsets (tid), not taxids.
+
+Basic usage:
+```
+./metaDMG-cpp filter_bdamage in.bdamage.gz --id 11 --out_prefix subset
+```
+
+Taxonomic expansion with descendants (from nodes):
+```
+./metaDMG-cpp filter_bdamage in.bdamage.gz --id 11 --out_prefix subset --nodes nodes.dmp.gz
+```
+This includes taxid `11` and all descendants of `11` from `nodes.dmp.gz`.
+
+Resolve by reference/accession:
+```
+./metaDMG-cpp filter_bdamage in.bdamage.gz --resolve ref2 --bam reads.bam --out_prefix subset
+./metaDMG-cpp filter_bdamage in.bdamage.gz --resolve ACC123 --acc2tax acc2taxid.map.gz --out_prefix subset
+```
+
+Companion files (`stat` and `rlens`):
+- Auto-detected by prefix when omitted: `X.bdamage.gz` -> `X.stat.gz` and `X.rlens.gz`.
+- Can be set explicitly: `--stat file.stat.gz --rlens file.rlens.gz`.
+
 ## Damage analysis (non-taxonomically assigned)
 metaDMG-cpp calculates substitutions between reads and reference sequences. It can operate in two modes:
 
