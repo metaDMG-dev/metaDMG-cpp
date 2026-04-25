@@ -181,7 +181,7 @@ static void write_getdamage_outputs(const getdamage_args &args,
                                     bam_hdr_t *hdr,
                                     damage *dmg) {
     dmg->printit(stdout, args.printLength);
-    dmg->write(args.onam, args.runmode == 1 ? hdr : NULL);
+    (void)hdr;
     dmg->bwrite(args.onam, args.rlens_flat_out);
 }
 

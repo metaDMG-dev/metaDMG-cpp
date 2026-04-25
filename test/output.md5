@@ -5,11 +5,9 @@
 # 7a7363a09607cacbad8c432fdd46b26e  output/test_dfit_local.dfit.fix
 783c885b2ee8ac6469ab070b972e73d8  output/test_getdamage_global.bdamage
 3398e353af15d1646228cb8bbaf4a5a8  output/test_getdamage_global.bdamage.tsv
-f0882ca11587cea63aa120d1a64c8d14  output/test_getdamage_global.res
 ba1415f0e1889f819b430651dc56b4ff  output/test_getdamage_global.stat
 71308047bbc8f703fdd65c798de91cfa  output/test_getdamage_local.bdamage
 93ec5114d069f984ccaaa5079c15db1e  output/test_getdamage_local.bdamage.tsv
-d95e54a3886b9f411bde8d96de4af32e  output/test_getdamage_local.res
 5f51536e977e54529cb2971462561315  output/test_getdamage_local.stat
 443b35425bc868259fde18dbe86011e3  output/test_lca.bdamage
 # d4532cede0b424946f92559b2e737899  output/test_lca.lca##this has been commented out because eithput is random between reqad and the reverse complement
