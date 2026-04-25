@@ -77,6 +77,8 @@ Options:
   -n/--threads	        number of threads used for reading/writing (default: 4)
   -f/--fasta	        reference genome (required with CRAM)
   -l/--min_length	reads shorter than minlength will be discarded (default: 35)
+  --edit_dist_min	minimum read edit distance (minimum number of nucleotide mismatches between read and reference, default: -1 disabled)
+  --edit_dist_max	maximum read edit distance (maximum number of nucleotide mismatches between read and reference, disabled if not specified)
   -p/--print_length	number of positions along the read termini that are used to estimate the damage (default: 5)
   -r/--run_mode	        0: **global**  (default)
                         1: **local** damage patterns will be calculated for each chr/scaffold contig.
@@ -109,7 +111,7 @@ Options:
   --names 			names.dmp.gz
   --nodes 			nodes.dmp.gz
   --acc2tax 		accesion to taxid table
-  --edit_dist_min	minimum read edit distance (minimum number of nucleotide mismatches between read and reference, disabled if not specified)
+  --edit_dist_min	minimum read edit distance (minimum number of nucleotide mismatches between read and reference, default: -1 disabled)
   --edit_dist_max	maximum read edit distance (maximum number of nucleotide mismatches between read and reference, disabled if not specified)
   --min_mapq		minimum mapping quality	(not desirable if you have aligned the reads using bowtie2 specifying the -k option)
   --min_length		minimum read length

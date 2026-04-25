@@ -17,6 +17,8 @@
 struct getdamage_args {
     int minLength;
     int printLength;
+    int editdistMin;
+    int editdistMax;
     char *refName;
     char *fname;
     int runmode;
@@ -32,6 +34,8 @@ static int usage_getdamage(FILE *fp) {
     fprintf(fp, "  -n/--threads\t\t number of threads used for reading/writing (default: 4)\n");
     fprintf(fp, "  -f/--fasta\t\t reference genome (required with CRAM)\n");
     fprintf(fp, "  -l/--min_length\t minimum read length (default: 35)\n");
+    fprintf(fp, "  --edit_dist_min\t minimum read edit distance (default: -1, disabled)\n");
+    fprintf(fp, "  --edit_dist_max\t maximum read edit distance (default: -1, disabled)\n");
     fprintf(fp, "  -p/--print_length\t number of base pairs from read termini to estimate damage (default: 5)\n");
     fprintf(fp, "  -r/--run_mode\t\t 0: global estimate (default)\n\t\t\t 1: damage patterns will be calculated for each chr/scaffold contig\n");
     fprintf(fp, "  -i/--ignore_errors\t continue analyses even if there are errors.\n");
@@ -84,6 +88,8 @@ static int process_getdamage_reads(htsFile *fp,
                                    bam1_t *b,
                                    damage *dmg,
                                    int minLength,
+                                   int editMin,
+                                   int editMax,
                                    int runmode,
                                    std::map<int, std::vector<float> > &gcconts,
                                    std::map<int, std::vector<float> > &seqlens,
@@ -110,8 +116,17 @@ static int process_getdamage_reads(htsFile *fp,
                         bam_get_qname(b), --skipper[2]);
             continue;
         }
-
-        dmg->damage_analysis(b, runmode != 0 ? b->core.tid : 0, 1);
+        uint8_t *nm = bam_aux_get(b, "NM");
+	if(editMin!=-1||editMax!=-1){
+	  if (nm != NULL) {
+            const int thiseditdist = (int)bam_aux2i(nm);
+            if (editMin != -1 && thiseditdist < editMin)
+	      continue;
+            if (editMax != -1 && thiseditdist > editMax)
+	      continue;
+	  }
+	}
+	dmg->damage_analysis(b, runmode != 0 ? b->core.tid : 0, 1);
 
         float mygc = gccontent(b);
         float mylen = b->core.l_qseq;
@@ -160,6 +175,8 @@ static getdamage_args init_getdamage_args() {
     getdamage_args args;
     args.minLength = 35;
     args.printLength = 5;
+    args.editdistMin = -1;
+    args.editdistMax = -1;
     args.refName = NULL;
     args.fname = NULL;
     args.runmode = 0;
@@ -176,6 +193,8 @@ static int parse_getdamage_args(int argc, char **argv, getdamage_args &args) {
         {"rlens_flat_out", required_argument, 0, 'z'},
         {"fasta", required_argument, 0, 'f'},
         {"min_length", required_argument, 0, 'l'},
+        {"edit_dist_min", required_argument, 0, 1000},
+        {"edit_dist_max", required_argument, 0, 1001},
         {"print_length", required_argument, 0, 'p'},
         {"run_mode", required_argument, 0, 'r'},
         {"ignore_errors", no_argument, 0, 'i'},
@@ -208,6 +227,12 @@ static int parse_getdamage_args(int argc, char **argv, getdamage_args &args) {
         break;
       case 'p':
         args.printLength = atoi(optarg);
+        break;
+      case 1000:
+        args.editdistMin = atoi(optarg);
+        break;
+      case 1001:
+        args.editdistMax = atoi(optarg);
         break;
       case 'r':
         args.runmode = atoi(optarg);
@@ -295,7 +320,7 @@ int main_getdamage(int argc, char **argv) {
     if (rc != 0)
         goto cleanup;
 
-    fprintf(stderr, "\t-> ./metaDMG-cpp refName: %s min_length: %d print_length: %d run_mode: %d out_prefix: %s nthreads: %d ignore_errors: %d rlens_flat_out: %d\n", args.refName ? args.refName : "NULL", args.minLength, args.printLength, args.runmode, args.onam, args.nthreads, args.ignore_errors, args.rlens_flat_out);
+    fprintf(stderr, "\t-> ./metaDMG-cpp refName: %s min_length: %d edit_dist_min: %d edit_dist_max: %d print_length: %d run_mode: %d out_prefix: %s nthreads: %d ignore_errors: %d rlens_flat_out: %d\n", args.refName ? args.refName : "NULL", args.minLength, args.editdistMin, args.editdistMax, args.printLength, args.runmode, args.onam, args.nthreads, args.ignore_errors, args.rlens_flat_out);
     if (args.fname == NULL) {
         rc = usage_getdamage(stderr);
         goto cleanup;
@@ -315,6 +340,21 @@ int main_getdamage(int argc, char **argv) {
         rc = 1;
         goto cleanup;
     }
+    if (args.editdistMin < -1) {
+        fprintf(stderr, "\t-> Error: edit_dist_min must be -1 or greater\n");
+        rc = 1;
+        goto cleanup;
+    }
+    if (args.editdistMax < -1) {
+        fprintf(stderr, "\t-> Error: edit_dist_max must be -1 or greater\n");
+        rc = 1;
+        goto cleanup;
+    }
+    if (args.editdistMin != -1 && args.editdistMax != -1 && args.editdistMin > args.editdistMax) {
+        fprintf(stderr, "\t-> Error: edit_dist_min cannot be greater than edit_dist_max\n");
+        rc = 1;
+        goto cleanup;
+    }
     if (args.runmode != 0 && args.runmode != 1) {
         fprintf(stderr, "\t-> Error: run_mode must be 0 or 1\n");
         rc = 1;
@@ -326,7 +366,7 @@ int main_getdamage(int argc, char **argv) {
       goto cleanup;
 
     dmg = new damage(args.printLength, args.nthreads, 0);
-    rc = process_getdamage_reads(fp, hdr, b, dmg, args.minLength, args.runmode, gcconts, seqlens, args.fname);
+    rc = process_getdamage_reads(fp, hdr, b, dmg, args.minLength, args.editdistMin, args.editdistMax, args.runmode, gcconts, seqlens, args.fname);
     if (rc != 0)
       goto cleanup;
 
