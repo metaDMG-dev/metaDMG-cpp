@@ -1,0 +1,362 @@
+#!/usr/bin/env bash
+# test script for metaDMG
+
+set -u
+set -o pipefail
+
+if [[ -x ../metaDMG-cpp ]]; then
+    PRG=../metaDMG-cpp
+else
+    PRG=metaDMG-cpp
+fi
+
+BAM1=./data/f570b1db7c.dedup.filtered.bam
+BAM="$(dirname "${BAM1}")/$(basename "${BAM1}" .bam).rname.bam"
+LOG="$(basename "$0").log"
+RVAL=0
+
+note() {
+    echo "$*"
+}
+
+mark_fail() {
+    echo "$*"
+    RVAL=1
+}
+
+run_logged() {
+    local label="$1"
+    shift
+
+    note "${label}"
+    "$@" >>"${LOG}" 2>&1
+    local rc=$?
+    if [[ ${rc} -ne 0 ]]; then
+        mark_fail "Problem running ${label}"
+    fi
+    return 0
+}
+
+require_file() {
+    local path="$1"
+    if [[ ! -f "${path}" ]]; then
+        mark_fail "Problem finding file: ${path}"
+        return 1
+    fi
+    return 0
+}
+
+require_cmd() {
+    local cmd="$1"
+    if ! command -v "${cmd}" >/dev/null 2>&1; then
+        mark_fail "Problem finding program: ${cmd}"
+        return 1
+    fi
+    return 0
+}
+
+prepare() {
+    note "Using Logfile: ${LOG}"
+    rm -f "${LOG}" ./*.bin
+    mkdir -p output
+    mkdir -p output_data2
+    mkdir -p output_data2_gd
+    mkdir -p output_compressbam
+}
+
+assert_file_contains() {
+    local file="$1"
+    local pattern="$2"
+
+    if ! grep -F -- "${pattern}" "${file}" >/dev/null; then
+        mark_fail "Expected pattern not found in ${file}: ${pattern}"
+    fi
+}
+
+assert_file_not_contains() {
+    local file="$1"
+    local pattern="$2"
+
+    if grep -F -- "${pattern}" "${file}" >/dev/null; then
+        mark_fail "Unexpected pattern found in ${file}: ${pattern}"
+    fi
+}
+
+assert_gzip_contains() {
+    local file="$1"
+    local pattern="$2"
+
+    if ! gunzip -c "${file}" | grep -F -- "${pattern}" >/dev/null; then
+        mark_fail "Expected pattern not found in ${file}: ${pattern}"
+    fi
+}
+
+test_getdamage() {
+    run_logged "Running getdamage global" \
+        "${PRG}" getdamage --run_mode 0 --min_length 35 --print_length 5 \
+        --out_prefix output/test_getdamage_global "${BAM}"
+
+    run_logged "Running getdamage local" \
+        "${PRG}" getdamage -r 1 -l 35 -p 5 \
+        -o output/test_getdamage_local "${BAM}"
+}
+
+test_lca_aggregate() {
+    run_logged "Running lca" \
+        "${PRG}" lca --bam "${BAM}" --names data/names.dmp.gz \
+        --nodes data/nodes.dmp.gz --acc2tax data/acc2taxid.map.gz \
+        --sim_score_low 0.9 --sim_score_high 1.0 --edit_dist_min 0 \
+        --edit_dist_max 10 --min_mapq 0 --how_many 35 --weight_type 1 \
+        --fix_ncbi 0 --out_prefix output/test_lca
+
+    if ! gunzip -c output/test_lca.lca.gz | cut -f1,3-100 > output/test_lca.lca.sub; then
+        mark_fail "Problem preparing output/test_lca.lca.sub"
+    fi
+
+    run_logged "Running aggregate" \
+        "${PRG}" aggregate output/test_lca.bdamage.gz --nodes data/nodes.dmp.gz \
+        --names data/names.dmp.gz --lcastat output/test_lca.stat.gz \
+        --out_prefix output/test_aggregate
+}
+
+test_dfit() {
+    run_logged "Running dfit local (single threaded)" \
+        "${PRG}" dfit output/test_lca.bdamage.gz --names data/names.dmp.gz \
+        --nodes data/nodes.dmp.gz --showfits 2 --nopt 2 --nbootstrap 2 \
+        --seed 12345 --lib ds --out output/test_dfit_local
+
+    note "Running test of output/test_dfit_local.dfit.gz by gzip -t"
+    if ! gzip -t output/test_dfit_local.dfit.gz; then
+        mark_fail "Problem validating output/test_dfit_local.dfit.gz with gzip -t"
+    fi
+
+    note "Will now run gunzip -c output/test_dfit_local.dfit.gz | wc -c"
+    if ! gunzip -c output/test_dfit_local.dfit.gz | wc -c; then
+        mark_fail "Problem reading output/test_dfit_local.dfit.gz"
+    fi
+
+    if ! gunzip -c output/test_dfit_local.dfit.gz | \
+        cut -f1-6,8- | \
+        awk 'BEGIN{OFS=FS="\t"} NR==1 {print; next} {for(i=2;i<=NF;i++) if($i ~ /^[0-9.eE+-]+$/) $i = sprintf("%.2f", $i); print}' \
+        > output/test_dfit_local.dfit.fix; then
+        mark_fail "Problem creating output/test_dfit_local.dfit.fix"
+    fi
+
+    run_logged "Running dfit local (4 threaded)" \
+        "${PRG}" dfit output/test_lca.bdamage.gz --threads 4 \
+        --names data/names.dmp.gz --nodes data/nodes.dmp.gz --showfits 2 \
+        --nopt 2 --nbootstrap 2 --seed 12345 --lib ds \
+        --out output/test_dfit_local_10threads
+
+    if ! gunzip -c output/test_dfit_local_10threads.dfit.gz | \
+        cut -f1-6,8- | ./round_file.sh | sort -k1,1n \
+        > output/test_dfit_local_10threads.dfit.fix; then
+        mark_fail "Problem creating output/test_dfit_local_10threads.dfit.fix"
+    fi
+
+    run_logged "Running dfit global" \
+        "${PRG}" dfit output/test_getdamage_global.bdamage.gz --showfits 2 \
+        --seed 12345 --lib ds --out output/test_dfit_global
+
+    if ! gunzip -c output/test_dfit_global.dfit.gz | cut -f1-6,8- | \
+        ./round_file.sh > output/test_dfit_global.dfit.fix; then
+        mark_fail "Problem creating output/test_dfit_global.dfit.fix"
+    fi
+}
+
+test_prints() {
+    note "Running printoptions"
+
+    if ! "${PRG}" print output/test_getdamage_local.bdamage.gz \
+        1>output/test_getdamage_local.bdamage.tsv 2>>"${LOG}"; then
+        mark_fail "Problem running print on output/test_getdamage_local.bdamage.gz"
+    fi
+
+    if ! "${PRG}" print output/test_getdamage_global.bdamage.gz \
+        1>output/test_getdamage_global.bdamage.tsv 2>>"${LOG}"; then
+        mark_fail "Problem running print on output/test_getdamage_global.bdamage.gz"
+    fi
+
+    run_logged "Running print_ugly basic" \
+        "${PRG}" print_ugly output/test_lca.bdamage.gz --out_prefix output/test_lca
+
+    run_logged "Running print_ugly taxa" \
+        "${PRG}" print_ugly output/test_lca.bdamage.gz --names data/names.dmp.gz \
+        --nodes data/nodes.dmp.gz --lcastat output/test_lca.stat.gz \
+        --out_prefix output/test_lca_taxa
+}
+
+test_data2() {
+    run_logged "Running data2 lca sam2" \
+        "${PRG}" lca --bam data2/sam2.sam --names data2/names.dmp \
+        --nodes data2/nodes.dmp --acc2tax data2/acc2taxid.map \
+        --sim_score_low 0.9 --sim_score_high 1.0 --edit_dist_min 0 \
+        --edit_dist_max 10 --min_mapq 0 --how_many 35 --weight_type 1 \
+        --fix_ncbi 0 --out_prefix output_data2/sam2
+
+    run_logged "Running data2 lca sam3" \
+        "${PRG}" lca --bam data2/sam3.sam --names data2/names.dmp \
+        --nodes data2/nodes.dmp --acc2tax data2/acc2taxid.map \
+        --sim_score_low 0.9 --sim_score_high 1.0 --edit_dist_min 0 \
+        --edit_dist_max 10 --min_mapq 0 --how_many 35 --weight_type 1 \
+        --fix_ncbi 0 --out_prefix output_data2/sam3
+
+    run_logged "Running data2 lca sam5" \
+        "${PRG}" lca --bam data2/sam5.sam --names data2/names.dmp \
+        --nodes data2/nodes.dmp --acc2tax data2/acc2taxid.map \
+        --sim_score_low 0.9 --sim_score_high 1.0 --edit_dist_min 0 \
+        --edit_dist_max 10 --min_mapq 0 --how_many 35 --weight_type 1 \
+        --fix_ncbi 0 --out_prefix output_data2/sam5
+
+    assert_gzip_contains output_data2/sam2.lca.gz $'read1\tTTTTTTTTTTTTTTTTTTTTTTTTTTTTTT\t30\t3\t0.000000\t10:"l__Bacteria":"species"'
+    assert_gzip_contains output_data2/sam2.stat.gz $'10\t1\t30.000000\t0.000000\t0.000000\t0.000000\t"l__Bacteria"\t"species"'
+
+    assert_gzip_contains output_data2/sam3.lca.gz $'read1\tTTTTTTTTTTTTTTTTTTTTTTTTTTTTTT\t30\t2\t0.000000\t10:"l__Bacteria":"species"'
+    assert_gzip_contains output_data2/sam3.lca.gz $'read2\tAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\t30\t1\t0.000000\t11:"l__Bacteria":"subspecies"'
+    assert_gzip_contains output_data2/sam3.stat.gz $'10\t1\t30.000000\t0.000000\t0.000000\t0.000000\t"l__Bacteria"\t"species"'
+    assert_gzip_contains output_data2/sam3.stat.gz $'11\t1\t30.000000\t0.000000\t0.000000\t0.000000\t"l__Bacteria"\t"subspecies"'
+
+    assert_gzip_contains output_data2/sam5.lca.gz $'read1\t'
+    assert_gzip_contains output_data2/sam5.lca.gz $'\t607\t1\t0.000000\t11:"l__Bacteria":"subspecies"'
+    assert_gzip_contains output_data2/sam5.stat.gz $'11\t1\t607.000000\t0.000000\t0.000000\t0.000000\t"l__Bacteria"\t"subspecies"'
+}
+
+test_data2_getdamage() {
+    run_logged "Running data2 getdamage sam2" \
+        "${PRG}" getdamage --run_mode 1 --min_length 0 --print_length 5 \
+        --out_prefix output_data2_gd/sam2 data2/sam2.sam
+
+    run_logged "Running data2 getdamage sam3" \
+        "${PRG}" getdamage --run_mode 1 --min_length 0 --print_length 5 \
+        --out_prefix output_data2_gd/sam3 data2/sam3.sam
+
+    run_logged "Running data2 getdamage sam5" \
+        "${PRG}" getdamage --run_mode 1 --min_length 0 --print_length 5 \
+        --out_prefix output_data2_gd/sam5 data2/sam5.sam
+
+    assert_gzip_contains output_data2_gd/sam2.stat.gz $'ref1\t1\t30.000000\t0.000000\t0.000000\t0.000000\tNA\tNA'
+    assert_gzip_contains output_data2_gd/sam2.stat.gz $'ref2\t1\t30.000000\t0.000000\t0.000000\t0.000000\tNA\tNA'
+    assert_gzip_contains output_data2_gd/sam2.stat.gz $'ref3\t1\t30.000000\t0.000000\t0.000000\t0.000000\tNA\tNA'
+    assert_gzip_contains output_data2_gd/sam2.rlens.gz $'0\t30:1'
+    assert_gzip_contains output_data2_gd/sam2.rlens.gz $'1\t30:1'
+    assert_gzip_contains output_data2_gd/sam2.rlens.gz $'2\t30:1'
+
+    assert_gzip_contains output_data2_gd/sam3.stat.gz $'ref1\t2\t30.000000\t0.000000\t0.000000\t0.000000\tNA\tNA'
+    assert_gzip_contains output_data2_gd/sam3.stat.gz $'ref2\t1\t30.000000\t0.000000\t0.000000\t0.000000\tNA\tNA'
+    assert_gzip_contains output_data2_gd/sam3.rlens.gz $'0\t30:2'
+    assert_gzip_contains output_data2_gd/sam3.rlens.gz $'1\t30:1'
+
+    assert_gzip_contains output_data2_gd/sam5.stat.gz $'ref1\t1\t607.000000\t0.000000\t0.000000\t0.000000\tNA\tNA'
+    assert_gzip_contains output_data2_gd/sam5.rlens.gz $'0\t607:1'
+}
+
+test_compressbam() {
+    local compressbam="../misc/compressbam"
+    local header_all="output_compressbam/basic.all.header.sam"
+    local reads_all="output_compressbam/basic.all.reads.sam"
+    local header_min="output_compressbam/basic.min.header.sam"
+    local reads_min="output_compressbam/basic.min.reads.sam"
+
+    note "Testing Existence of ${compressbam}"
+    if [[ ! -x "${compressbam}" ]]; then
+        mark_fail "Problem finding program: ${compressbam}"
+        return 0
+    fi
+
+    run_logged "Running compressbam basic" \
+        "${compressbam}" --threads 1 --input data_compressbam/basic.sam \
+        --output output_compressbam/basic.all.bam
+
+    run_logged "Running compressbam basic with min-match" \
+        "${compressbam}" --threads 1 --input data_compressbam/basic.sam \
+        --output output_compressbam/basic.min.bam --min-match 10
+
+    if ! samtools view -H output_compressbam/basic.all.bam > "${header_all}"; then
+        mark_fail "Problem extracting header from output_compressbam/basic.all.bam"
+    fi
+    if ! samtools view output_compressbam/basic.all.bam > "${reads_all}"; then
+        mark_fail "Problem extracting alignments from output_compressbam/basic.all.bam"
+    fi
+    if ! samtools view -H output_compressbam/basic.min.bam > "${header_min}"; then
+        mark_fail "Problem extracting header from output_compressbam/basic.min.bam"
+    fi
+    if ! samtools view output_compressbam/basic.min.bam > "${reads_min}"; then
+        mark_fail "Problem extracting alignments from output_compressbam/basic.min.bam"
+    fi
+
+    assert_file_contains "${header_all}" $'@SQ\tSN:refA\tLN:1000'
+    assert_file_not_contains "${header_all}" $'@SQ\tSN:refB\tLN:1000'
+    assert_file_not_contains "${header_all}" $'@SQ\tSN:refC\tLN:1000'
+    assert_file_contains "${reads_all}" $'read_keep\t0\trefA'
+    assert_file_not_contains "${reads_all}" $'read_mid\t0\trefC'
+
+    assert_file_contains "${header_min}" $'@SQ\tSN:refA\tLN:1000'
+    assert_file_contains "${header_min}" $'@SQ\tSN:refC\tLN:1000'
+    assert_file_not_contains "${header_min}" $'@SQ\tSN:refB\tLN:1000'
+    assert_file_contains "${reads_min}" $'read_keep\t0\trefA'
+    assert_file_contains "${reads_min}" $'read_mid\t0\trefC'
+}
+
+validate_checksums() {
+    local checksum_file="output.md5"
+
+    note "Validating checksums: ${checksum_file}"
+    note "========================"
+
+    if ! gunzip -f output/*.gz; then
+        mark_fail "Problem decompressing output/*.gz before checksum validation"
+        return 0
+    fi
+
+    while read -r f; do
+        [[ -f "${f}" ]] || {
+            mark_fail "Missing: ${f}"
+            return 0
+        }
+    done < <(awk '!/^[[:space:]]*#/ {print $2}' "${checksum_file}")
+
+    if ! grep -v '^[[:space:]]*#' "${checksum_file}" | md5sum -c -; then
+        mark_fail "Problem with md5sums"
+    fi
+}
+
+main() {
+    prepare
+
+    note "Testing Existence of ${PRG}"
+    if ! command -v "${PRG}" >/dev/null 2>&1 && [[ ! -x "${PRG}" ]]; then
+        mark_fail "Problem finding program: ${PRG}"
+        exit 1
+    fi
+
+    note "Testing Existence of samtools"
+    require_cmd samtools || exit 1
+
+    note "Testing Existence of ${BAM1}"
+    require_file "${BAM1}" || exit 1
+
+    note "Sorting bamfile"
+    if ! samtools sort -n "${BAM1}" -o "${BAM}"; then
+        mark_fail "Problem running samtools sort -n"
+    fi
+
+    test_getdamage
+    test_lca_aggregate
+    test_dfit
+    test_prints
+    test_data2
+    test_data2_getdamage
+    # test_compressbam
+    validate_checksums
+
+    note "=====RVAL:${RVAL}======="
+    if [[ ${RVAL} -ne 0 ]]; then
+        note "====StartOfLog==="
+        cat "${LOG}"
+        note "====EndOfLog==="
+        exit 1
+    fi
+    exit 0
+}
+
+main "$@"
