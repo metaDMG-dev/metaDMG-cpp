@@ -169,11 +169,12 @@ endif
 	$(MAKE) -C misc clean
 
 testclean:
-	rm -f test/*.bam.bin test/data/*.bam
-	rm -rf test/output test/logfile version.h
+	rm -f test/*.bam.bin test/*.log test/testAll.sh.log test/testAll2.sh.log
+	rm -f test/data/*.bam
+	rm -rf test/output test/output_data2 test/output_data2_gd
 
 test:
 	@echo "Running unit tests for metaDMG"
-	cd test ; ./testAll.sh
+	cd test ; ./testAll2.sh
 
 force:
