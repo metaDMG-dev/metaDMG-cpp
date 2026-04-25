@@ -196,7 +196,7 @@ pars *get_pars(int argc, char **argv) {
     }
 
     int make_used_reads = 1;
-    int make_famout_reads = 0;
+    int make_famout_reads = 1;
 
     while (*argv) {
         char *key = *argv;
