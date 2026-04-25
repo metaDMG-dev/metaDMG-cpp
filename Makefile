@@ -171,6 +171,7 @@ endif
 testclean:
 	rm -f test/*.bam.bin test/*.log test/testAll.sh.log test/testAll2.sh.log
 	rm -f test/*.bam
+	rm -f test/data/f570b1db7c.dedup.filtered.rname.bam
 	rm -rf test/output test/output_data2 test/output_data2_gd test/output_compressbam
 
 test:
