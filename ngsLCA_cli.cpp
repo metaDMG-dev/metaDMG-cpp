@@ -21,8 +21,8 @@ pars *pars_init() {
     p->nodesfile = strdup("nodes.dmp.gz");
     p->hts = NULL;
     p->header = NULL;
-    p->editdistMin = 0;
-    p->editdistMax = 10;
+    p->editdistMin = -1;
+    p->editdistMax = -1;
     p->simscoreLow = 0;
     p->simscoreHigh = 1;
     p->fp1 = p->fp2 = p->fp_lcadist = Z_NULL;

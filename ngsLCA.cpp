@@ -418,7 +418,7 @@ float gccontent(bam1_t *aln) {
 }
 
 int printonce = 1;
-
+//this function is kept but is not used
 void purge(std::vector<int> &taxids, std::vector<int> &specs, std::vector<int> &editdist, std::vector<char> &keep) {
   keep.assign(taxids.size(), 1);
   if (editdist.empty())
@@ -532,7 +532,8 @@ void hts(gzFile fp, samFile *fp_in, int2int &ref2tax, int2int &parent, bam_hdr_t
 		  fprintf(stderr, "\t-> Error: size does not match myq->l, will exit\n");
 		  exit(1);
 		}
-                const bool apply_purge = (editMin == -1 && editMax == -1 && !editdist.empty());
+                // Legacy read-group purging is disabled: edit distance filtering is per-alignment only.
+                const bool apply_purge = false;
                 if (apply_purge)
                     purge(taxids, specs, editdist, keep);
 		nreads++;
@@ -624,8 +625,7 @@ void hts(gzFile fp, samFile *fp_in, int2int &ref2tax, int2int &parent, bam_hdr_t
             thiseditdist = (int)bam_aux2i(nm);
             //      fprintf(stderr,"[%d] nm:%d\t",inc++,val);
             if (editMin != -1 && thiseditdist < editMin) {
-                skip = 1;
-                // fprintf(stderr,"skipped1\n");
+                // Drop only this alignment; keep the rest of the read group.
                 continue;
             } else if (editMax != -1 && thiseditdist > editMax) {
                 // fprintf(stderr,"continued1\n");
@@ -686,7 +686,8 @@ void hts(gzFile fp, samFile *fp_in, int2int &ref2tax, int2int &parent, bam_hdr_t
 	  fprintf(stderr, "\t-> Error: size does not match myq->l, will exit\n");
 	  exit(1);
 	}
-        const bool apply_purge = (editMin == -1 && editMax == -1 && !editdist.empty());
+        // Legacy read-group purging is disabled: edit distance filtering is per-alignment only.
+        const bool apply_purge = false;
         if (apply_purge)
             purge(taxids, specs, editdist, keep);
 
