@@ -83,6 +83,14 @@ void free_char2int_keys(char2int &cmap) {
   cmap.clear();
 }
 
+void apply_io_threads(htsFile *fp,int threads,const char *label) {
+  if(fp==NULL || threads <= 1)
+    return;
+  if(hts_set_threads(fp,threads) != 0) {
+    fprintf(stderr,"\t-> Warning: failed to set %d HTSlib threads on %s\n",threads,label);
+  }
+}
+
 
 extern int SIG_COND;
 char2int getkeys(const char *key,int value,int nospace){
@@ -176,7 +184,7 @@ void doflush(queue *myq,int2int &keeplist,bam_hdr_t *hdr,samFile *outhts,int str
 
 //strict=0 means only refids matching
 //strict=1 means all aln will be included, if there is a match for one of the alignments
-void runextract_int2int(int2int &keeplist,samFile *htsfp,bam_hdr_t *hdr,const char *outname,char *type,int strict){
+void runextract_int2int(int2int &keeplist,samFile *htsfp,bam_hdr_t *hdr,const char *outname,char *type,int strict,int threads){
   fprintf(stderr,"outname: %s outformat: %s\n",outname,out_mode);
   set_output_format_and_mode(outname,type);
 
@@ -187,6 +195,8 @@ void runextract_int2int(int2int &keeplist,samFile *htsfp,bam_hdr_t *hdr,const ch
     fprintf(stderr,"Error opening file for writing: %s\n",outname);
     exit(-1);
   }
+  apply_io_threads(htsfp,threads,"input");
+  apply_io_threads(outhts,threads,"output");
 
   queue *myq = init_queue(5000);//very large, should be enough.
   
@@ -224,7 +234,7 @@ void runextract_int2int(int2int &keeplist,samFile *htsfp,bam_hdr_t *hdr,const ch
 }
 
 
-void runextract_readid(char2int &keeplist,samFile *htsfp,bam_hdr_t *hdr,const char *outname,char *type,int complement){
+void runextract_readid(char2int &keeplist,samFile *htsfp,bam_hdr_t *hdr,const char *outname,char *type,int complement,int threads){
   set_output_format_and_mode(outname,type);
 
   //open outputfile and write header
@@ -233,6 +243,8 @@ void runextract_readid(char2int &keeplist,samFile *htsfp,bam_hdr_t *hdr,const ch
     fprintf(stderr,"Error opening file for writing: %s\n",outname);
     exit(-1);
   }
+  apply_io_threads(htsfp,threads,"input");
+  apply_io_threads(outhts,threads,"output");
 
   if (sam_hdr_write(outhts, hdr) < 0)
       fprintf(stderr,"Problem writing headers to %s", outname);
@@ -306,6 +318,7 @@ int main_byrefid(int argc,char**argv){
     fprintf(stderr,"  --output-fmt FMT        Output format: sam, bam, or cram.\n");
     fprintf(stderr,"  -b                      Write BAM output.\n");
     fprintf(stderr,"  -C                      Write CRAM output.\n");
+    fprintf(stderr,"  --threads N             Use N HTSlib I/O threads for BAM/CRAM input/output.\n");
     fprintf(stderr,"  --strict 1              Write only matching alignments.\n");
     fprintf(stderr,"  --strict 0              Write full read groups if any alignment matches.\n");
     fprintf(stderr,"  --exclude               Invert the reference-name selection.\n");
@@ -327,6 +340,7 @@ int main_byrefid(int argc,char**argv){
   char *outfile = strdup("-");
   int docomplement = 0;
   int strict = 1;
+  int threads = 1;
   for(int i=1;i<argc;i++){
     char *key = argv[i];
     if(!strcasecmp("-hts",key) || !strcasecmp("-i",key) || !strcasecmp("--input",key)) {
@@ -358,6 +372,9 @@ int main_byrefid(int argc,char**argv){
     else if(!strcasecmp("-strict",key) || !strcasecmp("--strict",key)) {
       strict = atoi(dup_cli_value(key,argc,argv,i));
     }
+    else if(!strcasecmp("--threads",key)) {
+      threads = atoi(dup_cli_value(key,argc,argv,i));
+    }
     else if(!strcasecmp("-out",key) || !strcasecmp("-o",key) || !strcasecmp("--output",key)) {
       if(outfile!=NULL) free(outfile);
       outfile = dup_cli_value(key,argc,argv,i);
@@ -369,12 +386,13 @@ int main_byrefid(int argc,char**argv){
   }
   
   fprintf(stderr,
-	  "\t-> key: %s \n\t-> hts: %s \n\t-> type: %s \n\t-> outfile: %s\n\t-> strict: %d\n",
+	  "\t-> key: %s \n\t-> hts: %s \n\t-> type: %s \n\t-> outfile: %s\n\t-> strict: %d\n\t-> threads: %d\n",
 	  keyfile ? keyfile : "NULL",
 	  hts     ? hts     : "NULL",
 	  type    ? type    : "NULL",
 	  outfile ? outfile : "NULL",
-	  strict
+	  strict,
+	  threads
 	  );
 
   //open inputfile and parse header
@@ -428,7 +446,7 @@ int main_byrefid(int argc,char**argv){
   }
   
   fprintf(stderr,"\t-> Number of refids to use: %lu from -key \'%s\'\n\t-> Number of refids notused: %lu\n",keeplist.size(),keyfile,counter[1]);
-  runextract_int2int(keeplist,htsfp,hdr,outfile,type,strict);
+  runextract_int2int(keeplist,htsfp,hdr,outfile,type,strict,threads);
   free_char2int_keys(cmap);
   
   return 0;
@@ -451,6 +469,7 @@ int main_bytaxid(int argc,char**argv){
     fprintf(stderr,"  --output-fmt FMT        Output format: sam, bam, or cram.\n");
     fprintf(stderr,"  -b                      Write BAM output.\n");
     fprintf(stderr,"  -C                      Write CRAM output.\n");
+    fprintf(stderr,"  --threads N             Use N HTSlib I/O threads for BAM/CRAM input/output.\n");
     fprintf(stderr,"  --strict 1              Write only matching alignments.\n");
     fprintf(stderr,"  --strict 0              Write full read groups if any alignment matches.\n");
     fprintf(stderr,"  --forcedump 1           Force regeneration of temporary mapping output.\n");
@@ -480,6 +499,7 @@ int main_bytaxid(int argc,char**argv){
   char *accout = NULL;
   char *taxnames = NULL;
   char *names = NULL;
+  int threads = 1;
   for(int i=1;i<argc;i++){
     char *key = argv[i];
     if(!strcasecmp("-hts",key) || !strcasecmp("-i",key) || !strcasecmp("--input",key)) hts=dup_cli_value(key,argc,argv,i);
@@ -492,6 +512,7 @@ int main_bytaxid(int argc,char**argv){
     else if(!strcasecmp("-accout",key) || !strcasecmp("--accout",key)) accout=dup_cli_value(key,argc,argv,i);
     else if(!strcasecmp("-strict",key) || !strcasecmp("--strict",key)) strict=atoi(dup_cli_value(key,argc,argv,i));
     else if(!strcasecmp("-forcedump",key) || !strcasecmp("--forcedump",key)) forcedump=atoi(dup_cli_value(key,argc,argv,i));
+    else if(!strcasecmp("--threads",key)) threads=atoi(dup_cli_value(key,argc,argv,i));
     else if(!strcasecmp("-out",key) || !strcasecmp("-o",key) || !strcasecmp("--output",key)) {
       if(outfile!=NULL) free(outfile);
       outfile=dup_cli_value(key,argc,argv,i);
@@ -518,11 +539,11 @@ int main_bytaxid(int argc,char**argv){
 	  taxnames  ? taxnames  : "NULL",
 	  strict,
 	  type      ? type      : "NULL",
-	  outfile   ? outfile   : "NULL",
-	  forcedump,
-	  accout    ? accout    : "NULL",
-	  names     ? names     : "NULL"
-	  );
+		  outfile   ? outfile   : "NULL",
+		  forcedump,
+		  accout    ? accout    : "NULL",
+		  names     ? names     : "NULL"
+		  );
 
   if(taxid ==NULL&&taxnames==NULL){
     fprintf(stderr,"\t-> Need to supply -taxid and/or -taxnames\n");
@@ -654,7 +675,7 @@ int main_bytaxid(int argc,char**argv){
   if(keeplist.size()==0)
     fprintf(stderr,"\t-> No ids to extract\n");
   else
-    runextract_int2int(keeplist,htsfp,hdr,outfile,type,strict);
+    runextract_int2int(keeplist,htsfp,hdr,outfile,type,strict,threads);
   free_char2int_keys(cmap);
   
   return 0;
@@ -673,6 +694,7 @@ int main_byreadid(int argc,char**argv){
     fprintf(stderr,"  --output-fmt FMT        Output format: sam, bam, or cram.\n");
     fprintf(stderr,"  -b                      Write BAM output.\n");
     fprintf(stderr,"  -C                      Write CRAM output.\n");
+    fprintf(stderr,"  --threads N             Use N HTSlib I/O threads for BAM/CRAM input/output.\n");
     fprintf(stderr,"  --exclude               Invert the read-name selection.\n");
     fprintf(stderr,"\n");
     fprintf(stderr,"Defaults:\n");
@@ -691,6 +713,7 @@ int main_byreadid(int argc,char**argv){
   char *type = NULL;
   char *outfile = strdup("-");
   int docomplement = 0;
+  int threads = 1;
   for(int i=1;i<argc;i++){
     char *key = argv[i];
     if(!strcasecmp("-hts",key) || !strcasecmp("-i",key) || !strcasecmp("--input",key)) hts=dup_cli_value(key,argc,argv,i);
@@ -704,17 +727,19 @@ int main_byreadid(int argc,char**argv){
     else if(!strcasecmp("-type",key) || !strcasecmp("--output-fmt",key)) type=dup_cli_value(key,argc,argv,i);
     else if(!strcasecmp("-b",key)) type=strdup("bam");
     else if(!strcasecmp("-C",key)) type=strdup("cram");
+    else if(!strcasecmp("--threads",key)) threads=atoi(dup_cli_value(key,argc,argv,i));
     else{
       fprintf(stderr,"\t Unknown parameter key:%s\n",key);
       return 0;
     }
   }
   
-  fprintf(stderr,"\t-> key: %s \n\t-> hts: %s \n\t-> type: %s \n\t-> outfile: %s\n",
+  fprintf(stderr,"\t-> key: %s \n\t-> hts: %s \n\t-> type: %s \n\t-> outfile: %s\n\t-> threads: %d\n",
 	  keyfile ? keyfile : "NULL",
 	  hts ? hts : "NULL",
 	  type ? type : "NULL",
-	  outfile ? outfile : "NULL");
+	  outfile ? outfile : "NULL",
+	  threads);
 
   //open inputfile and parse header
   samFile *htsfp = hts_open(hts,"r");
@@ -724,7 +749,7 @@ int main_byreadid(int argc,char**argv){
   
   fprintf(stderr,"\t-> number of refids to use: %lu\n",cmap.size());
   
-  runextract_readid(cmap,htsfp,hdr,outfile,type,docomplement);
+  runextract_readid(cmap,htsfp,hdr,outfile,type,docomplement,threads);
   free_char2int_keys(cmap);
   return 0;
 }
@@ -744,6 +769,7 @@ int main(int argc,char**argv){
     fprintf(stderr,"  --output-fmt FMT        Output format: sam, bam, or cram.\n");
     fprintf(stderr,"  -b                      Write BAM output.\n");
     fprintf(stderr,"  -C                      Write CRAM output.\n");
+    fprintf(stderr,"  --threads N             Use N HTSlib I/O threads for BAM/CRAM input/output.\n");
     fprintf(stderr,"  --exclude               Invert the selection where supported.\n");
     fprintf(stderr,"\n");
     fprintf(stderr,"Defaults:\n");
