@@ -170,8 +170,8 @@ endif
 
 testclean:
 	rm -f test/*.bam.bin test/*.log test/testAll.sh.log test/testAll2.sh.log
-	rm -f test/data/*.bam
-	rm -rf test/output test/output_data2 test/output_data2_gd
+	rm -f test/*.bam
+	rm -rf test/output test/output_data2 test/output_data2_gd test/output_compressbam
 
 test:
 	@echo "Running unit tests for metaDMG"

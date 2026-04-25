@@ -61,6 +61,25 @@ prepare() {
     mkdir -p output
     mkdir -p output_data2
     mkdir -p output_data2_gd
+    mkdir -p output_compressbam
+}
+
+assert_file_contains() {
+    local file="$1"
+    local pattern="$2"
+
+    if ! grep -F -- "${pattern}" "${file}" >/dev/null; then
+        mark_fail "Expected pattern not found in ${file}: ${pattern}"
+    fi
+}
+
+assert_file_not_contains() {
+    local file="$1"
+    local pattern="$2"
+
+    if grep -F -- "${pattern}" "${file}" >/dev/null; then
+        mark_fail "Unexpected pattern found in ${file}: ${pattern}"
+    fi
 }
 
 assert_gzip_contains() {
@@ -231,6 +250,53 @@ test_data2_getdamage() {
     assert_gzip_contains output_data2_gd/sam5.rlens.gz $'0\t607:1'
 }
 
+test_compressbam() {
+    local compressbam="../misc/compressbam"
+    local header_all="output_compressbam/basic.all.header.sam"
+    local reads_all="output_compressbam/basic.all.reads.sam"
+    local header_min="output_compressbam/basic.min.header.sam"
+    local reads_min="output_compressbam/basic.min.reads.sam"
+
+    note "Testing Existence of ${compressbam}"
+    if [[ ! -x "${compressbam}" ]]; then
+        mark_fail "Problem finding program: ${compressbam}"
+        return 0
+    fi
+
+    run_logged "Running compressbam basic" \
+        "${compressbam}" --threads 1 --input data_compressbam/basic.sam \
+        --output output_compressbam/basic.all.bam
+
+    run_logged "Running compressbam basic with min-match" \
+        "${compressbam}" --threads 1 --input data_compressbam/basic.sam \
+        --output output_compressbam/basic.min.bam --min-match 10
+
+    if ! samtools view -H output_compressbam/basic.all.bam > "${header_all}"; then
+        mark_fail "Problem extracting header from output_compressbam/basic.all.bam"
+    fi
+    if ! samtools view output_compressbam/basic.all.bam > "${reads_all}"; then
+        mark_fail "Problem extracting alignments from output_compressbam/basic.all.bam"
+    fi
+    if ! samtools view -H output_compressbam/basic.min.bam > "${header_min}"; then
+        mark_fail "Problem extracting header from output_compressbam/basic.min.bam"
+    fi
+    if ! samtools view output_compressbam/basic.min.bam > "${reads_min}"; then
+        mark_fail "Problem extracting alignments from output_compressbam/basic.min.bam"
+    fi
+
+    assert_file_contains "${header_all}" $'@SQ\tSN:refA\tLN:1000'
+    assert_file_not_contains "${header_all}" $'@SQ\tSN:refB\tLN:1000'
+    assert_file_not_contains "${header_all}" $'@SQ\tSN:refC\tLN:1000'
+    assert_file_contains "${reads_all}" $'read_keep\t0\trefA'
+    assert_file_not_contains "${reads_all}" $'read_mid\t0\trefC'
+
+    assert_file_contains "${header_min}" $'@SQ\tSN:refA\tLN:1000'
+    assert_file_contains "${header_min}" $'@SQ\tSN:refC\tLN:1000'
+    assert_file_not_contains "${header_min}" $'@SQ\tSN:refB\tLN:1000'
+    assert_file_contains "${reads_min}" $'read_keep\t0\trefA'
+    assert_file_contains "${reads_min}" $'read_mid\t0\trefC'
+}
+
 validate_checksums() {
     local checksum_file="output.md5"
 
@@ -280,6 +346,7 @@ main() {
     test_prints
     test_data2
     test_data2_getdamage
+    # test_compressbam
     validate_checksums
 
     note "=====RVAL:${RVAL}======="
