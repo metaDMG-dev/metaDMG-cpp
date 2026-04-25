@@ -160,14 +160,23 @@ mydata2 getval_stats(std::map<int, mydata2> &retmap, int2intvec &child, int taxi
 }
 
 static int usage_print(FILE *fp) {
-    fprintf(fp, "Usage: ./metaDMG-cpp print file.bdamage.gz [options]\n");
-    fprintf(fp, "Options: -names FILE -bam FILE -nodes FILE -r INT -howmany INT -ctga -countout -doOld\n");
-    return 0;
-}
-
-static int usage_print2(FILE *fp) {
-    fprintf(fp, "Usage: ./metaDMG-cpp print2 file.bdamage.gz [options]\n");
-    fprintf(fp, "Options: -acc2tax FILE -bam FILE -nodes FILE -r INT -howmany INT -ctga -countout -doOld\n");
+    fprintf(fp, "Usage: ./metaDMG-cpp print file.bdamage.gz [options]\n\n");
+    fprintf(fp, "Options:\n");
+    fprintf(fp, "  -names FILE | -acc2tax FILE   Mapping from id to display name\n");
+    fprintf(fp, "  -bam FILE                     Use BAM header reference names\n");
+    fprintf(fp, "  -nodes FILE                   nodes.dmp(.gz) for taxonomy roll-up with -r\n");
+    fprintf(fp, "  -r INT                        Select one taxid/reference id (with descendants if -nodes)\n");
+    fprintf(fp, "  -howmany INT                  Number of positions to print (default: 15)\n");
+    fprintf(fp, "  -ctga                         Print compact CT/GA-only output\n");
+    fprintf(fp, "  -countout                     Print raw counts instead of normalized frequencies\n");
+    fprintf(fp, "  -doOld                        Use legacy mode (default behavior)\n");
+    fprintf(fp, "  -h, --help                    Show this help message\n\n");
+    fprintf(fp, "Examples:\n");
+    fprintf(fp, "  ./metaDMG-cpp print sample.bdamage.gz\n");
+    fprintf(fp, "  ./metaDMG-cpp print sample.bdamage.gz -names names.dmp.gz\n");
+    fprintf(fp, "  ./metaDMG-cpp print sample.bdamage.gz -acc2tax acc2tax.tsv.gz -r 11 -nodes nodes.dmp.gz\n");
+    fprintf(fp, "  ./metaDMG-cpp print sample.bdamage.gz -bam reads.bam -ctga -howmany 25\n");
+    fprintf(fp, "  ./metaDMG-cpp print sample.bdamage.gz -countout\n");
     return 0;
 }
 
@@ -199,7 +208,7 @@ int main_print(int argc, char **argv) {
     while (*(++argv)) {
         if (!strcasecmp("-h", *argv) || !strcasecmp("--help", *argv))
             return usage_print(stderr);
-        else if (strcasecmp("-names", *argv) == 0)
+        else if (strcasecmp("-names", *argv) == 0 || strcasecmp("-acc2tax", *argv) == 0)
             infile_names = strdup(*(++argv));
         else if (strcasecmp("-bam", *argv) == 0)
             inbam = strdup(*(++argv));
@@ -455,287 +464,6 @@ int main_print(int argc, char **argv) {
     return 0;
 }
 
-int main_print2(int argc, char **argv) {
-    if (argc == 1 || (argc == 2 && (!strcasecmp(argv[1], "-h") || !strcasecmp(argv[1], "--help"))))
-        return usage_print2(stderr);
-    char *infile = NULL;
-    char *inbam = NULL;
-    char *acc2tax = NULL;
-    int ctga = 0;  // only print ctga errors
-    int search = -1;
-    int countout = 0;
-    char *infile_nodes = NULL;
-    int howmany = 15;
-    int doold = 0;
-    while (*(++argv)) {
-        if (!strcasecmp("-h", *argv) || !strcasecmp("--help", *argv))
-            return usage_print2(stderr);
-        else if (strcasecmp("-acc2tax", *argv) == 0)
-            acc2tax = strdup(*(++argv));
-        else if (strcasecmp("-bam", *argv) == 0)
-            inbam = strdup(*(++argv));
-        else if (strcasecmp("-r", *argv) == 0)
-            search = atoi(*(++argv));
-        else if (strcasecmp("-howmany", *argv) == 0)
-            howmany = atoi(*(++argv));
-        else if (strcasecmp("-ctga", *argv) == 0)
-            ctga = 1;
-        else if (strcasecmp("-doOld", *argv) == 0)
-            doold = 1;
-        else if (strcasecmp("-countout", *argv) == 0)
-            countout = 1;
-        else if (strcasecmp("-nodes", *argv) == 0)
-            infile_nodes = strdup(*(++argv));
-        else
-            infile = strdup(*argv);
-    }
-
-    fprintf(stderr,
-	    "infile: %s inbam: %s names: %s search: %d ctga: %d countout: %d nodes: %s\n",
-	    infile ? infile : "NULL",
-	    inbam ? inbam : "NULL",
-	    acc2tax ? acc2tax : "NULL",
-	    search,
-	    ctga,
-	    countout,
-	    infile_nodes ? infile_nodes : "NULL"
-	    );
-    if (!infile) {
-      fprintf(stderr, "\t-> Error: infile is NULL or could not be opened, will exit\n");
-      exit(1);
-    }
-    int2char name_map;
-    if (acc2tax != NULL)
-        name_map = parse_names(acc2tax);
-
-    // map of taxid -> taxid
-    int2int parent;
-    // map of taxid -> rank
-    int2char rank;
-    // map of parent -> child taxids
-    int2intvec child;
-
-    if (infile_nodes != NULL)
-        parse_nodes(infile_nodes, rank, parent, child, 1);
-    if (search != -1 && doold == 0) {
-        std::map<int, double *> retmap = load_bdamage3(infile, howmany);
-        double *dbl = getval(retmap, child, search, howmany);
-        double *dbldbl = new double [3 * howmany + 1];  // 3 because ct,ga,other
-        dbldbl[0] = dbl[0];
-        for (int i = 0; i < 3 * howmany; i++)
-            dbldbl[i + 1] = dbl[1 + i] / dbl[0];
-
-        fprintf(stdout, "%d\t%.0f", search, dbldbl[0]);
-        for (int i = 0; i < 3 * howmany; i++)
-            fprintf(stdout, "\t%f", dbldbl[1 + i]);
-        fprintf(stdout, "\n");
-	delete [] dbldbl;
-        return 0;
-    }
-
-    BGZF *bgfp = NULL;
-    samFile *samfp = NULL;
-    bam_hdr_t *hdr = NULL;
-
-    if (((bgfp = bgzf_open(infile, "r"))) == NULL) {
-        fprintf(stderr, "Could not open input bdamage.gz file: %s\n", infile);
-        return 1;
-    }
-
-    if (inbam != NULL) {
-        if (((samfp = sam_open_format(inbam, "r", NULL))) == NULL) {
-            fprintf(stderr, "Could not open input BAM file: %s\n", inbam);
-            return 1;
-        }
-        if (((hdr = sam_hdr_read(samfp))) == NULL) {
-            fprintf(stderr, "Could not read header for: %s\n", inbam);
-            return 1;
-        }
-    }
-
-    int printlength;
-    if (bgzf_read(bgfp, &printlength, sizeof(int)) != sizeof(int)) {
-      fprintf(stderr, "\t-> Error: failed to read expected number of bytes for printlength, will exit\n");
-      exit(1);
-    }
-    fprintf(stderr, "\t-> printlength(howmany) from inputfile: %d\n", printlength);
-
-    int ref_nreads[2];
-    char *type_name = NULL;
-    if (hdr != NULL)
-        type_name = strdup("Reference");
-    else if (acc2tax != NULL)
-        type_name = strdup("FunkyName");
-    else
-        type_name = strdup("taxid");
-
-    if (ctga == 0) {
-        fprintf(stdout, "%s\tNalignments\tDirection\tPos\tAA\tAC\tAG\tAT\tCA\tCC\tCG\tCT\tGA\tGC\tGG\tGT\tTA\tTC\tTG\tTT\n", type_name);
-    } else {
-        fprintf(stdout, "%s\tNalignment", type_name);
-        for (int i = 0; i < howmany; i++)
-            fprintf(stdout, "\tCT_%d", i);
-        for (int i = 0; i < howmany; i++)
-            fprintf(stdout, "\tGA_%d", i);
-        fprintf(stdout, "\n");
-    }
-
-    float data[16];
-
-    while (1) {
-        int nread = bgzf_read(bgfp, ref_nreads, 2 * sizeof(int));
-	double *ctgas = (double *)malloc(2 * printlength * sizeof(double));
-	if (ctgas == NULL) {
-	  fprintf(stderr, "\t-> Error: failed to allocate memory for ctgas, will exit\n");
-	  exit(1);
-	}
-        
-        if (nread == 0)
-            break;
-        fprintf(stderr, "ref: %d nreads: %d\n", ref_nreads[0], ref_nreads[1]);
-	if (nread != 2 * sizeof(int)) {
-	  fprintf(stderr, "\t-> Error: unexpected number of bytes read (nread != 2*sizeof(int)), will exit\n");
-	  exit(1);
-	}
-	for (int at = 0; at < printlength; at++) {
-	  if (bgzf_read(bgfp, data, sizeof(float) * 16) != 16 * sizeof(float)) {
-	    fprintf(stderr, "\t-> Error: failed to read expected number of bytes (16 floats) from bgzf file, will exit\n");
-	    exit(1);
-	  }
-            if ((at + 1) > howmany)
-                continue;
-            if (search == -1 || search == ref_nreads[0]) {
-                if (ctga == 0) {
-                    if (hdr != NULL)
-                        fprintf(stdout, "%s\t%d\t5\'\t%d", hdr->target_name[ref_nreads[0]], ref_nreads[1], at);
-                    else if (acc2tax != NULL) {
-                        int2char::iterator itt = name_map.find(ref_nreads[0]);
-                        if (itt == name_map.end()) {
-                            fprintf(stderr, "\t-> Problem finding taxid: \'%d' in namedatabase: \'%s\'\n", ref_nreads[0], acc2tax);
-                            exit(0);
-                        }
-                        fprintf(stdout, "\"%s\"\t%d\t5\'\t%d", itt->second, ref_nreads[1], at);
-                    } else
-                        fprintf(stdout, "%d\t%d\t5\'\t%d", ref_nreads[0], ref_nreads[1], at);
-                } else {
-                    if (at == 0)
-                        fprintf(stdout, "%d\t%d", ref_nreads[0], ref_nreads[1]);
-                }
-                if (countout == 1) {
-                    for (int i = 0; i < 16; i++)
-                        fprintf(stdout, "\t%f", data[i]);
-                    fprintf(stdout, "\n");
-                } else {
-                    float flt[16];
-
-                    for (int i = 0; i < 4; i++) {
-                        double tsum = 0;
-                        for (int j = 0; j < 4; j++) {
-                            tsum += data[i * 4 + j];
-                            flt[i * 4 + j] = data[i * 4 + j];
-                        }
-                        if (tsum == 0) tsum = 1;
-                        for (int j = 0; j < 4; j++)
-                            flt[i * 4 + j] /= tsum;
-                    }
-
-                    if (ctga == 0) {
-                        for (int j = 0; j < 16; j++)
-                            fprintf(stdout, "\t%f", flt[j]);
-                        fprintf(stdout, "\n");
-                    } else
-                        ctgas[at] = flt[7];
-                }
-            }
-        }
-        if (search == -1 || search == ref_nreads[0]) {
-            if (ctga == 1) {
-                for (int i = 0; i < howmany; i++)
-                    fprintf(stdout, "\t%f", ctgas[i]);
-            }
-        }
-
-        for (int at = 0; at < printlength; at++) {
-	  if (bgzf_read(bgfp, data, sizeof(float) * 16) != 16 * sizeof(float)) {
-	    fprintf(stderr, "\t-> Error: failed to read expected number of bytes (16 floats) from bgzf file, will exit\n");
-	    exit(1);
-	  }
-            if (at + 1 > howmany)
-                continue;
-            if (search == -1 || search == ref_nreads[0]) {
-                if (ctga == 0) {
-                    if (hdr != NULL)
-                        fprintf(stdout, "%s\t%d\t3\'\t%d", hdr->target_name[ref_nreads[0]], ref_nreads[1], at);
-                    else if (acc2tax != NULL) {
-                        int2char::iterator itt = name_map.find(ref_nreads[0]);
-                        if (itt == name_map.end()) {
-                            fprintf(stderr, "\t-> Problem finding taxid: \'%d' in namedatabase: \'%s\'\n", ref_nreads[0], acc2tax);
-                            exit(0);
-                        }
-                        fprintf(stdout, "\"%s\"\t%d\t3\'\t%d", itt->second, ref_nreads[1], at);
-                    } else
-                        fprintf(stdout, "%d\t%d\t3\'\t%d", ref_nreads[0], ref_nreads[1], at);
-                }
-                if (countout == 1) {
-                    for (int i = 0; i < 16; i++)
-                        fprintf(stdout, "\t%f", data[i]);
-                    fprintf(stdout, "\n");
-                } else {
-                    float flt[16];
-
-                    for (int i = 0; i < 4; i++) {
-                        double tsum = 0;
-                        for (int j = 0; j < 4; j++) {
-                            tsum += data[i * 4 + j];
-                            flt[i * 4 + j] = data[i * 4 + j];
-                        }
-                        if (tsum == 0) tsum = 1;
-                        for (int j = 0; j < 4; j++)
-                            flt[i * 4 + j] /= tsum;
-                    }
-                    if (ctga == 0) {
-                        for (int j = 0; j < 16; j++)
-                            fprintf(stdout, "\t%f", flt[j]);
-                        fprintf(stdout, "\n");
-                    } else
-                        ctgas[at + printlength] = flt[8];
-                }
-            }
-        }
-
-        if (search == -1 || search == ref_nreads[0]) {
-            if (ctga == 1) {
-                for (int i = 0; i < howmany; i++)
-                    fprintf(stdout, "\t%f", ctgas[printlength + i]);
-                fprintf(stdout, "\n");
-            }
-        }
-	free(ctgas);
-    }
-    //clean up
-    for(int2char::iterator it=name_map.begin();it!=name_map.end();it++)
-      free(it->second);
-    for(int2char::iterator it=rank.begin();it!=rank.end();it++)
-      free(it->second);
-
-    if (bgfp)
-        bgzf_close(bgfp);
-    if (hdr)
-        bam_hdr_destroy(hdr);
-    if (samfp)
-        sam_close(samfp);
-    if(type_name)
-      free(type_name);
-    if(infile_nodes)
-      free(infile_nodes);
-    if(infile)
-      free(infile);
-    if(inbam)
-      free(inbam);
-    if(acc2tax)
-      free(acc2tax);
-    return 0;
-}
 
 int2int getlcadist(char *fname) {
     //  fprintf(stderr,"fname: %s\n",fname);

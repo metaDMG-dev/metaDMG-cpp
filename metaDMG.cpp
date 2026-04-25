@@ -6,6 +6,7 @@
 
 #include "Aggregate_stat.h"  // for main_aggregate
 #include "main_dfit.h"       // for main_dfit
+#include "main_filter_bdamage.h"
 #include "main_getdamage.h"
 #include "main_pmd.h"        // for main_pmd
 #include "main_print.h"
@@ -27,11 +28,11 @@ static void print_top_level_usage(FILE *fp) {
     fprintf(fp, "./metaDMG-cpp index files.damage.gz\n");
     fprintf(fp, "./metaDMG-cpp lca [many options]\n");
     fprintf(fp, "./metaDMG-cpp print bdamage.gz\n");
-    fprintf(fp, "./metaDMG-cpp print2 [many options] bdamage.gz\n");
     fprintf(fp, "./metaDMG-cpp print_all [many options] bdamage.gz\n");
     fprintf(fp, "./metaDMG-cpp print_ugly [many options] bdamage.gz\n");
     fprintf(fp, "./metaDMG-cpp dfit [many options] bdamage.gz\n");
     fprintf(fp, "./metaDMG-cpp aggregate [many options] bdamage.gz\n");
+    fprintf(fp, "./metaDMG-cpp filter_bdamage [options] in.bdamage.gz\n");
     fprintf(fp, "\nUse './metaDMG-cpp <subcommand> --help' for command-specific help.\n");
 }
 
@@ -75,8 +76,8 @@ int main(int argc, char **argv) {
       rc = main_dfit(argc, argv);
     else if (!strcmp(argv[0], "aggregate"))
       rc = main_aggregate(argc, argv);
-    else if (!strcmp(argv[0], "print2"))
-        rc = main_print2(argc, argv);
+    else if (!strcmp(argv[0], "filter_bdamage"))
+      rc = main_filter_bdamage(argc, argv);
     else if (!strcmp(argv[0], "lca"))
         rc = main_lca(argc, argv);
     else{
