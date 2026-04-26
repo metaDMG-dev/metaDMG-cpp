@@ -108,7 +108,7 @@ $(LIBHTS): .clone_htslib
 	$(info CPPFLAGS=$(CPPFLAGS) HTSSRC=$(HTSSRC) (absolute path))
 
 # --- Versionsnummer og version.h ---
-PACKAGE_VERSION := 0.4.5
+PACKAGE_VERSION := 0.5.0
 ifneq ("$(wildcard .git)","")
   PACKAGE_VERSION := $(shell git describe --tags --always --dirty)
 endif
@@ -171,6 +171,7 @@ endif
 testclean:
 	rm -f test/*.bam.bin test/*.log test/testAll.sh.log test/testAll2.sh.log
 	rm -f test/*.bam
+	rm -rf test/output_extract_reads
 	rm -f test/data/f570b1db7c.dedup.filtered.rname.bam
 	rm -rf test/output test/output_data2 test/output_data2_gd test/output_compressbam
 
