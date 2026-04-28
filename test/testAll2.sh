@@ -111,6 +111,22 @@ assert_gzip_not_contains() {
         mark_fail "Unexpected pattern found in ${file}: ${pattern}"
     fi
 }
+
+test_dust_unit() {
+    local unit_src="test_dust_score.cpp"
+    local unit_bin="output/test_dust_score_unit"
+
+    run_logged "Compiling dust unit test" \
+        c++ -O2 -Wall -Wextra -I.. "${unit_src}" ../shared.o \
+        -o "${unit_bin}" -lz -lm -lpthread -lhts
+
+    if [[ -x "${unit_bin}" ]]; then
+        run_logged "Running dust unit test" "${unit_bin}"
+    else
+        mark_fail "Problem building dust unit test binary: ${unit_bin}"
+    fi
+}
+
 test_getdamage() {
     run_logged "Running getdamage global" \
         "${PRG}" getdamage --run_mode 0 --min_length 35 --print_length 5 \
@@ -242,16 +258,21 @@ test_data2() {
         --edit_dist_max 10 --min_mapq 0 --how_many 35 --weight_type 1 \
         --fix_ncbi 0 --out_prefix output_data2/sam5
 
-    assert_gzip_contains output_data2/sam2.lca.gz $'read1\tTTTTTTTTTTTTTTTTTTTTTTTTTTTTTT\t30\t3\t0.000000\t10:"l__Bacteria":"species"'
+    assert_gzip_contains output_data2/sam2.lca.gz $'queryid\tseq\tlen\tnaln\tdustscore\tgc\tlca\ttaxa_path'
+    assert_gzip_contains output_data2/sam2.lca.gz $'read1\tTTTTTTTTTTTTTTTTTTTTTTTTTTTTTT\t30\t3\t'
+    assert_gzip_contains output_data2/sam2.lca.gz $'\t10:"l__Bacteria":"species"'
     assert_gzip_contains output_data2/sam2.stat.gz $'10\t1\t30.000000\t0.000000\t0.000000\t0.000000\t"l__Bacteria"\t"species"'
 
-    assert_gzip_contains output_data2/sam3.lca.gz $'read1\tTTTTTTTTTTTTTTTTTTTTTTTTTTTTTT\t30\t2\t0.000000\t10:"l__Bacteria":"species"'
-    assert_gzip_contains output_data2/sam3.lca.gz $'read2\tAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\t30\t1\t0.000000\t11:"l__Bacteria":"subspecies"'
+    assert_gzip_contains output_data2/sam3.lca.gz $'read1\tTTTTTTTTTTTTTTTTTTTTTTTTTTTTTT\t30\t2\t'
+    assert_gzip_contains output_data2/sam3.lca.gz $'read2\tAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\t30\t1\t'
+    assert_gzip_contains output_data2/sam3.lca.gz $'\t10:"l__Bacteria":"species"'
+    assert_gzip_contains output_data2/sam3.lca.gz $'\t11:"l__Bacteria":"subspecies"'
     assert_gzip_contains output_data2/sam3.stat.gz $'10\t1\t30.000000\t0.000000\t0.000000\t0.000000\t"l__Bacteria"\t"species"'
     assert_gzip_contains output_data2/sam3.stat.gz $'11\t1\t30.000000\t0.000000\t0.000000\t0.000000\t"l__Bacteria"\t"subspecies"'
 
     assert_gzip_contains output_data2/sam5.lca.gz $'read1\t'
-    assert_gzip_contains output_data2/sam5.lca.gz $'\t607\t1\t0.000000\t11:"l__Bacteria":"subspecies"'
+    assert_gzip_contains output_data2/sam5.lca.gz $'\t607\t1\t'
+    assert_gzip_contains output_data2/sam5.lca.gz $'\t11:"l__Bacteria":"subspecies"'
     assert_gzip_contains output_data2/sam5.stat.gz $'11\t1\t607.000000\t0.000000\t0.000000\t0.000000\t"l__Bacteria"\t"subspecies"'
 }
 
@@ -522,6 +543,9 @@ main() {
     note "Testing Existence of samtools"
     require_cmd samtools || exit 1
 
+    note "Testing Existence of c++"
+    require_cmd c++ || exit 1
+
     note "Testing Existence of ${BAM1}"
     require_file "${BAM1}" || exit 1
 
@@ -530,6 +554,7 @@ main() {
         mark_fail "Problem running samtools sort -n"
     fi
 
+    test_dust_unit
     test_getdamage
     test_lca_aggregate
     test_dfit

@@ -1,5 +1,6 @@
 #include <htslib/sam.h>  // for bam1_t, bam_hdr_t
 #include <stddef.h>      // for size_t
+#include <stdint.h>      // for int32_t, uint8_t
 
 #include "types.h"  // for int2int, int2char, int2intvec
 typedef struct {
@@ -19,3 +20,4 @@ void parse_nodes(const char *fname, int2char &rank, int2int &parent, int2intvec 
 int2int *bamRefId2tax(bam_hdr_t *hdr, char *acc2taxfile, char *bamfile, int2int &errmap, char *tempfolder, int reallyDump, char *filteredAcc2taxfile,char2int *acc2taxmap);
 
 int fexists(const char *str);
+double dust_score_nt16(const uint8_t *seq, int32_t l, int32_t window);

@@ -417,60 +417,6 @@ float gccontent(bam1_t *aln) {
     return gcs / tot;
 }
 
-static int decode_nt16_acgt(uint8_t nt16) {
-    if (nt16 == 1) return 0; // A
-    if (nt16 == 2) return 1; // C
-    if (nt16 == 4) return 2; // G
-    if (nt16 == 8) return 3; // T
-    return -1;
-}
-
-static double dust_score(const uint8_t *seq, int32_t l, int32_t window) {
-    const int32_t WLEN = 3;
-    const int32_t WTOT = 64;
-    const int32_t WMASK = WTOT - 1;
-    if (window < WLEN || window > 64)
-        return -1.0;
-
-    int32_t wCount[WTOT];
-    int32_t wSeq[64];
-    memset(wCount, 0, sizeof(wCount));
-    memset(wSeq, 0, sizeof(wSeq));
-
-    int64_t score = 0;
-    int64_t maxScore = 0;
-    int32_t t = 0;
-    int32_t n = -WLEN;
-
-    for (int32_t i = 0; i < l; ++i) {
-        const int b = decode_nt16_acgt(bam_seqi(seq, i));
-        if (b < 0)
-            continue; // ignore N/ambiguous
-
-        t = ((t << 2) | b) & WMASK;
-        if (++n >= 0) {
-            const int32_t k = n % window;
-            if (n >= window) {
-                const int32_t x = wSeq[k];
-                if (wCount[x] > 0)
-                    score -= --wCount[x];
-                score += wCount[t]++;
-                if (score > maxScore)
-                    maxScore = score;
-            } else {
-                score += wCount[t]++;
-            }
-            wSeq[k] = t;
-        }
-    }
-
-    if (n <= 0)
-        return 0.0;
-    if (n >= window)
-        return (200.0 * (double)maxScore) / (window * (window - 1));
-    return (200.0 * (double)score) / (n * (n + 1));
-}
-
 int printonce = 1;
 //this function is kept but is not used
 void purge(std::vector<int> &taxids, std::vector<int> &specs, std::vector<int> &editdist, std::vector<char> &keep) {
@@ -576,7 +522,7 @@ void hts(gzFile fp, samFile *fp_in, int2int &ref2tax, int2int &parent, bam_hdr_t
         if (minlength != -1 && (aln->core.l_qseq < minlength))
             continue;
         if (maxdust != -1) {
-            const int32_t dusts = (int32_t)(0.5 + dust_score(bam_get_seq(aln), aln->core.l_qseq, 64));
+            const int32_t dusts = (int32_t)(0.5 + dust_score_nt16(bam_get_seq(aln), aln->core.l_qseq, 64));
             if (dusts > maxdust)
                 continue;
         }
@@ -599,7 +545,10 @@ void hts(gzFile fp, samFile *fp_in, int2int &ref2tax, int2int &parent, bam_hdr_t
                 //	fprintf(stderr,"myq->l: %d\n",myq->l);
                 if (lca != -1) {
                     const size_t nused = apply_purge ? taxids.size() : size;
-                    gzprintf(fp, "%s\t%s\t%lu\t%lu\t%f", last, seq, strlen(seq), nused, gccontent(seq));
+                    int32_t dustscore = 0;
+                    if (myq->l > 0)
+                        dustscore = (int32_t)(0.5 + dust_score_nt16(bam_get_seq(myq->ary[0]), myq->ary[0]->core.l_qseq, 64));
+                    gzprintf(fp, "%s\t%s\t%lu\t%lu\t%d\t%f", last, seq, strlen(seq), nused, dustscore, gccontent(seq));
 		   
 		    print_chain(kstr, lca, parent, rank, name_map,1);
 		    gzwrite(fp,kstr->s,kstr->l);
@@ -753,7 +702,10 @@ void hts(gzFile fp, samFile *fp_in, int2int &ref2tax, int2int &parent, bam_hdr_t
         //    fprintf(stderr,"myq->l: %d lca: %d \n",myq->l,lca);
         if (lca != -1) {
             const size_t nused = apply_purge ? taxids.size() : size;
-            gzprintf(fp, "%s\t%s\t%lu\t%lu\t%f", last, seq, strlen(seq), nused, gccontent(seq));
+            int32_t dustscore = 0;
+            if (myq->l > 0)
+                dustscore = (int32_t)(0.5 + dust_score_nt16(bam_get_seq(myq->ary[0]), myq->ary[0]->core.l_qseq, 64));
+            gzprintf(fp, "%s\t%s\t%lu\t%lu\t%d\t%f", last, seq, strlen(seq), nused, dustscore, gccontent(seq));
             print_chain(kstr, lca, parent, rank, name_map,1);
 	    gzwrite(fp,kstr->s,kstr->l);
 	    kstr->l = 0;
@@ -998,7 +950,7 @@ int main_lca(int argc, char **argv) {
       if (sam_hdr_write(famout_sam, p->header) < 0)
 	fprintf(stderr, "writing headers to %s", p->famout_sam);
     }
-    gzprintf(p->fp1,"queryid\tseq\tlen\tnaln\tgc\tlca\ttaxa_path\n");
+    gzprintf(p->fp1,"queryid\tseq\tlen\tnaln\tdustscore\tgc\tlca\ttaxa_path\n");
     hts(p->fp1, p->hts, *ref2tax, parent, p->header, rank, name_map, p->minmapq, p->discard, p->editdistMin, p->editdistMax, p->simscoreLow, p->simscoreHigh, p->maxdust, p->minlength, lca_rank, p->outnames, p->howmany, usedreads_sam, p->skipnorank, tax2level, p->nthreads, p->weighttype,p->maxreads,famout_sam,p->rlens_flat_out);
 
     fprintf(stderr, "\t-> Number of species with reads that map uniquely: %lu\n", specWeight.size());
