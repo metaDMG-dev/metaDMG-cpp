@@ -268,6 +268,11 @@ test_data2_getdamage() {
         "${PRG}" getdamage --run_mode 1 --min_length 0 --print_length 5 \
         --out_prefix output_data2_gd/sam5 data2/sam5.sam
 
+    run_logged "Running data2 getdamage taxid sam2 maxdust0" \
+        "${PRG}" getdamage --run_mode 2 --acc2tax data2/acc2taxid.map \
+        --maxdust 0 --min_length 0 --print_length 5 \
+        --out_prefix output_data2_gd/sam2_taxid_maxdust0 data2/sam2.sam
+
     assert_gzip_contains output_data2_gd/sam2.stat.gz $'ref1\t1\t30.000000\t0.000000\t0.000000\t0.000000\tNA\tNA'
     assert_gzip_contains output_data2_gd/sam2.stat.gz $'ref2\t1\t30.000000\t0.000000\t0.000000\t0.000000\tNA\tNA'
     assert_gzip_contains output_data2_gd/sam2.stat.gz $'ref3\t1\t30.000000\t0.000000\t0.000000\t0.000000\tNA\tNA'
@@ -282,6 +287,18 @@ test_data2_getdamage() {
 
     assert_gzip_contains output_data2_gd/sam5.stat.gz $'ref1\t1\t607.000000\t0.000000\t0.000000\t0.000000\tNA\tNA'
     assert_gzip_contains output_data2_gd/sam5.rlens.gz $'0\t607:1'
+
+    if ! gzip -dc output_data2_gd/sam2_taxid_maxdust0.stat.gz \
+        > output_data2_gd/sam2_taxid_maxdust0.stat.tsv; then
+        mark_fail "Problem decompressing output_data2_gd/sam2_taxid_maxdust0.stat.gz"
+    fi
+    assert_file_line_count output_data2_gd/sam2_taxid_maxdust0.stat.tsv 1
+
+    if ! "${PRG}" print output_data2_gd/sam2_taxid_maxdust0.bdamage.gz \
+        1>output_data2_gd/sam2_taxid_maxdust0.bdamage.tsv 2>>"${LOG}"; then
+        mark_fail "Problem running print on output_data2_gd/sam2_taxid_maxdust0.bdamage.gz"
+    fi
+    assert_file_line_count output_data2_gd/sam2_taxid_maxdust0.bdamage.tsv 1
 }
 
 

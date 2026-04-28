@@ -417,6 +417,60 @@ float gccontent(bam1_t *aln) {
     return gcs / tot;
 }
 
+static int decode_nt16_acgt(uint8_t nt16) {
+    if (nt16 == 1) return 0; // A
+    if (nt16 == 2) return 1; // C
+    if (nt16 == 4) return 2; // G
+    if (nt16 == 8) return 3; // T
+    return -1;
+}
+
+static double dust_score(const uint8_t *seq, int32_t l, int32_t window) {
+    const int32_t WLEN = 3;
+    const int32_t WTOT = 64;
+    const int32_t WMASK = WTOT - 1;
+    if (window < WLEN || window > 64)
+        return -1.0;
+
+    int32_t wCount[WTOT];
+    int32_t wSeq[64];
+    memset(wCount, 0, sizeof(wCount));
+    memset(wSeq, 0, sizeof(wSeq));
+
+    int64_t score = 0;
+    int64_t maxScore = 0;
+    int32_t t = 0;
+    int32_t n = -WLEN;
+
+    for (int32_t i = 0; i < l; ++i) {
+        const int b = decode_nt16_acgt(bam_seqi(seq, i));
+        if (b < 0)
+            continue; // ignore N/ambiguous
+
+        t = ((t << 2) | b) & WMASK;
+        if (++n >= 0) {
+            const int32_t k = n % window;
+            if (n >= window) {
+                const int32_t x = wSeq[k];
+                if (wCount[x] > 0)
+                    score -= --wCount[x];
+                score += wCount[t]++;
+                if (score > maxScore)
+                    maxScore = score;
+            } else {
+                score += wCount[t]++;
+            }
+            wSeq[k] = t;
+        }
+    }
+
+    if (n <= 0)
+        return 0.0;
+    if (n >= window)
+        return (200.0 * (double)maxScore) / (window * (window - 1));
+    return (200.0 * (double)score) / (n * (n + 1));
+}
+
 int printonce = 1;
 //this function is kept but is not used
 void purge(std::vector<int> &taxids, std::vector<int> &specs, std::vector<int> &editdist, std::vector<char> &keep) {
@@ -461,8 +515,8 @@ void purge(std::vector<int> &taxids, std::vector<int> &specs, std::vector<int> &
   }
 }
 
-void hts(gzFile fp, samFile *fp_in, int2int &ref2tax, int2int &parent, bam_hdr_t *hdr, int2char &rank, int2char &name_map, int minmapq, int discard, int editMin, int editMax, double scoreLow, double scoreHigh, int minlength, int lca_rank, char *prefix, int howmany, samFile *fp_usedreads, int skipnorank, int2int &rank2level, int nthreads, int weighttype,long maxreads,samFile *fp_famout,int rlens_flat_out) {
-  fprintf(stderr, "[%s] \t-> editMin:%d editmMax:%d scoreLow:%f scoreHigh:%f minlength:%d discard: %d prefix: %s howmany: %d skipnorank: %d weighttype: %d maxreads: %ld rlens_flat_out: %d\n", __FUNCTION__, editMin, editMax, scoreLow, scoreHigh, minlength, discard, prefix, howmany, skipnorank, weighttype,maxreads,rlens_flat_out);
+void hts(gzFile fp, samFile *fp_in, int2int &ref2tax, int2int &parent, bam_hdr_t *hdr, int2char &rank, int2char &name_map, int minmapq, int discard, int editMin, int editMax, double scoreLow, double scoreHigh, int maxdust, int minlength, int lca_rank, char *prefix, int howmany, samFile *fp_usedreads, int skipnorank, int2int &rank2level, int nthreads, int weighttype,long maxreads,samFile *fp_famout,int rlens_flat_out) {
+  fprintf(stderr, "[%s] \t-> editMin:%d editmMax:%d scoreLow:%f scoreHigh:%f maxdust:%d minlength:%d discard: %d prefix: %s howmany: %d skipnorank: %d weighttype: %d maxreads: %ld rlens_flat_out: %d\n", __FUNCTION__, editMin, editMax, scoreLow, scoreHigh, maxdust, minlength, discard, prefix, howmany, skipnorank, weighttype,maxreads,rlens_flat_out);
   if (fp_in == NULL) {
     fprintf(stderr, "\t-> Error: fp_in is NULL (failed to open input file), will exit\n");
     exit(1);
@@ -521,6 +575,11 @@ void hts(gzFile fp, samFile *fp_in, int2int &ref2tax, int2int &parent, bam_hdr_t
         }
         if (minlength != -1 && (aln->core.l_qseq < minlength))
             continue;
+        if (maxdust != -1) {
+            const int32_t dusts = (int32_t)(0.5 + dust_score(bam_get_seq(aln), aln->core.l_qseq, 64));
+            if (dusts > maxdust)
+                continue;
+        }
         // change of ref
         if (strcmp(last, qname) != 0) {
             if (taxids.size() > 0) {
@@ -853,6 +912,7 @@ int main_lca(int argc, char **argv) {
         fprintf(stderr, "  --sim_score_high FLOAT   (default: 1)\n");
         fprintf(stderr, "  --minAni/--min_ani FLOAT alias for --sim_score_low\n");
         fprintf(stderr, "  --maxAni/--max_ani FLOAT alias for --sim_score_high\n");
+        fprintf(stderr, "  --maxdust INT            (0-100, default: -1 disabled)\n");
         fprintf(stderr, "  --min_mapq INT           (default: 0)\n");
         fprintf(stderr, "  --min_length INT         (default: -1 disabled)\n");
         fprintf(stderr, "Output/options:\n");
@@ -873,6 +933,10 @@ int main_lca(int argc, char **argv) {
 
     pars *p = get_pars(--argc, ++argv);
     print_pars(stderr, p);
+    if (p->maxdust < -1 || p->maxdust > 100) {
+        fprintf(stderr, "\t-> Error: --maxdust must be -1 (disabled) or between 0 and 100\n");
+        exit(1);
+    }
     gzprintf(p->fp1,"#./metaDMG-cpp lca ");
     for(int i=0;i<argc;i++)
       gzprintf(p->fp1,"%s ",argv[i]);
@@ -935,7 +999,7 @@ int main_lca(int argc, char **argv) {
 	fprintf(stderr, "writing headers to %s", p->famout_sam);
     }
     gzprintf(p->fp1,"queryid\tseq\tlen\tnaln\tgc\tlca\ttaxa_path\n");
-    hts(p->fp1, p->hts, *ref2tax, parent, p->header, rank, name_map, p->minmapq, p->discard, p->editdistMin, p->editdistMax, p->simscoreLow, p->simscoreHigh, p->minlength, lca_rank, p->outnames, p->howmany, usedreads_sam, p->skipnorank, tax2level, p->nthreads, p->weighttype,p->maxreads,famout_sam,p->rlens_flat_out);
+    hts(p->fp1, p->hts, *ref2tax, parent, p->header, rank, name_map, p->minmapq, p->discard, p->editdistMin, p->editdistMax, p->simscoreLow, p->simscoreHigh, p->maxdust, p->minlength, lca_rank, p->outnames, p->howmany, usedreads_sam, p->skipnorank, tax2level, p->nthreads, p->weighttype,p->maxreads,famout_sam,p->rlens_flat_out);
 
     fprintf(stderr, "\t-> Number of species with reads that map uniquely: %lu\n", specWeight.size());
 

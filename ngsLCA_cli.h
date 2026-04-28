@@ -19,6 +19,7 @@ typedef struct {
     // parameters for filtering reads
     double simscoreLow;
     double simscoreHigh;
+    int maxdust;
     int editdistMin;
     int editdistMax;
     int skipnorank;

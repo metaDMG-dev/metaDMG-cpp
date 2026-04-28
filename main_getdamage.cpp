@@ -7,6 +7,7 @@
 #include <cstdio>   // for fprintf, stderr, stdout
 #include <cstdlib>  // for atoi, exit, free, calloc, malloc
 #include <cstring>  // for strdup, strlen
+#include <stdint.h> // for int32_t
 #include <map>      // for map
 #include <vector>   // for vector
 
@@ -22,6 +23,7 @@ struct getdamage_args {
     int editdistMax;
     double minAni;
     double maxAni;
+    int maxdust;
     char *refName;
     char *fname;
     int runmode;
@@ -42,6 +44,7 @@ static int usage_getdamage(FILE *fp) {
     fprintf(fp, "  --edit_dist_max\t maximum read edit distance (default: -1, disabled)\n");
     fprintf(fp, "  --minAni/--min_ani\t minimum ANI from NM/read_length (default: -1, disabled)\n");
     fprintf(fp, "  --maxAni/--max_ani\t maximum ANI from NM/read_length (default: -1, disabled)\n");
+    fprintf(fp, "  --maxdust\t\t maximum DUST score (0-100, default: -1 disabled)\n");
     fprintf(fp, "  -p/--print_length\t number of base pairs from read termini to estimate damage (default: 5)\n");
     fprintf(fp, "  -r/--run_mode\t\t 0: global estimate (default)\n\t\t\t 1: damage patterns per chr/scaffold contig (tid)\n\t\t\t 2: damage patterns per taxid (requires --acc2tax)\n");
     fprintf(fp, "  --acc2tax\t\t accession->taxid table (required in run_mode=2)\n");
@@ -49,6 +52,60 @@ static int usage_getdamage(FILE *fp) {
     fprintf(fp, "  -o/--out_prefix\t output prefix (default: meta)\n");
     fprintf(fp, "  -z/--rlens_flat_out\t make flat output of bins. Nice for computers\n");
     return 0;
+}
+
+static int decode_nt16_acgt(uint8_t nt16) {
+    if (nt16 == 1) return 0; // A
+    if (nt16 == 2) return 1; // C
+    if (nt16 == 4) return 2; // G
+    if (nt16 == 8) return 3; // T
+    return -1;
+}
+
+static double dust_score(const uint8_t *seq, int32_t l, int32_t window) {
+    const int32_t WLEN = 3;
+    const int32_t WTOT = 64;
+    const int32_t WMASK = WTOT - 1;
+    if (window < WLEN || window > 64)
+        return -1.0;
+
+    int32_t wCount[WTOT];
+    int32_t wSeq[64];
+    memset(wCount, 0, sizeof(wCount));
+    memset(wSeq, 0, sizeof(wSeq));
+
+    int64_t score = 0;
+    int64_t maxScore = 0;
+    int32_t t = 0;
+    int32_t n = -WLEN;
+
+    for (int32_t i = 0; i < l; ++i) {
+        const int b = decode_nt16_acgt(bam_seqi(seq, i));
+        if (b < 0)
+            continue; // ignore N/ambiguous
+
+        t = ((t << 2) | b) & WMASK;
+        if (++n >= 0) {
+            const int32_t k = n % window;
+            if (n >= window) {
+                const int32_t x = wSeq[k];
+                if (wCount[x] > 0)
+                    score -= --wCount[x];
+                score += wCount[t]++;
+                if (score > maxScore)
+                    maxScore = score;
+            } else {
+                score += wCount[t]++;
+            }
+            wSeq[k] = t;
+        }
+    }
+
+    if (n <= 0)
+        return 0.0;
+    if (n >= window)
+        return (200.0 * (double)maxScore) / (window * (window - 1));
+    return (200.0 * (double)score) / (n * (n + 1));
 }
 
 static int write_getdamage_stats(char *onam,
@@ -101,6 +158,7 @@ static int process_getdamage_reads(htsFile *fp,
                                    int editMax,
                                    double minAni,
                                    double maxAni,
+                                   int maxdust,
                                    int runmode,
                                    std::map<int, int> *ref2tax,
                                    std::map<int, std::vector<float> > &gcconts,
@@ -128,6 +186,11 @@ static int process_getdamage_reads(htsFile *fp,
                 fprintf(stderr, "skipping: %s too short, this msg is printed %d times more \n",
                         bam_get_qname(b), --skipper[2]);
             continue;
+        }
+        if (maxdust != -1) {
+            const int32_t dusts = (int32_t)(0.5 + dust_score(bam_get_seq(b), b->core.l_qseq, 64));
+            if (dusts > maxdust)
+                continue;
         }
         uint8_t *nm = bam_aux_get(b, "NM");
         if (nm != NULL) {
@@ -216,6 +279,7 @@ static getdamage_args init_getdamage_args() {
     args.editdistMax = -1;
     args.minAni = -1.0;
     args.maxAni = -1.0;
+    args.maxdust = -1;
     args.refName = NULL;
     args.fname = NULL;
     args.runmode = 0;
@@ -239,6 +303,7 @@ static int parse_getdamage_args(int argc, char **argv, getdamage_args &args) {
         {"max_ani", required_argument, 0, 1003},
         {"minAni", required_argument, 0, 1002},
         {"maxAni", required_argument, 0, 1003},
+        {"maxdust", required_argument, 0, 1005},
         {"print_length", required_argument, 0, 'p'},
         {"run_mode", required_argument, 0, 'r'},
         {"acc2tax", required_argument, 0, 1004},
@@ -284,6 +349,9 @@ static int parse_getdamage_args(int argc, char **argv, getdamage_args &args) {
         break;
       case 1003:
         args.maxAni = atof(optarg);
+        break;
+      case 1005:
+        args.maxdust = atoi(optarg);
         break;
       case 'r':
         args.runmode = atoi(optarg);
@@ -382,7 +450,7 @@ int main_getdamage(int argc, char **argv) {
     if (rc != 0)
         goto cleanup;
 
-    fprintf(stderr, "\t-> ./metaDMG-cpp refName: %s min_length: %d edit_dist_min: %d edit_dist_max: %d minAni: %f maxAni: %f print_length: %d run_mode: %d out_prefix: %s acc2tax: %s nthreads: %d ignore_errors: %d rlens_flat_out: %d\n", args.refName ? args.refName : "NULL", args.minLength, args.editdistMin, args.editdistMax, args.minAni, args.maxAni, args.printLength, args.runmode, args.onam, args.acc2tax ? args.acc2tax : "NULL", args.nthreads, args.ignore_errors, args.rlens_flat_out);
+    fprintf(stderr, "\t-> ./metaDMG-cpp refName: %s min_length: %d edit_dist_min: %d edit_dist_max: %d minAni: %f maxAni: %f maxdust: %d print_length: %d run_mode: %d out_prefix: %s acc2tax: %s nthreads: %d ignore_errors: %d rlens_flat_out: %d\n", args.refName ? args.refName : "NULL", args.minLength, args.editdistMin, args.editdistMax, args.minAni, args.maxAni, args.maxdust, args.printLength, args.runmode, args.onam, args.acc2tax ? args.acc2tax : "NULL", args.nthreads, args.ignore_errors, args.rlens_flat_out);
     if (args.fname == NULL) {
         rc = usage_getdamage(stderr);
         goto cleanup;
@@ -432,6 +500,11 @@ int main_getdamage(int argc, char **argv) {
         rc = 1;
         goto cleanup;
     }
+    if (args.maxdust < -1 || args.maxdust > 100) {
+        fprintf(stderr, "\t-> Error: maxdust must be -1 (disabled) or between 0 and 100\n");
+        rc = 1;
+        goto cleanup;
+    }
     if (args.runmode != 0 && args.runmode != 1 && args.runmode != 2) {
         fprintf(stderr, "\t-> Error: run_mode must be 0, 1 or 2\n");
         rc = 1;
@@ -459,7 +532,7 @@ int main_getdamage(int argc, char **argv) {
     }
 
     dmg = new damage(args.printLength, args.nthreads, 0);
-    rc = process_getdamage_reads(fp, hdr, b, dmg, args.minLength, args.editdistMin, args.editdistMax, args.minAni, args.maxAni, args.runmode, ref2tax, gcconts, seqlens, args.fname);
+    rc = process_getdamage_reads(fp, hdr, b, dmg, args.minLength, args.editdistMin, args.editdistMax, args.minAni, args.maxAni, args.maxdust, args.runmode, ref2tax, gcconts, seqlens, args.fname);
     if (rc != 0)
       goto cleanup;
 

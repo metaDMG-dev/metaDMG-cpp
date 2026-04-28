@@ -23,6 +23,7 @@ pars *pars_init() {
     p->header = NULL;
     p->editdistMin = -1;
     p->editdistMax = -1;
+    p->maxdust = -1;
     p->simscoreLow = 0;
     p->simscoreHigh = 1;
     p->fp1 = p->fp2 = p->fp_lcadist = Z_NULL;
@@ -220,6 +221,8 @@ pars *get_pars(int argc, char **argv) {
             p->editdistMin = atoi(val);
         else if (!strcasecmp("--edit_dist_max", key))
             p->editdistMax = atoi(val);
+        else if (!strcasecmp("--maxdust", key))
+            p->maxdust = atoi(val);
         else if (!strcasecmp("--min_mapq", key))
             p->minmapq = atoi(val);
         else if (!strcasecmp("--min_length", key))
@@ -334,6 +337,7 @@ void print_pars(FILE *fp, pars *p) {
     fprintf(fp, "\t-> --acc2tax\t%s\n", p->acc2taxfile);
     fprintf(fp, "\t-> --edit_dist_min\t%d\n", p->editdistMin);
     fprintf(fp, "\t-> --edit_dist_max\t%d\n", p->editdistMax);
+    fprintf(fp, "\t-> --maxdust\t%d\n", p->maxdust);
     fprintf(fp, "\t-> --min_mapq\t%d\n", p->minmapq);
     fprintf(fp, "\t-> --min_length\t%d\n", p->minlength);
     fprintf(fp, "\t-> --sim_score_low\t%f\n", p->simscoreLow);
