@@ -116,9 +116,14 @@ test_dust_unit() {
     local unit_src="test_dust_score.cpp"
     local unit_bin="output/test_dust_score_unit"
 
+    # Build the shared dust-score object via top-level make rules so include/link
+    # settings match the main build (works with both bundled and system htslib).
+    run_logged "Building dust score object" \
+        make -C .. dust_score.o
+
     run_logged "Compiling dust unit test" \
-        c++ -O2 -Wall -Wextra -I.. "${unit_src}" ../shared.o \
-        -o "${unit_bin}" -lz -lm -lpthread -lhts
+        c++ -O2 -Wall -Wextra -I.. "${unit_src}" ../dust_score.o \
+        -o "${unit_bin}"
 
     if [[ -x "${unit_bin}" ]]; then
         run_logged "Running dust unit test" "${unit_bin}"
