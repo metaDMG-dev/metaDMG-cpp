@@ -16,7 +16,7 @@ c77597636abdd7811f7b3c0b78fb7ffd  output/test_lca_taxa.uglyprint.stat
 70363c8585d69e8d4457fc1d1ba7cd92  output/test_lca.uglyprint.mismatch
 1f9c4d0ab804d6a6e077573e6c8e736a  output/test_lca.uglyprint.stat
 dc5bf1edd27b494e23f72d41d718600d  data/f570b1db7c.dedup.filtered.bam
-1dfdda91782adcc81b284a50401c3a39  output/test_lca.lca.sub
+2ba1c20aa2f110bce5f593a564603944  output/test_lca.lca.sub
 ce19e1efdedb24f0353dc52fab2c985b  output/test_getdamage_global.rlens
 8700fac9ccb1414c9004cfcc4a122829  output/test_getdamage_local.rlens
 16e2ed7dbf1959748f6a41d5aaf35d05  output/test_lca.rlens

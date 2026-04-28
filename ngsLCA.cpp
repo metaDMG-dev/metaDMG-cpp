@@ -461,6 +461,21 @@ void purge(std::vector<int> &taxids, std::vector<int> &specs, std::vector<int> &
   }
 }
 
+static size_t count_unique_species(const std::vector<int> &specs, const std::vector<char> &keep, bool apply_purge) {
+    std::vector<int> species_kept;
+    species_kept.reserve(specs.size());
+    for (size_t i = 0; i < specs.size(); i++) {
+        if (apply_purge && !keep[i])
+            continue;
+        species_kept.push_back(specs[i]);
+    }
+    if (species_kept.empty())
+        return 0;
+    std::sort(species_kept.begin(), species_kept.end());
+    species_kept.erase(std::unique(species_kept.begin(), species_kept.end()), species_kept.end());
+    return species_kept.size();
+}
+
 void hts(gzFile fp, samFile *fp_in, int2int &ref2tax, int2int &parent, bam_hdr_t *hdr, int2char &rank, int2char &name_map, int minmapq, int discard, int editMin, int editMax, double scoreLow, double scoreHigh, int maxdust, int minlength, int lca_rank, char *prefix, int howmany, samFile *fp_usedreads, int skipnorank, int2int &rank2level, int nthreads, int weighttype,long maxreads,samFile *fp_famout,int rlens_flat_out) {
   fprintf(stderr, "[%s] \t-> editMin:%d editmMax:%d scoreLow:%f scoreHigh:%f maxdust:%d minlength:%d discard: %d prefix: %s howmany: %d skipnorank: %d weighttype: %d maxreads: %ld rlens_flat_out: %d\n", __FUNCTION__, editMin, editMax, scoreLow, scoreHigh, maxdust, minlength, discard, prefix, howmany, skipnorank, weighttype,maxreads,rlens_flat_out);
   if (fp_in == NULL) {
@@ -545,10 +560,11 @@ void hts(gzFile fp, samFile *fp_in, int2int &ref2tax, int2int &parent, bam_hdr_t
                 //	fprintf(stderr,"myq->l: %d\n",myq->l);
                 if (lca != -1) {
                     const size_t nused = apply_purge ? taxids.size() : size;
+                    const size_t nspecies = count_unique_species(specs, keep, apply_purge);
                     int32_t dustscore = 0;
                     if (myq->l > 0)
                         dustscore = (int32_t)(0.5 + dust_score_nt16(bam_get_seq(myq->ary[0]), myq->ary[0]->core.l_qseq, 64));
-                    gzprintf(fp, "%s\t%s\t%lu\t%lu\t%d\t%f", last, seq, strlen(seq), nused, dustscore, gccontent(seq));
+                    gzprintf(fp, "%s\t%s\t%lu\t%lu\t%lu\t%d\t%f", last, seq, strlen(seq), nused, nspecies, dustscore, gccontent(seq));
 		   
 		    print_chain(kstr, lca, parent, rank, name_map,1);
 		    gzwrite(fp,kstr->s,kstr->l);
@@ -702,10 +718,11 @@ void hts(gzFile fp, samFile *fp_in, int2int &ref2tax, int2int &parent, bam_hdr_t
         //    fprintf(stderr,"myq->l: %d lca: %d \n",myq->l,lca);
         if (lca != -1) {
             const size_t nused = apply_purge ? taxids.size() : size;
+            const size_t nspecies = count_unique_species(specs, keep, apply_purge);
             int32_t dustscore = 0;
             if (myq->l > 0)
                 dustscore = (int32_t)(0.5 + dust_score_nt16(bam_get_seq(myq->ary[0]), myq->ary[0]->core.l_qseq, 64));
-            gzprintf(fp, "%s\t%s\t%lu\t%lu\t%d\t%f", last, seq, strlen(seq), nused, dustscore, gccontent(seq));
+            gzprintf(fp, "%s\t%s\t%lu\t%lu\t%lu\t%d\t%f", last, seq, strlen(seq), nused, nspecies, dustscore, gccontent(seq));
             print_chain(kstr, lca, parent, rank, name_map,1);
 	    gzwrite(fp,kstr->s,kstr->l);
 	    kstr->l = 0;
@@ -950,7 +967,7 @@ int main_lca(int argc, char **argv) {
       if (sam_hdr_write(famout_sam, p->header) < 0)
 	fprintf(stderr, "writing headers to %s", p->famout_sam);
     }
-    gzprintf(p->fp1,"queryid\tseq\tlen\tnaln\tdustscore\tgc\tlca\ttaxa_path\n");
+    gzprintf(p->fp1,"queryid\tseq\tlen\tnaln\tnspec\tdustscore\tgc\tlca\ttaxa_path\n");
     hts(p->fp1, p->hts, *ref2tax, parent, p->header, rank, name_map, p->minmapq, p->discard, p->editdistMin, p->editdistMax, p->simscoreLow, p->simscoreHigh, p->maxdust, p->minlength, lca_rank, p->outnames, p->howmany, usedreads_sam, p->skipnorank, tax2level, p->nthreads, p->weighttype,p->maxreads,famout_sam,p->rlens_flat_out);
 
     fprintf(stderr, "\t-> Number of species with reads that map uniquely: %lu\n", specWeight.size());

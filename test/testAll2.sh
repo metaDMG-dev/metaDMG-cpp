@@ -258,20 +258,20 @@ test_data2() {
         --edit_dist_max 10 --min_mapq 0 --how_many 35 --weight_type 1 \
         --fix_ncbi 0 --out_prefix output_data2/sam5
 
-    assert_gzip_contains output_data2/sam2.lca.gz $'queryid\tseq\tlen\tnaln\tdustscore\tgc\tlca\ttaxa_path'
-    assert_gzip_contains output_data2/sam2.lca.gz $'read1\tTTTTTTTTTTTTTTTTTTTTTTTTTTTTTT\t30\t3\t'
+    assert_gzip_contains output_data2/sam2.lca.gz $'queryid\tseq\tlen\tnaln\tnspec\tdustscore\tgc\tlca\ttaxa_path'
+    assert_gzip_contains output_data2/sam2.lca.gz $'read1\tTTTTTTTTTTTTTTTTTTTTTTTTTTTTTT\t30\t3\t1\t'
     assert_gzip_contains output_data2/sam2.lca.gz $'\t10:"l__Bacteria":"species"'
     assert_gzip_contains output_data2/sam2.stat.gz $'10\t1\t30.000000\t0.000000\t0.000000\t0.000000\t"l__Bacteria"\t"species"'
 
-    assert_gzip_contains output_data2/sam3.lca.gz $'read1\tTTTTTTTTTTTTTTTTTTTTTTTTTTTTTT\t30\t2\t'
-    assert_gzip_contains output_data2/sam3.lca.gz $'read2\tAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\t30\t1\t'
+    assert_gzip_contains output_data2/sam3.lca.gz $'read1\tTTTTTTTTTTTTTTTTTTTTTTTTTTTTTT\t30\t2\t1\t'
+    assert_gzip_contains output_data2/sam3.lca.gz $'read2\tAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\t30\t1\t1\t'
     assert_gzip_contains output_data2/sam3.lca.gz $'\t10:"l__Bacteria":"species"'
     assert_gzip_contains output_data2/sam3.lca.gz $'\t11:"l__Bacteria":"subspecies"'
     assert_gzip_contains output_data2/sam3.stat.gz $'10\t1\t30.000000\t0.000000\t0.000000\t0.000000\t"l__Bacteria"\t"species"'
     assert_gzip_contains output_data2/sam3.stat.gz $'11\t1\t30.000000\t0.000000\t0.000000\t0.000000\t"l__Bacteria"\t"subspecies"'
 
     assert_gzip_contains output_data2/sam5.lca.gz $'read1\t'
-    assert_gzip_contains output_data2/sam5.lca.gz $'\t607\t1\t'
+    assert_gzip_contains output_data2/sam5.lca.gz $'\t607\t1\t1\t'
     assert_gzip_contains output_data2/sam5.lca.gz $'\t11:"l__Bacteria":"subspecies"'
     assert_gzip_contains output_data2/sam5.stat.gz $'11\t1\t607.000000\t0.000000\t0.000000\t0.000000\t"l__Bacteria"\t"subspecies"'
 }
