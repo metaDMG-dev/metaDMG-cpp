@@ -119,6 +119,14 @@ test_getdamage() {
     run_logged "Running getdamage local" \
         "${PRG}" getdamage -r 1 -l 35 -p 5 \
         -o output/test_getdamage_local "${BAM}"
+
+    run_logged "Running getdamage taxid" \
+        "${PRG}" getdamage --run_mode 2 --acc2tax data/acc2taxid.map.gz \
+        --min_length 35 --print_length 5 \
+        --out_prefix output/test_getdamage_taxid "${BAM}"
+
+    assert_gzip_contains output/test_getdamage_taxid.stat.gz $'taxid\tnreads\tmean_len\tvar_len\tmean_gc\tvar_gc\tlca\trank'
+    assert_gzip_not_contains output/test_getdamage_taxid.stat.gz $'global\t'
 }
 
 test_lca_aggregate() {
@@ -196,6 +204,12 @@ test_prints() {
         1>output/test_getdamage_global.bdamage.tsv 2>>"${LOG}"; then
         mark_fail "Problem running print on output/test_getdamage_global.bdamage.gz"
     fi
+
+    if ! "${PRG}" print output/test_getdamage_taxid.bdamage.gz \
+        1>output/test_getdamage_taxid.bdamage.tsv 2>>"${LOG}"; then
+        mark_fail "Problem running print on output/test_getdamage_taxid.bdamage.gz"
+    fi
+    assert_file_contains output/test_getdamage_taxid.bdamage.tsv $'taxid\tNalignments\tDirection\tPos'
 
     run_logged "Running print_ugly basic" \
         "${PRG}" print_ugly output/test_lca.bdamage.gz --out_prefix output/test_lca

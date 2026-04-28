@@ -99,10 +99,11 @@ Companion files (`stat` and `rlens`):
 - Can be set explicitly: `--stat file.stat.gz --rlens file.rlens.gz`.
 
 ## Damage analysis (non-taxonomically assigned)
-metaDMG-cpp calculates substitutions between reads and reference sequences. It can operate in two modes:
+metaDMG-cpp calculates substitutions between reads and reference sequences. It can operate in three modes:
 
 	- global mode (--run_mode 0): Substitution statistics are calculated across all references or chromosomes to which reads are aligned. This mode is typically used for sequence data derived from a single source (e.g., bone, tooth), where the goal is to obtain an overall DNA damage pattern.
 	- local mode (--run_mode 1): Substitution statistics are computed for all unique references in your bam file. In this mode, if a read aligns to multiple references, it will be counted multiple times.
+	- taxid mode (--run_mode 2): Substitution statistics are computed per taxid by mapping BAM reference names through `--acc2tax`.
 For metagenomic data, the recommended workflow is to first use LCA (Lowest Common Ancestor), then run dfit, and finally aggregate the results.
 
 ```
@@ -119,6 +120,8 @@ Options:
   -p/--print_length	number of positions along the read termini that are used to estimate the damage (default: 5)
   -r/--run_mode	        0: **global**  (default)
                         1: **local** damage patterns will be calculated for each chr/scaffold contig.
+                        2: **taxid** damage patterns will be calculated per taxid (requires --acc2tax)
+  --acc2tax		accession to taxid table (required for --run_mode 2)
   -i/--ignore_errors    continue analyses even if there are errors
   -o/--out_prefix	output prefix (default: meta)
   -h/--help		show this help page

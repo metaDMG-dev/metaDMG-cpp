@@ -13,6 +13,7 @@
 #include "main_getdamage.h"
 #include "ngsLCA.h"  // for gccontent, mean, var
 #include "profile.h" // for damage, destroy_damage, triple
+#include "shared.h"  // for bamRefId2tax
 
 struct getdamage_args {
     int minLength;
@@ -25,6 +26,7 @@ struct getdamage_args {
     char *fname;
     int runmode;
     char *onam;
+    char *acc2tax;
     int nthreads;
     int ignore_errors;
     int rlens_flat_out;
@@ -41,7 +43,8 @@ static int usage_getdamage(FILE *fp) {
     fprintf(fp, "  --minAni/--min_ani\t minimum ANI from NM/read_length (default: -1, disabled)\n");
     fprintf(fp, "  --maxAni/--max_ani\t maximum ANI from NM/read_length (default: -1, disabled)\n");
     fprintf(fp, "  -p/--print_length\t number of base pairs from read termini to estimate damage (default: 5)\n");
-    fprintf(fp, "  -r/--run_mode\t\t 0: global estimate (default)\n\t\t\t 1: damage patterns will be calculated for each chr/scaffold contig\n");
+    fprintf(fp, "  -r/--run_mode\t\t 0: global estimate (default)\n\t\t\t 1: damage patterns per chr/scaffold contig (tid)\n\t\t\t 2: damage patterns per taxid (requires --acc2tax)\n");
+    fprintf(fp, "  --acc2tax\t\t accession->taxid table (required in run_mode=2)\n");
     fprintf(fp, "  -i/--ignore_errors\t continue analyses even if there are errors.\n");
     fprintf(fp, "  -o/--out_prefix\t output prefix (default: meta)\n");
     fprintf(fp, "  -z/--rlens_flat_out\t make flat output of bins. Nice for computers\n");
@@ -79,6 +82,8 @@ static int write_getdamage_stats(char *onam,
         }
         if (runmode == 1)
           gzprintf(fpstat, "%s\t%lu\t%f\t%f\t%f\t%f\tNA\tNA\n", sam_hdr_tid2name(hdr, it->first), it2->second.nreads, mean(it3->second), var(it3->second), mean(it->second), var(it->second));
+        else if (runmode == 2)
+          gzprintf(fpstat, "%d\t%lu\t%f\t%f\t%f\t%f\tNA\tNA\n", it->first, it2->second.nreads, mean(it3->second), var(it3->second), mean(it->second), var(it->second));
         else
           gzprintf(fpstat, "global\t%lu\t%f\t%f\t%f\t%f\tNA\tNA\n", it2->second.nreads, mean(it3->second), var(it3->second), mean(it->second), var(it->second));
     }
@@ -97,11 +102,13 @@ static int process_getdamage_reads(htsFile *fp,
                                    double minAni,
                                    double maxAni,
                                    int runmode,
+                                   std::map<int, int> *ref2tax,
                                    std::map<int, std::vector<float> > &gcconts,
                                    std::map<int, std::vector<float> > &seqlens,
                                    const char *fname) {
     int ret;
     int skipper[4] = {3, 3, 3, 3};
+    int missing_taxid_warns = 3;
 
     while ((ret = sam_read1(fp, hdr, b)) >= 0) {
         if (bam_is_unmapped(b)) {
@@ -140,14 +147,30 @@ static int process_getdamage_reads(htsFile *fp,
                     continue;
             }
         }
-	dmg->damage_analysis(b, runmode != 0 ? b->core.tid : 0, 1);
+        int whichref = 0;
+        if (runmode == 1) {
+            whichref = b->core.tid;
+        } else if (runmode == 2) {
+            if (ref2tax == NULL) {
+                fprintf(stderr, "\t-> Error: run_mode=2 requires a ref2tax map, will exit\n");
+                return 1;
+            }
+            std::map<int, int>::iterator taxit = ref2tax->find(b->core.tid);
+            if (taxit == ref2tax->end()) {
+                if (missing_taxid_warns > 0) {
+                    fprintf(stderr, "skipping: %s refid=%d (%s) has no taxid in acc2tax map, this msg is printed: %d times more\n",
+                            bam_get_qname(b), b->core.tid, sam_hdr_tid2name(hdr, b->core.tid), --missing_taxid_warns);
+                }
+                continue;
+            }
+            whichref = taxit->second;
+        }
+
+	dmg->damage_analysis(b, whichref, 1);
 
         float mygc = gccontent(b);
         float mylen = b->core.l_qseq;
 
-        int whichref = 0;
-        if (runmode == 1)
-            whichref = b->core.tid;
         std::map<int, std::vector<float> >::iterator it = gcconts.find(whichref);
         if (it == gcconts.end()) {
             std::vector<float> tmp1;
@@ -197,6 +220,7 @@ static getdamage_args init_getdamage_args() {
     args.fname = NULL;
     args.runmode = 0;
     args.onam = strdup("meta");
+    args.acc2tax = NULL;
     args.nthreads = 4;
     args.ignore_errors = 0;
     args.rlens_flat_out = 0;
@@ -217,6 +241,7 @@ static int parse_getdamage_args(int argc, char **argv, getdamage_args &args) {
         {"maxAni", required_argument, 0, 1003},
         {"print_length", required_argument, 0, 'p'},
         {"run_mode", required_argument, 0, 'r'},
+        {"acc2tax", required_argument, 0, 1004},
         {"ignore_errors", no_argument, 0, 'i'},
         {"out_prefix", required_argument, 0, 'o'},
         {"help", no_argument, 0, 'h'},
@@ -262,6 +287,10 @@ static int parse_getdamage_args(int argc, char **argv, getdamage_args &args) {
         break;
       case 'r':
         args.runmode = atoi(optarg);
+        break;
+      case 1004:
+        free(args.acc2tax);
+        args.acc2tax = strdup(optarg);
         break;
       case 'o':
         free(args.onam);
@@ -339,6 +368,8 @@ int main_getdamage(int argc, char **argv) {
     bam1_t *b = NULL;
     bam_hdr_t *hdr = NULL;
     damage *dmg = NULL;
+    std::map<int, int> *ref2tax = NULL;
+    int2int errmap;
     std::map<int, std::vector<float> > gcconts;
     std::map<int, std::vector<float> > seqlens;
     htsFormat *dingding2 = (htsFormat *)calloc(1, sizeof(htsFormat));
@@ -351,7 +382,7 @@ int main_getdamage(int argc, char **argv) {
     if (rc != 0)
         goto cleanup;
 
-    fprintf(stderr, "\t-> ./metaDMG-cpp refName: %s min_length: %d edit_dist_min: %d edit_dist_max: %d minAni: %f maxAni: %f print_length: %d run_mode: %d out_prefix: %s nthreads: %d ignore_errors: %d rlens_flat_out: %d\n", args.refName ? args.refName : "NULL", args.minLength, args.editdistMin, args.editdistMax, args.minAni, args.maxAni, args.printLength, args.runmode, args.onam, args.nthreads, args.ignore_errors, args.rlens_flat_out);
+    fprintf(stderr, "\t-> ./metaDMG-cpp refName: %s min_length: %d edit_dist_min: %d edit_dist_max: %d minAni: %f maxAni: %f print_length: %d run_mode: %d out_prefix: %s acc2tax: %s nthreads: %d ignore_errors: %d rlens_flat_out: %d\n", args.refName ? args.refName : "NULL", args.minLength, args.editdistMin, args.editdistMax, args.minAni, args.maxAni, args.printLength, args.runmode, args.onam, args.acc2tax ? args.acc2tax : "NULL", args.nthreads, args.ignore_errors, args.rlens_flat_out);
     if (args.fname == NULL) {
         rc = usage_getdamage(stderr);
         goto cleanup;
@@ -401,8 +432,13 @@ int main_getdamage(int argc, char **argv) {
         rc = 1;
         goto cleanup;
     }
-    if (args.runmode != 0 && args.runmode != 1) {
-        fprintf(stderr, "\t-> Error: run_mode must be 0 or 1\n");
+    if (args.runmode != 0 && args.runmode != 1 && args.runmode != 2) {
+        fprintf(stderr, "\t-> Error: run_mode must be 0, 1 or 2\n");
+        rc = 1;
+        goto cleanup;
+    }
+    if (args.runmode == 2 && args.acc2tax == NULL) {
+        fprintf(stderr, "\t-> Error: run_mode 2 requires --acc2tax FILE\n");
         rc = 1;
         goto cleanup;
     }
@@ -411,8 +447,19 @@ int main_getdamage(int argc, char **argv) {
     if (rc != 0)
       goto cleanup;
 
+    if (args.runmode == 2) {
+      char tempfolder[] = "./";
+      ref2tax = bamRefId2tax(hdr, args.acc2tax, args.fname, errmap, tempfolder, 0, NULL, NULL);
+      if (ref2tax == NULL || ref2tax->size() == 0) {
+        fprintf(stderr, "\t-> Error: could not build refid->taxid map from --acc2tax %s\n", args.acc2tax);
+        rc = 1;
+        goto cleanup;
+      }
+      fprintf(stderr, "\t-> run_mode=2 loaded %lu ref->taxid mappings\n", ref2tax->size());
+    }
+
     dmg = new damage(args.printLength, args.nthreads, 0);
-    rc = process_getdamage_reads(fp, hdr, b, dmg, args.minLength, args.editdistMin, args.editdistMax, args.minAni, args.maxAni, args.runmode, gcconts, seqlens, args.fname);
+    rc = process_getdamage_reads(fp, hdr, b, dmg, args.minLength, args.editdistMin, args.editdistMax, args.minAni, args.maxAni, args.runmode, ref2tax, gcconts, seqlens, args.fname);
     if (rc != 0)
       goto cleanup;
 
@@ -429,10 +476,14 @@ cleanup:
       sam_close(fp);
     if (dmg)
       destroy_damage(dmg);
+    if (ref2tax)
+      delete ref2tax;
     if (args.fname)
       free(args.fname);
     if (args.onam)
       free(args.onam);
+    if (args.acc2tax)
+      free(args.acc2tax);
     if (args.refName)
       free(args.refName);
     if (dingding2)
