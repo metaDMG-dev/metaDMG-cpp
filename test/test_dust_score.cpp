@@ -4,7 +4,7 @@
 #include <string>
 #include <vector>
 
-#include "../shared.h"
+#include "../dust_score.h"
 
 static uint8_t base_to_nt16(char c) {
     switch (c) {
