@@ -115,15 +115,20 @@ assert_gzip_not_contains() {
 test_dust_unit() {
     local unit_src="test_dust_score.cpp"
     local unit_bin="output/test_dust_score_unit"
+    local hts_inc=""
+    local hts_link=""
 
-    # Build the shared dust-score object via top-level make rules so include/link
-    # settings match the main build (works with both bundled and system htslib).
-    run_logged "Building dust score object" \
-        make -C .. dust_score.o
+    if [[ -f ../htslib/libhts.a ]]; then
+        hts_inc="-I../htslib"
+        hts_link="../htslib/libhts.a -lbz2 -llzma -lcurl -lz -lm -lpthread"
+    else
+        hts_inc=""
+        hts_link="-lhts -lz -lm -lpthread"
+    fi
 
     run_logged "Compiling dust unit test" \
-        c++ -O2 -Wall -Wextra -I.. "${unit_src}" ../dust_score.o \
-        -o "${unit_bin}"
+        c++ -O2 -Wall -Wextra -I.. ${hts_inc} "${unit_src}" ../shared.o \
+        -o "${unit_bin}" ${hts_link}
 
     if [[ -x "${unit_bin}" ]]; then
         run_logged "Running dust unit test" "${unit_bin}"
