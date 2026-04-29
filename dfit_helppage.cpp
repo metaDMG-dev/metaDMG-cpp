@@ -126,6 +126,7 @@ int print_usage(FILE *fp){
   fprintf(fp, "  --nbootstrap INT   Bootstrap replicates (default: 1)\n");
   fprintf(fp, "  --lib <ds|ss>      Library type (default: ds)\n");
   fprintf(fp, "  --showfits INT     Output detail (0-2, default: 0)\n");
+  fprintf(fp, "  --printboot INT    Write bootstrap draws to .boot.stat.gz (default: 0; use >0)\n");
   fprintf(fp, "  --out FILE         Output prefix\n");
   fprintf(fp, "  --threads INT      Threads (default: 1)\n\n");
 
@@ -148,6 +149,7 @@ int print_help(FILE *fp){
 
   fprintf(fp, "Bootstrap:\n");
   fprintf(fp, "  --nbootstrap INT     # bootstrap replicates (default: 1)\n");
+  fprintf(fp, "  --printboot INT      Write all bootstrap draws to .boot.stat.gz (default: 0; use >0)\n");
   fprintf(fp, "  --sigtype <1|2|3>    Bootstrap method (default: 1)\n");
   fprintf(fp, "  --doCI <1|2>         CI method: 1=mean/sd, 2=percentile (default: 2)\n");
   fprintf(fp, "  --CI FLOAT           Confidence level (default: 0.95)\n\n");

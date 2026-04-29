@@ -222,7 +222,7 @@ lca mode: 	  damage estimated over the lca tree at different ranks
 
 --help 				 Print extended help page to see all options.
 
-./metaDMG-cpp dfit file.bdamage.gz --names file.gz --nodes trestructure.gz --bam file.bam --showfits int --nopt int --nbootstrap int --seed int --doCI int --CI float --lib <ds,ss> --out file
+./metaDMG-cpp dfit file.bdamage.gz --names file.gz --nodes trestructure.gz --bam file.bam --showfits int --nopt int --nbootstrap int --printboot int --seed int --doCI int --CI float --lib <ds,ss> --out file
 
 ------------ Required ------------- 
 ./metaDMG-cpp dfit file.bdamage.gz 	 bdamage file contains the misincorporation matrix, in global mode from getdamage command or local mode from lca command
@@ -288,7 +288,7 @@ lca mode: 	  damage estimated over the lca tree at different ranks
 
 	--showfits 2		 similar columns added as described above, using the bootstrap estimated parameters;
 --nbootstrap: 			 Number of bootstrap iterations, default = 0
---doboot: 			 Store all bootstrap iterations of [id,A_b,q_b,c_b,phi_b] in seperate file, suffix: .bdamage.gz.boot.stat.txt.gz
+--printboot:			 Store all bootstrap iterations of [id,A_b,q_b,c_b,phi_b] in separate file, suffix: .boot.stat.gz (set >0 to enable)
 --sigtype 			 Determines the bootstrap method <1,2,3>, default = 1
 	0: 				 Sample with replacement from the C>T frequency from the .bdamage format
 	1: 				 Sample with replacement from the K and N column from the .bdamage format and calculates f column

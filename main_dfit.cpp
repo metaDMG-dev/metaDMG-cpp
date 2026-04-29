@@ -656,14 +656,14 @@ void slave_block(std::map<int, mydataD> &retmap,int howmany,sam_hdr_t *hdr,int2c
 
 int main_dfit(int argc, char **argv) {
     /*
-    fprintf(stderr, "./metaDMG-cpp dfit file.bdamage.gz -names file.gz -nodes trestructure.gz -bam file.bam -showfits int -nopt int -nbootstrap int -seed int -doCI int -CI float -lib <ds,ss> -out file\n");
+    fprintf(stderr, "./metaDMG-cpp dfit file.bdamage.gz -names file.gz -nodes trestructure.gz -bam file.bam -showfits int -nopt int -nbootstrap int -printboot int -seed int -doCI int -CI float -lib <ds,ss> -out file\n");
     fprintf(stderr, "-------------\n Estimate damage patterns with beta-binomial model\n");
     fprintf(stderr, "\tEstimate damage patterns for each chr/scaffold contig (local mode), using lca stats\n");
-    fprintf(stderr, "\t\t./metaDMG-cpp dfit file.bdamage.gz -names file.gz -nodes trestructure.gz -bam file.bam -showfits int -nopt int -nbootstrap int -seed int -doCI int -CI float -lib <ds,ss> -out file\n");
+    fprintf(stderr, "\t\t./metaDMG-cpp dfit file.bdamage.gz -names file.gz -nodes trestructure.gz -bam file.bam -showfits int -nopt int -nbootstrap int -printboot int -seed int -doCI int -CI float -lib <ds,ss> -out file\n");
     fprintf(stderr, "\tEstimate one global damage pattern \n");
     fprintf(stderr, "-------------\n Estimate damage patterns with binomial model\n");
     fprintf(stderr, "\tEstimate damage patterns for each chr/scaffold contig (local mode), using lca stats\n");
-    fprintf(stderr, "\t\t./metaDMG-cpp dfit file.bdamage.gz -names file.gz -nodes trestructure.gz -bam file.bam -showfits int -nopt int -nbootstrap int -seed int -doCI int -CI float -lib <ds,ss> -out file\n");
+    fprintf(stderr, "\t\t./metaDMG-cpp dfit file.bdamage.gz -names file.gz -nodes trestructure.gz -bam file.bam -showfits int -nopt int -nbootstrap int -printboot int -seed int -doCI int -CI float -lib <ds,ss> -out file\n");
     fprintf(stderr, "\tEstimate one global damage pattern \n");
     fprintf(stderr, "\t\t./metaDMG-cpp dfit metaDMG-cpp/metaDMG-cpp dfit Pitch6getDMG.bdamage.gz -printboot 1 -nbootstrap 5 -nopt 10 -showfits 0\n");
     */
