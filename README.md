@@ -315,14 +315,25 @@ Aggregating the lca statistics when transversing through the tree structure, cre
 
 `./metaDMG-cpp aggregate file.bdamage.gz --lcastat lca.stat --names names.dmp --nodes nodes.dmp --out file --dfit ` 
 
+The aggregate output now includes rolled-up LCA statistics for:
+- `mean_rlen`, `var_rlen`
+- `mean_gc`, `var_gc`
+- `mean_dust`, `var_dust`
+- `mean_nspec`, `var_nspec`
+
+Default aggregate columns (before optional dfit columns are appended):
+`taxid	name	rank	nalign	nreads	mean_rlen	var_rlen	mean_gc	var_gc	mean_dust	var_dust	mean_nspec	var_nspec	lca	taxa_path`
+
 ```
 	-> ./metaDMG-cpp aggregate -h 
-    Aggregation of lca produced statistics (mean length, variance length, mean GC, variance GC) when transversing up the nodes of the tree structure
+    Aggregation of lca produced statistics (mean length, variance length, mean GC, variance GC, mean dust, variance dust, mean nspec, variance nspec) when transversing up the nodes of the tree structure
 		./metaDMG-cpp aggregate file.bdamage.gz --names file.gz --nodes trestructure.gz --lcastat file.stat --out filename
 --help 		 Print extended help page to see all options.
 --names 	 names.dmp.gz
 --nodes 	 nodes.dmp.gz
 --lca 		 lcaout.stat lca produced statistics
+--dfit 		 output from dfit function. Optional
+--rlens 	 input rlens.gz to aggregate up taxonomy tree. Optional
 --out 		 Suffix of output name with the predetermined prefix (.aggregate.stat.txt.gz)
 ```
 

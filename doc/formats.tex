@@ -221,7 +221,7 @@ Providing \textit{dfit} command with \textit{nbootstrap $>$ 1} and
 (id,A\_b,q\_b,c\_b,$\phi$\_b) for each iteration are stored in separate file
 
 \section{.agggregate.stat.txt.gz}
-Aggregates the information stored within the lca \textit{.stat} format, described in section \ref{sec:lca}. The aggregated file has the prefix \textit{.aggregate.stat.txt.gz}, with a similar format to the format presented for the lca output in section \ref{sec:lca}. 
+Aggregates the information stored within the lca \textit{.stat} format, described in section \ref{sec:stat}. The aggregated file has the prefix \textit{.aggregate.stat.txt.gz}. 
 \begin{table}[h]
 \begin{tabular}{rll}
   \hline
@@ -236,10 +236,14 @@ Aggregates the information stored within the lca \textit{.stat} format, describe
   7 & {var\_rlen} & The pooled variance of read length \\ & & when transvering through the taxonomic levels\\
   8 & {mean\_gc} & The weighted mean of gc content \\ & & when transvering through the taxonomic levels\\
   9 & {var\_gc} & The pooled variance of gc content \\ & & when transvering through the taxonomic levels\\
-  10 & {lca} & The lca rank \\
-  11 & {taxa\_path} & The taxonimcal path from lca to root \\ \hline
+  10 & {mean\_dust} & The weighted mean of dust score \\ & & when transvering through the taxonomic levels\\
+  11 & {var\_dust} & The pooled variance of dust score \\ & & when transvering through the taxonomic levels\\
+  12 & {mean\_nspec} & The weighted mean of nspec \\ & & when transvering through the taxonomic levels\\
+  13 & {var\_nspec} & The pooled variance of nspec \\ & & when transvering through the taxonomic levels\\
+  14 & {lca} & The lca rank \\
+  15 & {taxa\_path} & The taxonimcal path from lca to root \\ \hline
 \end{tabular}\label{aggregate}
-\caption{Content of a .aggregate.stat.txt.gz file. With column 10 containing taxid and name for the lca node separated by colon, and column 11 contains the taxid":"name for all nodes from the lca to the root, with each node separated by comma, i.e. taxid":"name,taxid":"name,taxid":"name}
+\caption{Content of a .aggregate.stat.txt.gz file. Column 14 contains taxid and name for the lca node separated by colon, and column 15 contains the taxid":"name for all nodes from the lca to the root, with each node separated by comma, i.e. taxid":"name,taxid":"name,taxid":"name. If dfit output is supplied to aggregate, those columns are appended after column 15.}
 \end{table}
 
 \section{.rlens.gz}
