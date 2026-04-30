@@ -125,6 +125,20 @@ fi
 # Remove 'ncall' column and round values, since it fails on GitHub tests
 gunzip -c output/test_dfit_local_10threads.dfit.gz | cut -f1-6,8- | ./round_file.sh | sort -k1,1n > output/test_dfit_local_10threads.dfit.fix
 
+echo "Running aggregate with dfit"
+CMD="${PRG} aggregate output/test_lca.bdamage.gz --nodes data/nodes.dmp.gz --names data/names.dmp.gz --lcastat output/test_lca.stat.gz --dfit output/test_dfit_local.dfit.gz --out_prefix output/test_aggregate_with_dfit"
+${CMD} >> ${LOG} 2>&1
+if [[ $? -ne 0 ]]; then
+    echo "Problem running command: ${CMD}"
+    RVAL=$((128+RVAL))
+fi
+if ! gunzip -c output/test_aggregate_with_dfit.stat.gz | \
+awk 'NR==1 {if (NF <= 11) exit 1} NR>1 && NF > 11 {found=1} END {exit(found?0:1)}'
+then
+    echo "Problem validating output/test_aggregate_with_dfit.stat.gz dfit columns"
+    RVAL=$((128+RVAL))
+fi
+
 echo "Running dfit global"
 CMD="${PRG} dfit output/test_getdamage_global.bdamage.gz --showfits 2 --seed 12345 --lib ds --out output/test_dfit_global"
 ${CMD} >> ${LOG} 2>&1

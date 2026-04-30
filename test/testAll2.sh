@@ -218,6 +218,22 @@ test_dfit() {
     fi
 }
 
+test_aggregate_with_dfit() {
+    run_logged "Running aggregate with dfit" \
+        "${PRG}" aggregate output/test_lca.bdamage.gz --nodes data/nodes.dmp.gz \
+        --names data/names.dmp.gz --lcastat output/test_lca.stat.gz \
+        --dfit output/test_dfit_local.dfit.gz \
+        --out_prefix output/test_aggregate_with_dfit
+
+    assert_gzip_contains output/test_aggregate_with_dfit.stat.gz \
+        $'taxid\tname\trank\tnalign\tnreads\tmean_rlen\tvar_rlen\tmean_gc\tvar_gc\tlca\ttaxa_path\t'
+
+    if ! gunzip -c output/test_aggregate_with_dfit.stat.gz | \
+        awk 'NR==1 {if (NF <= 11) exit 1} NR>1 && NF > 11 {found=1} END {exit(found?0:1)}'; then
+        mark_fail "Problem validating that aggregate --dfit adds dfit columns"
+    fi
+}
+
 test_prints() {
     note "Running printoptions"
 
@@ -568,6 +584,7 @@ main() {
     test_getdamage
     test_lca_aggregate
     test_dfit
+    test_aggregate_with_dfit
     test_prints
     test_data2
     test_data2_getdamage
