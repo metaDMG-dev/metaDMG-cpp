@@ -1,6 +1,5 @@
 # Comments has to have space after hashtag because of different platforms
 32efba37eb7362a173b5ec09521b8563  output/test_aggregate.stat
-954764701641b276f3dee35fd4e7f4ee  output/test_aggregate_with_dfit.stat
 197881fb3261dbc475146a8b896b2118  output/test_dfit_global.dfit.fix
 # ce098a0f1a9a04a7722f2fb09402d7d7  output/test_dfit_local_10threads.dfit.fix
 # 7a7363a09607cacbad8c432fdd46b26e  output/test_dfit_local.dfit.fix

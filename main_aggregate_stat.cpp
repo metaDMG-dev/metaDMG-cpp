@@ -155,7 +155,12 @@ void to_root(int from,int to,std::map<int,mydata2> &stats,int2int &parent,int sr
     md2.nreads += src_nreads;
   }
 
-  int newto = parent.find(to)->second;
+  int2int::iterator parent_it = parent.find(to);
+  if(parent_it==parent.end()){
+    fprintf(stderr,"\t-> Error: parent for taxid:%d not found while traversing tree, will exit\n",to);
+    exit(1);
+  }
+  int newto = parent_it->second;
 
   if(newto!=to)
     to_root(from,newto,stats,parent,src_nreads,src_data);
@@ -181,6 +186,11 @@ std::map<int,char *> read_dfit(char *fname){
     //    fprintf(stderr,"%s len:%d",kstr->s,kstr->l);
     char *taxid = kstr->s;
     char *firsttab = strchr(kstr->s,'\t');
+    if(firsttab==NULL){
+      fprintf(stderr,"\t-> Warning: malformed dfit line without tab, skipping line: %s\n",kstr->s);
+      kstr->l = 0;
+      continue;
+    }
     char *sectab = firsttab+1;
     firsttab[0] = '\0';
     //    fprintf(stderr,"taxid: %d\nstr: %s\n",atoi(taxid),kstr->s);
@@ -259,6 +269,10 @@ int main_aggregate(int argc, char **argv) {
       fprintf(stderr,"\t-> --names file.txt.gz must be defined with --nodes is defined\n");
       exit(1);
     }
+    if(infile_bdamage==NULL){
+      fprintf(stderr,"\t-> bdamage input file is required\n");
+      return helppage_aggregate(stderr);
+    }
     fprintf(stderr,
 	    "aggregate infile_bdamage: %s infile_names: %s infile_nodes: %s infile_lcastat: %s infile_dfit: %s outfile_name: %s\n",
 	    infile_bdamage ? infile_bdamage : "NULL",
@@ -283,6 +297,10 @@ int main_aggregate(int argc, char **argv) {
     snprintf(buf, 1024, "%s.stat.gz", outfile_name);
     fprintf(stderr, "\t-> Dumping file: \'%s\'\n", buf);
     BGZF *fpfpfp = bgzf_open(buf, "wb");
+    if(fpfpfp==NULL){
+      fprintf(stderr,"\t-> Cannot open output BGZ file: %s\n",buf);
+      exit(1);
+    }
     kstring_t *kstr = new kstring_t;
     kstr->s = NULL; kstr->l = kstr->m = 0;
   
@@ -362,7 +380,9 @@ int main_aggregate(int argc, char **argv) {
             itc = name_map.find(it->first);
             if (itc != name_map.end())
                 myname = itc->second;
-            ksprintf(kstr, "%d\t\"%s\"\t\"%s\"\t%d\t%d\t%f\t%f\t%f\t%f", it->first, myname, myrank, nalign, it->second.nreads, it->second.data[0], it->second.data[1], it->second.data[2], it->second.data[3]);
+            const char *safe_name = myname ? myname : "NA";
+            const char *safe_rank = myrank ? myrank : "NA";
+            ksprintf(kstr, "%d\t\"%s\"\t\"%s\"\t%d\t%d\t%f\t%f\t%f\t%f", it->first, safe_name, safe_rank, nalign, it->second.nreads, it->second.data[0], it->second.data[1], it->second.data[2], it->second.data[3]);
 	    if(child.size()>0)
 	      print_chain(kstr, it->first, parent, rank, name_map,0);
 	    else
@@ -398,6 +418,8 @@ int main_aggregate(int argc, char **argv) {
       mydata2 md = it->second;
       delete [] md.data;
     }
+    for(std::map<int,char *>::iterator it=dfit_int_char.begin();it!=dfit_int_char.end();it++)
+      free(it->second);
     free(kstr->s);
     delete kstr;
     
@@ -409,6 +431,10 @@ int main_aggregate(int argc, char **argv) {
       free(infile_names);
     if(infile_lcastat)
       free(infile_lcastat);
+    if(infile_dfit)
+      free(infile_dfit);
+    if(outfile_name)
+      free(outfile_name);
 
   return 0;
 }

@@ -138,6 +138,14 @@ then
     echo "Problem validating output/test_aggregate_with_dfit.stat.gz dfit columns"
     RVAL=$((128+RVAL))
 fi
+if ! diff -u \
+<(gunzip -c output/test_aggregate.stat.gz | cut -f1-11 | sort -k1,1n) \
+<(gunzip -c output/test_aggregate_with_dfit.stat.gz | cut -f1-11 | sort -k1,1n) \
+> output/test_aggregate_with_dfit.aggregate_cols.diff
+then
+    echo "Problem validating that aggregate --dfit preserves aggregate columns (1-11)"
+    RVAL=$((128+RVAL))
+fi
 
 echo "Running dfit global"
 CMD="${PRG} dfit output/test_getdamage_global.bdamage.gz --showfits 2 --seed 12345 --lib ds --out output/test_dfit_global"

@@ -232,6 +232,13 @@ test_aggregate_with_dfit() {
         awk 'NR==1 {if (NF <= 11) exit 1} NR>1 && NF > 11 {found=1} END {exit(found?0:1)}'; then
         mark_fail "Problem validating that aggregate --dfit adds dfit columns"
     fi
+
+    if ! diff -u \
+        <(gunzip -c output/test_aggregate.stat.gz | cut -f1-11 | sort -k1,1n) \
+        <(gunzip -c output/test_aggregate_with_dfit.stat.gz | cut -f1-11 | sort -k1,1n) \
+        > output/test_aggregate_with_dfit.aggregate_cols.diff; then
+        mark_fail "Problem validating that aggregate --dfit preserves aggregate columns (1-11)"
+    fi
 }
 
 test_prints() {
