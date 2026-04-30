@@ -126,7 +126,7 @@ fi
 gunzip -c output/test_dfit_local_10threads.dfit.gz | cut -f1-6,8- | ./round_file.sh | sort -k1,1n > output/test_dfit_local_10threads.dfit.fix
 
 echo "Running aggregate with dfit"
-CMD="${PRG} aggregate output/test_lca.bdamage.gz --nodes data/nodes.dmp.gz --names data/names.dmp.gz --lcastat output/test_lca.stat.gz --dfit output/test_dfit_local.dfit.gz --out_prefix output/test_aggregate_with_dfit"
+CMD="${PRG} aggregate output/test_lca.bdamage.gz --nodes data/nodes.dmp.gz --names data/names.dmp.gz --lcastat output/test_lca.stat.gz --rlens output/test_lca.rlens.gz --dfit output/test_dfit_local.dfit.gz --out_prefix output/test_aggregate_with_dfit"
 ${CMD} >> ${LOG} 2>&1
 if [[ $? -ne 0 ]]; then
     echo "Problem running command: ${CMD}"
@@ -144,6 +144,16 @@ if ! diff -u \
 > output/test_aggregate_with_dfit.aggregate_cols.diff
 then
     echo "Problem validating that aggregate --dfit preserves aggregate columns (1-11)"
+    RVAL=$((128+RVAL))
+fi
+if ! join -t $'\t' -1 1 -2 1 \
+<(gunzip -c output/test_aggregate_with_dfit.rlens.gz | \
+awk 'BEGIN{FS=OFS="\t"} NR==1{next} {s=0; for(i=2;i<=NF;i++){split($i,a,":"); s+=a[2]} print $1"\t"s}' | sort -k1,1n) \
+<(gunzip -c output/test_aggregate_with_dfit.stat.gz | \
+awk 'BEGIN{FS=OFS="\t"} NR==1{next} {print $1"\t"$4}' | sort -k1,1n) | \
+awk '$2!=$3{bad=1} END{exit bad}'
+then
+    echo "Problem validating rlens aggregate sums against nalign in aggregate output"
     RVAL=$((128+RVAL))
 fi
 

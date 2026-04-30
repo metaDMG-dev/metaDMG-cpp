@@ -13,6 +13,8 @@
 #include <sys/time.h>
 #include <math.h>
 #include <algorithm> // for std::sort
+#include <cstdint>
+#include <vector>
 
 #include <iostream>
 #include "profile.h"
@@ -36,6 +38,7 @@ int helppage_aggregate(FILE *fp){
   fprintf(fp,"--nodes \t nodes.dmp.gz\n");
   fprintf(fp,"--lcastat \t\t lcaout.stat lca produced statistics\n");
   fprintf(fp,"[--dfit] \t\t output from dfit function. Optional\n");
+  fprintf(fp,"[--rlens] \t\t input rlens.gz to aggregate up taxonomy tree. Optional\n");
   fprintf(fp,"--out \t\t Suffix of outputname with the predetermined prefix (.stat.gz)\n");
 
   return 0;
@@ -209,6 +212,140 @@ std::map<int,char *> read_dfit(char *fname){
   return ret;
 }
 
+typedef std::map<int, std::vector<uint64_t> > rlensmap_t;
+
+static void rlens_add_vec(std::vector<uint64_t> &dst, const std::vector<uint64_t> &src){
+  if(dst.size()<src.size())
+    dst.resize(src.size(),0);
+  for(size_t i=0;i<src.size();i++)
+    dst[i] += src[i];
+}
+
+static rlensmap_t read_rlens(const char *fname){
+  rlensmap_t ret;
+  BGZF *fp = bgzf_open(fname, "rb");
+  if(fp==NULL){
+    fprintf(stderr,"\t-> Problem opening rlens file: %s will exit\n",fname);
+    exit(1);
+  }
+
+  kstring_t *kstr = new kstring_t;
+  kstr->s=NULL;kstr->l=kstr->m=0;
+  while(bgzf_getline(fp,'\n',kstr)>=0){
+    if(kstr->l==0){
+      kstr->l = 0;
+      continue;
+    }
+    if(!strncmp(kstr->s,"id\t",3) || !strncmp(kstr->s,"ID\t",3)){
+      kstr->l = 0;
+      continue;
+    }
+
+    char *saveptr = NULL;
+    char *tok = strtok_r(kstr->s,"\t\n\r ",&saveptr);
+    if(tok==NULL){
+      kstr->l = 0;
+      continue;
+    }
+
+    int taxid = atoi(tok);
+    std::vector<uint64_t> &hist = ret[taxid];
+
+    // Sparse format: id \t rlen:count \t rlen:count ...
+    char *next = strtok_r(NULL,"\t\n\r ",&saveptr);
+    if(next && strchr(next,':')){
+      do{
+        char *colon = strchr(next,':');
+        if(colon==NULL)
+          continue;
+        *colon = '\0';
+        long rlen = atol(next);
+        unsigned long long count = strtoull(colon+1,NULL,10);
+        if(rlen<0)
+          continue;
+        if(hist.size() <= (size_t)rlen)
+          hist.resize((size_t)rlen+1,0);
+        hist[(size_t)rlen] += (uint64_t)count;
+      }while((next = strtok_r(NULL,"\t\n\r ",&saveptr))!=NULL);
+    }
+    // Flat format: ID \t rlen \t count
+    else if(next){
+      char *next2 = strtok_r(NULL,"\t\n\r ",&saveptr);
+      if(next2){
+        long rlen = atol(next);
+        unsigned long long count = strtoull(next2,NULL,10);
+        if(rlen>=0){
+          if(hist.size() <= (size_t)rlen)
+            hist.resize((size_t)rlen+1,0);
+          hist[(size_t)rlen] += (uint64_t)count;
+        }
+      }
+    }
+    kstr->l = 0;
+  }
+
+  fprintf(stderr,"\t-> Done reading rlens file: \"%s\", contains: %lu ids\n",fname,ret.size());
+  free(kstr->s);
+  delete kstr;
+  bgzf_close(fp);
+  return ret;
+}
+
+static void aggregate_rlens_to_root(rlensmap_t &rlens, int2int &parent){
+  rlensmap_t source = rlens;
+  for(rlensmap_t::iterator it=source.begin();it!=source.end();it++){
+    int current = it->first;
+    while(1){
+      int2int::iterator pit = parent.find(current);
+      if(pit==parent.end()){
+        fprintf(stderr,"\t-> Error: parent for taxid:%d missing while aggregating rlens, will exit\n",current);
+        exit(1);
+      }
+      int up = pit->second;
+      if(up==current)
+        break;
+      rlens_add_vec(rlens[up], it->second);
+      current = up;
+    }
+  }
+}
+
+static void write_rlens(const char *fname, const rlensmap_t &rlens){
+  BGZF *fp = bgzf_open(fname, "wb");
+  if(fp==NULL){
+    fprintf(stderr,"\t-> Problem opening output rlens file: %s will exit\n",fname);
+    exit(1);
+  }
+  kstring_t *kstr = new kstring_t;
+  kstr->s=NULL;kstr->l=kstr->m=0;
+
+  ksprintf(kstr,"id\trlen:count\n");
+  for(rlensmap_t::const_iterator it=rlens.begin();it!=rlens.end();it++){
+    ksprintf(kstr,"%d",it->first);
+    for(size_t i=0;i<it->second.size();i++){
+      if(it->second[i]>0)
+        ksprintf(kstr,"\t%zu:%llu",i,(unsigned long long)it->second[i]);
+    }
+    ksprintf(kstr,"\n");
+    if(kstr->l>1000000){
+      if(bgzf_write(fp,kstr->s,kstr->l)!=(ssize_t)kstr->l){
+        fprintf(stderr,"\t-> Problem writing output rlens file: %s\n",fname);
+        exit(1);
+      }
+      kstr->l = 0;
+    }
+  }
+  if(kstr->l>0){
+    if(bgzf_write(fp,kstr->s,kstr->l)!=(ssize_t)kstr->l){
+      fprintf(stderr,"\t-> Problem writing output rlens file: %s\n",fname);
+      exit(1);
+    }
+  }
+  free(kstr->s);
+  delete kstr;
+  bgzf_close(fp);
+}
+
 void aggr_stat3000(std::map<int, mydata2> &stats,int2int &parent){
   std::map<int,int> dasmap;
   std::map<int,double *> datamap;
@@ -248,6 +385,7 @@ int main_aggregate(int argc, char **argv) {
     char *infile_lcastat = NULL;
     char *outfile_name = NULL;
     char *infile_dfit = NULL;
+    char *infile_rlens = NULL;
     int howmany;//this is the cycle
     while (*(++argv)) {
       if (strcasecmp("-h", *argv) == 0 || strcasecmp("--help", *argv) == 0)
@@ -258,6 +396,8 @@ int main_aggregate(int argc, char **argv) {
 	infile_nodes = strdup(*(++argv));
       else if (strcasecmp("--dfit", *argv) == 0 || strcasecmp("-dfit", *argv) == 0)
 	infile_dfit = strdup(*(++argv));
+      else if (strcasecmp("--rlens", *argv) == 0 || strcasecmp("-rlens", *argv) == 0)
+	infile_rlens = strdup(*(++argv));
       else if (strcasecmp("-lca", *argv) == 0|| strcasecmp("--lcastat", *argv) == 0|| strcasecmp("-lcastat", *argv) == 0)
 	infile_lcastat = strdup(*(++argv));
       else if (strcasecmp("-o", *argv) == 0 || strcasecmp("--out", *argv) == 0 || strcasecmp("--out_prefix", *argv) == 0)
@@ -282,6 +422,9 @@ int main_aggregate(int argc, char **argv) {
 	    infile_dfit    ? infile_dfit    : "NULL",
 	    outfile_name   ? outfile_name   : "NULL"
 	    );
+    if(infile_rlens && infile_nodes==NULL){
+      fprintf(stderr,"\t-> Warning: --rlens was supplied without --nodes, rlens output will not be taxonomically expanded\n");
+    }
     if(outfile_name==NULL)
       outfile_name = strdup(infile_bdamage);
     fprintf(stderr,
@@ -363,6 +506,17 @@ int main_aggregate(int argc, char **argv) {
       postsize = stats.size();
       fprintf(stderr, "\t-> pre: %f post:%f grownbyfactor: %f\n", presize, postsize, postsize / presize);
     }
+
+    if(infile_rlens){
+      rlensmap_t rlens = read_rlens(infile_rlens);
+      if(child.size()>0)
+        aggregate_rlens_to_root(rlens,parent);
+      char rbuf[1024];
+      snprintf(rbuf, 1024, "%s.rlens.gz", outfile_name);
+      write_rlens(rbuf, rlens);
+      fprintf(stderr,"\t-> Dumped aggregated rlens file: '%s' with %lu ids\n",rbuf,rlens.size());
+    }
+
     for (std::map<int, mydata2>::iterator it = stats.begin(); it != stats.end(); it++) {
       std::map<int, mydataD>::iterator itold = retmap.find(it->first);
       std::map<int, char*>::iterator itchar = dfit_int_char.find(it->first);
@@ -433,6 +587,8 @@ int main_aggregate(int argc, char **argv) {
       free(infile_lcastat);
     if(infile_dfit)
       free(infile_dfit);
+    if(infile_rlens)
+      free(infile_rlens);
     if(outfile_name)
       free(outfile_name);
 
