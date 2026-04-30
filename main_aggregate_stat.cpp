@@ -95,7 +95,36 @@ $if 0
   
 }
 */
-void to_root(int from,int to,std::map<int,mydata2> &stats,int2int &parent,int src_nreads,double *src_data){
+static void merge_mean_var_pairs(double *dst,int old_nreads,const double *src,int src_nreads,int nstats){
+  int new_nreads = old_nreads + src_nreads;
+  for(int i=0;i+1<nstats;i+=2){
+    double old_mean = dst[i];
+    double old_var  = dst[i+1];
+    double src_mean = src[i];
+    double src_var  = src[i+1];
+
+    dst[i] = ((double)src_mean*src_nreads + old_mean*old_nreads)/((double)src_nreads + old_nreads);
+
+    if(new_nreads>1){
+      if(src_nreads>1 && old_nreads>1){
+        double ss =
+          ((double)src_nreads-1)*src_var +
+          ((double)old_nreads-1)*old_var +
+          ((double)src_nreads*old_nreads/(double)new_nreads)*
+          (src_mean-old_mean)*(src_mean-old_mean);
+        dst[i+1] = ss/((double)new_nreads-1);
+      }
+      else if(src_nreads>1 && old_nreads<=1){
+        dst[i+1] = src_var;
+      }
+      else if(src_nreads<=1 && old_nreads>1){
+        dst[i+1] = old_var;
+      }
+    }
+  }
+}
+
+void to_root(int from,int to,std::map<int,mydata2> &stats,int2int &parent,int src_nreads,double *src_data,int nstats){
   // fprintf(stderr,"from: %d to: %d src_nreads:%d\n",from,to,src_nreads);
 
   std::map<int,mydata2>::iterator it=stats.find(to);
@@ -103,8 +132,8 @@ void to_root(int from,int to,std::map<int,mydata2> &stats,int2int &parent,int sr
     mydata2 mdmis;
     mdmis.nreads = src_nreads;
 
-    mdmis.data = new double[4];
-    for(int iii=0;iii<4;iii++)
+    mdmis.data = new double[nstats];
+    for(int iii=0;iii<nstats;iii++)
       mdmis.data[iii] = src_data[iii];
 
     stats[to] = mdmis;
@@ -113,47 +142,7 @@ void to_root(int from,int to,std::map<int,mydata2> &stats,int2int &parent,int sr
     mydata2 &md2 = stats.find(to)->second;
 
     int old_nreads = md2.nreads;
-    int new_nreads = md2.nreads + src_nreads;
-
-    double old_mean_len = md2.data[0];
-    double old_var_len  = md2.data[1];
-    double old_mean_gc  = md2.data[2];
-    double old_var_gc   = md2.data[3];
-
-    double src_mean_len = src_data[0];
-    double src_var_len  = src_data[1];
-    double src_mean_gc  = src_data[2];
-    double src_var_gc   = src_data[3];
-
-    md2.data[0] = ((double)src_mean_len*src_nreads + old_mean_len*old_nreads)/((double)src_nreads + old_nreads);
-    md2.data[2] = ((double)src_mean_gc*src_nreads + old_mean_gc*old_nreads)/((double)src_nreads + old_nreads);
-
-    if(new_nreads>1){
-      if(src_nreads>1 && old_nreads>1){
-        double ss_len =
-          ((double)src_nreads-1)*src_var_len +
-          ((double)old_nreads-1)*old_var_len +
-          ((double)src_nreads*old_nreads/(double)new_nreads)*
-          (src_mean_len-old_mean_len)*(src_mean_len-old_mean_len);
-
-        double ss_gc =
-          ((double)src_nreads-1)*src_var_gc +
-          ((double)old_nreads-1)*old_var_gc +
-          ((double)src_nreads*old_nreads/(double)new_nreads)*
-          (src_mean_gc-old_mean_gc)*(src_mean_gc-old_mean_gc);
-
-        md2.data[1] = ss_len/((double)new_nreads-1);
-        md2.data[3] = ss_gc/((double)new_nreads-1);
-      }
-      else if(src_nreads>1 && old_nreads<=1){
-        md2.data[1] = src_var_len;
-        md2.data[3] = src_var_gc;
-      }
-      else if(src_nreads<=1 && old_nreads>1){
-        md2.data[1] = old_var_len;
-        md2.data[3] = old_var_gc;
-      }
-    }
+    merge_mean_var_pairs(md2.data, old_nreads, src_data, src_nreads, nstats);
 
     md2.nreads += src_nreads;
   }
@@ -166,7 +155,7 @@ void to_root(int from,int to,std::map<int,mydata2> &stats,int2int &parent,int sr
   int newto = parent_it->second;
 
   if(newto!=to)
-    to_root(from,newto,stats,parent,src_nreads,src_data);
+    to_root(from,newto,stats,parent,src_nreads,src_data,nstats);
 
 }
 
@@ -346,15 +335,15 @@ static void write_rlens(const char *fname, const rlensmap_t &rlens){
   bgzf_close(fp);
 }
 
-void aggr_stat3000(std::map<int, mydata2> &stats,int2int &parent){
+void aggr_stat3000(std::map<int, mydata2> &stats,int2int &parent,int nstats){
   std::map<int,int> dasmap;
   std::map<int,double *> datamap;
 
   for(std::map<int,mydata2>::iterator it = stats.begin();it!=stats.end();it++){
     dasmap[it->first] = it->second.nreads;
 
-    datamap[it->first] = new double[4];
-    for(int i=0;i<4;i++)
+    datamap[it->first] = new double[nstats];
+    for(int i=0;i<nstats;i++)
       datamap[it->first][i] = it->second.data[i];
   }
 
@@ -368,7 +357,7 @@ void aggr_stat3000(std::map<int, mydata2> &stats,int2int &parent){
     int target = it->second;
 
     if(target!=focal_taxid)
-      to_root(focal_taxid,target,stats,parent,itt->second,datamap[focal_taxid]);
+      to_root(focal_taxid,target,stats,parent,itt->second,datamap[focal_taxid],nstats);
   }
 
   for(std::map<int,double *>::iterator it=datamap.begin();it!=datamap.end();it++)
@@ -474,12 +463,16 @@ int main_aggregate(int argc, char **argv) {
     float postsize = retmap.size();
     fprintf(stderr, "\t-> pre: %f post:%f grownbyfactor: %f\n", presize, postsize, postsize / presize);
 
+    int stat_dims = 4;
     std::map<int, mydata2> stats;
     if (infile_lcastat){
-      stats = load_lcastat(infile_lcastat,1);
+      stats = load_lcastat(infile_lcastat,1,&stat_dims);
       presize = stats.size();
     }
-    ksprintf(kstr, "taxid\tname\trank\tnalign\tnreads\tmean_rlen\tvar_rlen\tmean_gc\tvar_gc\tlca\ttaxa_path");
+    ksprintf(kstr, "taxid\tname\trank\tnalign\tnreads\tmean_rlen\tvar_rlen\tmean_gc\tvar_gc");
+    if(stat_dims>=8)
+      ksprintf(kstr, "\tmean_dust\tvar_dust\tmean_nspec\tvar_nspec");
+    ksprintf(kstr, "\tlca\ttaxa_path");
     
     std::map<int, char *> dfit_int_char;
     if(infile_dfit!=NULL){
@@ -500,7 +493,7 @@ int main_aggregate(int argc, char **argv) {
     if(child.size()>0)//this will not work if we have data at internal nodes 
       getval_stats(stats, child, 1);  // this will do everything
 #endif
-    aggr_stat3000(stats,parent);
+    aggr_stat3000(stats,parent,stat_dims);
     //    exit(0);
     if(stats.size()>0){
       postsize = stats.size();
@@ -537,6 +530,8 @@ int main_aggregate(int argc, char **argv) {
             const char *safe_name = myname ? myname : "NA";
             const char *safe_rank = myrank ? myrank : "NA";
             ksprintf(kstr, "%d\t\"%s\"\t\"%s\"\t%d\t%d\t%f\t%f\t%f\t%f", it->first, safe_name, safe_rank, nalign, it->second.nreads, it->second.data[0], it->second.data[1], it->second.data[2], it->second.data[3]);
+            if(stat_dims>=8)
+              ksprintf(kstr,"\t%f\t%f\t%f\t%f",it->second.data[4],it->second.data[5],it->second.data[6],it->second.data[7]);
 	    if(child.size()>0)
 	      print_chain(kstr, it->first, parent, rank, name_map,0);
 	    else

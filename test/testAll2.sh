@@ -227,18 +227,18 @@ test_aggregate_with_dfit() {
         --out_prefix output/test_aggregate_with_dfit
 
     assert_gzip_contains output/test_aggregate_with_dfit.stat.gz \
-        $'taxid\tname\trank\tnalign\tnreads\tmean_rlen\tvar_rlen\tmean_gc\tvar_gc\tlca\ttaxa_path\t'
+        $'taxid\tname\trank\tnalign\tnreads\tmean_rlen\tvar_rlen\tmean_gc\tvar_gc\tmean_dust\tvar_dust\tmean_nspec\tvar_nspec\tlca\ttaxa_path\t'
 
     if ! gunzip -c output/test_aggregate_with_dfit.stat.gz | \
-        awk 'NR==1 {if (NF <= 11) exit 1} NR>1 && NF > 11 {found=1} END {exit(found?0:1)}'; then
+        awk 'NR==1 {if (NF <= 15) exit 1} NR>1 && NF > 15 {found=1} END {exit(found?0:1)}'; then
         mark_fail "Problem validating that aggregate --dfit adds dfit columns"
     fi
 
     if ! diff -u \
-        <(gunzip -c output/test_aggregate.stat.gz | cut -f1-11 | sort -k1,1n) \
-        <(gunzip -c output/test_aggregate_with_dfit.stat.gz | cut -f1-11 | sort -k1,1n) \
+        <(gunzip -c output/test_aggregate.stat.gz | cut -f1-15 | sort -k1,1n) \
+        <(gunzip -c output/test_aggregate_with_dfit.stat.gz | cut -f1-15 | sort -k1,1n) \
         > output/test_aggregate_with_dfit.aggregate_cols.diff; then
-        mark_fail "Problem validating that aggregate --dfit preserves aggregate columns (1-11)"
+        mark_fail "Problem validating that aggregate --dfit preserves aggregate columns (1-15)"
     fi
 
     assert_gzip_contains output/test_aggregate_with_dfit.rlens.gz $'id\trlen:count'

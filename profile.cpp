@@ -764,7 +764,7 @@ std::map<int, mydataD> load_bdamage_full(const char *fname, int &printlength) {
     return retmap;
 }
 
-std::map<int, mydata2> load_lcastat(const char *fname,int skipfirstline) {
+std::map<int, mydata2> load_lcastat(const char *fname,int skipfirstline,int *nstat_dims) {
     //  fprintf(stderr,"./metadamage print file.bdamage.gz [-names file.gz -bam file.bam]\n");
     //  fprintf(stderr,"fname: %s howmany: %d \n",fname,howmany);
 
@@ -778,24 +778,65 @@ std::map<int, mydata2> load_lcastat(const char *fname,int skipfirstline) {
     std::map<int, mydata2> retmap;
     char buffer[4096];
     int atline = 0;
+    int detected_dims = -1;
     while (gzgets(fp, buffer, 4096)) {
       atline++;
       if(skipfirstline>0&&atline==1)
 	continue;
-      int taxid = atoi(strtok(buffer, "\t\n "));
-        mydata2 md;
-        md.nreads = atoi(strtok(NULL, "\t\n "));
-        md.data = new double[4];
-        for (int i = 0; i < 4; i++)
-            md.data[i] = atof(strtok(NULL, "\t\n "));
+      char *saveptr = NULL;
+      char *tok = strtok_r(buffer, "\t\r\n", &saveptr);
+      if(tok==NULL)
+        continue;
+      int taxid = atoi(tok);
 
-        retmap[taxid] = md;
+      tok = strtok_r(NULL, "\t\r\n", &saveptr);
+      if(tok==NULL)
+        continue;
+
+      mydata2 md;
+      md.nreads = atoi(tok);
+
+      double values[8] = {0,0,0,0,0,0,0,0};
+      int nvals = 0;
+      while((tok = strtok_r(NULL, "\t\r\n", &saveptr))!=NULL && nvals<8){
+        char *endptr = NULL;
+        double val = strtod(tok, &endptr);
+        while(endptr && *endptr && isspace((unsigned char)*endptr))
+          endptr++;
+        if(endptr==tok || (endptr && *endptr!='\0'))
+          break;
+        values[nvals++] = val;
+      }
+      if(nvals<4){
+        fprintf(stderr,"\t-> Warning: malformed lcastat line %d in %s (found %d numeric stat fields, expected at least 4), skipping\n",atline,fname,nvals);
+        continue;
+      }
+      if(nvals%2!=0)
+        nvals--;
+      if(nvals<4)
+        nvals = 4;
+      int line_dims = nvals>=8 ? 8 : 4;
+      if(detected_dims==-1)
+        detected_dims = line_dims;
+      int use_dims = detected_dims;
+
+      md.data = new double[use_dims];
+      for (int i = 0; i < use_dims; i++)
+        md.data[i] = 0.0;
+      for (int i = 0; i < use_dims && i < nvals; i++)
+        md.data[i] = values[i];
+
+      retmap[taxid] = md;
     }
 
     if (fp)
         gzclose(fp);
 
-    fprintf(stderr, "\t-> Done loading lcastat file It contains: %zu\n", retmap.size());
+    if(detected_dims==-1)
+      detected_dims = 4;
+    if(nstat_dims)
+      *nstat_dims = detected_dims;
+    fprintf(stderr, "\t-> Done loading lcastat file It contains: %zu (stat_dims=%d)\n", retmap.size(), detected_dims);
     for (std::map<int, mydata2>::iterator it = retmap.begin(); 0 && it != retmap.end(); it++)
         fprintf(stderr, "%d->(%d,%f,%f,%f,%f)\n", it->first, it->second.nreads, it->second.data[0], it->second.data[1], it->second.data[2], it->second.data[3]);
 

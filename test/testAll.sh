@@ -133,17 +133,17 @@ if [[ $? -ne 0 ]]; then
     RVAL=$((128+RVAL))
 fi
 if ! gunzip -c output/test_aggregate_with_dfit.stat.gz | \
-awk 'NR==1 {if (NF <= 11) exit 1} NR>1 && NF > 11 {found=1} END {exit(found?0:1)}'
+awk 'NR==1 {if (NF <= 15) exit 1} NR>1 && NF > 15 {found=1} END {exit(found?0:1)}'
 then
     echo "Problem validating output/test_aggregate_with_dfit.stat.gz dfit columns"
     RVAL=$((128+RVAL))
 fi
 if ! diff -u \
-<(gunzip -c output/test_aggregate.stat.gz | cut -f1-11 | sort -k1,1n) \
-<(gunzip -c output/test_aggregate_with_dfit.stat.gz | cut -f1-11 | sort -k1,1n) \
+<(gunzip -c output/test_aggregate.stat.gz | cut -f1-15 | sort -k1,1n) \
+<(gunzip -c output/test_aggregate_with_dfit.stat.gz | cut -f1-15 | sort -k1,1n) \
 > output/test_aggregate_with_dfit.aggregate_cols.diff
 then
-    echo "Problem validating that aggregate --dfit preserves aggregate columns (1-11)"
+    echo "Problem validating that aggregate --dfit preserves aggregate columns (1-15)"
     RVAL=$((128+RVAL))
 fi
 if ! join -t $'\t' -1 1 -2 1 \
