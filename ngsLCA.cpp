@@ -178,22 +178,28 @@ typedef struct {
     int nalignments;
     std::vector<float> readlengths;
     std::vector<float> gccontents;
+    std::vector<float> dustscores;
+    std::vector<float> nspecies;
 } lcatriplet;
 
 std::map<int, lcatriplet> lcastat;
 
-void adder(int taxid, int readlengths, float gccontent) {
+void adder(int taxid, int readlengths, float gccontent, float dustscore, float nspec) {
     std::map<int, lcatriplet>::iterator it = lcastat.find(taxid);
     if (it == lcastat.end()) {
         lcatriplet tmp;
         tmp.nalignments = 1;
         tmp.readlengths.push_back(readlengths);
         tmp.gccontents.push_back(gccontent);
+        tmp.dustscores.push_back(dustscore);
+        tmp.nspecies.push_back(nspec);
         lcastat[taxid] = tmp;
     } else {
         it->second.nalignments = it->second.nalignments + 1;
         it->second.readlengths.push_back(readlengths);
         it->second.gccontents.push_back(gccontent);
+        it->second.dustscores.push_back(dustscore);
+        it->second.nspecies.push_back(nspec);
     }
 }
 int do_lca(std::vector<int> &taxids, int2int &parent) {
@@ -600,7 +606,7 @@ void hts(gzFile fp, samFile *fp_in, int2int &ref2tax, int2int &parent, bam_hdr_t
 		    }
 		    //standard analyses
 		    if (myit->second != -1 && (myit->second <= lca_rank)) {
-                        adder(lca, strlen(seq), gccontent(seq));
+                        adder(lca, strlen(seq), gccontent(seq), (float)dustscore, (float)nspecies);
 			const float dmgw = (weighttype == 0) ? 1.0f : (1.0f / (float)(apply_purge ? nused : myq->l));
 			            //fprintf(stderr,"Looping through alignments we have :%d \n",myq->l);
                         for (size_t i = 0; i < myq->l; i++) {
@@ -754,7 +760,7 @@ void hts(gzFile fp, samFile *fp_in, int2int &ref2tax, int2int &parent, bam_hdr_t
 	      }
 	    }
             if (myit->second != -1 && (myit->second <= lca_rank)) {
-                adder(lca, strlen(seq), gccontent(seq));
+                adder(lca, strlen(seq), gccontent(seq), (float)dustscore, (float)nspecies);
 		const float dmgw = (weighttype == 0) ? 1.0f : (1.0f / (float)(apply_purge ? nused : myq->l));
                 //      if(correct_rank(lca_rank,lca,rank,norank2species)){
 		        //fprintf(stderr,"Looping through alignments we have :%d \n",myq->l);
@@ -989,10 +995,15 @@ int main_lca(int argc, char **argv) {
     if (famout_sam != NULL)
       sam_close(famout_sam);
     if (p->fp_lcadist) {
-        gzprintf(p->fp_lcadist,"taxid\tnreads\tmean_len\tvar_len\tmean_gc\tvar_gc\tlca\trank\n");
+        gzprintf(p->fp_lcadist,"taxid\tnreads\tmean_len\tvar_len\tmean_gc\tvar_gc\tmean_dust\tvar_dust\tmean_nspec\tvar_nspec\tlca\trank\n");
         for (std::map<int, lcatriplet>::iterator it = lcastat.begin(); it != lcastat.end(); it++) {
             lcatriplet tmp = it->second;
-            gzprintf(p->fp_lcadist, "%d\t%d\t%f\t%f\t%f\t%f", it->first, tmp.nalignments, mean(tmp.readlengths), var(tmp.readlengths), mean(tmp.gccontents), var(tmp.gccontents));
+            gzprintf(p->fp_lcadist, "%d\t%d\t%f\t%f\t%f\t%f\t%f\t%f\t%f\t%f",
+                     it->first, tmp.nalignments,
+                     mean(tmp.readlengths), var(tmp.readlengths),
+                     mean(tmp.gccontents), var(tmp.gccontents),
+                     mean(tmp.dustscores), var(tmp.dustscores),
+                     mean(tmp.nspecies), var(tmp.nspecies));
             int2char::iterator it1 = name_map.find(it->first);
             int2char::iterator it2 = rank.find(it->first);
             char *namnam, *rankrank;

@@ -305,19 +305,31 @@ test_data2() {
     assert_gzip_contains output_data2/sam2.lca.gz $'queryid\tseq\tlen\tnaln\tnspec\tdustscore\tgc\tlca\ttaxa_path'
     assert_gzip_contains output_data2/sam2.lca.gz $'read1\tTTTTTTTTTTTTTTTTTTTTTTTTTTTTTT\t30\t3\t1\t'
     assert_gzip_contains output_data2/sam2.lca.gz $'\t10:"l__Bacteria":"species"'
-    assert_gzip_contains output_data2/sam2.stat.gz $'10\t1\t30.000000\t0.000000\t0.000000\t0.000000\t"l__Bacteria"\t"species"'
+    if ! gunzip -c output_data2/sam2.stat.gz | \
+        awk 'BEGIN{FS=OFS="\t"} NR==1{next} $1=="10" && $2=="1" && $3=="30.000000" && $4=="0.000000" && $5=="0.000000" && $6=="0.000000" && $11=="\"l__Bacteria\"" && $12=="\"species\"" {ok=1} END{exit(ok?0:1)}'; then
+        mark_fail "Problem validating output_data2/sam2.stat.gz content for taxid 10"
+    fi
 
     assert_gzip_contains output_data2/sam3.lca.gz $'read1\tTTTTTTTTTTTTTTTTTTTTTTTTTTTTTT\t30\t2\t1\t'
     assert_gzip_contains output_data2/sam3.lca.gz $'read2\tAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\t30\t1\t1\t'
     assert_gzip_contains output_data2/sam3.lca.gz $'\t10:"l__Bacteria":"species"'
     assert_gzip_contains output_data2/sam3.lca.gz $'\t11:"l__Bacteria":"subspecies"'
-    assert_gzip_contains output_data2/sam3.stat.gz $'10\t1\t30.000000\t0.000000\t0.000000\t0.000000\t"l__Bacteria"\t"species"'
-    assert_gzip_contains output_data2/sam3.stat.gz $'11\t1\t30.000000\t0.000000\t0.000000\t0.000000\t"l__Bacteria"\t"subspecies"'
+    if ! gunzip -c output_data2/sam3.stat.gz | \
+        awk 'BEGIN{FS=OFS="\t"} NR==1{next} $1=="10" && $2=="1" && $3=="30.000000" && $4=="0.000000" && $5=="0.000000" && $6=="0.000000" && $11=="\"l__Bacteria\"" && $12=="\"species\"" {ok=1} END{exit(ok?0:1)}'; then
+        mark_fail "Problem validating output_data2/sam3.stat.gz content for taxid 10"
+    fi
+    if ! gunzip -c output_data2/sam3.stat.gz | \
+        awk 'BEGIN{FS=OFS="\t"} NR==1{next} $1=="11" && $2=="1" && $3=="30.000000" && $4=="0.000000" && $5=="0.000000" && $6=="0.000000" && $11=="\"l__Bacteria\"" && $12=="\"subspecies\"" {ok=1} END{exit(ok?0:1)}'; then
+        mark_fail "Problem validating output_data2/sam3.stat.gz content for taxid 11"
+    fi
 
     assert_gzip_contains output_data2/sam5.lca.gz $'read1\t'
     assert_gzip_contains output_data2/sam5.lca.gz $'\t607\t1\t1\t'
     assert_gzip_contains output_data2/sam5.lca.gz $'\t11:"l__Bacteria":"subspecies"'
-    assert_gzip_contains output_data2/sam5.stat.gz $'11\t1\t607.000000\t0.000000\t0.000000\t0.000000\t"l__Bacteria"\t"subspecies"'
+    if ! gunzip -c output_data2/sam5.stat.gz | \
+        awk 'BEGIN{FS=OFS="\t"} NR==1{next} $1=="11" && $2=="1" && $3=="607.000000" && $4=="0.000000" && $5=="0.000000" && $6=="0.000000" && $11=="\"l__Bacteria\"" && $12=="\"subspecies\"" {ok=1} END{exit(ok?0:1)}'; then
+        mark_fail "Problem validating output_data2/sam5.stat.gz content for taxid 11"
+    fi
 }
 
 test_data2_getdamage() {
@@ -376,8 +388,14 @@ test_filter_bdamage() {
     require_file output_data2/filter_nodes.stat.gz || return 0
     require_file output_data2/filter_nodes.rlens.gz || return 0
 
-    assert_gzip_contains output_data2/filter_nodes.stat.gz $'11\t1\t30.000000\t0.000000\t0.000000\t0.000000\t"l__Bacteria"\t"subspecies"'
-    assert_gzip_not_contains output_data2/filter_nodes.stat.gz $'10\t1\t30.000000\t0.000000\t0.000000\t0.000000\t"l__Bacteria"\t"species"'
+    if ! gunzip -c output_data2/filter_nodes.stat.gz | \
+        awk 'BEGIN{FS=OFS="\t"} NR==1{next} $1=="11" && $2=="1" && $3=="30.000000" && $4=="0.000000" && $5=="0.000000" && $6=="0.000000" && $11=="\"l__Bacteria\"" && $12=="\"subspecies\"" {ok=1} END{exit(ok?0:1)}'; then
+        mark_fail "Problem validating output_data2/filter_nodes.stat.gz content for taxid 11"
+    fi
+    if gunzip -c output_data2/filter_nodes.stat.gz | \
+        awk 'BEGIN{FS=OFS="\t"} NR==1{next} $1=="10" && $2=="1" && $3=="30.000000" && $4=="0.000000" && $5=="0.000000" && $6=="0.000000" && $11=="\"l__Bacteria\"" && $12=="\"species\"" {found=1} END{exit(found?0:1)}'; then
+        mark_fail "Unexpected taxid 10 entry found in output_data2/filter_nodes.stat.gz"
+    fi
 
     if ! "${PRG}" print output_data2/filter_nodes.bdamage.gz \
         1>output_data2/filter_nodes.bdamage.tsv 2>>"${LOG}"; then

@@ -10,7 +10,7 @@ ba1415f0e1889f819b430651dc56b4ff  output/test_getdamage_global.stat
 443b35425bc868259fde18dbe86011e3  output/test_lca.bdamage
 # d4532cede0b424946f92559b2e737899  output/test_lca.lca##this has been commented out because eithput is random between reqad and the reverse complement
 # 7a7363a09607cacbad8c432fdd46b26e  output/test_dfit_local.dfit.fix##commented out
-16ef4f34723088f7a5248f0f18a8aee0  output/test_lca.stat
+6514f0d9e59e53b7c14f83810039ea13  output/test_lca.stat
 eaa8bb5f32aa0ef05bcf923d0c2bd711  output/test_lca_taxa.uglyprint.mismatch
 c77597636abdd7811f7b3c0b78fb7ffd  output/test_lca_taxa.uglyprint.stat
 70363c8585d69e8d4457fc1d1ba7cd92  output/test_lca.uglyprint.mismatch
