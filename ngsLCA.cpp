@@ -482,8 +482,47 @@ static size_t count_unique_species(const std::vector<int> &specs, const std::vec
     return species_kept.size();
 }
 
-void hts(gzFile fp, samFile *fp_in, int2int &ref2tax, int2int &parent, bam_hdr_t *hdr, int2char &rank, int2char &name_map, int minmapq, int discard, int editMin, int editMax, double scoreLow, double scoreHigh, int maxdust, int minlength, int lca_rank, char *prefix, int howmany, samFile *fp_usedreads, int skipnorank, int2int &rank2level, int nthreads, int weighttype,long maxreads,samFile *fp_famout,int rlens_flat_out) {
-  fprintf(stderr, "[%s] \t-> editMin:%d editmMax:%d scoreLow:%f scoreHigh:%f maxdust:%d minlength:%d discard: %d prefix: %s howmany: %d skipnorank: %d weighttype: %d maxreads: %ld rlens_flat_out: %d\n", __FUNCTION__, editMin, editMax, scoreLow, scoreHigh, maxdust, minlength, discard, prefix, howmany, skipnorank, weighttype,maxreads,rlens_flat_out);
+static void purge_best_as(queue *myq, std::vector<int> &taxids, std::vector<int> &specs, const char *readname) {
+    if (taxids.size() != myq->l || specs.size() != myq->l) {
+        fprintf(stderr, "\t-> Error: taxids/specs/myq sizes do not match in AS purging, will exit\n");
+        exit(1);
+    }
+
+    bool have_best = false;
+    int best_as = 0;
+    for (size_t i = 0; i < myq->l; i++) {
+        uint8_t *as_tag = bam_aux_get(myq->ary[i], "AS");
+        if (as_tag == NULL) {
+            fprintf(stderr, "\t-> Error: --best_as 1 but missing AS tag for read: %s, will exit\n", readname ? readname : "<unknown>");
+            exit(1);
+        }
+        const int as_val = (int)bam_aux2i(as_tag);
+        if (!have_best || as_val > best_as) {
+            best_as = as_val;
+            have_best = true;
+        }
+    }
+
+    size_t write_idx = 0;
+    for (size_t i = 0; i < myq->l; i++) {
+        uint8_t *as_tag = bam_aux_get(myq->ary[i], "AS");
+        const int as_val = (int)bam_aux2i(as_tag);
+        if (as_val != best_as)
+            continue;
+        if (write_idx != i) {
+            std::swap(myq->ary[write_idx], myq->ary[i]);
+            taxids[write_idx] = taxids[i];
+            specs[write_idx] = specs[i];
+        }
+        write_idx++;
+    }
+    myq->l = write_idx;
+    taxids.resize(write_idx);
+    specs.resize(write_idx);
+}
+
+void hts(gzFile fp, samFile *fp_in, int2int &ref2tax, int2int &parent, bam_hdr_t *hdr, int2char &rank, int2char &name_map, int minmapq, int discard, int editMin, int editMax, double scoreLow, double scoreHigh, int maxdust, int minlength, int lca_rank, char *prefix, int howmany, samFile *fp_usedreads, int skipnorank, int2int &rank2level, int nthreads, int weighttype,long maxreads,samFile *fp_famout,int rlens_flat_out,int best_as) {
+  fprintf(stderr, "[%s] \t-> editMin:%d editmMax:%d scoreLow:%f scoreHigh:%f maxdust:%d minlength:%d discard: %d prefix: %s howmany: %d skipnorank: %d weighttype: %d maxreads: %ld rlens_flat_out: %d best_as: %d\n", __FUNCTION__, editMin, editMax, scoreLow, scoreHigh, maxdust, minlength, discard, prefix, howmany, skipnorank, weighttype,maxreads,rlens_flat_out,best_as);
   if (fp_in == NULL) {
     fprintf(stderr, "\t-> Error: fp_in is NULL (failed to open input file), will exit\n");
     exit(1);
@@ -550,6 +589,8 @@ void hts(gzFile fp, samFile *fp_in, int2int &ref2tax, int2int &parent, bam_hdr_t
         // change of ref
         if (strcmp(last, qname) != 0) {
             if (taxids.size() > 0) {
+                if (best_as)
+                    purge_best_as(myq, taxids, specs, last);
                 //	fprintf(stderr,"length of taxids:%lu and other:%lu minedit:%d\n",taxids.size(),editdist.size(),*std::min_element(editdist.begin(),editdist.end()));
 
                 size_t size = taxids.size();
@@ -708,6 +749,8 @@ void hts(gzFile fp, samFile *fp_in, int2int &ref2tax, int2int &parent, bam_hdr_t
         }
     }
     if (taxids.size() > 0) {
+        if (best_as)
+            purge_best_as(myq, taxids, specs, last);
         size_t size = taxids.size();
 	if (size != myq->l) {
 	  fprintf(stderr, "\t-> Error: size does not match myq->l, will exit\n");
@@ -888,6 +931,7 @@ int main_lca(int argc, char **argv) {
         fprintf(stderr, "  --minAni/--min_ani FLOAT alias for --sim_score_low\n");
         fprintf(stderr, "  --maxAni/--max_ani FLOAT alias for --sim_score_high\n");
         fprintf(stderr, "  --maxdust INT            (0-100, default: -1 disabled)\n");
+        fprintf(stderr, "  --best_as <0|1>          (default: 0, keep only best AS per read; ties kept)\n");
         fprintf(stderr, "  --min_mapq INT           (default: 0)\n");
         fprintf(stderr, "  --min_length INT         (default: -1 disabled)\n");
         fprintf(stderr, "Output/options:\n");
@@ -910,6 +954,10 @@ int main_lca(int argc, char **argv) {
     print_pars(stderr, p);
     if (p->maxdust < -1 || p->maxdust > 100) {
         fprintf(stderr, "\t-> Error: --maxdust must be -1 (disabled) or between 0 and 100\n");
+        exit(1);
+    }
+    if (p->best_as != 0 && p->best_as != 1) {
+        fprintf(stderr, "\t-> Error: --best_as must be 0 or 1\n");
         exit(1);
     }
     gzprintf(p->fp1,"#./metaDMG-cpp lca ");
@@ -974,7 +1022,7 @@ int main_lca(int argc, char **argv) {
 	fprintf(stderr, "writing headers to %s", p->famout_sam);
     }
     gzprintf(p->fp1,"queryid\tseq\tlen\tnaln\tnspec\tdustscore\tgc\tlca\ttaxa_path\n");
-    hts(p->fp1, p->hts, *ref2tax, parent, p->header, rank, name_map, p->minmapq, p->discard, p->editdistMin, p->editdistMax, p->simscoreLow, p->simscoreHigh, p->maxdust, p->minlength, lca_rank, p->outnames, p->howmany, usedreads_sam, p->skipnorank, tax2level, p->nthreads, p->weighttype,p->maxreads,famout_sam,p->rlens_flat_out);
+    hts(p->fp1, p->hts, *ref2tax, parent, p->header, rank, name_map, p->minmapq, p->discard, p->editdistMin, p->editdistMax, p->simscoreLow, p->simscoreHigh, p->maxdust, p->minlength, lca_rank, p->outnames, p->howmany, usedreads_sam, p->skipnorank, tax2level, p->nthreads, p->weighttype,p->maxreads,famout_sam,p->rlens_flat_out,p->best_as);
 
     fprintf(stderr, "\t-> Number of species with reads that map uniquely: %lu\n", specWeight.size());
 

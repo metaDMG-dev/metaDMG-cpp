@@ -22,6 +22,7 @@ typedef struct {
     int maxdust;
     int editdistMin;
     int editdistMax;
+    int best_as;
     int skipnorank;
     char *outnames;
     gzFile fp1;

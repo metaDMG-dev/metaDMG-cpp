@@ -117,6 +117,7 @@ Options:
   --edit_dist_max	maximum read edit distance (maximum number of nucleotide mismatches between read and reference, disabled if not specified)
   --minAni/--min_ani	minimum ANI computed as 1 - NM/read_length (default: -1 disabled)
   --maxAni/--max_ani	maximum ANI computed as 1 - NM/read_length (default: -1 disabled)
+  --best_as		<0|1> keep only alignments with the best AS score per read; ties are kept. If enabled, AS tag is required.
   -p/--print_length	number of positions along the read termini that are used to estimate the damage (default: 5)
   -r/--run_mode	        0: **global**  (default)
                         1: **local** damage patterns will be calculated for each chr/scaffold contig.
@@ -160,6 +161,7 @@ Options:
   --sim_score_high	number between 0-1
   --minAni/--min_ani	minimum ANI computed as 1 - NM/read_length (alias for --sim_score_low)
   --maxAni/--max_ani	maximum ANI computed as 1 - NM/read_length (alias for --sim_score_high)
+  --best_as		<0|1> keep only alignments with the best AS score per read; ties are kept. If enabled, AS tag is required.
   --fix_ncbi		<0|1> (default: 1) fixes ncbi taxonomy naming issue
   --discard 		<INT> Discard is a BAM/SAM flag bitmask: any read whose SAM FLAG shares a bit with <INT> is skipped before LCA/damage estimation. This mirrors the logic of samtools view -F <mask>.
   --how_many		integer for number of positions that are printed in the substitution matrix

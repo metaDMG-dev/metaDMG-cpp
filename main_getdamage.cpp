@@ -24,6 +24,7 @@ struct getdamage_args {
     double minAni;
     double maxAni;
     int maxdust;
+    int best_as;
     char *refName;
     char *fname;
     int runmode;
@@ -45,6 +46,7 @@ static int usage_getdamage(FILE *fp) {
     fprintf(fp, "  --minAni/--min_ani\t minimum ANI from NM/read_length (default: -1, disabled)\n");
     fprintf(fp, "  --maxAni/--max_ani\t maximum ANI from NM/read_length (default: -1, disabled)\n");
     fprintf(fp, "  --maxdust\t\t maximum DUST score (0-100, default: -1 disabled)\n");
+    fprintf(fp, "  --best_as\t\t 0/1: keep only best AS per read (ties kept, requires AS tag when enabled; default: 0)\n");
     fprintf(fp, "  -p/--print_length\t number of base pairs from read termini to estimate damage (default: 5)\n");
     fprintf(fp, "  -r/--run_mode\t\t 0: global estimate (default)\n\t\t\t 1: damage patterns per chr/scaffold contig (tid)\n\t\t\t 2: damage patterns per taxid (requires --acc2tax)\n");
     fprintf(fp, "  --acc2tax\t\t accession->taxid table (required in run_mode=2)\n");
@@ -105,11 +107,88 @@ static int process_getdamage_reads(htsFile *fp,
                                    double minAni,
                                    double maxAni,
                                    int maxdust,
+                                   int best_as,
                                    int runmode,
                                    std::map<int, int> *ref2tax,
                                    std::map<int, std::vector<float> > &gcconts,
                                    std::map<int, std::vector<float> > &seqlens,
                                    const char *fname) {
+    if (best_as != 0 && best_as != 1) {
+        fprintf(stderr, "\t-> Error: best_as must be 0 or 1\n");
+        return 1;
+    }
+
+    std::vector<bam1_t *> grouped_alignments;
+    std::vector<int> grouped_refs;
+    char *last_qname = NULL;
+
+    auto flush_group = [&](void) -> int {
+        if (grouped_alignments.empty())
+            return 0;
+        if (grouped_alignments.size() != grouped_refs.size()) {
+            fprintf(stderr, "\t-> Error: grouped alignment/ref sizes do not match, will exit\n");
+            return 1;
+        }
+
+        bool have_best = false;
+        int best_as_val = 0;
+        if (best_as == 1) {
+            for (size_t i = 0; i < grouped_alignments.size(); i++) {
+                uint8_t *as_tag = bam_aux_get(grouped_alignments[i], "AS");
+                if (as_tag == NULL) {
+                    fprintf(stderr, "\t-> Error: --best_as 1 but missing AS tag for read: %s, will exit\n",
+                            bam_get_qname(grouped_alignments[i]));
+                    return 1;
+                }
+                const int as_val = (int)bam_aux2i(as_tag);
+                if (!have_best || as_val > best_as_val) {
+                    best_as_val = as_val;
+                    have_best = true;
+                }
+            }
+        }
+
+        for (size_t i = 0; i < grouped_alignments.size(); i++) {
+            if (best_as == 1) {
+                uint8_t *as_tag = bam_aux_get(grouped_alignments[i], "AS");
+                const int as_val = (int)bam_aux2i(as_tag);
+                if (as_val != best_as_val)
+                    continue;
+            }
+
+            dmg->damage_analysis(grouped_alignments[i], grouped_refs[i], 1);
+
+            float mygc = gccontent(grouped_alignments[i]);
+            float mylen = grouped_alignments[i]->core.l_qseq;
+
+            std::map<int, std::vector<float> >::iterator it = gcconts.find(grouped_refs[i]);
+            if (it == gcconts.end()) {
+                std::vector<float> tmp1;
+                tmp1.push_back(mygc);
+                gcconts[grouped_refs[i]] = tmp1;
+                std::vector<float> tmp2;
+                tmp2.push_back(mylen);
+                seqlens[grouped_refs[i]] = tmp2;
+            } else {
+                if (it->second.size() < 1000000)
+                    it->second.push_back(mygc);
+                it = seqlens.find(grouped_refs[i]);
+                if (it == seqlens.end()) {
+                    fprintf(stderr, "\t-> Error: iterator reached end in seqlens, will exit\n");
+                    return 1;
+                }
+                if (it->second.size() < 1000000)
+                    it->second.push_back(mylen);
+            }
+        }
+
+        for (size_t i = 0; i < grouped_alignments.size(); i++)
+            bam_destroy1(grouped_alignments[i]);
+        grouped_alignments.clear();
+        grouped_refs.clear();
+        return 0;
+    };
+
     int ret;
     int skipper[4] = {3, 3, 3, 3};
     int missing_taxid_warns = 3;
@@ -175,36 +254,52 @@ static int process_getdamage_reads(htsFile *fp,
             whichref = taxit->second;
         }
 
-	dmg->damage_analysis(b, whichref, 1);
-
-        float mygc = gccontent(b);
-        float mylen = b->core.l_qseq;
-
-        std::map<int, std::vector<float> >::iterator it = gcconts.find(whichref);
-        if (it == gcconts.end()) {
-            std::vector<float> tmp1;
-            tmp1.push_back(mygc);
-            gcconts[whichref] = tmp1;
-            std::vector<float> tmp2;
-            tmp2.push_back(mylen);
-            seqlens[whichref] = tmp2;
-        } else {
-            if (it->second.size() < 1000000)
-                it->second.push_back(mygc);
-            it = seqlens.find(whichref);
-            if (it == seqlens.end()) {
-                fprintf(stderr, "\t-> Error: iterator reached end in seqlens, will exit\n");
+        char *qname = bam_get_qname(b);
+        if (last_qname == NULL) {
+            last_qname = strdup(qname);
+        } else if (strcmp(last_qname, qname) != 0) {
+            if (flush_group() != 0) {
+                free(last_qname);
+                for (size_t i = 0; i < grouped_alignments.size(); i++)
+                    bam_destroy1(grouped_alignments[i]);
                 return 1;
             }
-            if (it->second.size() < 1000000)
-                it->second.push_back(mylen);
+            free(last_qname);
+            last_qname = strdup(qname);
         }
+
+        bam1_t *cpy = bam_init1();
+        if (cpy == NULL || bam_copy1(cpy, b) == NULL) {
+            fprintf(stderr, "\t-> Error: failed to copy alignment for read grouping, will exit\n");
+            if (cpy)
+                bam_destroy1(cpy);
+            free(last_qname);
+            for (size_t i = 0; i < grouped_alignments.size(); i++)
+                bam_destroy1(grouped_alignments[i]);
+            return 1;
+        }
+        grouped_alignments.push_back(cpy);
+        grouped_refs.push_back(whichref);
     }
 
     if (ret < -1) {
         fprintf(stderr, "\t-> Error: sam_read1 failed for input file: %s (ret=%d)\n", fname, ret);
+        if (last_qname)
+            free(last_qname);
+        for (size_t i = 0; i < grouped_alignments.size(); i++)
+            bam_destroy1(grouped_alignments[i]);
         return 1;
     }
+
+    if (flush_group() != 0) {
+        if (last_qname)
+            free(last_qname);
+        for (size_t i = 0; i < grouped_alignments.size(); i++)
+            bam_destroy1(grouped_alignments[i]);
+        return 1;
+    }
+    if (last_qname)
+        free(last_qname);
 
     return 0;
 }
@@ -226,6 +321,7 @@ static getdamage_args init_getdamage_args() {
     args.minAni = -1.0;
     args.maxAni = -1.0;
     args.maxdust = -1;
+    args.best_as = 0;
     args.refName = NULL;
     args.fname = NULL;
     args.runmode = 0;
@@ -250,6 +346,7 @@ static int parse_getdamage_args(int argc, char **argv, getdamage_args &args) {
         {"minAni", required_argument, 0, 1002},
         {"maxAni", required_argument, 0, 1003},
         {"maxdust", required_argument, 0, 1005},
+        {"best_as", required_argument, 0, 1006},
         {"print_length", required_argument, 0, 'p'},
         {"run_mode", required_argument, 0, 'r'},
         {"acc2tax", required_argument, 0, 1004},
@@ -298,6 +395,9 @@ static int parse_getdamage_args(int argc, char **argv, getdamage_args &args) {
         break;
       case 1005:
         args.maxdust = atoi(optarg);
+        break;
+      case 1006:
+        args.best_as = atoi(optarg);
         break;
       case 'r':
         args.runmode = atoi(optarg);
@@ -396,7 +496,7 @@ int main_getdamage(int argc, char **argv) {
     if (rc != 0)
         goto cleanup;
 
-    fprintf(stderr, "\t-> ./metaDMG-cpp refName: %s min_length: %d edit_dist_min: %d edit_dist_max: %d minAni: %f maxAni: %f maxdust: %d print_length: %d run_mode: %d out_prefix: %s acc2tax: %s nthreads: %d ignore_errors: %d rlens_flat_out: %d\n", args.refName ? args.refName : "NULL", args.minLength, args.editdistMin, args.editdistMax, args.minAni, args.maxAni, args.maxdust, args.printLength, args.runmode, args.onam, args.acc2tax ? args.acc2tax : "NULL", args.nthreads, args.ignore_errors, args.rlens_flat_out);
+    fprintf(stderr, "\t-> ./metaDMG-cpp refName: %s min_length: %d edit_dist_min: %d edit_dist_max: %d minAni: %f maxAni: %f maxdust: %d best_as: %d print_length: %d run_mode: %d out_prefix: %s acc2tax: %s nthreads: %d ignore_errors: %d rlens_flat_out: %d\n", args.refName ? args.refName : "NULL", args.minLength, args.editdistMin, args.editdistMax, args.minAni, args.maxAni, args.maxdust, args.best_as, args.printLength, args.runmode, args.onam, args.acc2tax ? args.acc2tax : "NULL", args.nthreads, args.ignore_errors, args.rlens_flat_out);
     if (args.fname == NULL) {
         rc = usage_getdamage(stderr);
         goto cleanup;
@@ -451,6 +551,11 @@ int main_getdamage(int argc, char **argv) {
         rc = 1;
         goto cleanup;
     }
+    if (args.best_as != 0 && args.best_as != 1) {
+        fprintf(stderr, "\t-> Error: best_as must be 0 or 1\n");
+        rc = 1;
+        goto cleanup;
+    }
     if (args.runmode != 0 && args.runmode != 1 && args.runmode != 2) {
         fprintf(stderr, "\t-> Error: run_mode must be 0, 1 or 2\n");
         rc = 1;
@@ -478,7 +583,7 @@ int main_getdamage(int argc, char **argv) {
     }
 
     dmg = new damage(args.printLength, args.nthreads, 0);
-    rc = process_getdamage_reads(fp, hdr, b, dmg, args.minLength, args.editdistMin, args.editdistMax, args.minAni, args.maxAni, args.maxdust, args.runmode, ref2tax, gcconts, seqlens, args.fname);
+    rc = process_getdamage_reads(fp, hdr, b, dmg, args.minLength, args.editdistMin, args.editdistMax, args.minAni, args.maxAni, args.maxdust, args.best_as, args.runmode, ref2tax, gcconts, seqlens, args.fname);
     if (rc != 0)
       goto cleanup;
 

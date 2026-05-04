@@ -378,6 +378,74 @@ test_data2_getdamage() {
     assert_file_line_count output_data2_gd/sam2_taxid_maxdust0.bdamage.tsv 1
 }
 
+test_best_as_filters() {
+    local sam_single="output_data2/as_best_single.sam"
+    local sam_tie="output_data2/as_best_tie.sam"
+
+    cat > "${sam_single}" <<'EOF'
+@HD	VN:1.6	SO:queryname
+@SQ	SN:ref1	LN:1000
+@SQ	SN:ref2	LN:1000
+@SQ	SN:ref3	LN:1000
+best1	0	ref1	1	60	30M	*	0	0	TTTTTTTTTTTTTTTTTTTTTTTTTTTTTT	IIIIIIIIIIIIIIIIIIIIIIIIIIIIII	MD:Z:30	NM:i:0	AS:i:50
+best1	0	ref2	1	60	30M	*	0	0	TTTTTTTTTTTTTTTTTTTTTTTTTTTTTT	IIIIIIIIIIIIIIIIIIIIIIIIIIIIII	MD:Z:30	NM:i:0	AS:i:10
+best1	0	ref3	1	60	30M	*	0	0	TTTTTTTTTTTTTTTTTTTTTTTTTTTTTT	IIIIIIIIIIIIIIIIIIIIIIIIIIIIII	MD:Z:30	NM:i:0	AS:i:20
+best1	0	ref1	1	60	30M	*	0	0	TTTTTTTTTTTTTTTTTTTTTTTTTTTTTT	IIIIIIIIIIIIIIIIIIIIIIIIIIIIII	MD:Z:30	NM:i:0	AS:i:30
+best1	0	ref2	1	60	30M	*	0	0	TTTTTTTTTTTTTTTTTTTTTTTTTTTTTT	IIIIIIIIIIIIIIIIIIIIIIIIIIIIII	MD:Z:30	NM:i:0	AS:i:40
+EOF
+
+    cat > "${sam_tie}" <<'EOF'
+@HD	VN:1.6	SO:queryname
+@SQ	SN:ref1	LN:1000
+@SQ	SN:ref2	LN:1000
+@SQ	SN:ref3	LN:1000
+tie1	0	ref1	1	60	30M	*	0	0	AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA	IIIIIIIIIIIIIIIIIIIIIIIIIIIIII	MD:Z:30	NM:i:0	AS:i:60
+tie1	0	ref2	1	60	30M	*	0	0	AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA	IIIIIIIIIIIIIIIIIIIIIIIIIIIIII	MD:Z:30	NM:i:0	AS:i:60
+tie1	0	ref3	1	60	30M	*	0	0	AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA	IIIIIIIIIIIIIIIIIIIIIIIIIIIIII	MD:Z:30	NM:i:0	AS:i:60
+tie1	0	ref1	1	60	30M	*	0	0	AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA	IIIIIIIIIIIIIIIIIIIIIIIIIIIIII	MD:Z:30	NM:i:0	AS:i:60
+tie1	0	ref2	1	60	30M	*	0	0	AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA	IIIIIIIIIIIIIIIIIIIIIIIIIIIIII	MD:Z:30	NM:i:0	AS:i:20
+EOF
+
+    run_logged "Running getdamage best_as single winner" \
+        "${PRG}" getdamage --best_as 1 --run_mode 0 --min_length 0 --print_length 5 \
+        --out_prefix output_data2_gd/as_best_single "${sam_single}"
+
+    run_logged "Running getdamage best_as tie winners" \
+        "${PRG}" getdamage --best_as 1 --run_mode 0 --min_length 0 --print_length 5 \
+        --out_prefix output_data2_gd/as_best_tie "${sam_tie}"
+
+    assert_gzip_contains output_data2_gd/as_best_single.stat.gz $'global\t1\t30.000000\t0.000000\t0.000000\t0.000000\tNA\tNA'
+    assert_gzip_contains output_data2_gd/as_best_single.rlens.gz $'0\t30:1'
+    assert_gzip_contains output_data2_gd/as_best_tie.stat.gz $'global\t4\t30.000000\t0.000000\t0.000000\t0.000000\tNA\tNA'
+    assert_gzip_contains output_data2_gd/as_best_tie.rlens.gz $'0\t30:4'
+
+    run_logged "Running lca best_as single winner" \
+        "${PRG}" lca --bam "${sam_single}" --names data2/names.dmp \
+        --nodes data2/nodes.dmp --acc2tax data2/acc2taxid.map \
+        --sim_score_low 0.0 --sim_score_high 1.0 --edit_dist_min 0 \
+        --edit_dist_max 10 --best_as 1 --min_mapq 0 --how_many 35 \
+        --weight_type 1 --fix_ncbi 0 --out_prefix output_data2/as_best_single
+
+    run_logged "Running lca best_as tie winners" \
+        "${PRG}" lca --bam "${sam_tie}" --names data2/names.dmp \
+        --nodes data2/nodes.dmp --acc2tax data2/acc2taxid.map \
+        --sim_score_low 0.0 --sim_score_high 1.0 --edit_dist_min 0 \
+        --edit_dist_max 10 --best_as 1 --min_mapq 0 --how_many 35 \
+        --weight_type 1 --fix_ncbi 0 --out_prefix output_data2/as_best_tie
+
+    if ! gunzip -c output_data2/as_best_single.lca.gz | \
+        awk 'BEGIN{FS=OFS="\t"} NR==1{next} $1=="best1" && $4=="1" {ok=1} END{exit(ok?0:1)}'; then
+        mark_fail "Problem validating output_data2/as_best_single.lca.gz best_as filtering (expected 1 kept alignment)"
+    fi
+    assert_gzip_contains output_data2/as_best_single.lca.gz $'\t11:"l__Bacteria":"subspecies"'
+
+    if ! gunzip -c output_data2/as_best_tie.lca.gz | \
+        awk 'BEGIN{FS=OFS="\t"} NR==1{next} $1=="tie1" && $4=="4" {ok=1} END{exit(ok?0:1)}'; then
+        mark_fail "Problem validating output_data2/as_best_tie.lca.gz best_as filtering (expected 4 kept alignments)"
+    fi
+    assert_gzip_contains output_data2/as_best_tie.lca.gz $'\t10:"l__Bacteria":"species"'
+}
+
 
 test_filter_bdamage() {
     run_logged "Running filter_bdamage nodes expansion (lca taxid)" \
@@ -624,6 +692,7 @@ main() {
     test_prints
     test_data2
     test_data2_getdamage
+    test_best_as_filters
     test_filter_bdamage
     test_compressbam
     test_extract_reads
