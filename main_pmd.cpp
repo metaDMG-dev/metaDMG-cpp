@@ -73,7 +73,7 @@ double pmd_stat(const bam1_t *b, char *seq, char *ref, int len, char *qs) {
             if (oriented_seq[i] == 'C') {
                 llh1 += log(ancient_match);
                 llh2 += log(modern_match);
-            } else {
+            } else if (oriented_seq[i] == 'T') {
                 llh1 += log(1.0 - ancient_match);
                 llh2 += log(1.0 - modern_match);
             }
@@ -87,7 +87,7 @@ double pmd_stat(const bam1_t *b, char *seq, char *ref, int len, char *qs) {
             if (oriented_seq[i] == 'G') {
                 llh1 += log(ancient_match);
                 llh2 += log(modern_match);
-            } else {
+            } else if (oriented_seq[i] == 'A') {
                 llh1 += log(1.0 - ancient_match);
                 llh2 += log(1.0 - modern_match);
             }

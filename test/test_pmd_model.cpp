@@ -23,7 +23,17 @@ static double reference_score(const char *seq, const char *ref, const unsigned c
         const double modern_match = reference_match(modern_damage, std::pow(10.0, -qs[i] / 10.0), 0.001);
         if (ref[i] != 'C' && ref[i] != 'G')
             continue;
-        const bool match = seq[i] == ref[i];
+        bool informative = false;
+        bool match = false;
+        if (ref[i] == 'C' && (seq[i] == 'C' || seq[i] == 'T')) {
+            informative = true;
+            match = seq[i] == 'C';
+        } else if (ref[i] == 'G' && (seq[i] == 'G' || seq[i] == 'A')) {
+            informative = true;
+            match = seq[i] == 'G';
+        }
+        if (!informative)
+            continue;
         ancient_log_likelihood += std::log(match ? ancient_match : 1.0 - ancient_match);
         modern_log_likelihood += std::log(match ? modern_match : 1.0 - modern_match);
     }
@@ -77,6 +87,15 @@ int main() {
                                              reinterpret_cast<char *>(reverse_qs));
     if (std::fabs(observed_reverse - expected_forward) > 1e-12) {
         std::fprintf(stderr, "reverse mismatch: %.17g != %.17g\n", observed_reverse, expected_forward);
+        return 1;
+    }
+
+    const char transversion_seq[] = "TACGAA";
+    const double expected_transversion = reference_score(transversion_seq, clean_ref, qs, len);
+    const double observed_transversion = pmd_stat(&forward, const_cast<char *>(transversion_seq), clean_ref, len,
+                                                  const_cast<char *>(reinterpret_cast<const char *>(qs)));
+    if (std::fabs(observed_transversion - expected_transversion) > 1e-12) {
+        std::fprintf(stderr, "transversion mismatch: %.17g != %.17g\n", observed_transversion, expected_transversion);
         return 1;
     }
 
