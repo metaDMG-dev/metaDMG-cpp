@@ -70,6 +70,44 @@ Top-level and subcommand help:
 ./metaDMG-cpp <subcommand> -h
 ```
 
+## PMD read-level scores
+The `pmd` command assigns a PMD likelihood-ratio score to each mapped read. It
+uses the read's `MD:Z` tag to reconstruct the aligned reference sequence and
+prints one result per read to standard output:
+
+```text
+read_name<TAB>PMD: score
+```
+
+Basic usage:
+
+```bash
+./metaDMG-cpp pmd input.bam > input.pmd.tsv
+./metaDMG-cpp pmd input.sam > input.pmd.tsv
+./metaDMG-cpp pmd -T reference.fa input.cram > input.pmd.tsv
+```
+
+Options:
+
+```text
+-T FILE   reference file required for CRAM input
+-@ INT    number of threads (accepted for compatibility; PMD is currently single-threaded)
+-a 0|1    whether paired-end reads are included; 1 (default) keeps single-end/collapsed reads only
+-q INT    minimum mapping quality (default: disabled)
+-m        require mapped reads (PMD skips unmapped reads by default)
+-v        verbose diagnostics
+-h        show PMD help
+```
+
+Reads without a valid mapping are skipped. The PMD calculation uses the SAM
+reverse-strand flag, base qualities, and the informative ancient-DNA
+substitutions C→T and G→A. Reads must contain an `MD:Z` tag so the aligned
+reference can be reconstructed.
+
+The PMD implementation and its tests were revised after issues identified by
+the user `@miwipe`, including incorrect handling of base-quality scores and
+strand orientation.
+
 ## Filter existing bdamage output
 `filter_bdamage` creates a subset of an existing `.bdamage.gz` file and (when available) matching `.stat.gz` and `.rlens.gz` files.
 
