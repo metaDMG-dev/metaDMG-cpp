@@ -54,7 +54,6 @@ int main() {
         qsToProp[i] = std::pow(10.0, -i / 10.0);
 
     const char seq[] = "TCCGAA";
-    const char ref[] = "CCCGAA";
     const unsigned char qs[] = {30, 30, 20, 30, 30, 30};
     const int len = 6;
 

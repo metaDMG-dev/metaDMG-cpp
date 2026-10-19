@@ -137,6 +137,35 @@ test_dust_unit() {
     fi
 }
 
+test_pmd_model() {
+    local unit_src="test_pmd_model.cpp"
+    local unit_bin="output/test_pmd_model"
+    local hts_inc=""
+    local hts_link=""
+    local section_gc="-Wl,--gc-sections"
+
+    if [[ -f ../htslib/libhts.a ]]; then
+        hts_inc="-I../htslib"
+        hts_link="../htslib/libhts.a -lbz2 -llzma -lcurl -lz -lm -lpthread"
+    else
+        hts_link="-lhts -lz -lm -lpthread"
+    fi
+    if [[ "$(uname -s)" == "Darwin" ]]; then
+        section_gc="-Wl,-dead_strip"
+    fi
+
+    run_logged "Compiling PMD model test" \
+        c++ -O2 -Wall -Wextra -ffunction-sections -fdata-sections \
+        -I.. ${hts_inc} "${unit_src}" ${section_gc} \
+        -o "${unit_bin}" ${hts_link}
+
+    if [[ -x "${unit_bin}" ]]; then
+        run_logged "Running PMD model test" "${unit_bin}"
+    else
+        mark_fail "Problem building PMD model test binary: ${unit_bin}"
+    fi
+}
+
 test_getdamage() {
     run_logged "Running getdamage global" \
         "${PRG}" getdamage --run_mode 0 --min_length 35 --print_length 5 \
@@ -685,6 +714,7 @@ main() {
     fi
 
     test_dust_unit
+    test_pmd_model
     test_getdamage
     test_lca_aggregate
     test_dfit
