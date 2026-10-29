@@ -63,13 +63,13 @@ else
   LDLIBS := $(LIBHTS) $(LDLIBS) $(LDHTS)
 endif
 
-PROGRAMS := compressbam extract_reads
+PROGRAMS := compressbam extract_reads sort_taxonomy_output
 PROGRAMS_MISC := MAP dfit_optim
 OBJ := kmath.o Likelihood.o M3Load.o
 
 all: $(PROGRAMS) $(PROGRAMS_MISC)
 
-$(PROGRAMS) $(PROGRAMS_MISC): $(LIBHTS)
+$(filter-out sort_taxonomy_output,$(PROGRAMS) $(PROGRAMS_MISC)): $(LIBHTS)
 $(OBJ): $(LIBHTS)
 
 $(LIBHTS):
@@ -99,6 +99,9 @@ compressbam: compressbam.cpp
 
 extract_reads: extract_reads.cpp ../shared.o
 	$(CXX) $(CXXFLAGS) $(CPPFLAGS) extract_reads.cpp ../shared.o -o extract_reads $(LDFLAGS) $(LDLIBS)
+
+sort_taxonomy_output: sort_taxonomy_output.cpp
+	$(CXX) $(CXXFLAGS) sort_taxonomy_output.cpp -std=c++11 -o sort_taxonomy_output -lz
 
 MAP: MAP.cpp M3Load.o kmath.o Likelihood.o
 	$(CXX) $(CXXFLAGS) $(CPPFLAGS) -D__WITH_MAIN__ -std=c++11 MAP.cpp M3Load.o kmath.o Likelihood.o -o MAP $(LDFLAGS) $(LDLIBS)

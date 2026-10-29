@@ -175,8 +175,12 @@ testclean:
 	rm -f test/data/f570b1db7c.dedup.filtered.rname.bam
 	rm -rf test/output test/output_data2 test/output_data2_gd test/output_compressbam
 
-test:
+misc/sort_taxonomy_output:
+	$(MAKE) -C misc sort_taxonomy_output
+
+test: misc/sort_taxonomy_output
 	@echo "Running unit tests for metaDMG"
+	./misc/test_sort_taxonomy_output.sh
 	cd test ; ./testAll2.sh
 
 force:

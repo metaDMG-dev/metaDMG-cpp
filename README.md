@@ -434,3 +434,47 @@ Useful when aggregating results from multiple runs, libraries, or samples prior 
 --r 		two or more rlens.gz files 
 --out		Suffix of output name with the predetermined prefix
 ```
+
+# Testing
+
+`make test` builds and runs the taxonomy-output sorting regression test before
+running the main integration test suite. The sorting test can also be run on
+its own:
+
+```bash
+make -C misc sort_taxonomy_output
+misc/test_sort_taxonomy_output.sh
+```
+
+# New functionality: taxonomy output sorting
+
+The new `misc/sort_taxonomy_output` utility sorts text output in depth-first
+preorder according to the taxonomy tree. This keeps an internal taxonomic
+node together with its descendants before continuing to the next branch.
+
+It autodetects the following formats from their headers:
+
+- `lca` output (`.lca.gz`)
+- `dfit` output (`.dfit.gz`)
+- taxonomic statistics and aggregate output (`.stat.gz`)
+
+The input and `nodes.dmp` files may be compressed or uncompressed. The binary
+`.bdamage.gz` format is intentionally not supported because its record order
+does not affect the calculations. For large files, sorting is performed in
+chunks using temporary files, so the entire input does not need to fit in
+memory. Use `--format lca`, `--format dfit` or `--format stat` with a custom
+header.
+
+Build and run it with:
+
+```bash
+make -C misc sort_taxonomy_output
+
+misc/sort_taxonomy_output \
+  --input sample.lca.gz \
+  --nodes nodes.dmp.gz \
+  --output sample.sorted.lca.gz
+```
+
+This is new functionality. Please report any bugs, unexpected ordering, or
+unsupported output formats through the GitHub issue tracker.
