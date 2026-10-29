@@ -739,6 +739,25 @@ int main_dfit(int argc, char **argv) {
       exit(1);
     }
 
+    // Reject invalid bootstrap settings before fitting. An unknown sigtype
+    // previously left bootdata uninitialised while still producing output.
+    if(nbootstrap < 1){
+      fprintf(stderr,"\t-> --nbootstrap must be at least 1\n");
+      exit(1);
+    }
+    if(sigtype < 1 || sigtype > 3){
+      fprintf(stderr,"\t-> --sigtype must be 1, 2, or 3\n");
+      exit(1);
+    }
+    if(doCI < 1 || doCI > 2){
+      fprintf(stderr,"\t-> --doCI must be 1 (mean/sd) or 2 (percentile)\n");
+      exit(1);
+    }
+    if(CI <= 0.0 || CI >= 1.0){
+      fprintf(stderr,"\t-> --CI must be strictly between 0 and 1\n");
+      exit(1);
+    }
+
     // pseudo random number generator specific to OS.
     if (rng_type == -1){
       #if defined(__linux__) || defined(__unix__)

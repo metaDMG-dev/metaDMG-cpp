@@ -93,17 +93,17 @@ int HelpPage(FILE *fp){
   fprintf(fp,"\t\t\t\t\t A_b;q_b;c_b;phi_b;A_CI_l;A_CI_h;q_CI_l;q_CI_h;c_CI_l;c_CI_h;phi_CI_l;phi_CI_h estimates binomial model with bootstrap method (*_b), confidence interval (*_CI_l) and  (*_CI_h)\n");
   fprintf(fp,"\n\t--showfits 1\t\t similar columns added as described above, using the bootstrap estimated parameters;\n");
   fprintf(fp,"\n\t--showfits 2\t\t similar columns added as described above, using the bootstrap estimated parameters;\n");
-  fprintf(fp,"--nbootstrap: \t\t\t Number of bootstrap iterations, default = 0\n");
+  fprintf(fp,"--nbootstrap: \t\t\t Number of bootstrap iterations, default = 1; values >1 enable bootstrap summaries\n");
   fprintf(fp,"--printboot: \t\t\t Print all bootstrap iterations of [id,A_b,q_b,c_b,phi_b] in seperate file, suffix: .bdamage.gz.boot.stat.txt.gz\n");
   fprintf(fp,"--sigtype \t\t\t Determines the bootstrap method <1,2,3>, default = 1\n");
-  fprintf(fp,"\t0: \t\t\t\t Sample with replacement from the C>T frequency from the .bdamage format\n");
-  fprintf(fp,"\t1: \t\t\t\t Sample with replacement from the K and N column from the .bdamage format and calculates f column\n");
-  fprintf(fp,"\t1: \t\t\t\t Sample with replacement from binomial distribution defined from K and N column from the .bdamage format\n");
+  fprintf(fp,"\t1: \t\t\t\t K/N resampling from the .bdamage format\n");
+  fprintf(fp,"\t2: \t\t\t\t Resampling from the observed mismatch matrix\n");
+  fprintf(fp,"\t3: \t\t\t\t Binomial draws from the observed mismatch matrix\n");
 
   fprintf(fp,"--CI: \t\t\t\t Desired confidence interval, default = 0.95\n");
-  fprintf(fp,"--doCI: \t\t\t Confidence interval type <0,1>\n");
-  fprintf(fp,"\t0: \t\t\t\t Mean and Standard Deviation-Based CI Calculation\n");
-  fprintf(fp,"\t1: \t\t\t\t Percentile CI Calculation\n");
+  fprintf(fp,"--doCI: \t\t\t Confidence interval type <1,2>\n");
+  fprintf(fp,"\t1: \t\t\t\t Mean and Standard Deviation-Based CI Calculation\n");
+  fprintf(fp,"\t2: \t\t\t\t Percentile CI Calculation\n");
   fprintf(fp,"--showfits: \t\t\t Verbose parameter, stored in the .dfit.txt.gz, default = 0\n");
 
   fprintf(stderr, "\n---------- Examples ----------\n");
@@ -151,6 +151,7 @@ int print_help(FILE *fp){
   fprintf(fp, "  --nbootstrap INT     # bootstrap replicates (default: 1)\n");
   fprintf(fp, "  --printboot INT      Write all bootstrap draws to .boot.stat.gz (default: 0; use >0)\n");
   fprintf(fp, "  --sigtype <1|2|3>    Bootstrap method (default: 1)\n");
+  fprintf(fp, "                     1=K/N resampling, 2=mismatch-matrix resampling, 3=binomial draws\n");
   fprintf(fp, "  --doCI <1|2>         CI method: 1=mean/sd, 2=percentile (default: 2)\n");
   fprintf(fp, "  --CI FLOAT           Confidence level (default: 0.95)\n\n");
 

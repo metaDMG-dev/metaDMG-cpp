@@ -327,16 +327,16 @@ lca mode: 	  damage estimated over the lca tree at different ranks
 	--showfits 1		 similar columns added as described above, using the bootstrap estimated parameters;
 
 	--showfits 2		 similar columns added as described above, using the bootstrap estimated parameters;
---nbootstrap: 			 Number of bootstrap iterations, default = 0
+--nbootstrap: 			 Number of bootstrap iterations, default = 1; values >1 enable bootstrap summaries
 --printboot:			 Store all bootstrap iterations of [id,A_b,q_b,c_b,phi_b] in separate file, suffix: .boot.stat.gz (set >0 to enable)
 --sigtype 			 Determines the bootstrap method <1,2,3>, default = 1
-	0: 				 Sample with replacement from the C>T frequency from the .bdamage format
-	1: 				 Sample with replacement from the K and N column from the .bdamage format and calculates f column
-	1: 				 Sample with replacement from binomial distribution defined from K and N column from the .bdamage format
+	1: 				 Resample K/N counts from the .bdamage format and recalculate frequencies
+	2: 				 Resample reference and damage counts from the observed mismatch matrix
+	3: 				 Draw K and N from binomial distributions estimated from the mismatch matrix
 --CI: 				 Desired confidence interval, default = 0.95
---doCI: 			 Confidence interval type <0,1>
-	0: 				 Mean and Standard Deviation-Based CI Calculation
-	1: 				 Percentile CI Calculation
+--doCI: 			 Confidence interval type <1,2>
+	1: 				 Mean and Standard Deviation-Based CI Calculation
+	2: 				 Percentile CI Calculation
 
 ---------- Examples ----------
 	 Local mode binomial:

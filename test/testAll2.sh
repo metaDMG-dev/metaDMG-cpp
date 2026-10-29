@@ -196,6 +196,17 @@ test_lca_aggregate() {
         mark_fail "Problem preparing output/test_lca.lca.sub"
     fi
 
+    # samtools 1.20+ may choose a different order/orientation for reads with
+    # equal query names. Validate the LCA projection structurally instead of
+    # requiring one platform-specific byte-for-byte checksum.
+    if [[ ! -s output/test_lca.lca.sub ]]; then
+        mark_fail "LCA projection is empty"
+    elif ! head -n 2 output/test_lca.lca.sub | tail -n 1 | grep -F $'queryid\tlen\tnaln\tnspec\tdustscore\tgc\tlca\ttaxa_path' >/dev/null; then
+        mark_fail "Unexpected header in output/test_lca.lca.sub"
+    elif [[ "$(wc -l < output/test_lca.lca.sub)" -le 1 ]]; then
+        mark_fail "LCA projection contains no records"
+    fi
+
     run_logged "Running aggregate" \
         "${PRG}" aggregate output/test_lca.bdamage.gz --nodes data/nodes.dmp.gz \
         --names data/names.dmp.gz --lcastat output/test_lca.stat.gz \
