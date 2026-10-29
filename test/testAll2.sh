@@ -217,7 +217,12 @@ test_dfit() {
     run_logged "Running dfit local (single threaded)" \
         "${PRG}" dfit output/test_lca.bdamage.gz --names data/names.dmp.gz \
         --nodes data/nodes.dmp.gz --showfits 2 --nopt 2 --nbootstrap 2 \
-        --seed 12345 --lib ds --out output/test_dfit_local
+        --seed 12345 --lib ds --printboot 1 --out output/test_dfit_local
+
+    if ! gunzip -c output/test_dfit_local.boot.stat.gz | head -n 1 | \
+        grep -F $'taxid\tA_b\tq_b\tc_b\tphi_b\tsigmaD_old_b\tZfit_old_b\tsigmaD_new_b\tZfit_new_b' >/dev/null; then
+        mark_fail "Bootstrap output is missing bootstrap-fit statistics"
+    fi
 
     note "Running test of output/test_dfit_local.dfit.gz by gzip -t"
     if ! gzip -t output/test_dfit_local.dfit.gz; then

@@ -340,7 +340,8 @@ void slave_block(std::map<int, mydataD> &retmap,int howmany,sam_hdr_t *hdr,int2c
 
   
   double **bootdata = NULL;//Bootstrapping datastructure, same intepration as above but can be sampled in 3 different ways
-  double **bootcidata = NULL;
+    double **bootcidata = NULL;
+    double *bootstats = NULL;
   if(nbootstrap>1){
     bootdata = new double*[npars];
     bootdata[0] = new double[2+2*howmany];
@@ -351,6 +352,9 @@ void slave_block(std::map<int, mydataD> &retmap,int howmany,sam_hdr_t *hdr,int2c
     bootcidata = new double*[nbootstrap];
     for (int b = 0; b < nbootstrap; b++) 
       bootcidata[b] = new double[npars];
+
+    // getstat() returns four fit statistics followed by per-position values.
+    bootstats = new double[4 + 4 * howmany];
   
   }
   double **CI_val = new double*[npars];
@@ -414,6 +418,7 @@ void slave_block(std::map<int, mydataD> &retmap,int howmany,sam_hdr_t *hdr,int2c
         
         pars_b[0] = 0.1;pars_b[1]=0.1,pars_b[2]=0.01,pars_b[3]=1000,pars_b[4]=0,pars_b[5]=0;
         optimoptim(pars_b,bootdata,nopt,rand_alloc);
+        getstat(bootdata,pars_b,bootstats);
 
         for(int ii=0;ii<npars;ii++)
           bootcidata[b][ii] = pars_b[ii];
@@ -445,6 +450,10 @@ void slave_block(std::map<int, mydataD> &retmap,int howmany,sam_hdr_t *hdr,int2c
             //fprintf(stdout, "%d \t %f\t", b,bootcidata[b][ii]);
             ksprintf(bootkstr,"\t%f",bootcidata[b][ii]);
           }
+          // These statistics come from the bootstrap fit itself, rather than
+          // from the original beta-binomial fit.
+          for (int ii = 0; ii < 4; ii++)
+            ksprintf(bootkstr,"\t%f",bootstats[ii]);
           //ksprintf(bootkstr,"\t%f",bootcidata[b][0]-bootcidata[b][2]); //A-c
           ksprintf(bootkstr,"\n");
         }
@@ -645,6 +654,7 @@ void slave_block(std::map<int, mydataD> &retmap,int howmany,sam_hdr_t *hdr,int2c
       delete[] bootcidata[b];
     delete[] bootcidata;
   }
+  delete[] bootstats;
 
   
   mrand_destroy(rand_alloc);
@@ -806,7 +816,7 @@ int main_dfit(int argc, char **argv) {
     if(printboot>0){
       snprintf(bootbuf, 1024, "%s.boot.stat.gz", outfile_name);
       bootfp = bgzf_open(bootbuf, "wb");    
-      ksprintf(bootkstr,"taxid\tA_b\tq_b\tc_b\tphi_b\n");
+      ksprintf(bootkstr,"taxid\tA_b\tq_b\tc_b\tphi_b\tsigmaD_old_b\tZfit_old_b\tsigmaD_new_b\tZfit_new_b\n");
       if(bgzf_write(bootfp,bootkstr->s,bootkstr->l)!=(ssize_t)bootkstr->l){
 	fprintf(stderr,"\t-> Problem writing boot file\n");
 	exit(1);

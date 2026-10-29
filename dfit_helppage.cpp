@@ -94,7 +94,7 @@ int HelpPage(FILE *fp){
   fprintf(fp,"\n\t--showfits 1\t\t similar columns added as described above, using the bootstrap estimated parameters;\n");
   fprintf(fp,"\n\t--showfits 2\t\t similar columns added as described above, using the bootstrap estimated parameters;\n");
   fprintf(fp,"--nbootstrap: \t\t\t Number of bootstrap iterations, default = 1; values >1 enable bootstrap summaries\n");
-  fprintf(fp,"--printboot: \t\t\t Print all bootstrap iterations of [id,A_b,q_b,c_b,phi_b] in seperate file, suffix: .bdamage.gz.boot.stat.txt.gz\n");
+  fprintf(fp,"--printboot: \t\t\t Print all bootstrap iterations of [id,A_b,q_b,c_b,phi_b,sigmaD_old_b,Zfit_old_b,sigmaD_new_b,Zfit_new_b] in seperate file, suffix: .bdamage.gz.boot.stat.txt.gz\n");
   fprintf(fp,"--sigtype \t\t\t Determines the bootstrap method <1,2,3>, default = 1\n");
   fprintf(fp,"\t1: \t\t\t\t K/N resampling from the .bdamage format\n");
   fprintf(fp,"\t2: \t\t\t\t Resampling from the observed mismatch matrix\n");
