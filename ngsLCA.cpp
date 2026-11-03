@@ -44,24 +44,48 @@ void handler(int s) {
 /*
   We associate a intrank to each char*rank, the value will be the intrank for the key which is the lcarank that we use of the classification.
 */
-char2int setlevels(int norank2species, char *key, int &value) {
-    const char *names[48] = {"superkingdom", "domain", "lineage", "kingdom", "subkingdom", "superphylum", "phylum", "subphylum", "superclass", "class", "subclass", "infraclass", "clade", "cohort", "subcohort", "superorder", "order", "suborder", "infraorder", "parvorder", "superfamily", "family", "subfamily", "tribe", "subtribe", "infratribe", "genus", "subgenus", "section", "series", "subseries", "subsection", "species", "species group", "species subgroup", "subspecies", "varietas", "morph", "subvariety", "forma", "forma specialis", "biotype", "genotype", "isolate", "pathogroup", "serogroup", "serotype", "strain"};
-    int values[48] = {36, 37, 35, 34, 33, 32, 31, 30, 29, 28, 27, 26, 25, 24, 23, 22, 21, 20, 19, 18, 17, 16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1};
+char2int setlevels(int norank2species, char *key, int &value, int &family_level) {
     char2int c2i;
     value = -1;
-    char *spec = strdup("species");
-    for (int i = 0; i < 48; i++) {
-        c2i[strdup(names[i])] = values[i];
-        if (strcmp(key, names[i]) == 0) {
-            value = values[i];
-        }
+    family_level = -1;
+    const char *rank_file = getenv("METADAMAGE_RANK_LEVELS");
+    FILE *fp = rank_file ? fopen(rank_file, "r") : fopen("rank2level.txt", "r");
+    if (!fp && !rank_file)
+        fp = fopen("../rank2level.txt", "r");
+    if (!fp) {
+        fprintf(stderr, "\t-> Could not open rank level file%s%s\n",
+                rank_file ? ": " : " (tried rank2level.txt and ../rank2level.txt)",
+                rank_file ? rank_file : "");
+        exit(1);
     }
+
+    char line[512];
+    while (fgets(line, sizeof(line), fp)) {
+        char *separator = strchr(line, '\t');
+        if (!separator)
+            continue;
+        *separator = '\0';
+        char *rank_name = line;
+        char *end = rank_name + strlen(rank_name);
+        while (end > rank_name && (end[-1] == ' ' || end[-1] == '\r'))
+            *--end = '\0';
+        if (*rank_name == '\0')
+            continue;
+        int rank_value = atoi(separator + 1);
+        c2i[strdup(rank_name)] = rank_value;
+        if (strcmp(key, rank_name) == 0)
+            value = rank_value;
+        if (strcmp("family", rank_name) == 0)
+            family_level = rank_value;
+    }
+    fclose(fp);
     if (value == -1) {
         fprintf(stderr, "\t-> Unknown level defined for -lca_rank: %s\n", key);
         exit(0);
     }
     if (norank2species) {
-      char2int::iterator it = c2i.find(spec);
+      char species_name[] = "species";
+      char2int::iterator it = c2i.find(species_name);
       if (it == c2i.end()) {
 	fprintf(stderr, "\t-> Error: iterator reached end in c2i, will exit\n");
 	exit(1);
@@ -69,12 +93,15 @@ char2int setlevels(int norank2species, char *key, int &value) {
       c2i[strdup("no rank")] = it->second;
     }
     fprintf(stderr, "\t-> Number of entries with level information: %lu \n", c2i.size());
-    free(spec);
     return c2i;
 }
 
-int2int rank2level(int2char &i2c, int norank2species, char *key, int &value) {
-    char2int c2i = setlevels(norank2species, key, value);
+int2int rank2level(int2char &i2c, int norank2species, char *key, int &value, int &family_level) {
+    char2int c2i = setlevels(norank2species, key, value, family_level);
+    if (family_level == -1) {
+        fprintf(stderr, "\t-> Rank level file does not define family\n");
+        exit(1);
+    }
     int2int ref2tax;
     for (int2char::iterator it = i2c.begin(); it != i2c.end(); it++) {
         int key = -1;
@@ -521,7 +548,7 @@ static void purge_best_as(queue *myq, std::vector<int> &taxids, std::vector<int>
     specs.resize(write_idx);
 }
 
-void hts(gzFile fp, samFile *fp_in, int2int &ref2tax, int2int &parent, bam_hdr_t *hdr, int2char &rank, int2char &name_map, int minmapq, int discard, int editMin, int editMax, double scoreLow, double scoreHigh, int maxdust, int minlength, int lca_rank, char *prefix, int howmany, samFile *fp_usedreads, int skipnorank, int2int &rank2level, int nthreads, int weighttype,long maxreads,samFile *fp_famout,int rlens_flat_out,int best_as) {
+void hts(gzFile fp, samFile *fp_in, int2int &ref2tax, int2int &parent, bam_hdr_t *hdr, int2char &rank, int2char &name_map, int minmapq, int discard, int editMin, int editMax, double scoreLow, double scoreHigh, int maxdust, int minlength, int lca_rank, int family_level, char *prefix, int howmany, samFile *fp_usedreads, int skipnorank, int2int &rank2level, int nthreads, int weighttype,long maxreads,samFile *fp_famout,int rlens_flat_out,int best_as) {
   fprintf(stderr, "[%s] \t-> editMin:%d editmMax:%d scoreLow:%f scoreHigh:%f maxdust:%d minlength:%d discard: %d prefix: %s howmany: %d skipnorank: %d weighttype: %d maxreads: %ld rlens_flat_out: %d best_as: %d\n", __FUNCTION__, editMin, editMax, scoreLow, scoreHigh, maxdust, minlength, discard, prefix, howmany, skipnorank, weighttype,maxreads,rlens_flat_out,best_as);
   if (fp_in == NULL) {
     fprintf(stderr, "\t-> Error: fp_in is NULL (failed to open input file), will exit\n");
@@ -632,8 +659,7 @@ void hts(gzFile fp, samFile *fp_in, int2int &ref2tax, int2int &parent, bam_hdr_t
 		      exit(1);
 		    }
 		    //write to family out
-		    if (myit->second != -1 && (myit->second <= 16)) {
-		      //family is 16, see rank2level.txt
+                    if (myit->second != -1 && (myit->second <= family_level)) {
 		       for (size_t i = 0; i < myq->l; i++) {
 			 if (apply_purge && !keep[i])
 			   continue;
@@ -789,8 +815,7 @@ void hts(gzFile fp, samFile *fp_in, int2int &ref2tax, int2int &parent, bam_hdr_t
 	      exit(1);
 	    }
 	    //write to family out
-	    if (myit->second != -1 && (myit->second <= 16)) {
-	      //family is 16, see rank2level.txt
+            if (myit->second != -1 && (myit->second <= family_level)) {
 	      for (size_t i = 0; i < myq->l; i++) {
 		if (apply_purge && !keep[i])
 		  continue;
@@ -985,8 +1010,9 @@ int main_lca(int argc, char **argv) {
 
     parse_nodes(p->nodesfile, rank, parent, child, 0);
     int lca_rank;
+    int family_level;
     // converts each taxid to a intrepresentation of the rank, we call this level
-    int2int tax2level = rank2level(rank, p->norank2species, p->lca_rank, lca_rank);
+    int2int tax2level = rank2level(rank, p->norank2species, p->lca_rank, lca_rank, family_level);
     //  calc_valens(ref2tax,parent);
     if (0) {
         print_ref_rank_species(p->header, *ref2tax, name_map, rank);
@@ -1022,7 +1048,7 @@ int main_lca(int argc, char **argv) {
 	fprintf(stderr, "writing headers to %s", p->famout_sam);
     }
     gzprintf(p->fp1,"queryid\tseq\tlen\tnaln\tnspec\tdustscore\tgc\tlca\ttaxa_path\n");
-    hts(p->fp1, p->hts, *ref2tax, parent, p->header, rank, name_map, p->minmapq, p->discard, p->editdistMin, p->editdistMax, p->simscoreLow, p->simscoreHigh, p->maxdust, p->minlength, lca_rank, p->outnames, p->howmany, usedreads_sam, p->skipnorank, tax2level, p->nthreads, p->weighttype,p->maxreads,famout_sam,p->rlens_flat_out,p->best_as);
+    hts(p->fp1, p->hts, *ref2tax, parent, p->header, rank, name_map, p->minmapq, p->discard, p->editdistMin, p->editdistMax, p->simscoreLow, p->simscoreHigh, p->maxdust, p->minlength, lca_rank, family_level, p->outnames, p->howmany, usedreads_sam, p->skipnorank, tax2level, p->nthreads, p->weighttype,p->maxreads,famout_sam,p->rlens_flat_out,p->best_as);
 
     fprintf(stderr, "\t-> Number of species with reads that map uniquely: %lu\n", specWeight.size());
 

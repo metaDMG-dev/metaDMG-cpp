@@ -155,6 +155,7 @@ Options:
   --edit_dist_max	maximum read edit distance (maximum number of nucleotide mismatches between read and reference, disabled if not specified)
   --minAni/--min_ani	minimum ANI computed as 1 - NM/read_length (default: -1 disabled)
   --maxAni/--max_ani	maximum ANI computed as 1 - NM/read_length (default: -1 disabled)
+  --maxdust		maximum DUST score (0-100, default: -1 disabled)
   --best_as		<0|1> keep only alignments with the best AS score per read; ties are kept. If enabled, AS tag is required.
   -p/--print_length	number of positions along the read termini that are used to estimate the damage (default: 5)
   -r/--run_mode	        0: **global**  (default)
@@ -163,6 +164,7 @@ Options:
   --acc2tax		accession to taxid table (required for --run_mode 2)
   -i/--ignore_errors    continue analyses even if there are errors
   -o/--out_prefix	output prefix (default: meta)
+  -z/--rlens_flat_out	write flat read-length bin output (0/1, default: 0)
   -h/--help		show this help page
 ```
 ## metaDMG LCA analyses
@@ -199,12 +201,17 @@ Options:
   --sim_score_high	number between 0-1
   --minAni/--min_ani	minimum ANI computed as 1 - NM/read_length (alias for --sim_score_low)
   --maxAni/--max_ani	maximum ANI computed as 1 - NM/read_length (alias for --sim_score_high)
+  --maxdust		maximum DUST score (0-100, default: -1 disabled)
   --best_as		<0|1> keep only alignments with the best AS score per read; ties are kept. If enabled, AS tag is required.
   --fix_ncbi		<0|1> (default: 1) fixes ncbi taxonomy naming issue
   --discard 		<INT> Discard is a BAM/SAM flag bitmask: any read whose SAM FLAG shares a bit with <INT> is skipped before LCA/damage estimation. This mirrors the logic of samtools view -F <mask>.
   --how_many		integer for number of positions that are printed in the substitution matrix
   --lca_rank		(default: species) Can be family/genus/species. This function makes the summary statistics to be calculated for reads unique to the specified taxonomic rank, rather than summing up the tree from species. 
   --used_reads		<0|1> (default: 1) Controls whether metaDMG writes a BAM file containing the reads that passed all filters and were actually used for damage/LCA calculations.
+  --famout		<0|1> (default: 1) Writes alignments for read groups whose LCA is family or a more specific rank to <out_prefix>.famoutreads.bam. Set to 0 to disable this output.
+  Rank levels are read from rank2level.txt. Set METADAMAGE_RANK_LEVELS to an alternative rank-level file when running from another directory.
+  --maxreads INT	stop after processing this many read groups (default: -1, no limit)
+  --rlens_flat_out <0|1>	write flat read-length bin output (default: 0; `-rfo` is an alias)
   --no_rank2species	<0|1> (default: 0) Controls how NCBI “no rank” nodes are treated when mapping taxonomic ranks to internal levels:
 	1: treat "no rank" as if it were species level for the internal rank→level mapping (i.e., assign it the same level value as "species"). This is implemented in setlevels(…) by inserting "no rank" with the species level
 	0: do not remap "no rank"; it won’t get a defined level from rank2level(…) (and is handled separately).
@@ -355,6 +362,9 @@ Aggregating the lca statistics when transversing through the tree structure, cre
 
 `./metaDMG-cpp aggregate file.bdamage.gz --lcastat lca.stat --names names.dmp --nodes nodes.dmp --out file --dfit ` 
 
+`--lcastat` is the preferred spelling for the LCA statistics input; `-lca` and
+`-lcastat` are accepted aliases.
+
 The aggregate output now includes rolled-up LCA statistics for:
 - `mean_rlen`, `var_rlen`
 - `mean_gc`, `var_gc`
@@ -401,6 +411,21 @@ Options:
 
 #### Header in print: taxid,nralign,orientation,position,AA,AC,AG,AT,CA,CC,CG,CT,GA,GC,GG,GT,TA,TC,TG,TT 
  ```
+
+# metaDMG print_ugly
+
+Legacy output command for printing `.bdamage.gz` results with optional taxonomy
+and LCA statistics. The program currently warns that this functionality will be
+removed, so new workflows should prefer `print` or the dedicated aggregation
+commands.
+
+```bash
+./metaDMG-cpp print_ugly file.bdamage.gz --names names.dmp.gz \
+  --nodes nodes.dmp.gz --lcastat file.stat.gz --bam input.bam \
+  --out_prefix output
+```
+
+Options are `--names`, `--nodes`, `--lcastat`, `--bam`, and `--out_prefix`.
  
 # metaDMG merge
 
