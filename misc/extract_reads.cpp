@@ -5,7 +5,7 @@
 #include <cstdlib>
 #include <htslib/sam.h>
 #include <ctype.h>
-#include "../shared.h"
+#include "../src/shared.h"
 
 //to make life easier we are making some global variables.
 char out_mode[8] = "wb";//<- assume output is a bam

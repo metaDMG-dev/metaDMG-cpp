@@ -1,505 +1,297 @@
 # metaDMG-cpp
-## [![tests](https://github.com/metaDMG-dev/metaDMG-cpp/actions/workflows/make.yml/badge.svg)](https://github.com/metaDMG-dev/metaDMG-cpp/actions/workflows/make.yml) 
 
-# Introduction
+[![tests](https://github.com/metaDMG-dev/metaDMG-cpp/actions/workflows/make.yml/badge.svg)](https://github.com/metaDMG-dev/metaDMG-cpp/actions/workflows/make.yml)
 
-metaDMG-cpp is a fast and efficient method for estimating mutation and damage rates in ancient DNA data, especially from ancient metagenomes. It relies on commonly used alignment file formats bam/sam/sam.gz and can calculate the degree of damage from read data mapped against a single as well as multiple genomes. It is especially relevant for data where data have been mapped against multiple reference genomes or to speed up analysis for damage estimation for a single genome.
+**Estimate ancient-DNA damage from mapped reads, for a whole sample, individual references, or taxonomic groups.**
 
-There are three possible modes for running metaDMG. In all cases, the program utilises the MD:Z field of the aux part of reads and is therefore reference-free.
+metaDMG-cpp counts substitutions between reads and their aligned references, then fits the characteristic decrease in terminal damage towards the interior of a read. For metagenomes, it can first assign reads using a lowest common ancestor (LCA) algorithm. It also provides per-read PMD scores and tools for inspecting, filtering, and summarizing results.
 
-1. Basic single genome analysis with one overall global estimate. Similar to the mapdamage2.0 programme (./metaDMG-cpp getdamage --run_mode 0).
+You start with **aligned reads**, not FASTQ files. BAM/SAM records must contain `MD:Z` tags, which describe reference mismatches. This lets metaDMG reconstruct the aligned reference bases without a separate FASTA for BAM/SAM analysis; mapping still requires a reference database. CRAM decoding requires the matching reference.
 
-2. Basic metagenomes (e.g. multiple genome alignments) analyses. Output is a damage estimate per reference, taxonomic name or accession no that includes all alignments without an LCA analysis (./metaDMG-cpp getdamage --run_mode 1).
+> **Version scope:** this guide describes the `dev2026` source checkout. Packaged releases can have different options and defaults. Check your executable with `metaDMG-cpp --help` and record the version printed to stderr.
 
-3. Integrating a Least Common Ancestor algorithm (ngsLCA) which allows retrieving damage estimates for alignments classified to the given taxonomic levels (./metaDMG-cpp lca).
+**Visual field guide:** [Open the offline HTML guide](doc/field-guide.html) for chapter navigation, searchable parameter notes, and an interactive damage model. Download/open the HTML file locally; GitHub displays its source.
 
-For all analyses, the output is a binary '.bdamage.gz' file, which contains a substitution matrix that can be accessed and read with the (./metaDMG print)' functionality.
+[Install](#1-install) · [Test](#2-test-your-installation) · [Prepare input](#3-prepare-your-own-input) · [Run](#4-choose-and-run-an-analysis) · [Interpret](#5-understand-the-results) · [Troubleshoot](#6-troubleshooting) · [Advanced commands](doc/commands.md) · [Development](doc/development.md)
 
-# Installation
+![Workflow from aligned reads through damage counts to fitted results.](doc/figures/workflow.svg)
 
-### Installing metaDMG-cpp using conda 
-The easiest way to install metaDMG-cpp and its dependencies is using conda
+## 1. Install
 
-```
-conda install metaDMG
-```
-or the faster mamba
+### Option A — packaged release with Conda or Mamba
 
-```
-mamba install -c bioconda metaDMG
-```
+Use an isolated environment containing metaDMG and SAMtools:
 
-### To update using conda
-
-```
-conda update metaDMG
+```bash
+conda create -n metadmg -c conda-forge -c bioconda --strict-channel-priority metadmg samtools
+conda activate metadmg
+metaDMG-cpp --help
 ```
 
-## For manual installation
-### Dependencies
-`metaDMG-cpp` requires `HTSlib`, a common library used for handling high-throughput sequencing data, `eigen3` and `gsl`.
+You can replace `conda create` with `mamba create`. The [Bioconda package is named `metadmg`](https://anaconda.org/bioconda/metadmg); the executable is `metaDMG-cpp`. This installs a published release, not the current development checkout.
 
-On Ubuntu these can be installed with:
-```
-sudo apt install libgsl-dev libeigen3-dev
+To update that environment:
+
+```bash
+conda update -n metadmg -c conda-forge -c bioconda --strict-channel-priority metadmg
 ```
 
-### Installing and compiling metaDMG
-To install metaDMG-cpp do:
+### Option B — build from source
+
+Use this route to work with development changes or run the repository's full tests. You need Git, Make, a C/C++ compiler, HTSlib, GSL, zlib, and SAMtools for testing/input preparation. Eigen is needed only for the optional regression code, not the normal build.
+
+**Ubuntu/Debian dependencies:**
+
+```bash
+sudo apt-get update
+sudo apt-get install build-essential git libhts-dev libgsl-dev zlib1g-dev samtools
 ```
+
+**macOS dependencies (Homebrew):**
+
+```bash
+xcode-select --install  # only if the command-line tools are not installed
+brew install htslib gsl samtools coreutils
+```
+
+Then clone and build, using your installed HTSlib:
+
+```bash
 git clone https://github.com/metaDMG-dev/metaDMG-cpp.git
 cd metaDMG-cpp
-make
-```
-
-### Updating to latest version
-For installing latest updates:
-
-```
-make clean
-git pull https://github.com/metaDMG-dev/metaDMG-cpp.git
-```
-
-
-# Usage
-
-Top-level and subcommand help:
-```
+make HTSSRC=systemwide -j2
 ./metaDMG-cpp --help
-./metaDMG-cpp <subcommand> --help
-./metaDMG-cpp <subcommand> -h
 ```
 
-## PMD read-level scores
-The `pmd` command assigns a PMD likelihood-ratio score to each mapped read. It
-uses the read's `MD:Z` tag to reconstruct the aligned reference sequence and
-prints one result per read to standard output:
-
-```text
-read_name<TAB>PMD: score
-```
-
-Basic usage:
+For Homebrew, supply its installation prefix:
 
 ```bash
-./metaDMG-cpp pmd input.bam > input.pmd.tsv
-./metaDMG-cpp pmd input.sam > input.pmd.tsv
-./metaDMG-cpp pmd -T reference.fa input.cram > input.pmd.tsv
+make HTSSRC=systemwide PREFIX="$(brew --prefix)" -j2
 ```
 
-Options:
+These clone commands use the remote's default branch. If you already have the `dev2026` checkout, build there; otherwise select the branch/tag you intend to use before building. Record `git rev-parse HEAD` and any local changes with your results. Build in a path **without spaces**: the Makefile does not consistently quote dependency paths.
 
-```text
--T FILE   reference file required for CRAM input
--@ INT    number of threads (accepted for compatibility; PMD is currently single-threaded)
--a 0|1    whether paired-end reads are included; 1 (default) keeps single-end/collapsed reads only
--q INT    minimum mapping quality (default: disabled)
--m        require mapped reads (PMD skips unmapped reads by default)
--v        verbose diagnostics
--h        show PMD help
-```
+<details>
+<summary>Other dependency locations, bundled HTSlib, and updating a checkout</summary>
 
-Reads without a valid mapping are skipped. The PMD calculation uses the SAM
-reverse-strand flag, base qualities, and the informative ancient-DNA
-substitutions C→T and G→A. Reads must contain an `MD:Z` tag so the aligned
-reference can be reconstructed.
-
-The PMD implementation and its tests were revised after issues identified by
-the user `@miwipe`, including incorrect handling of base-quality scores and
-strand orientation.
-
-## Filter existing bdamage output
-`filter_bdamage` creates a subset of an existing `.bdamage.gz` file and (when available) matching `.stat.gz` and `.rlens.gz` files.
-
-Important ID semantics:
-- For `lca` output, IDs are taxids.
-- For `getdamage --run_mode 1`, IDs are BAM reference offsets (tid), not taxids.
-
-Basic usage:
-```
-./metaDMG-cpp filter_bdamage in.bdamage.gz --id 11 --out_prefix subset
-```
-
-Taxonomic expansion with descendants (from nodes):
-```
-./metaDMG-cpp filter_bdamage in.bdamage.gz --id 11 --out_prefix subset --nodes nodes.dmp.gz
-```
-This includes taxid `11` and all descendants of `11` from `nodes.dmp.gz`.
-
-Resolve by reference/accession:
-```
-./metaDMG-cpp filter_bdamage in.bdamage.gz --resolve ref2 --bam reads.bam --out_prefix subset
-./metaDMG-cpp filter_bdamage in.bdamage.gz --resolve ACC123 --acc2tax acc2taxid.map.gz --out_prefix subset
-```
-
-Companion files (`stat` and `rlens`):
-- Auto-detected by prefix when omitted: `X.bdamage.gz` -> `X.stat.gz` and `X.rlens.gz`.
-- Can be set explicitly: `--stat file.stat.gz --rlens file.rlens.gz`.
-
-## Damage analysis (non-taxonomically assigned)
-metaDMG-cpp calculates substitutions between reads and reference sequences. It can operate in three modes:
-
-	- global mode (--run_mode 0): Substitution statistics are calculated across all references or chromosomes to which reads are aligned. This mode is typically used for sequence data derived from a single source (e.g., bone, tooth), where the goal is to obtain an overall DNA damage pattern.
-	- local mode (--run_mode 1): Substitution statistics are computed for all unique references in your bam file. In this mode, if a read aligns to multiple references, it will be counted multiple times.
-	- taxid mode (--run_mode 2): Substitution statistics are computed per taxid by mapping BAM reference names through `--acc2tax`.
-For metagenomic data, the recommended workflow is to first use LCA (Lowest Common Ancestor), then run dfit, and finally aggregate the results.
-
-```
-./metaDMG-cpp getdamage [options] <in.bam>|<in.sam>|<in.cram>
-
-Options:
-  -n/--threads	        number of threads used for reading/writing (default: 4)
-  -f/--fasta	        reference genome (required with CRAM)
-  -l/--min_length	reads shorter than minlength will be discarded (default: 35)
-  --edit_dist_min	minimum read edit distance (minimum number of nucleotide mismatches between read and reference, default: -1 disabled)
-  --edit_dist_max	maximum read edit distance (maximum number of nucleotide mismatches between read and reference, disabled if not specified)
-  --minAni/--min_ani	minimum ANI computed as 1 - NM/read_length (default: -1 disabled)
-  --maxAni/--max_ani	maximum ANI computed as 1 - NM/read_length (default: -1 disabled)
-  --maxdust		maximum DUST score (0-100, default: -1 disabled)
-  --best_as		<0|1> keep only alignments with the best AS score per read; ties are kept. If enabled, AS tag is required.
-  -p/--print_length	number of positions along the read termini that are used to estimate the damage (default: 5)
-  -r/--run_mode	        0: **global**  (default)
-                        1: **local** damage patterns will be calculated for each chr/scaffold contig.
-                        2: **taxid** damage patterns will be calculated per taxid (requires --acc2tax)
-  --acc2tax		accession to taxid table (required for --run_mode 2)
-  -i/--ignore_errors    continue analyses even if there are errors
-  -o/--out_prefix	output prefix (default: meta)
-  -z/--rlens_flat_out	write flat read-length bin output (0/1, default: 0)
-  -h/--help		show this help page
-```
-## metaDMG LCA analyses
-
-
-### Taxonomic resource files
-metaDMG-cpp lca performs a taxonomic classification using the naive lowest common ancestor algorithm as embedded in [ngsLCA](https://github.com/miwipe/ngsLCA). In addition, this version counts substitutions between read and reference on internal nodes within a taxonomy (e.g. from root to species level). To traverse up the taxonomic tree the program needs three files in NCBI taxonomy format. These can either be a custom taxonomy built as the NCBI taxonomy or simply rely on the NCBI taxonomy, or it can  be a combination. NOTE the taxonomy files have to reflect the version of the database you are using (missing reference names and taxids will be printed in the log file). 
-
-**Downloading resource files for the program from NCBI**
-``` 
-mkdir ncbi_tax_dmp;
-cd ncbi_tax_dmp/;
-wget https://ftp.ncbi.nlm.nih.gov/pub/taxonomy/new_taxdump/new_taxdump.zip;
-unzip new_taxdump.zip;
-wget https://ftp.ncbi.nlm.nih.gov/pub/taxonomy/accession2taxid/nucl_gb.accession2taxid.gz;
-gunzip nucl_gb.accession2taxid.gz;
-```
-
-Calculations, where each read, is classified to a given taxonomic level (based on the similarity of the alignments as specified below, we recommend --sim_score_low 0.95 --sim_score_high 1.0).  
-```
-./metaDMG-cpp lca [options]
-
-Options:
-  --threads			number of threads used for reading/writing (default: 4)
-  --bam				input alignment file SAM/SAM.gz/BAM
-  --names 			names.dmp.gz
-  --nodes 			nodes.dmp.gz
-  --acc2tax 		accesion to taxid table
-  --edit_dist_min	minimum read edit distance (minimum number of nucleotide mismatches between read and reference, default: -1 disabled)
-  --edit_dist_max	maximum read edit distance (maximum number of nucleotide mismatches between read and reference, disabled if not specified)
-  --min_mapq		minimum mapping quality	(not desirable if you have aligned the reads using bowtie2 specifying the -k option)
-  --min_length		minimum read length
-  --sim_score_low	number between 0-1 
-  --sim_score_high	number between 0-1
-  --minAni/--min_ani	minimum ANI computed as 1 - NM/read_length (alias for --sim_score_low)
-  --maxAni/--max_ani	maximum ANI computed as 1 - NM/read_length (alias for --sim_score_high)
-  --maxdust		maximum DUST score (0-100, default: -1 disabled)
-  --best_as		<0|1> keep only alignments with the best AS score per read; ties are kept. If enabled, AS tag is required.
-  --fix_ncbi		<0|1> (default: 1) fixes ncbi taxonomy naming issue
-  --discard 		<INT> Discard is a BAM/SAM flag bitmask: any read whose SAM FLAG shares a bit with <INT> is skipped before LCA/damage estimation. This mirrors the logic of samtools view -F <mask>.
-  --how_many		integer for number of positions that are printed in the substitution matrix
-  --lca_rank		(default: species) Can be family/genus/species. This function makes the summary statistics to be calculated for reads unique to the specified taxonomic rank, rather than summing up the tree from species. 
-  --used_reads		<0|1> (default: 1) Controls whether metaDMG writes a BAM file containing the reads that passed all filters and were actually used for damage/LCA calculations.
-  --famout		<0|1> (default: 1) Writes alignments for read groups whose LCA is family or a more specific rank to <out_prefix>.famoutreads.bam. Set to 0 to disable this output.
-  Rank levels are read from rank2level.txt. Set METADAMAGE_RANK_LEVELS to an alternative rank-level file when running from another directory.
-  --maxreads INT	stop after processing this many read groups (default: -1, no limit)
-  --rlens_flat_out <0|1>	write flat read-length bin output (default: 0; `-rfo` is an alias)
-  --no_rank2species	<0|1> (default: 0) Controls how NCBI “no rank” nodes are treated when mapping taxonomic ranks to internal levels:
-	1: treat "no rank" as if it were species level for the internal rank→level mapping (i.e., assign it the same level value as "species"). This is implemented in setlevels(…) by inserting "no rank" with the species level
-	0: do not remap "no rank"; it won’t get a defined level from rank2level(…) (and is handled separately).
-  --skip_no_rank	<0|1> (default: 0) Tells the LCA code whether to skip “no rank” nodes entirely during traversal/aggregation.
-	1: skip “no rank” entries (the default)
-	0: keep “no rank” nodes in the lineage
-  --weight_type		<0|1> (default: 1) controls how multi‑mapped reads are weighted when metaDMG aggregates mismatch (damage) counts up the taxonomy during the LCA step
-	0: “count every alignment”: if a read maps to k references, each alignment gets full weight (the read contributes k in total). This inflates counts for multi‑mappers. This is called “weight‑type 0” in the paper
-	1: “fractional per‑read”: a read’s contribution is split across its k alignments (each gets weight 1/k), so the read contributes 1 in total. This avoids over‑counting multi‑mapped reads and is the recommended default
-  -i/--ignore_errors	<0|1> (default: 0) continue analyses even if there are errors 1 or stop when error 0 
-  --temp			temp prefix
-  -o/--out_prefix 	output prefix
-  --filtered_acc2tax	outputs a acc2tax file using just the accessions and taxid in your dataset, given a filename
-  -h/--help		show this help page
-```
-
- 
-# metaDMG dfit
-Performing numerical optimization of the deamination frequencies based on the mismatch matrix (.bdamage.gz) to estimate four parameters: A,q,c,phi. Either applying a beta-binomial distribution or binomial distribution as the choice for likelihood model.
-
-**A**: Amplitude of damage on position one.
-
-**q**: Relative decrease of damage per position.
-
-**c**: Background noise, equivalent to sequencing errors.
-
-**phi**: signifies the uncertainty of beta-binomial model, with larger values indicating the probability of deamination is reduced to binomial distribution.
-
-The optimization can be performed in three modes, all of which depends on the input parameters and information stored within the .bdamage.gz file, 
-
-**global**: with one damage estimate for entire BAM file. 
-
-**local**: damage estimate for all chromosomes/contigs/scaffolds present in BAM header.
-
-**lca**: damage estimates of the nodes within the lca tree structure.
-
-`./metaDMG-cpp dfit file.bdamage.gz ` 
-
-A simple help page is printed with 
-
-`./metaDMG-cpp dfit -h ` 
-
-While an extended and full helppage is printed with --help and shown below.
-
-```
-	-> ./metaDMG-cpp dfit --help 
-Extended helppage damage estimation using numerical optimization
-Estimates damage in either local, global or lca mode depending on the bdamage input format
-Dfit command performs either optimization of beta-binomial (default --nbootstrap = 0) or binomial model (--nbootstrap > 2)
-
-Local mode: 	  damage estimated for each reference/chromosome in the BAM file
-Global mode: 	  one damage estimate for whole BAM file
-lca mode: 	  damage estimated over the lca tree at different ranks
-
-
---help 				 Print extended help page to see all options.
-
-./metaDMG-cpp dfit file.bdamage.gz --names file.gz --nodes trestructure.gz --bam file.bam --showfits int --nopt int --nbootstrap int --printboot int --seed int --doCI int --CI float --lib <ds,ss> --out file
-
------------- Required ------------- 
-./metaDMG-cpp dfit file.bdamage.gz 	 bdamage file contains the misincorporation matrix, in global mode from getdamage command or local mode from lca command
-
------------- Optional ------------- 
-
---names       #NCBI names.dmp file - option that prints taxonomic names to output  
-
---nodes       #needs taxonomic paths to calculate damage higher than species level
-
---bam 				In local mode - convert the internal id numbering from bdamage.gz to the reference in the bam header
-
---out 				 Prefix for output name
-
---nopt 				 Number of optimization calls (default: 10).
-
---seed 				 Seed value for random number generators (default: computer time).
-
---rand 				 Type of random number generator <0,1,2,3> 
-	0: 				 drand48_r, default for linux or unix, not available for MacOS
-	1: 				 std::uniform_int_distribution
-	2: 				 rand_r
-	3: 				 erand48, default for MacOS.
-
---threads:			 Number of threads, default = 1, i.e. no threading
-
---lib 				 double stranded (ds) use C>T (forward) and G>A (reverse); single stranded (ss) use C>T for both forward and reverse (default ds)
-
---nbootstrap		 number of bootstrap iterations. default: 1 -> use Beta-binomial model, -nbootstrap >1 use Binomial model 
-
----- Optimization model specific ---- 
-
-------  Beta-binomial model ------
-
---showfits: 			 Verbose parameter, stored in the .dfit.txt.gz, default = 0, see documentation for full description of columns
-		--showfits 0		 [id;A;q;c;phi;llh;ncall;sigmaD_old;Zfit_old;sigmaD_new;Zfit_new] 
-					 id:contig; A:amplitute of damage; q:decrease in damage; c:offset (background noise); phi:variance between Beta-binomial and binomial model
-					 llh:minimized negative log-likelihood; ncall:optimization calls
-					 sigmaD_old / Zfit_old: legacy standard deviation and score based on the original first-position approximation
-					 sigmaD_new / Zfit_new: updated standard deviation and score based on a weighted effective N across positions
-
-		--showfits 1		 [id;A;q;c;phi;llh;ncall;sigmaD_old;Zfit_old;sigmaD_new;Zfit_new;
-					 fwdxi;fwdxConfi;..;fwdxn;fwdxConfn..;
-						 bwdx;dxConfn;..;bwdxn;bwdxConfn]
-					 fwdx: damage estimates forward strand; fwdxConf: confidence interval; fbwdx: reverse strand; bwdxConfn: confidence interval.
-	 					 i position 1 to position n (zero-index)
-
-		--showfits 2		 [id;A;q;c;phi;llh;ncall;sigmaD_old;Zfit_old;sigmaD_new;Zfit_new;
-					 fwKi;fwNi;fwdxi;fwf0;fwdxConfi;..;fwKi;fwNi;fwdxi;fwfi;fwdxConfi..;
-						 bwKi;bwNi;bwdxi;bwfi;bwdxConfi;..;bwKn;bwNn;bwdxn;fwfn;bwdxConfn]
-					 fwKi: Number of transitions forward strand (C>T); fwNi: Number reference counts forward strand (C); fwfi: C>T frequency based on forward strand from bdamage file
-				 bwKi: Number of transitions reverse strand (G>A); bwNi: Number reference counts reverse strand (G); bwfi: C>T frequency based on reverse strand from bdamage file
-
-
----------- Binomial model ----------
-
---showfits: 			 Verbose parameter, stored in the .dfit.txt.gz, default = 0
-		--showfits 0		 [id;A;q;c;phi;llh;ncall;sigmaD_old;Zfit_old;sigmaD_new;Zfit_new;A_b;q_b;c_b;phi_b;A_CI_l;A_CI_h;q_CI_l;q_CI_h;c_CI_l;c_CI_h;phi_CI_l;phi_CI_h] 
-						 id;A;q;c;phi;llh;ncall;sigmaD_old;Zfit_old;sigmaD_new;Zfit_new estimates from beta-binomial (see above)
-						 A_b;q_b;c_b;phi_b;A_CI_l;A_CI_h;q_CI_l;q_CI_h;c_CI_l;c_CI_h;phi_CI_l;phi_CI_h estimates binomial model with bootstrap method (*_b), confidence interval (*_CI_l) and  (*_CI_h)
-
-	--showfits 1		 similar columns added as described above, using the bootstrap estimated parameters;
-
-	--showfits 2		 similar columns added as described above, using the bootstrap estimated parameters;
---nbootstrap: 			 Number of bootstrap iterations, default = 1; values >1 enable bootstrap summaries
---printboot:			 Store all bootstrap iterations of [id,A_b,q_b,c_b,phi_b] in separate file, suffix: .boot.stat.gz (set >0 to enable)
---sigtype 			 Determines the bootstrap method <1,2,3>, default = 1
-	1: 				 Resample K/N counts from the .bdamage format and recalculate frequencies
-	2: 				 Resample reference and damage counts from the observed mismatch matrix
-	3: 				 Draw K and N from binomial distributions estimated from the mismatch matrix
---CI: 				 Desired confidence interval, default = 0.95
---doCI: 			 Confidence interval type <1,2>
-	1: 				 Mean and Standard Deviation-Based CI Calculation
-	2: 				 Percentile CI Calculation
-
----------- Examples ----------
-	 Local mode binomial:
- 		 ./metaDMG-cpp getdamage Pitch6.bam -l 10 -p 15 -r 1 -o Pitch6getDMG
- 		 ./metaDMG-cpp dfit Pitch6getDMG.bdamage.gz --showfits 1
-	 Global mode binomial:
- 		 ./metaDMG-cpp getdamage Pitch6.bam -l 10 -p 15 -r 0 -o Pitch6getDMG
- 		 ./metaDMG-cpp dfit Pitch6getDMG.bdamage.gz --nbootstrap 2 --showfits 2
-	 Lca mode beta-binomial:
- 		 ./metaDMG-cpp lca --names names.dmp --nodes nodes.dmp --acc2tax acc2taxid.map.gz --weight_type 1 --fix_ncbi 0 --bam Pitch6.bam --out Pitch6lcatest 
- 		 ./metaDMG-cpp dfit Pitch6lcatest.bdamage.gz --names names.dmp --nodes nodes.dmp --showfits 0
-```
-
-# metaDMG aggregate
-Aggregating the lca statistics when transversing through the tree structure, creating files with prefix .aggregate.stat.txt.gz
-
-`./metaDMG-cpp aggregate file.bdamage.gz --lcastat lca.stat --names names.dmp --nodes nodes.dmp --out file --dfit ` 
-
-`--lcastat` is the preferred spelling for the LCA statistics input; `-lca` and
-`-lcastat` are accepted aliases.
-
-The aggregate output now includes rolled-up LCA statistics for:
-- `mean_rlen`, `var_rlen`
-- `mean_gc`, `var_gc`
-- `mean_dust`, `var_dust`
-- `mean_nspec`, `var_nspec`
-
-Default aggregate columns (before optional dfit columns are appended):
-`taxid	name	rank	nalign	nreads	mean_rlen	var_rlen	mean_gc	var_gc	mean_dust	var_dust	mean_nspec	var_nspec	lca	taxa_path`
-
-```
-	-> ./metaDMG-cpp aggregate -h 
-    Aggregation of lca produced statistics (mean length, variance length, mean GC, variance GC, mean dust, variance dust, mean nspec, variance nspec) when transversing up the nodes of the tree structure
-		./metaDMG-cpp aggregate file.bdamage.gz --names file.gz --nodes trestructure.gz --lcastat file.stat --out filename
---help 		 Print extended help page to see all options.
---names 	 names.dmp.gz
---nodes 	 nodes.dmp.gz
---lca 		 lcaout.stat lca produced statistics
---dfit 		 output from dfit function. Optional
---rlens 	 input rlens.gz to aggregate up taxonomy tree. Optional
---out 		 Suffix of output name with the predetermined prefix (.aggregate.stat.txt.gz)
-```
-
-# metaDMG print
-
-`./metaDMG-cpp print file.bdamage.gz [-names file.gz -bam file.bam -ctga -countout] infile: (null) inbam: (null) names: (null) search: -1 ctga: 0 `
-
-All options found below:
-
-```
- ./metaDMG-cpp print 
- 
- Usage: ./metaDMG-cpp print 
- 
-Example ./metaDMG-cpp print file.bdamage.gz -names names.dmp.gz 
-	./metaDMG-cpp print file.bdamage.gz -r 9639 -ctga
-	./metaDMG-cpp print file.bdamage.gz -countout 
-Options:
-  -ctga		ONLY print CT+ and GA- (the damage ones)
-  -countout	print mismatch as counts and not as transition probabilites
-  -r taxid	Only print for specific taxid
-  -names	NCBI names.dmp.gz file - option to print taxonomic names instead of NCBI TaxID
-  -bam		print referencenames (Accession No.) from bamfile, otherwise it prints NCBI TaxId. 
-
-
-#### Header in print: taxid,nralign,orientation,position,AA,AC,AG,AT,CA,CC,CG,CT,GA,GC,GG,GT,TA,TC,TG,TT 
- ```
-
-# metaDMG print_ugly
-
-Legacy output command for printing `.bdamage.gz` results with optional taxonomy
-and LCA statistics. The program currently warns that this functionality will be
-removed, so new workflows should prefer `print` or the dedicated aggregation
-commands.
+For dependencies installed in a Conda environment or custom prefix:
 
 ```bash
-./metaDMG-cpp print_ugly file.bdamage.gz --names names.dmp.gz \
-  --nodes nodes.dmp.gz --lcastat file.stat.gz --bam input.bam \
-  --out_prefix output
+make HTSSRC=systemwide PREFIX="$CONDA_PREFIX" -j2
 ```
 
-Options are `--names`, `--nodes`, `--lcastat`, `--bam`, and `--out_prefix`.
- 
-# metaDMG merge
+The compiler and libraries must target the same architecture. On Apple Silicon, do not mix arm64 Homebrew libraries with an x86_64 Conda environment.
 
-`./metaDMG-cpp merge file.lca file.bdamage.gz ` 
+Running plain `make` instead clones and builds HTSlib if it is missing. This needs network access and HTSlib's build dependencies, including compression and curl development libraries. On Ubuntu, also install `libbz2-dev liblzma-dev libcurl4-openssl-dev`.
 
-
-All options found below:
-
-```
-./metaDMG-cpp merge 
-
-Usage: ./metaDMG-cpp merge file.lca file.bdamage.gz [-names names.dmp.gz -bam <in.bam>|<in.sam>|<in.sam.gz> -howmany 5 -nodes nodes.dmp.gz]
-
-Example
-Options:
--howmany #integer for many positions.
--nodes #needs taxonomic paths to calculate damage higher than species level /ncbi_tax_dump_files/nodes.dmp.gz
--names #NCBI names.dmp file - option that prints taxonomic names to output  
-```
-
-
-# metaDMG mergedamage
-
-Merges multiple `.bdamage.gz` and/or `.rlens.gz` files into combined summary files.  
-Useful when aggregating results from multiple runs, libraries, or samples prior to downstream processing or visualization.
-
-`./metaDMG-cpp mergedamage -b file1.bdamage file2.bdamage -r file1.rlens.gz file2.rlens.gz -out merged`
-
-```
---b 		two or more bdamage files 
---r 		two or more rlens.gz files 
---out		Suffix of output name with the predetermined prefix
-```
-
-# Testing
-
-`make test` builds and runs the taxonomy-output sorting regression test before
-running the main integration test suite. The sorting test can also be run on
-its own:
+To update a clean source checkout, first inspect local changes, then pull and rebuild:
 
 ```bash
-make -C misc sort_taxonomy_output
-misc/test_sort_taxonomy_output.sh
+git status --short
+git pull --ff-only
+make HTSSRC=systemwide -j2
 ```
 
-# New functionality: taxonomy output sorting
+Repeat your original `PREFIX` and compiler settings when rebuilding. If you need a clean build, `make clean HTSSRC=systemwide` preserves external HTSlib. **Plain `make clean` deletes the configured HTSlib source directory.**
 
-The new `misc/sort_taxonomy_output` utility sorts text output in depth-first
-preorder according to the taxonomy tree. This keeps an internal taxonomic
-node together with its descendants before continuing to the next branch.
+</details>
 
-It autodetects the following formats from their headers:
+## 2. Test your installation
 
-- `lca` output (`.lca.gz`)
-- `dfit` output (`.dfit.gz`)
-- taxonomic statistics and aggregate output (`.stat.gz`)
+### A small first run
 
-The input and `nodes.dmp` files may be compressed or uncompressed. The binary
-`.bdamage.gz` format is intentionally not supported because its record order
-does not affect the calculations. For large files, sorting is performed in
-chunks using temporary files, so the entire input does not need to fit in
-memory. Use `--format lca`, `--format dfit` or `--format stat` with a custom
-header.
-
-Build and run it with:
+This uses the repository's bundled alignment fixture, so no taxonomy download is needed. Run from the repository root after a source build. For a Conda installation, obtain the repository fixtures with the clone command above and replace `./metaDMG-cpp` below with `metaDMG-cpp`.
 
 ```bash
-make -C misc sort_taxonomy_output
+mkdir -p results/quickstart
+samtools sort -n test/data/f570b1db7c.dedup.filtered.bam \
+  -o results/quickstart/reads.qname.bam
 
-misc/sort_taxonomy_output \
-  --input sample.lca.gz \
-  --nodes nodes.dmp.gz \
-  --output sample.sorted.lca.gz
+./metaDMG-cpp getdamage results/quickstart/reads.qname.bam \
+  --run_mode 0 --min_length 35 --print_length 15 \
+  --out_prefix results/quickstart/global
+
+./metaDMG-cpp dfit results/quickstart/global.bdamage.gz \
+  --lib ds --seed 12345 --nbootstrap 1 --showfits 2 \
+  --out results/quickstart/global
+
+./metaDMG-cpp print results/quickstart/global.bdamage.gz -ctga \
+  > results/quickstart/global.damage.tsv
+
+gzip -dc results/quickstart/global.dfit.gz
 ```
 
-This is new functionality. Please report any bugs, unexpected ordering, or
-unsupported output formats through the GitHub issue tracker.
+**Success looks like:** each command finishes successfully; `global.bdamage.gz` is nonempty; `global.damage.tsv` contains terminal substitution frequencies; and the compressed `global.dfit.gz` contains a header and a fitted result. The example demonstrates the workflow, not a biological acceptance threshold. Running it again overwrites outputs with the same prefix.
+
+### Full repository checks (source builds)
+
+Build first, then run:
+
+```bash
+make test HTSSRC=systemwide
+```
+
+The suite runs the taxonomy-sorting regression, DUST and PMD unit checks, and integration checks for damage counting, LCA, fitting, aggregation, and utilities. It needs `samtools`, `c++`, and `md5sum` on `PATH`; on macOS, Homebrew `coreutils` supplies `md5sum`. Results are written under `test/`, with diagnostics in `test/testAll2.sh.log`. A successful full run exits with status 0 and prints `=====RVAL:0=======`.
+
+For a nonstandard dependency prefix, the test script invokes `c++` directly. Make sure its header and library search paths match the build. For example, with Homebrew:
+
+```bash
+export CPATH="$(brew --prefix)/include${CPATH:+:$CPATH}"
+export LIBRARY_PATH="$(brew --prefix)/lib${LIBRARY_PATH:+:$LIBRARY_PATH}"
+make test HTSSRC=systemwide PREFIX="$(brew --prefix)"
+```
+
+**Known local validation limit:** the 3 November 2026 Mac check found a global-fit checksum discrepancy in both the baseline and reorganized source. See [the validation record](doc/reorganization-validation.md). A successful smoke test does not imply the full suite passed; investigate failures before accepting a build.
+
+## 3. Prepare your own input
+
+1. **Map and prepare reads upstream.** Adapter trimming, merging/collapsing, duplicate handling, and reference selection are separate decisions. Preserve the alternative alignments needed for LCA; a primary-only BAM cannot recover discarded mapping ambiguity.
+2. **Keep alignment tags.** `MD:Z` is needed for mismatch reconstruction. Retain `NM:i` for edit-distance/ANI filtering, and `AS:i` when using `--best_as 1`.
+3. **Sort by read name.** In this checkout, both `getdamage` and `lca` check for `SO:queryname` in the BAM/SAM header. Coordinate sorting is insufficient. Sorting also keeps alternative alignments of a read together.
+
+```bash
+samtools sort -n sample.bam -o sample.qname.bam
+samtools view -H sample.qname.bam
+```
+
+If MD/NM tags are missing, regenerate them using the **same reference used for mapping**, then name-sort the result:
+
+```bash
+samtools calmd -b sample.bam reference.fa > sample.md.bam
+samtools sort -n sample.md.bam -o sample.qname.bam
+```
+
+For LCA you also need matching `names.dmp[.gz]`, `nodes.dmp[.gz]`, and an accession-to-taxid table. The reference names in the BAM header must resolve through that mapping. Use a taxonomy snapshot consistent with your mapping database; the small files in `test/data/` are only fixtures. [Taxonomy setup and advanced controls](doc/commands.md#taxonomic-resources).
+
+## 4. Choose and run an analysis
+
+| Your question | Command | What is grouped together? |
+| --- | --- | --- |
+| Is there a terminal damage pattern across this alignment file? | `getdamage --run_mode 0` | All accepted alignments |
+| How does damage vary among references/contigs? | `getdamage --run_mode 1` | Each BAM reference separately |
+| How does damage vary among mapped taxids, without LCA? | `getdamage --run_mode 2 --acc2tax …` | References mapped to a taxid |
+| What damage is associated with taxonomically classified reads? | `lca` → `dfit` → `aggregate` | LCA classification, followed by taxonomic summaries |
+| What is the PMD score of an individual read? | `pmd` | Read-level likelihood-ratio score |
+
+### A. Whole sample or individual references
+
+```bash
+mkdir -p results/sample
+./metaDMG-cpp getdamage sample.qname.bam \
+  --run_mode 0 --min_length 35 --print_length 15 \
+  --out_prefix results/sample/global
+
+./metaDMG-cpp dfit results/sample/global.bdamage.gz \
+  --lib ds --seed 12345 --nbootstrap 1 --showfits 2 \
+  --out results/sample/global
+```
+
+For per-reference results, use `--run_mode 1`, a distinct output prefix, and add `--bam sample.qname.bam` to `dfit` to label the internal reference IDs. For direct taxid grouping, use `--run_mode 2 --acc2tax taxonomy/acc2taxid.map.gz`; this does **not** perform LCA assignment. Multi-mapped reads can contribute more than once in these counting modes.
+
+### B. Metagenome with LCA
+
+Run from the repository root so `rank2level.txt` is available. From another directory, set `METADAMAGE_RANK_LEVELS` to its absolute path.
+
+The example below uses placeholder input paths: replace them with your BAM and matching taxonomy. It explicitly selects fractional weighting, a 35-base minimum read length, and an ANI range of 0.95–1.0. These are example choices to assess for your data, not universal filtering thresholds.
+
+```bash
+mkdir -p results/sample
+./metaDMG-cpp lca --bam sample.qname.bam \
+  --names taxonomy/names.dmp.gz --nodes taxonomy/nodes.dmp.gz \
+  --acc2tax taxonomy/acc2taxid.map.gz \
+  --min_length 35 --min_mapq 0 --sim_score_low 0.95 --sim_score_high 1.0 \
+  --how_many 15 --weight_type 1 --lca_rank species \
+  --used_reads 0 --famout 0 --out_prefix results/sample/lca
+
+./metaDMG-cpp dfit results/sample/lca.bdamage.gz \
+  --names taxonomy/names.dmp.gz --nodes taxonomy/nodes.dmp.gz \
+  --lib ds --seed 12345 --nbootstrap 1 --showfits 2 \
+  --out results/sample/fit
+
+./metaDMG-cpp aggregate results/sample/lca.bdamage.gz \
+  --names taxonomy/names.dmp.gz --nodes taxonomy/nodes.dmp.gz \
+  --lcastat results/sample/lca.stat.gz --dfit results/sample/fit.dfit.gz \
+  --rlens results/sample/lca.rlens.gz --out results/sample/summary
+
+gzip -dc results/sample/summary.stat.gz > results/sample/summary.tsv
+```
+
+`lca` groups alternative alignments by read name. `--lca_rank species` restricts the groups used for damage/statistics to that rank or more specific levels; it does not turn ambiguous genus-level assignments into species identifications. `dfit --nodes` allows fits at higher taxonomic nodes. `aggregate` rolls up statistics and attaches the supplied fits; it does not refit damage parameters.
+
+`--weight_type 1` uses fractional alignment contributions to damage counts. The current source initializes this option to **0**, so specify **1** explicitly when you want fractional weighting. Do not interpret every reported count as a count of unique molecules. `--used_reads 0 --famout 0` avoids writing the two optional BAM outputs; set either to 1 when needed.
+
+![Illustration of LCA assignment and fractional alignment weighting.](doc/figures/lca-weighting.svg)
+
+For a fixture-based LCA trial, substitute `results/quickstart/reads.qname.bam` and the three files in `test/data/`, use `--fix_ncbi 0` as in the integration tests, and use a separate output prefix. Taxonomy name normalization must match your database; see the advanced reference.
+
+### C. Per-read PMD scores
+
+```bash
+./metaDMG-cpp pmd sample.qname.bam > results/sample/pmd.tsv
+```
+
+Output is `read_name<TAB>PMD: score`. This is a read-level score, distinct from a fitted taxon-level damage amplitude. The default `-a 1` excludes paired-end records and keeps single-end/collapsed reads; use `-a 0` if including paired-end records is intentional. PMD currently runs single-threaded. See [PMD options](doc/commands.md#pmd-read-level-scores).
+
+## 5. Understand the results
+
+![Illustrative terminal damage curves showing amplitude, decay, and background.](doc/figures/damage-model.svg)
+
+*Illustration only: these curves are generated from chosen parameters, not observed data or a validation result.*
+
+The fitted mean is `D(x) = A × (1 − q)^x + c`, with terminal distance `x = 0` at the first base.
+
+| Quantity | Meaning | Interpretation |
+| --- | --- | --- |
+| `A` | Terminal amplitude above background | The predicted first-base frequency is **A + c**, not A alone |
+| `q` | Decay per position | Larger q gives a faster decline towards the interior |
+| `c` | Background mismatch component | Can reflect several sources of mismatch; not solely sequencing error |
+| `phi` | Beta-binomial concentration | Larger values approach binomial variation; not a confidence interval |
+| `A_b`, `q_b`, `c_b`, `phi_b` | Bootstrap summaries in this C++ checkout | These are not Bayesian MAP estimates |
+| `*_CI_l`, `*_CI_h` | Bootstrap confidence bounds | Interpret with the selected resampling/CI method; not Bayesian credible intervals |
+| `sigmaD_old`, `sigmaD_new` | Legacy and updated uncertainty estimates | Keep their matching `Zfit` columns together |
+| `Zfit_old`, `Zfit_new` | Corresponding damage scores | Not probabilities that a taxon is ancient or correctly identified |
+
+Use `--lib ds` for the double-stranded model (5′ C→T and 3′ G→A) and `--lib ss` for the single-stranded model (C→T at both ends). Match this to library preparation. In this checkout, `--nbootstrap 1` runs the beta-binomial fit without bootstrap summaries; values **greater than 1** enable resampling and additional summaries. A value of 0 is rejected. Two replicates can exercise the code but do not establish a useful confidence interval.
+
+Inspect terminal counts, curve shape, fit behaviour, read support, and mapping/taxonomic evidence together. Sparse groups may give unstable or boundary estimates. Damage alone does not establish taxonomic identity, sample age, or authenticity; library treatment can also alter the pattern.
+
+### Which file should I open?
+
+| File | Contents / next step |
+| --- | --- |
+| `*.bdamage.gz` | Binary substitution counts; use `metaDMG-cpp print`, not a text viewer |
+| `*.dfit.gz` | Compressed tab-separated fit parameters; read with `gzip -dc` |
+| `*.lca.gz` | Per-read LCA assignments and associated fields |
+| `*.stat.gz` from counting/LCA | Group summary statistics |
+| `summary.stat.gz` from `aggregate --out summary` | Taxonomic roll-up, plus fit columns if `--dfit` was supplied |
+| `*.rlens.gz` | Read-length distributions; optionally aggregated with `--rlens` |
+| `*.usedreads.bam`, `*.famoutreads.bam` | Optional LCA alignment outputs |
+
+Keep prefixes distinct for counting, fitting, and aggregation to avoid overwriting statistics. Read columns by **header name**, not fixed position. In per-reference mode, numeric IDs are BAM reference offsets; in LCA/taxid mode they are taxids. Ancestor and descendant summaries overlap, so summing all taxonomy rows double-counts evidence.
+
+To export frequencies or counts:
+
+```bash
+./metaDMG-cpp print results/sample/lca.bdamage.gz -ctga > results/sample/damage.tsv
+./metaDMG-cpp print results/sample/lca.bdamage.gz -countout > results/sample/counts.tsv
+```
+
+## 6. Troubleshooting
+
+| Symptom | Check / action |
+| --- | --- |
+| `metaDMG-cpp: command not found` | Activate the Conda environment, or use `./metaDMG-cpp` from the build directory |
+| Missing HTSlib/GSL headers or libraries | Use `HTSSRC=systemwide`, the correct `PREFIX`, and matching compiler/library architectures |
+| Input is not sorted | Run `samtools sort -n`; check `@HD` contains `SO:queryname` |
+| Missing MD/NM/AS tags | Preserve aligner tags; regenerate MD/NM with the original mapping reference; AS is needed for `--best_as 1` |
+| Missing accession/taxid or rank mapping | Check BAM reference names against the mapping and taxonomy snapshot; set `METADAMAGE_RANK_LEVELS` when outside the repository |
+| Few or no results | Check read length, ANI/edit-distance, MAPQ, rank, and flag filters; inspect the log before changing thresholds |
+| Multi-mappers disappear | Positive MAPQ thresholds may remove ambiguous alignments; check the aligner's MAPQ semantics |
+| Unexpected output filename | Fits use `.dfit.gz`; aggregate uses `.stat.gz` in this checkout |
+| Test checksum differs | Read the log and [known local discrepancy](doc/reorganization-validation.md); do not change expected hashes merely to pass |
+
+For reproducible runs, retain the software revision, exact commands, library type, random seed, reference/taxonomy versions, input provenance, and logs. A fixed seed does not guarantee identical numerical results across platforms or thread settings.
+
+More detail: [advanced command reference](doc/commands.md), [binary format reference](doc/formats.pdf), and [source/development guide](doc/development.md). Report reproducible problems through [GitHub issues](https://github.com/metaDMG-dev/metaDMG-cpp/issues), including the command, version, and relevant diagnostics.
+
+The [offline field guide](doc/field-guide.html) is generated from this README and local presentation assets. To regenerate it, install Pandoc and run `python3 doc/build_field_guide.py`.

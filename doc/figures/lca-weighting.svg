@@ -1,0 +1,190 @@
+<?xml version="1.0" encoding="utf-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN"
+  "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<svg xmlns:xlink="http://www.w3.org/1999/xlink" width="684pt" height="287.669465pt" viewBox="0 0 684 287.669465" xmlns="http://www.w3.org/2000/svg" version="1.1">
+ <metadata>
+  <rdf:RDF xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:cc="http://creativecommons.org/ns#" xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
+   <cc:Work>
+    <dc:type rdf:resource="http://purl.org/dc/dcmitype/StillImage"/>
+    <dc:date>2026-11-03T22:50:17.565529</dc:date>
+    <dc:format>image/svg+xml</dc:format>
+    <dc:creator>
+     <cc:Agent>
+      <dc:title>Matplotlib v3.8.3, https://matplotlib.org/</dc:title>
+     </cc:Agent>
+    </dc:creator>
+   </cc:Work>
+  </rdf:RDF>
+ </metadata>
+ <defs>
+  <style type="text/css">*{stroke-linejoin: round; stroke-linecap: butt}</style>
+ </defs>
+ <g id="figure_1">
+  <g id="patch_1">
+   <path d="M 0 287.669465
+L 684 287.669465
+L 684 0
+L 0 0
+z
+" style="fill: #ffffff"/>
+  </g>
+  <g id="axes_1">
+   <g id="patch_2">
+    <path d="M 96.178378 110.323417
+L 219.843243 110.323417
+Q 225.875676 110.323417 225.875676 105.555577
+L 225.875676 60.261097
+Q 225.875676 55.493257 219.843243 55.493257
+L 96.178378 55.493257
+Q 90.145946 55.493257 90.145946 60.261097
+L 90.145946 105.555577
+Q 90.145946 110.323417 96.178378 110.323417
+z
+" clip-path="url(#p08cf9ddd37)" style="fill: #eaf4f4; stroke: #c7d8dc; stroke-linejoin: miter"/>
+   </g>
+   <g id="patch_3">
+    <path d="M 14.740541 212.831977
+L 129.356757 212.831977
+Q 135.389189 212.831977 135.389189 208.064137
+L 135.389189 165.153577
+Q 135.389189 160.385737 129.356757 160.385737
+L 14.740541 160.385737
+Q 8.708108 160.385737 8.708108 165.153577
+L 8.708108 208.064137
+Q 8.708108 212.831977 14.740541 212.831977
+z
+" clip-path="url(#p08cf9ddd37)" style="fill: #eaf4f4; stroke: #c7d8dc; stroke-linejoin: miter"/>
+   </g>
+   <g id="patch_4">
+    <path d="M 186.664865 212.831977
+L 301.281081 212.831977
+Q 307.313514 212.831977 307.313514 208.064137
+L 307.313514 165.153577
+Q 307.313514 160.385737 301.281081 160.385737
+L 186.664865 160.385737
+Q 180.632432 160.385737 180.632432 165.153577
+L 180.632432 208.064137
+Q 180.632432 212.831977 186.664865 212.831977
+z
+" clip-path="url(#p08cf9ddd37)" style="fill: #eaf4f4; stroke: #c7d8dc; stroke-linejoin: miter"/>
+   </g>
+   <g id="line2d_1">
+    <path d="M 158.010811 106.747537
+L 70.540541 163.961617
+" clip-path="url(#p08cf9ddd37)" style="fill: none; stroke: #087e8b; stroke-width: 2; stroke-linecap: square"/>
+   </g>
+   <g id="line2d_2">
+    <path d="M 158.010811 106.747537
+L 245.481081 163.961617
+" clip-path="url(#p08cf9ddd37)" style="fill: none; stroke: #087e8b; stroke-width: 2; stroke-linecap: square"/>
+   </g>
+   <g id="text_1">
+    <text style="fill: #213c46; font: 700 12px 'DejaVu Sans'; text-anchor: middle" x="158.010811" y="77.160691" transform="rotate(-0 158.010811 77.160691)">Genus G</text>
+   </g>
+   <g id="text_2">
+    <text style="fill: #213c46; font: 10px 'DejaVu Sans'; text-anchor: middle" x="158.010811" y="95.203392" transform="rotate(-0 158.010811 95.203392)">Lowest shared ancestor</text>
+   </g>
+   <g id="text_3">
+    <text style="fill: #213c46; font: 700 12px 'DejaVu Sans'; text-anchor: middle" x="72.048649" y="181.314156" transform="rotate(-0 72.048649 181.314156)">Species A</text>
+   </g>
+   <g id="text_4">
+    <text style="fill: #213c46; font: 10px 'DejaVu Sans'; text-anchor: middle" x="72.048649" y="198.427128" transform="rotate(-0 72.048649 198.427128)">Reference A</text>
+   </g>
+   <g id="text_5">
+    <text style="fill: #213c46; font: 700 12px 'DejaVu Sans'; text-anchor: middle" x="243.972973" y="181.314156" transform="rotate(-0 243.972973 181.314156)">Species B</text>
+   </g>
+   <g id="text_6">
+    <text style="fill: #213c46; font: 10px 'DejaVu Sans'; text-anchor: middle" x="243.972973" y="198.427128" transform="rotate(-0 243.972973 198.427128)">Reference B</text>
+   </g>
+   <g id="text_7">
+    <text style="fill: #213c46; font: 10px 'DejaVu Sans'; text-anchor: middle" x="158.010811" y="249.782737" transform="rotate(-0 158.010811 249.782737)">One read aligns to both species → genus LCA</text>
+   </g>
+   <g id="text_8">
+    <text style="fill: #213c46; font: 10px 'DejaVu Sans'" transform="translate(56.545186 266.91384)">With --lca_rank species, this group is not</text>
+    <text style="fill: #213c46; font: 10px 'DejaVu Sans'" transform="translate(44.992061 278.389777)">accepted for species-level damage/statistics.</text>
+   </g>
+   <g id="text_9">
+    <text style="fill: #213c46; font: 700 13.2px 'DejaVu Sans'; text-anchor: start" x="7.2" y="17.229937" transform="rotate(-0 7.2 17.229937)">LCA: preserve mapping ambiguity</text>
+   </g>
+  </g>
+  <g id="axes_2">
+   <g id="patch_5">
+    <path d="M 400.816216 110.323417
+L 651.162162 110.323417
+Q 657.194595 110.323417 657.194595 105.555577
+L 657.194595 60.261097
+Q 657.194595 55.493257 651.162162 55.493257
+L 400.816216 55.493257
+Q 394.783784 55.493257 394.783784 60.261097
+L 394.783784 105.555577
+Q 394.783784 110.323417 400.816216 110.323417
+z
+" clip-path="url(#p7699921808)" style="fill: #eaf4f4; stroke: #c7d8dc; stroke-linejoin: miter"/>
+   </g>
+   <g id="patch_6">
+    <path d="M 388.751351 210.448057
+L 512.416216 210.448057
+Q 518.448649 210.448057 518.448649 205.680217
+L 518.448649 148.466137
+Q 518.448649 143.698297 512.416216 143.698297
+L 388.751351 143.698297
+Q 382.718919 143.698297 382.718919 148.466137
+L 382.718919 205.680217
+Q 382.718919 210.448057 388.751351 210.448057
+z
+" clip-path="url(#p7699921808)" style="fill: #fff1e6; stroke: #c7d8dc; stroke-linejoin: miter"/>
+   </g>
+   <g id="patch_7">
+    <path d="M 542.578378 210.448057
+L 666.243243 210.448057
+Q 672.275676 210.448057 672.275676 205.680217
+L 672.275676 148.466137
+Q 672.275676 143.698297 666.243243 143.698297
+L 542.578378 143.698297
+Q 536.545946 143.698297 536.545946 148.466137
+L 536.545946 205.680217
+Q 536.545946 210.448057 542.578378 210.448057
+z
+" clip-path="url(#p7699921808)" style="fill: #eaf4f4; stroke: #c7d8dc; stroke-linejoin: miter"/>
+   </g>
+   <g id="text_10">
+    <text style="fill: #213c46; font: 700 12px 'DejaVu Sans'; text-anchor: middle" x="525.989189" y="77.113816" transform="rotate(-0 525.989189 77.113816)">One accepted read group</text>
+   </g>
+   <g id="text_11">
+    <text style="fill: #213c46; font: 10px 'DejaVu Sans'; text-anchor: middle" x="525.989189" y="95.203392" transform="rotate(-0 525.989189 95.203392)">Two contributing alignments (simple example)</text>
+   </g>
+   <g id="text_12">
+    <text style="fill: #213c46; font: 700 12px 'DejaVu Sans'; text-anchor: middle" x="450.583784" y="168.893932" transform="rotate(-0 450.583784 168.893932)">--weight_type 0</text>
+   </g>
+   <g id="text_13">
+    <text style="fill: #213c46; font: 10px 'DejaVu Sans'" transform="translate(426.304096 186.153246)">1 + 1 = 2</text>
+    <text style="fill: #213c46; font: 10px 'DejaVu Sans'" transform="translate(396.739253 197.351059)">Full alignment weight</text>
+   </g>
+   <g id="text_14">
+    <text style="fill: #213c46; font: 700 12px 'DejaVu Sans'; text-anchor: middle" x="604.410811" y="168.893932" transform="rotate(-0 604.410811 168.893932)">--weight_type 1</text>
+   </g>
+   <g id="text_15">
+    <text style="fill: #213c46; font: 10px 'DejaVu Sans'" transform="translate(576.801436 186.153246)">½ + ½ = 1</text>
+    <text style="fill: #213c46; font: 10px 'DejaVu Sans'" transform="translate(561.551436 197.351059)">Fractional weight</text>
+   </g>
+   <g id="text_16">
+    <text style="fill: #213c46; font: 10px 'DejaVu Sans'; text-anchor: middle" x="525.989189" y="254.550577" transform="rotate(-0 525.989189 254.550577)">Specify the weighting explicitly in your command.</text>
+   </g>
+   <g id="text_17">
+    <text style="fill: #213c46; font: 10px 'DejaVu Sans'" transform="translate(427.328252 267.191965)">These are damage-count contributions,</text>
+    <text style="fill: #213c46; font: 10px 'DejaVu Sans'" transform="translate(410.539189 278.389777)">not a definition of every output count column.</text>
+   </g>
+   <g id="text_18">
+    <text style="fill: #213c46; font: 700 13.2px 'DejaVu Sans'; text-anchor: start" x="375.178378" y="17.229937" transform="rotate(-0 375.178378 17.229937)">Weighting: a separate counting decision</text>
+   </g>
+  </g>
+ </g>
+ <defs>
+  <clipPath id="p08cf9ddd37">
+   <rect x="7.2" y="35.229937" width="301.621622" height="238.392"/>
+  </clipPath>
+  <clipPath id="p7699921808">
+   <rect x="375.178378" y="35.229937" width="301.621622" height="238.392"/>
+  </clipPath>
+ </defs>
+</svg>

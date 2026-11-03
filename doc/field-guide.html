@@ -1,0 +1,362 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="description" content="Install, test, run, and interpret metaDMG-cpp. Offline visual field guide with an interactive damage model."><title>metaDMG · Field guide</title><style>:root{--ground:#f1f2ec;--paper:#fcfdf9;--ink:#18281f;--muted:#526057;--rule:#cdd6cb;--green:#285e45;--orange:#ba481f;--yellow:#f4e6a5;font-family:Georgia,'Iowan Old Style',serif;color:var(--ink);background:var(--ground);font-size:17px;line-height:1.65;color-scheme:light}*{box-sizing:border-box}body{margin:0}a{color:var(--green);text-underline-offset:3px}a:hover{text-decoration-thickness:2px}button,input{font:inherit}button{cursor:pointer}button:focus-visible,a:focus-visible,input:focus-visible,summary:focus-visible{outline:3px solid #ba481f;outline-offset:3px}h1,h2,h3,h4,nav,button,.eyebrow,.card,.controls,figcaption,.caption{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif}h1,h2,h3{line-height:1.13;letter-spacing:-.025em}h1{font-size:clamp(42px,6vw,76px);margin:16px 0 22px;max-width:900px}h2{font-size:clamp(30px,4vw,44px);margin:0}h3{font-size:25px;margin-top:2em}p,li{max-width:82ch}code{font: .84em ui-monospace,SFMono-Regular,Consolas,monospace;overflow-wrap:anywhere;background:#e8eee5;padding:.12em .3em;border-radius:3px}pre{position:relative;background:#15251e;color:#f3f6ed;padding:24px 22px;overflow:auto;border-radius:5px;font-size:15px;line-height:1.6}pre code{background:none;padding:0;color:inherit;white-space:pre;overflow-wrap:normal}pre:has(.copy){padding-top:48px}.copy{position:absolute;right:8px;top:8px;border:1px solid #8d9f91;color:#f3f6ed;background:#243c2f;border-radius:3px;font-size:12px;padding:2px 10px}header{position:sticky;top:0;z-index:10;background:var(--ground);border-bottom:1px solid var(--rule)}.mast{max-width:1260px;margin:auto;padding:14px 26px;display:flex;align-items:center;justify-content:space-between;gap:16px}.brand{font:800 21px/1.2 -apple-system,BlinkMacSystemFont,sans-serif;text-decoration:none;color:var(--ink)}.brand small{display:block;font-size:12px;font-weight:500;color:var(--muted);margin-top:4px}.header-links{display:flex;gap:16px;font:13px -apple-system,BlinkMacSystemFont,sans-serif}nav{max-width:1260px;margin:auto;padding:0 26px;display:flex;gap:4px;overflow:auto}nav a{white-space:nowrap;text-decoration:none;padding:10px 16px;color:white;background:var(--green);border-radius:5px 5px 0 0;font-size:14px;font-weight:600}nav a:nth-child(2n){background:#365d68}nav a:nth-child(3n){background:#746235}nav a[aria-current=true]{box-shadow:inset 0 -4px 0 var(--yellow)}main{max-width:1208px;margin:auto;padding:44px 26px 70px}.eyebrow{font-weight:700;font-size:12px;letter-spacing:.13em;text-transform:uppercase;color:var(--green)}.lead{font-size:22px;line-height:1.5;max-width:760px}.intro{margin-bottom:36px}.cards{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin:28px 0 40px}.card{display:block;border:1px solid var(--rule);border-top:4px solid var(--green);background:var(--paper);padding:22px;text-decoration:none;color:var(--ink);line-height:1.5}.card b{display:block;font-size:20px;margin:5px 0 8px}.card span{font-size:14px;color:var(--muted)}.chapter{border:1px solid var(--rule);background:var(--paper);margin:44px 0;scroll-margin-top:145px}.chapter>h2{padding:28px 32px;background:var(--green);color:#fafcf7}.chapter:nth-of-type(2n)>h2{background:#365d68}.body{padding:12px 32px 32px}.body>figure{margin:26px 0}.body img,.intro img{max-width:100%;height:auto;background:white}.intro img{border:1px solid var(--rule);padding:12px}blockquote,.note{margin:24px 0;background:#f4eed3;border-left:4px solid #a77d26;padding:12px 20px;font-size:16px}blockquote p{margin:.3em 0}.table-wrap{overflow:auto;margin:24px 0}table{border-collapse:collapse;width:100%;font-size:15px}th{text-align:left;font-family:-apple-system,BlinkMacSystemFont,sans-serif;background:#eaf0e6}td,th{padding:13px 14px;border-bottom:1px solid var(--rule);vertical-align:top}td:first-child{min-width:155px}details{border:1px solid var(--rule);padding:14px 18px;margin:20px 0}summary{cursor:pointer;font-family:-apple-system,BlinkMacSystemFont,sans-serif;font-weight:600}.lab{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,1fr);border:1px solid var(--rule);margin:26px 0}.plate{padding:24px;background:#f0f3eb;min-width:0}.plate svg{width:100%;height:auto;display:block;background:var(--paper)}.marks{padding:12px 24px}.mark{border-bottom:1px solid var(--rule);padding:15px 0}.mark:last-child{border:0}.mark h3{font-size:19px;margin:0 0 7px}.mark p{font-size:16px;margin:0}.mark .kind{font:11px -apple-system,BlinkMacSystemFont,sans-serif;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}.controls{display:grid;grid-template-columns:1fr 1fr;gap:14px 22px;margin-top:20px}.control label{display:flex;justify-content:space-between;font-size:13px;font-weight:650}.control input{width:100%;accent-color:var(--green);height:25px}.controls output{font-family:monospace}.readout{padding:12px;background:var(--paper);border:1px solid var(--rule);margin-top:16px;font:14px/1.6 -apple-system,BlinkMacSystemFont,sans-serif}.reset{margin-top:12px;background:var(--paper);border:1px solid var(--rule);border-radius:4px;padding:6px 12px;font-size:13px}.caption{font-size:13px;color:var(--muted);line-height:1.5;margin:14px 0}.lookup{display:flex;gap:12px;align-items:center;margin:24px 0;font-family:-apple-system,BlinkMacSystemFont,sans-serif}.lookup input{min-width:0;width:100%;padding:10px 12px;border:1px solid #849985;border-radius:4px;background:white}.lookup label{white-space:nowrap;font-size:14px;font-weight:600}#term-status{font:14px -apple-system,BlinkMacSystemFont,sans-serif;color:var(--muted)}.footer{border-top:1px solid var(--rule);font-size:14px;color:var(--muted);padding-top:24px}.skip{position:absolute;left:-10000px}.skip:focus{left:12px;top:12px;z-index:20;background:white;padding:12px}[hidden]{display:none!important}@media(max-width:760px){.mast{padding:12px 16px}.header-links{font-size:12px;gap:10px}nav{padding:0 16px}nav a{padding:9px 12px}main{padding:28px 16px}.lead{font-size:19px}.cards{grid-template-columns:1fr;gap:10px}.card{padding:15px}.chapter>h2{padding:22px 20px}.body{padding:8px 18px 24px}.lab{grid-template-columns:1fr}.plate,.marks{padding:18px}.chapter{scroll-margin-top:145px}pre{font-size:12px;padding:18px 14px}.lookup{align-items:flex-start;flex-direction:column}h3{font-size:22px}}@media print{header,.copy,.lookup,.reset,.cards{display:none!important}main{padding:0;max-width:none}.chapter{break-before:page;margin:0;border:0}.chapter>h2{background:white!important;color:black;padding-left:0}.body{padding:0}pre{white-space:pre-wrap;background:#eee;color:black}pre code{white-space:pre-wrap}details{display:block}.lab{break-inside:avoid}.plate svg{max-height:280px}.table-wrap{overflow:visible}a{color:black}.intro{break-after:page}}
+</style></head><body><a class="skip" href="#main">Skip to guide</a><header><div class="mast"><a class="brand" href="#main">metaDMG <small>A field guide to damage analysis</small></a><div class="header-links"><a href="../README.md">README</a><a href="commands.md">Command reference</a></div></div><nav aria-label="Guide chapters"><a href="#1-install">01 Install</a><a href="#2-test-your-installation">02 Test</a><a href="#3-prepare-your-own-input">03 Prepare</a><a href="#4-choose-and-run-an-analysis">04 Run</a><a href="#5-understand-the-results">05 Interpret</a><a href="#6-troubleshooting">06 Troubleshoot</a><a href="#parameter-reference">07 Field notes</a></nav></header><main id="main"><div class="intro"><div class="eyebrow">Mapped reads → damage counts → fitted evidence</div><h1>Read the damage.<br>Understand the evidence.</h1><p class="lead">A practical route through installation, your first successful run, and the meaning of the results.</p><div class="cards"><a class="card" href="#1-install"><span>START HERE</span><b>New to metaDMG?</b><span>Install the tools, then run a bundled example.</span></a><a class="card" href="#4-choose-and-run-an-analysis"><span>BRING YOUR DATA</span><b>Choose an analysis</b><span>Whole sample, individual references, or taxonomic groups.</span></a><a class="card" href="#5-understand-the-results"><span>READ THE RESULTS</span><b>Explore the model</b><span>See what amplitude, decay, background, and dispersion do.</span></a></div><p><strong>Estimate ancient-DNA damage from mapped reads, for a whole sample, individual references, or taxonomic groups.</strong></p>
+<p>metaDMG-cpp counts substitutions between reads and their aligned references, then fits the characteristic decrease in terminal damage towards the interior of a read. For metagenomes, it can first assign reads using a lowest common ancestor (LCA) algorithm. It also provides per-read PMD scores and tools for inspecting, filtering, and summarizing results.</p>
+<p>You start with <strong>aligned reads</strong>, not FASTQ files. BAM/SAM records must contain <code>MD:Z</code> tags, which describe reference mismatches. This lets metaDMG reconstruct the aligned reference bases without a separate FASTA for BAM/SAM analysis; mapping still requires a reference database. CRAM decoding requires the matching reference.</p>
+<blockquote>
+<p><strong>Version scope:</strong> this guide describes the <code>dev2026</code> source checkout. Packaged releases can have different options and defaults. Check your executable with <code>metaDMG-cpp --help</code> and record the version printed to stderr.</p>
+</blockquote>
+<p><img src="data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0idXRmLTgiIHN0YW5kYWxvbmU9Im5vIj8+CjwhRE9DVFlQRSBzdmcgUFVCTElDICItLy9XM0MvL0RURCBTVkcgMS4xLy9FTiIKICAiaHR0cDovL3d3dy53My5vcmcvR3JhcGhpY3MvU1ZHLzEuMS9EVEQvc3ZnMTEuZHRkIj4KPHN2ZyB4bWxuczp4bGluaz0iaHR0cDovL3d3dy53My5vcmcvMTk5OS94bGluayIgd2lkdGg9IjY4NHB0IiBoZWlnaHQ9IjI3OC40MTk3MnB0IiB2aWV3Qm94PSIwIDAgNjg0IDI3OC40MTk3MiIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIiB2ZXJzaW9uPSIxLjEiPgogPG1ldGFkYXRhPgogIDxyZGY6UkRGIHhtbG5zOmRjPSJodHRwOi8vcHVybC5vcmcvZGMvZWxlbWVudHMvMS4xLyIgeG1sbnM6Y2M9Imh0dHA6Ly9jcmVhdGl2ZWNvbW1vbnMub3JnL25zIyIgeG1sbnM6cmRmPSJodHRwOi8vd3d3LnczLm9yZy8xOTk5LzAyLzIyLXJkZi1zeW50YXgtbnMjIj4KICAgPGNjOldvcms+CiAgICA8ZGM6dHlwZSByZGY6cmVzb3VyY2U9Imh0dHA6Ly9wdXJsLm9yZy9kYy9kY21pdHlwZS9TdGlsbEltYWdlIi8+CiAgICA8ZGM6ZGF0ZT4yMDI2LTExLTAzVDIyOjUwOjE3LjM0ODkzMDwvZGM6ZGF0ZT4KICAgIDxkYzpmb3JtYXQ+aW1hZ2Uvc3ZnK3htbDwvZGM6Zm9ybWF0PgogICAgPGRjOmNyZWF0b3I+CiAgICAgPGNjOkFnZW50PgogICAgICA8ZGM6dGl0bGU+TWF0cGxvdGxpYiB2My44LjMsIGh0dHBzOi8vbWF0cGxvdGxpYi5vcmcvPC9kYzp0aXRsZT4KICAgICA8L2NjOkFnZW50PgogICAgPC9kYzpjcmVhdG9yPgogICA8L2NjOldvcms+CiAgPC9yZGY6UkRGPgogPC9tZXRhZGF0YT4KIDxkZWZzPgogIDxzdHlsZSB0eXBlPSJ0ZXh0L2NzcyI+KntzdHJva2UtbGluZWpvaW46IHJvdW5kOyBzdHJva2UtbGluZWNhcDogYnV0dH08L3N0eWxlPgogPC9kZWZzPgogPGcgaWQ9ImZpZ3VyZV8xIj4KICA8ZyBpZD0icGF0Y2hfMSI+CiAgIDxwYXRoIGQ9Ik0gMCAyNzguNDE5NzIKTCA2ODQgMjc4LjQxOTcyCkwgNjg0IDAKTCAwIDAKegoiIHN0eWxlPSJmaWxsOiAjZmZmZmZmIi8+CiAgPC9nPgogIDxnIGlkPSJheGVzXzEiPgogICA8ZyBpZD0icGF0Y2hfMiI+CiAgICA8cGF0aCBkPSJNIDMyLjcwODU3MSAxNjIuODE5OTA0CkwgMTY2LjYyODU3MSAxNjIuODE5OTA0ClEgMTc5LjM4Mjg1NyAxNjIuODE5OTA0IDE3OS4zODI4NTcgMTU3Ljk0MTE4NApMIDE3OS4zODI4NTcgODIuMzIxMDI0ClEgMTc5LjM4Mjg1NyA3Ny40NDIzMDQgMTY2LjYyODU3MSA3Ny40NDIzMDQKTCAzMi43MDg1NzEgNzcuNDQyMzA0ClEgMTkuOTU0Mjg2IDc3LjQ0MjMwNCAxOS45NTQyODYgODIuMzIxMDI0CkwgMTkuOTU0Mjg2IDE1Ny45NDExODQKUSAxOS45NTQyODYgMTYyLjgxOTkwNCAzMi43MDg1NzEgMTYyLjgxOTkwNAp6CiIgY2xpcC1wYXRoPSJ1cmwoI3BkODk1MmI5ZDYyKSIgc3R5bGU9ImZpbGw6ICNlYWY0ZjQ7IHN0cm9rZTogI2M3ZDhkYzsgc3Ryb2tlLWxpbmVqb2luOiBtaXRlciIvPgogICA8L2c+CiAgIDxnIGlkPSJwYXRjaF8zIj4KICAgIDxwYXRoIGQ9Ik0gMjI0LjAyMjg1NyAxMTEuNTkzMzQ0CkwgMzk2LjIwNTcxNCAxMTEuNTkzMzQ0ClEgNDA4Ljk2IDExMS41OTMzNDQgNDA4Ljk2IDEwNi43MTQ2MjQKTCA0MDguOTYgNTUuNDg4MDY0ClEgNDA4Ljk2IDUwLjYwOTM0NCAzOTYuMjA1NzE0IDUwLjYwOTM0NApMIDIyNC4wMjI4NTcgNTAuNjA5MzQ0ClEgMjExLjI2ODU3MSA1MC42MDkzNDQgMjExLjI2ODU3MSA1NS40ODgwNjQKTCAyMTEuMjY4NTcxIDEwNi43MTQ2MjQKUSAyMTEuMjY4NTcxIDExMS41OTMzNDQgMjI0LjAyMjg1NyAxMTEuNTkzMzQ0CnoKIiBjbGlwLXBhdGg9InVybCgjcGQ4OTUyYjlkNjIpIiBzdHlsZT0iZmlsbDogI2VhZjRmNDsgc3Ryb2tlOiAjYzdkOGRjOyBzdHJva2UtbGluZWpvaW46IG1pdGVyIi8+CiAgIDwvZz4KICAgPGcgaWQ9InBhdGNoXzQiPgogICAgPHBhdGggZD0iTSAyMjQuMDIyODU3IDIyOC42ODI2MjQKTCAzOTYuMjA1NzE0IDIyOC42ODI2MjQKUSA0MDguOTYgMjI4LjY4MjYyNCA0MDguOTYgMjIzLjgwMzkwNApMIDQwOC45NiAxNjIuODE5OTA0ClEgNDA4Ljk2IDE1Ny45NDExODQgMzk2LjIwNTcxNCAxNTcuOTQxMTg0CkwgMjI0LjAyMjg1NyAxNTcuOTQxMTg0ClEgMjExLjI2ODU3MSAxNTcuOTQxMTg0IDIxMS4yNjg1NzEgMTYyLjgxOTkwNApMIDIxMS4yNjg1NzEgMjIzLjgwMzkwNApRIDIxMS4yNjg1NzEgMjI4LjY4MjYyNCAyMjQuMDIyODU3IDIyOC42ODI2MjQKegoiIGNsaXAtcGF0aD0idXJsKCNwZDg5NTJiOWQ2MikiIHN0eWxlPSJmaWxsOiAjZWFmNGY0OyBzdHJva2U6ICNjN2Q4ZGM7IHN0cm9rZS1saW5lam9pbjogbWl0ZXIiLz4KICAgPC9nPgogICA8ZyBpZD0icGF0Y2hfNSI+CiAgICA8cGF0aCBkPSJNIDQ1OS45NzcxNDMgMTYyLjgxOTkwNApMIDYzOC41MzcxNDMgMTYyLjgxOTkwNApRIDY1MS4yOTE0MjkgMTYyLjgxOTkwNCA2NTEuMjkxNDI5IDE1Ny45NDExODQKTCA2NTEuMjkxNDI5IDgyLjMyMTAyNApRIDY1MS4yOTE0MjkgNzcuNDQyMzA0IDYzOC41MzcxNDMgNzcuNDQyMzA0CkwgNDU5Ljk3NzE0MyA3Ny40NDIzMDQKUSA0NDcuMjIyODU3IDc3LjQ0MjMwNCA0NDcuMjIyODU3IDgyLjMyMTAyNApMIDQ0Ny4yMjI4NTcgMTU3Ljk0MTE4NApRIDQ0Ny4yMjI4NTcgMTYyLjgxOTkwNCA0NTkuOTc3MTQzIDE2Mi44MTk5MDQKegoiIGNsaXAtcGF0aD0idXJsKCNwZDg5NTJiOWQ2MikiIHN0eWxlPSJmaWxsOiAjZWFmNGY0OyBzdHJva2U6ICNjN2Q4ZGM7IHN0cm9rZS1saW5lam9pbjogbWl0ZXIiLz4KICAgPC9nPgogICA8ZyBpZD0idGV4dF8xIj4KICAgIDx0ZXh0IHN0eWxlPSJmaWxsOiAjMjEzYzQ2OyBmb250OiA3MDAgMTdweCAnRGVqYVZ1IFNhbnMnOyB0ZXh0LWFuY2hvcjogc3RhcnQiIHg9IjIzLjE0Mjg1NyIgeT0iMjAuMTE3MzQ0IiB0cmFuc2Zvcm09InJvdGF0ZSgtMCAyMy4xNDI4NTcgMjAuMTE3MzQ0KSI+RnJvbSBtYXBwZWQgcmVhZHMgdG8gaW50ZXJwcmV0YWJsZSBkYW1hZ2UgZXN0aW1hdGVzPC90ZXh0PgogICA8L2c+CiAgIDxnIGlkPSJ0ZXh0XzIiPgogICAgPHRleHQgc3R5bGU9ImZpbGw6ICMyMTNjNDY7IGZvbnQ6IDcwMCAxMnB4ICdEZWphVnUgU2Fucyc7IHRleHQtYW5jaG9yOiBtaWRkbGUiIHg9Ijk5LjY2ODU3MSIgeT0iMTA4LjU2NDE3IiB0cmFuc2Zvcm09InJvdGF0ZSgtMCA5OS42Njg1NzEgMTA4LjU2NDE3KSI+MSAgUHJlcGFyZSBhbGlnbm1lbnRzPC90ZXh0PgogICA8L2c+CiAgIDxnIGlkPSJ0ZXh0XzMiPgogICAgPHRleHQgc3R5bGU9ImZpbGw6ICMyMTNjNDY7IGZvbnQ6IDEwcHggJ0RlamFWdSBTYW5zJyIgdHJhbnNmb3JtPSJ0cmFuc2xhdGUoNDYuOTMxODUzIDEzMi45MDM0NzYpIj5NRC9OTSB0YWdzIHJldGFpbmVkPC90ZXh0PgogICAgPHRleHQgc3R5bGU9ImZpbGw6ICMyMTNjNDY7IGZvbnQ6IDEwcHggJ0RlamFWdSBTYW5zJyIgdHJhbnNmb3JtPSJ0cmFuc2xhdGUoNTMuMDgxMDcxIDE0NC4xMDEyODkpIj5Tb3J0IGJ5IHJlYWQgbmFtZTwvdGV4dD4KICAgPC9nPgogICA8ZyBpZD0idGV4dF80Ij4KICAgIDx0ZXh0IHN0eWxlPSJmaWxsOiAjMjEzYzQ2OyBmb250OiA3MDAgMTJweCAnRGVqYVZ1IFNhbnMnOyB0ZXh0LWFuY2hvcjogbWlkZGxlIiB4PSIzMTAuMTE0Mjg2IiB5PSI3NC4xNjkxOTQiIHRyYW5zZm9ybT0icm90YXRlKC0wIDMxMC4xMTQyODYgNzQuMTY5MTk0KSI+MmEgIGdldGRhbWFnZTwvdGV4dD4KICAgPC9nPgogICA8ZyBpZD0idGV4dF81Ij4KICAgIDx0ZXh0IHN0eWxlPSJmaWxsOiAjMjEzYzQ2OyBmb250OiAxMHB4ICdEZWphVnUgU2Fucyc7IHRleHQtYW5jaG9yOiBtaWRkbGUiIHg9IjMxMC4xMTQyODYiIHk9Ijk0LjU5MzkwMyIgdHJhbnNmb3JtPSJyb3RhdGUoLTAgMzEwLjExNDI4NiA5NC41OTM5MDMpIj5XaG9sZSBzYW1wbGUgLyByZWZlcmVuY2UgLyB0YXhpZDwvdGV4dD4KICAgPC9nPgogICA8ZyBpZD0idGV4dF82Ij4KICAgIDx0ZXh0IHN0eWxlPSJmaWxsOiAjMjEzYzQ2OyBmb250OiA3MDAgMTJweCAnRGVqYVZ1IFNhbnMnOyB0ZXh0LWFuY2hvcjogbWlkZGxlIiB4PSIzMTAuMTE0Mjg2IiB5PSIxODQuNTcyNzE1IiB0cmFuc2Zvcm09InJvdGF0ZSgtMCAzMTAuMTE0Mjg2IDE4NC41NzI3MTUpIj4yYiAgbGNhPC90ZXh0PgogICA8L2c+CiAgIDxnIGlkPSJ0ZXh0XzciPgogICAgPHRleHQgc3R5bGU9ImZpbGw6ICMyMTNjNDY7IGZvbnQ6IDEwcHggJ0RlamFWdSBTYW5zJyIgdHJhbnNmb3JtPSJ0cmFuc2xhdGUoMjYzLjYyMDUzNiAyMDMuMTU3MDQ0KSI+UmVhZCBjbGFzc2lmaWNhdGlvbjwvdGV4dD4KICAgIDx0ZXh0IHN0eWxlPSJmaWxsOiAjMjEzYzQ2OyBmb250OiAxMHB4ICdEZWphVnUgU2FucyciIHRyYW5zZm9ybT0idHJhbnNsYXRlKDI1NC4yNTcyNTQgMjE0LjM1NDg1NykiPisgbWF0Y2hpbmcgdGF4b25vbXk8L3RleHQ+CiAgIDwvZz4KICAgPGcgaWQ9InRleHRfOCI+CiAgICA8dGV4dCBzdHlsZT0iZmlsbDogIzIxM2M0NjsgZm9udDogNzAwIDEycHggJ0RlamFWdSBTYW5zJzsgdGV4dC1hbmNob3I6IG1pZGRsZSIgeD0iNTQ5LjI1NzE0MyIgeT0iMTA4LjYxMTA0NSIgdHJhbnNmb3JtPSJyb3RhdGUoLTAgNTQ5LjI1NzE0MyAxMDguNjExMDQ1KSI+MyAgZGZpdDwvdGV4dD4KICAgPC9nPgogICA8ZyBpZD0idGV4dF85Ij4KICAgIDx0ZXh0IHN0eWxlPSJmaWxsOiAjMjEzYzQ2OyBmb250OiAxMHB4ICdEZWphVnUgU2FucyciIHRyYW5zZm9ybT0idHJhbnNsYXRlKDQ5OC45MDcxNDMgMTMyLjkwMzQ3NikiPkZpdCB0ZXJtaW5hbCBkYW1hZ2U8L3RleHQ+CiAgICA8dGV4dCBzdHlsZT0iZmlsbDogIzIxM2M0NjsgZm9udDogMTBweCAnRGVqYVZ1IFNhbnMnIiB0cmFuc2Zvcm09InRyYW5zbGF0ZSg0ODUuMTYxMDQ5IDE0NC4xMDEyODkpIj5mcm9tIC5iZGFtYWdlLmd6IGNvdW50czwvdGV4dD4KICAgPC9nPgogICA8ZyBpZD0icGF0Y2hfNiI+CiAgICA8cGF0aCBkPSJNIDE3Ny45Mjk0NzMgMTA0LjQ5OTMzOApRIDE5NS4zMjQ5MjggOTQuNTE4Mjc1IDIxMC43ODA4OTYgODUuNjUwMDM5CiIgc3R5bGU9ImZpbGw6IG5vbmU7IHN0cm9rZTogIzA4N2U4Yjsgc3Ryb2tlLXdpZHRoOiAyOyBzdHJva2UtbGluZWNhcDogcm91bmQiLz4KICAgIDxwYXRoIGQ9Ik0gMjA1Ljg2OTYxIDg1LjkzMTU5MgpMIDIxMC43ODA4OTYgODUuNjUwMDM5CkwgMjA4LjA1OTM2NyA4OS43NDc5OTkKIiBzdHlsZT0iZmlsbDogbm9uZTsgc3Ryb2tlOiAjMDg3ZThiOyBzdHJva2Utd2lkdGg6IDI7IHN0cm9rZS1saW5lY2FwOiByb3VuZCIvPgogICA8L2c+CiAgIDxnIGlkPSJwYXRjaF83Ij4KICAgIDxwYXRoIGQ9Ik0gMTc3LjQyOTcwMSAxNDMuNjYwNTY1ClEgMTk1LjMyNTMxOSAxNjYuNDc4NDM5IDIxMS44NDEwMDUgMTg3LjUzNjgyOAoiIHN0eWxlPSJmaWxsOiBub25lOyBzdHJva2U6ICMwODdlOGI7IHN0cm9rZS13aWR0aDogMjsgc3Ryb2tlLWxpbmVjYXA6IHJvdW5kIi8+CiAgICA8cGF0aCBkPSJNIDIxMC44NTY3NjYgMTgyLjcxNjk0NQpMIDIxMS44NDEwMDUgMTg3LjUzNjgyOApMIDIwNy4zOTQ1NTUgMTg1LjQzMjI5CiIgc3R5bGU9ImZpbGw6IG5vbmU7IHN0cm9rZTogIzA4N2U4Yjsgc3Ryb2tlLXdpZHRoOiAyOyBzdHJva2UtbGluZWNhcDogcm91bmQiLz4KICAgPC9nPgogICA8ZyBpZD0icGF0Y2hfOCI+CiAgICA8cGF0aCBkPSJNIDQwNy41NjY5NDYgODQuNDIzNzUxClEgNDI4LjA5MDkyOCA5NC41MTc1NzggNDQ2LjYwODM3NyAxMDMuNjI0NTc4CiIgc3R5bGU9ImZpbGw6IG5vbmU7IHN0cm9rZTogIzA4N2U4Yjsgc3Ryb2tlLXdpZHRoOiAyOyBzdHJva2UtbGluZWNhcDogcm91bmQiLz4KICAgIDxwYXRoIGQ9Ik0gNDQzLjYzMDk1IDk5LjcwODU5NApMIDQ0Ni42MDgzNzcgMTAzLjYyNDU3OApMIDQ0MS42ODkxMzQgMTAzLjY1NjkyOQoiIHN0eWxlPSJmaWxsOiBub25lOyBzdHJva2U6ICMwODdlOGI7IHN0cm9rZS13aWR0aDogMjsgc3Ryb2tlLWxpbmVjYXA6IHJvdW5kIi8+CiAgIDwvZz4KICAgPGcgaWQ9InBhdGNoXzkiPgogICAgPHBhdGggZD0iTSA0MDcuMTIwMTEgMTg5LjM5ODU2NQpRIDQyOC4wOTA2NjQgMTY2LjQ3OTc4IDQ0Ny41NTE3NTEgMTQ1LjIxMDY5NQoiIHN0eWxlPSJmaWxsOiBub25lOyBzdHJva2U6ICMwODdlOGI7IHN0cm9rZS13aWR0aDogMjsgc3Ryb2tlLWxpbmVjYXA6IHJvdW5kIi8+CiAgICA8cGF0aCBkPSJNIDQ0Mi45NTg0MjMgMTQ2Ljk3MTc1OApMIDQ0Ny41NTE3NTEgMTQ1LjIxMDY5NQpMIDQ0Ni4yMDQ2MDUgMTQ5Ljk0MTk5NAoiIHN0eWxlPSJmaWxsOiBub25lOyBzdHJva2U6ICMwODdlOGI7IHN0cm9rZS13aWR0aDogMjsgc3Ryb2tlLWxpbmVjYXA6IHJvdW5kIi8+CiAgIDwvZz4KICAgPGcgaWQ9InRleHRfMTAiPgogICAgPHRleHQgc3R5bGU9ImZpbGw6ICMyMTNjNDY7IGZvbnQ6IDcwMCAxMXB4ICdEZWphVnUgU2Fucyc7IHRleHQtYW5jaG9yOiBtaWRkbGUiIHg9IjUzOS42OTE0MjkiIHk9IjIxNy43MDU1MDQiIHRyYW5zZm9ybT0icm90YXRlKC0wIDUzOS42OTE0MjkgMjE3LjcwNTUwNCkiPkxDQSB3b3JrZmxvdzogYWdncmVnYXRlPC90ZXh0PgogICA8L2c+CiAgIDxnIGlkPSJ0ZXh0XzExIj4KICAgIDx0ZXh0IHN0eWxlPSJmaWxsOiAjMjEzYzQ2OyBmb250OiAxMHB4ICdEZWphVnUgU2Fucyc7IHRleHQtYW5jaG9yOiBtaWRkbGUiIHg9IjUzOS42OTE0MjkiIHk9IjI0Mi4wOTkxMDQiIHRyYW5zZm9ybT0icm90YXRlKC0wIDUzOS42OTE0MjkgMjQyLjA5OTEwNCkiPlJvbGwgdXAgc3RhdGlzdGljcyArIGF0dGFjaCBmaXRzPC90ZXh0PgogICA8L2c+CiAgIDxnIGlkPSJwYXRjaF8xMCI+CiAgICA8cGF0aCBkPSJNIDU0Ni4wNjg1NzEgMTYzLjYwMjMwMwpRIDU0Ni4wNjg1NzEgMTgyLjMzNjE0IDU0Ni4wNjg1NzEgMTk4LjgzMzkwOAoiIHN0eWxlPSJmaWxsOiBub25lOyBzdHJva2U6ICMwODdlOGI7IHN0cm9rZS13aWR0aDogMjsgc3Ryb2tlLWxpbmVjYXA6IHJvdW5kIi8+CiAgICA8cGF0aCBkPSJNIDU0OC4yNjg1NzEgMTk0LjQzMzkwOApMIDU0Ni4wNjg1NzEgMTk4LjgzMzkwOApMIDU0My44Njg1NzEgMTk0LjQzMzkwOAoiIHN0eWxlPSJmaWxsOiBub25lOyBzdHJva2U6ICMwODdlOGI7IHN0cm9rZS13aWR0aDogMjsgc3Ryb2tlLWxpbmVjYXA6IHJvdW5kIi8+CiAgIDwvZz4KICAgPGcgaWQ9InRleHRfMTIiPgogICAgPHRleHQgc3R5bGU9ImZpbGw6ICMyMTNjNDY7IGZvbnQ6IDExcHggJ0RlamFWdSBTYW5zJzsgdGV4dC1hbmNob3I6IHN0YXJ0IiB4PSIyOS41MiIgeT0iMjY4LjkzMjA2NCIgdHJhbnNmb3JtPSJyb3RhdGUoLTAgMjkuNTIgMjY4LjkzMjA2NCkiPkNvdW50aW5nIOKGkiBtb2RlbCBmaXR0aW5nIOKGkiBpbnRlcnByZXRhdGlvbi4gTWFwcGluZyBhbmQgcmVhZCBwcmVwYXJhdGlvbiBoYXBwZW4gdXBzdHJlYW0uPC90ZXh0PgogICA8L2c+CiAgPC9nPgogPC9nPgogPGRlZnM+CiAgPGNsaXBQYXRoIGlkPSJwZDg5NTJiOWQ2MiI+CiAgIDxyZWN0IHg9IjcuMiIgeT0iMjAuMTE3MzQ0IiB3aWR0aD0iNjY5LjYiIGhlaWdodD0iMjQzLjkzNiIvPgogIDwvY2xpcFBhdGg+CiA8L2RlZnM+Cjwvc3ZnPgo=" alt="Workflow from aligned reads through damage counts to fitted results." /></p>
+</div><section class="chapter" id="1-install"><h2>1. Install</h2><div class="body"><h3 id="option-a--packaged-release-with-conda-or-mamba">Option A — packaged release with Conda or Mamba</h3>
+<p>Use an isolated environment containing metaDMG and SAMtools:</p>
+<pre class="bash"><code>conda create -n metadmg -c conda-forge -c bioconda --strict-channel-priority metadmg samtools
+conda activate metadmg
+metaDMG-cpp --help</code></pre>
+<p>You can replace <code>conda create</code> with <code>mamba create</code>. The <a href="https://anaconda.org/bioconda/metadmg">Bioconda package is named <code>metadmg</code></a>; the executable is <code>metaDMG-cpp</code>. This installs a published release, not the current development checkout.</p>
+<p>To update that environment:</p>
+<pre class="bash"><code>conda update -n metadmg -c conda-forge -c bioconda --strict-channel-priority metadmg</code></pre>
+<h3 id="option-b--build-from-source">Option B — build from source</h3>
+<p>Use this route to work with development changes or run the repository's full tests. You need Git, Make, a C/C++ compiler, HTSlib, GSL, zlib, and SAMtools for testing/input preparation. Eigen is needed only for the optional regression code, not the normal build.</p>
+<p><strong>Ubuntu/Debian dependencies:</strong></p>
+<pre class="bash"><code>sudo apt-get update
+sudo apt-get install build-essential git libhts-dev libgsl-dev zlib1g-dev samtools</code></pre>
+<p><strong>macOS dependencies (Homebrew):</strong></p>
+<pre class="bash"><code>xcode-select --install  # only if the command-line tools are not installed
+brew install htslib gsl samtools coreutils</code></pre>
+<p>Then clone and build, using your installed HTSlib:</p>
+<pre class="bash"><code>git clone https://github.com/metaDMG-dev/metaDMG-cpp.git
+cd metaDMG-cpp
+make HTSSRC=systemwide -j2
+./metaDMG-cpp --help</code></pre>
+<p>For Homebrew, supply its installation prefix:</p>
+<pre class="bash"><code>make HTSSRC=systemwide PREFIX=&quot;$(brew --prefix)&quot; -j2</code></pre>
+<p>These clone commands use the remote's default branch. If you already have the <code>dev2026</code> checkout, build there; otherwise select the branch/tag you intend to use before building. Record <code>git rev-parse HEAD</code> and any local changes with your results. Build in a path <strong>without spaces</strong>: the Makefile does not consistently quote dependency paths.</p>
+<details>
+<summary>Other dependency locations, bundled HTSlib, and updating a checkout</summary>
+
+<p>For dependencies installed in a Conda environment or custom prefix:</p>
+<pre class="bash"><code>make HTSSRC=systemwide PREFIX=&quot;$CONDA_PREFIX&quot; -j2</code></pre>
+<p>The compiler and libraries must target the same architecture. On Apple Silicon, do not mix arm64 Homebrew libraries with an x86_64 Conda environment.</p>
+<p>Running plain <code>make</code> instead clones and builds HTSlib if it is missing. This needs network access and HTSlib's build dependencies, including compression and curl development libraries. On Ubuntu, also install <code>libbz2-dev liblzma-dev libcurl4-openssl-dev</code>.</p>
+<p>To update a clean source checkout, first inspect local changes, then pull and rebuild:</p>
+<pre class="bash"><code>git status --short
+git pull --ff-only
+make HTSSRC=systemwide -j2</code></pre>
+<p>Repeat your original <code>PREFIX</code> and compiler settings when rebuilding. If you need a clean build, <code>make clean HTSSRC=systemwide</code> preserves external HTSlib. <strong>Plain <code>make clean</code> deletes the configured HTSlib source directory.</strong></p>
+</details>
+</div></section><section class="chapter" id="2-test-your-installation"><h2>2. Test your installation</h2><div class="body"><h3 id="a-small-first-run">A small first run</h3>
+<p>This uses the repository's bundled alignment fixture, so no taxonomy download is needed. Run from the repository root after a source build. For a Conda installation, obtain the repository fixtures with the clone command above and replace <code>./metaDMG-cpp</code> below with <code>metaDMG-cpp</code>.</p>
+<pre class="bash"><code>mkdir -p results/quickstart
+samtools sort -n test/data/f570b1db7c.dedup.filtered.bam \
+  -o results/quickstart/reads.qname.bam
+
+./metaDMG-cpp getdamage results/quickstart/reads.qname.bam \
+  --run_mode 0 --min_length 35 --print_length 15 \
+  --out_prefix results/quickstart/global
+
+./metaDMG-cpp dfit results/quickstart/global.bdamage.gz \
+  --lib ds --seed 12345 --nbootstrap 1 --showfits 2 \
+  --out results/quickstart/global
+
+./metaDMG-cpp print results/quickstart/global.bdamage.gz -ctga \
+  &gt; results/quickstart/global.damage.tsv
+
+gzip -dc results/quickstart/global.dfit.gz</code></pre>
+<p><strong>Success looks like:</strong> each command finishes successfully; <code>global.bdamage.gz</code> is nonempty; <code>global.damage.tsv</code> contains terminal substitution frequencies; and the compressed <code>global.dfit.gz</code> contains a header and a fitted result. The example demonstrates the workflow, not a biological acceptance threshold. Running it again overwrites outputs with the same prefix.</p>
+<h3 id="full-repository-checks-source-builds">Full repository checks (source builds)</h3>
+<p>Build first, then run:</p>
+<pre class="bash"><code>make test HTSSRC=systemwide</code></pre>
+<p>The suite runs the taxonomy-sorting regression, DUST and PMD unit checks, and integration checks for damage counting, LCA, fitting, aggregation, and utilities. It needs <code>samtools</code>, <code>c++</code>, and <code>md5sum</code> on <code>PATH</code>; on macOS, Homebrew <code>coreutils</code> supplies <code>md5sum</code>. Results are written under <code>test/</code>, with diagnostics in <code>test/testAll2.sh.log</code>. A successful full run exits with status 0 and prints <code>=====RVAL:0=======</code>.</p>
+<p>For a nonstandard dependency prefix, the test script invokes <code>c++</code> directly. Make sure its header and library search paths match the build. For example, with Homebrew:</p>
+<pre class="bash"><code>export CPATH=&quot;$(brew --prefix)/include${CPATH:+:$CPATH}&quot;
+export LIBRARY_PATH=&quot;$(brew --prefix)/lib${LIBRARY_PATH:+:$LIBRARY_PATH}&quot;
+make test HTSSRC=systemwide PREFIX=&quot;$(brew --prefix)&quot;</code></pre>
+<p><strong>Known local validation limit:</strong> the 3 November 2026 Mac check found a global-fit checksum discrepancy in both the baseline and reorganized source. See <a href="reorganization-validation.md">the validation record</a>. A successful smoke test does not imply the full suite passed; investigate failures before accepting a build.</p>
+</div></section><section class="chapter" id="3-prepare-your-own-input"><h2>3. Prepare your own input</h2><div class="body"><ol type="1">
+<li><strong>Map and prepare reads upstream.</strong> Adapter trimming, merging/collapsing, duplicate handling, and reference selection are separate decisions. Preserve the alternative alignments needed for LCA; a primary-only BAM cannot recover discarded mapping ambiguity.</li>
+<li><strong>Keep alignment tags.</strong> <code>MD:Z</code> is needed for mismatch reconstruction. Retain <code>NM:i</code> for edit-distance/ANI filtering, and <code>AS:i</code> when using <code>--best_as 1</code>.</li>
+<li><strong>Sort by read name.</strong> In this checkout, both <code>getdamage</code> and <code>lca</code> check for <code>SO:queryname</code> in the BAM/SAM header. Coordinate sorting is insufficient. Sorting also keeps alternative alignments of a read together.</li>
+</ol>
+<pre class="bash"><code>samtools sort -n sample.bam -o sample.qname.bam
+samtools view -H sample.qname.bam</code></pre>
+<p>If MD/NM tags are missing, regenerate them using the <strong>same reference used for mapping</strong>, then name-sort the result:</p>
+<pre class="bash"><code>samtools calmd -b sample.bam reference.fa &gt; sample.md.bam
+samtools sort -n sample.md.bam -o sample.qname.bam</code></pre>
+<p>For LCA you also need matching <code>names.dmp[.gz]</code>, <code>nodes.dmp[.gz]</code>, and an accession-to-taxid table. The reference names in the BAM header must resolve through that mapping. Use a taxonomy snapshot consistent with your mapping database; the small files in <code>test/data/</code> are only fixtures. <a href="commands.md#taxonomic-resources">Taxonomy setup and advanced controls</a>.</p>
+</div></section><section class="chapter" id="4-choose-and-run-an-analysis"><h2>4. Choose and run an analysis</h2><div class="body"><div class="table-wrap"><table>
+<thead>
+<tr class="header">
+<th>Your question</th>
+<th>Command</th>
+<th>What is grouped together?</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Is there a terminal damage pattern across this alignment file?</td>
+<td><code>getdamage --run_mode 0</code></td>
+<td>All accepted alignments</td>
+</tr>
+<tr class="even">
+<td>How does damage vary among references/contigs?</td>
+<td><code>getdamage --run_mode 1</code></td>
+<td>Each BAM reference separately</td>
+</tr>
+<tr class="odd">
+<td>How does damage vary among mapped taxids, without LCA?</td>
+<td><code>getdamage --run_mode 2 --acc2tax …</code></td>
+<td>References mapped to a taxid</td>
+</tr>
+<tr class="even">
+<td>What damage is associated with taxonomically classified reads?</td>
+<td><code>lca</code> → <code>dfit</code> → <code>aggregate</code></td>
+<td>LCA classification, followed by taxonomic summaries</td>
+</tr>
+<tr class="odd">
+<td>What is the PMD score of an individual read?</td>
+<td><code>pmd</code></td>
+<td>Read-level likelihood-ratio score</td>
+</tr>
+</tbody>
+</table></div>
+<h3 id="a-whole-sample-or-individual-references">A. Whole sample or individual references</h3>
+<pre class="bash"><code>mkdir -p results/sample
+./metaDMG-cpp getdamage sample.qname.bam \
+  --run_mode 0 --min_length 35 --print_length 15 \
+  --out_prefix results/sample/global
+
+./metaDMG-cpp dfit results/sample/global.bdamage.gz \
+  --lib ds --seed 12345 --nbootstrap 1 --showfits 2 \
+  --out results/sample/global</code></pre>
+<p>For per-reference results, use <code>--run_mode 1</code>, a distinct output prefix, and add <code>--bam sample.qname.bam</code> to <code>dfit</code> to label the internal reference IDs. For direct taxid grouping, use <code>--run_mode 2 --acc2tax taxonomy/acc2taxid.map.gz</code>; this does <strong>not</strong> perform LCA assignment. Multi-mapped reads can contribute more than once in these counting modes.</p>
+<h3 id="b-metagenome-with-lca">B. Metagenome with LCA</h3>
+<p>Run from the repository root so <code>rank2level.txt</code> is available. From another directory, set <code>METADAMAGE_RANK_LEVELS</code> to its absolute path.</p>
+<p>The example below uses placeholder input paths: replace them with your BAM and matching taxonomy. It explicitly selects fractional weighting, a 35-base minimum read length, and an ANI range of 0.95–1.0. These are example choices to assess for your data, not universal filtering thresholds.</p>
+<pre class="bash"><code>mkdir -p results/sample
+./metaDMG-cpp lca --bam sample.qname.bam \
+  --names taxonomy/names.dmp.gz --nodes taxonomy/nodes.dmp.gz \
+  --acc2tax taxonomy/acc2taxid.map.gz \
+  --min_length 35 --min_mapq 0 --sim_score_low 0.95 --sim_score_high 1.0 \
+  --how_many 15 --weight_type 1 --lca_rank species \
+  --used_reads 0 --famout 0 --out_prefix results/sample/lca
+
+./metaDMG-cpp dfit results/sample/lca.bdamage.gz \
+  --names taxonomy/names.dmp.gz --nodes taxonomy/nodes.dmp.gz \
+  --lib ds --seed 12345 --nbootstrap 1 --showfits 2 \
+  --out results/sample/fit
+
+./metaDMG-cpp aggregate results/sample/lca.bdamage.gz \
+  --names taxonomy/names.dmp.gz --nodes taxonomy/nodes.dmp.gz \
+  --lcastat results/sample/lca.stat.gz --dfit results/sample/fit.dfit.gz \
+  --rlens results/sample/lca.rlens.gz --out results/sample/summary
+
+gzip -dc results/sample/summary.stat.gz &gt; results/sample/summary.tsv</code></pre>
+<p><code>lca</code> groups alternative alignments by read name. <code>--lca_rank species</code> restricts the groups used for damage/statistics to that rank or more specific levels; it does not turn ambiguous genus-level assignments into species identifications. <code>dfit --nodes</code> allows fits at higher taxonomic nodes. <code>aggregate</code> rolls up statistics and attaches the supplied fits; it does not refit damage parameters.</p>
+<p><code>--weight_type 1</code> uses fractional alignment contributions to damage counts. The current source initializes this option to <strong>0</strong>, so specify <strong>1</strong> explicitly when you want fractional weighting. Do not interpret every reported count as a count of unique molecules. <code>--used_reads 0 --famout 0</code> avoids writing the two optional BAM outputs; set either to 1 when needed.</p>
+<p><img src="data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0idXRmLTgiIHN0YW5kYWxvbmU9Im5vIj8+CjwhRE9DVFlQRSBzdmcgUFVCTElDICItLy9XM0MvL0RURCBTVkcgMS4xLy9FTiIKICAiaHR0cDovL3d3dy53My5vcmcvR3JhcGhpY3MvU1ZHLzEuMS9EVEQvc3ZnMTEuZHRkIj4KPHN2ZyB4bWxuczp4bGluaz0iaHR0cDovL3d3dy53My5vcmcvMTk5OS94bGluayIgd2lkdGg9IjY4NHB0IiBoZWlnaHQ9IjI4Ny42Njk0NjVwdCIgdmlld0JveD0iMCAwIDY4NCAyODcuNjY5NDY1IiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZlcnNpb249IjEuMSI+CiA8bWV0YWRhdGE+CiAgPHJkZjpSREYgeG1sbnM6ZGM9Imh0dHA6Ly9wdXJsLm9yZy9kYy9lbGVtZW50cy8xLjEvIiB4bWxuczpjYz0iaHR0cDovL2NyZWF0aXZlY29tbW9ucy5vcmcvbnMjIiB4bWxuczpyZGY9Imh0dHA6Ly93d3cudzMub3JnLzE5OTkvMDIvMjItcmRmLXN5bnRheC1ucyMiPgogICA8Y2M6V29yaz4KICAgIDxkYzp0eXBlIHJkZjpyZXNvdXJjZT0iaHR0cDovL3B1cmwub3JnL2RjL2RjbWl0eXBlL1N0aWxsSW1hZ2UiLz4KICAgIDxkYzpkYXRlPjIwMjYtMTEtMDNUMjI6NTA6MTcuNTY1NTI5PC9kYzpkYXRlPgogICAgPGRjOmZvcm1hdD5pbWFnZS9zdmcreG1sPC9kYzpmb3JtYXQ+CiAgICA8ZGM6Y3JlYXRvcj4KICAgICA8Y2M6QWdlbnQ+CiAgICAgIDxkYzp0aXRsZT5NYXRwbG90bGliIHYzLjguMywgaHR0cHM6Ly9tYXRwbG90bGliLm9yZy88L2RjOnRpdGxlPgogICAgIDwvY2M6QWdlbnQ+CiAgICA8L2RjOmNyZWF0b3I+CiAgIDwvY2M6V29yaz4KICA8L3JkZjpSREY+CiA8L21ldGFkYXRhPgogPGRlZnM+CiAgPHN0eWxlIHR5cGU9InRleHQvY3NzIj4qe3N0cm9rZS1saW5lam9pbjogcm91bmQ7IHN0cm9rZS1saW5lY2FwOiBidXR0fTwvc3R5bGU+CiA8L2RlZnM+CiA8ZyBpZD0iZmlndXJlXzEiPgogIDxnIGlkPSJwYXRjaF8xIj4KICAgPHBhdGggZD0iTSAwIDI4Ny42Njk0NjUKTCA2ODQgMjg3LjY2OTQ2NQpMIDY4NCAwCkwgMCAwCnoKIiBzdHlsZT0iZmlsbDogI2ZmZmZmZiIvPgogIDwvZz4KICA8ZyBpZD0iYXhlc18xIj4KICAgPGcgaWQ9InBhdGNoXzIiPgogICAgPHBhdGggZD0iTSA5Ni4xNzgzNzggMTEwLjMyMzQxNwpMIDIxOS44NDMyNDMgMTEwLjMyMzQxNwpRIDIyNS44NzU2NzYgMTEwLjMyMzQxNyAyMjUuODc1Njc2IDEwNS41NTU1NzcKTCAyMjUuODc1Njc2IDYwLjI2MTA5NwpRIDIyNS44NzU2NzYgNTUuNDkzMjU3IDIxOS44NDMyNDMgNTUuNDkzMjU3CkwgOTYuMTc4Mzc4IDU1LjQ5MzI1NwpRIDkwLjE0NTk0NiA1NS40OTMyNTcgOTAuMTQ1OTQ2IDYwLjI2MTA5NwpMIDkwLjE0NTk0NiAxMDUuNTU1NTc3ClEgOTAuMTQ1OTQ2IDExMC4zMjM0MTcgOTYuMTc4Mzc4IDExMC4zMjM0MTcKegoiIGNsaXAtcGF0aD0idXJsKCNwMDhjZjlkZGQzNykiIHN0eWxlPSJmaWxsOiAjZWFmNGY0OyBzdHJva2U6ICNjN2Q4ZGM7IHN0cm9rZS1saW5lam9pbjogbWl0ZXIiLz4KICAgPC9nPgogICA8ZyBpZD0icGF0Y2hfMyI+CiAgICA8cGF0aCBkPSJNIDE0Ljc0MDU0MSAyMTIuODMxOTc3CkwgMTI5LjM1Njc1NyAyMTIuODMxOTc3ClEgMTM1LjM4OTE4OSAyMTIuODMxOTc3IDEzNS4zODkxODkgMjA4LjA2NDEzNwpMIDEzNS4zODkxODkgMTY1LjE1MzU3NwpRIDEzNS4zODkxODkgMTYwLjM4NTczNyAxMjkuMzU2NzU3IDE2MC4zODU3MzcKTCAxNC43NDA1NDEgMTYwLjM4NTczNwpRIDguNzA4MTA4IDE2MC4zODU3MzcgOC43MDgxMDggMTY1LjE1MzU3NwpMIDguNzA4MTA4IDIwOC4wNjQxMzcKUSA4LjcwODEwOCAyMTIuODMxOTc3IDE0Ljc0MDU0MSAyMTIuODMxOTc3CnoKIiBjbGlwLXBhdGg9InVybCgjcDA4Y2Y5ZGRkMzcpIiBzdHlsZT0iZmlsbDogI2VhZjRmNDsgc3Ryb2tlOiAjYzdkOGRjOyBzdHJva2UtbGluZWpvaW46IG1pdGVyIi8+CiAgIDwvZz4KICAgPGcgaWQ9InBhdGNoXzQiPgogICAgPHBhdGggZD0iTSAxODYuNjY0ODY1IDIxMi44MzE5NzcKTCAzMDEuMjgxMDgxIDIxMi44MzE5NzcKUSAzMDcuMzEzNTE0IDIxMi44MzE5NzcgMzA3LjMxMzUxNCAyMDguMDY0MTM3CkwgMzA3LjMxMzUxNCAxNjUuMTUzNTc3ClEgMzA3LjMxMzUxNCAxNjAuMzg1NzM3IDMwMS4yODEwODEgMTYwLjM4NTczNwpMIDE4Ni42NjQ4NjUgMTYwLjM4NTczNwpRIDE4MC42MzI0MzIgMTYwLjM4NTczNyAxODAuNjMyNDMyIDE2NS4xNTM1NzcKTCAxODAuNjMyNDMyIDIwOC4wNjQxMzcKUSAxODAuNjMyNDMyIDIxMi44MzE5NzcgMTg2LjY2NDg2NSAyMTIuODMxOTc3CnoKIiBjbGlwLXBhdGg9InVybCgjcDA4Y2Y5ZGRkMzcpIiBzdHlsZT0iZmlsbDogI2VhZjRmNDsgc3Ryb2tlOiAjYzdkOGRjOyBzdHJva2UtbGluZWpvaW46IG1pdGVyIi8+CiAgIDwvZz4KICAgPGcgaWQ9ImxpbmUyZF8xIj4KICAgIDxwYXRoIGQ9Ik0gMTU4LjAxMDgxMSAxMDYuNzQ3NTM3CkwgNzAuNTQwNTQxIDE2My45NjE2MTcKIiBjbGlwLXBhdGg9InVybCgjcDA4Y2Y5ZGRkMzcpIiBzdHlsZT0iZmlsbDogbm9uZTsgc3Ryb2tlOiAjMDg3ZThiOyBzdHJva2Utd2lkdGg6IDI7IHN0cm9rZS1saW5lY2FwOiBzcXVhcmUiLz4KICAgPC9nPgogICA8ZyBpZD0ibGluZTJkXzIiPgogICAgPHBhdGggZD0iTSAxNTguMDEwODExIDEwNi43NDc1MzcKTCAyNDUuNDgxMDgxIDE2My45NjE2MTcKIiBjbGlwLXBhdGg9InVybCgjcDA4Y2Y5ZGRkMzcpIiBzdHlsZT0iZmlsbDogbm9uZTsgc3Ryb2tlOiAjMDg3ZThiOyBzdHJva2Utd2lkdGg6IDI7IHN0cm9rZS1saW5lY2FwOiBzcXVhcmUiLz4KICAgPC9nPgogICA8ZyBpZD0idGV4dF8xIj4KICAgIDx0ZXh0IHN0eWxlPSJmaWxsOiAjMjEzYzQ2OyBmb250OiA3MDAgMTJweCAnRGVqYVZ1IFNhbnMnOyB0ZXh0LWFuY2hvcjogbWlkZGxlIiB4PSIxNTguMDEwODExIiB5PSI3Ny4xNjA2OTEiIHRyYW5zZm9ybT0icm90YXRlKC0wIDE1OC4wMTA4MTEgNzcuMTYwNjkxKSI+R2VudXMgRzwvdGV4dD4KICAgPC9nPgogICA8ZyBpZD0idGV4dF8yIj4KICAgIDx0ZXh0IHN0eWxlPSJmaWxsOiAjMjEzYzQ2OyBmb250OiAxMHB4ICdEZWphVnUgU2Fucyc7IHRleHQtYW5jaG9yOiBtaWRkbGUiIHg9IjE1OC4wMTA4MTEiIHk9Ijk1LjIwMzM5MiIgdHJhbnNmb3JtPSJyb3RhdGUoLTAgMTU4LjAxMDgxMSA5NS4yMDMzOTIpIj5Mb3dlc3Qgc2hhcmVkIGFuY2VzdG9yPC90ZXh0PgogICA8L2c+CiAgIDxnIGlkPSJ0ZXh0XzMiPgogICAgPHRleHQgc3R5bGU9ImZpbGw6ICMyMTNjNDY7IGZvbnQ6IDcwMCAxMnB4ICdEZWphVnUgU2Fucyc7IHRleHQtYW5jaG9yOiBtaWRkbGUiIHg9IjcyLjA0ODY0OSIgeT0iMTgxLjMxNDE1NiIgdHJhbnNmb3JtPSJyb3RhdGUoLTAgNzIuMDQ4NjQ5IDE4MS4zMTQxNTYpIj5TcGVjaWVzIEE8L3RleHQ+CiAgIDwvZz4KICAgPGcgaWQ9InRleHRfNCI+CiAgICA8dGV4dCBzdHlsZT0iZmlsbDogIzIxM2M0NjsgZm9udDogMTBweCAnRGVqYVZ1IFNhbnMnOyB0ZXh0LWFuY2hvcjogbWlkZGxlIiB4PSI3Mi4wNDg2NDkiIHk9IjE5OC40MjcxMjgiIHRyYW5zZm9ybT0icm90YXRlKC0wIDcyLjA0ODY0OSAxOTguNDI3MTI4KSI+UmVmZXJlbmNlIEE8L3RleHQ+CiAgIDwvZz4KICAgPGcgaWQ9InRleHRfNSI+CiAgICA8dGV4dCBzdHlsZT0iZmlsbDogIzIxM2M0NjsgZm9udDogNzAwIDEycHggJ0RlamFWdSBTYW5zJzsgdGV4dC1hbmNob3I6IG1pZGRsZSIgeD0iMjQzLjk3Mjk3MyIgeT0iMTgxLjMxNDE1NiIgdHJhbnNmb3JtPSJyb3RhdGUoLTAgMjQzLjk3Mjk3MyAxODEuMzE0MTU2KSI+U3BlY2llcyBCPC90ZXh0PgogICA8L2c+CiAgIDxnIGlkPSJ0ZXh0XzYiPgogICAgPHRleHQgc3R5bGU9ImZpbGw6ICMyMTNjNDY7IGZvbnQ6IDEwcHggJ0RlamFWdSBTYW5zJzsgdGV4dC1hbmNob3I6IG1pZGRsZSIgeD0iMjQzLjk3Mjk3MyIgeT0iMTk4LjQyNzEyOCIgdHJhbnNmb3JtPSJyb3RhdGUoLTAgMjQzLjk3Mjk3MyAxOTguNDI3MTI4KSI+UmVmZXJlbmNlIEI8L3RleHQ+CiAgIDwvZz4KICAgPGcgaWQ9InRleHRfNyI+CiAgICA8dGV4dCBzdHlsZT0iZmlsbDogIzIxM2M0NjsgZm9udDogMTBweCAnRGVqYVZ1IFNhbnMnOyB0ZXh0LWFuY2hvcjogbWlkZGxlIiB4PSIxNTguMDEwODExIiB5PSIyNDkuNzgyNzM3IiB0cmFuc2Zvcm09InJvdGF0ZSgtMCAxNTguMDEwODExIDI0OS43ODI3MzcpIj5PbmUgcmVhZCBhbGlnbnMgdG8gYm90aCBzcGVjaWVzIOKGkiBnZW51cyBMQ0E8L3RleHQ+CiAgIDwvZz4KICAgPGcgaWQ9InRleHRfOCI+CiAgICA8dGV4dCBzdHlsZT0iZmlsbDogIzIxM2M0NjsgZm9udDogMTBweCAnRGVqYVZ1IFNhbnMnIiB0cmFuc2Zvcm09InRyYW5zbGF0ZSg1Ni41NDUxODYgMjY2LjkxMzg0KSI+V2l0aCAtLWxjYV9yYW5rIHNwZWNpZXMsIHRoaXMgZ3JvdXAgaXMgbm90PC90ZXh0PgogICAgPHRleHQgc3R5bGU9ImZpbGw6ICMyMTNjNDY7IGZvbnQ6IDEwcHggJ0RlamFWdSBTYW5zJyIgdHJhbnNmb3JtPSJ0cmFuc2xhdGUoNDQuOTkyMDYxIDI3OC4zODk3NzcpIj5hY2NlcHRlZCBmb3Igc3BlY2llcy1sZXZlbCBkYW1hZ2Uvc3RhdGlzdGljcy48L3RleHQ+CiAgIDwvZz4KICAgPGcgaWQ9InRleHRfOSI+CiAgICA8dGV4dCBzdHlsZT0iZmlsbDogIzIxM2M0NjsgZm9udDogNzAwIDEzLjJweCAnRGVqYVZ1IFNhbnMnOyB0ZXh0LWFuY2hvcjogc3RhcnQiIHg9IjcuMiIgeT0iMTcuMjI5OTM3IiB0cmFuc2Zvcm09InJvdGF0ZSgtMCA3LjIgMTcuMjI5OTM3KSI+TENBOiBwcmVzZXJ2ZSBtYXBwaW5nIGFtYmlndWl0eTwvdGV4dD4KICAgPC9nPgogIDwvZz4KICA8ZyBpZD0iYXhlc18yIj4KICAgPGcgaWQ9InBhdGNoXzUiPgogICAgPHBhdGggZD0iTSA0MDAuODE2MjE2IDExMC4zMjM0MTcKTCA2NTEuMTYyMTYyIDExMC4zMjM0MTcKUSA2NTcuMTk0NTk1IDExMC4zMjM0MTcgNjU3LjE5NDU5NSAxMDUuNTU1NTc3CkwgNjU3LjE5NDU5NSA2MC4yNjEwOTcKUSA2NTcuMTk0NTk1IDU1LjQ5MzI1NyA2NTEuMTYyMTYyIDU1LjQ5MzI1NwpMIDQwMC44MTYyMTYgNTUuNDkzMjU3ClEgMzk0Ljc4Mzc4NCA1NS40OTMyNTcgMzk0Ljc4Mzc4NCA2MC4yNjEwOTcKTCAzOTQuNzgzNzg0IDEwNS41NTU1NzcKUSAzOTQuNzgzNzg0IDExMC4zMjM0MTcgNDAwLjgxNjIxNiAxMTAuMzIzNDE3CnoKIiBjbGlwLXBhdGg9InVybCgjcDc2OTk5MjE4MDgpIiBzdHlsZT0iZmlsbDogI2VhZjRmNDsgc3Ryb2tlOiAjYzdkOGRjOyBzdHJva2UtbGluZWpvaW46IG1pdGVyIi8+CiAgIDwvZz4KICAgPGcgaWQ9InBhdGNoXzYiPgogICAgPHBhdGggZD0iTSAzODguNzUxMzUxIDIxMC40NDgwNTcKTCA1MTIuNDE2MjE2IDIxMC40NDgwNTcKUSA1MTguNDQ4NjQ5IDIxMC40NDgwNTcgNTE4LjQ0ODY0OSAyMDUuNjgwMjE3CkwgNTE4LjQ0ODY0OSAxNDguNDY2MTM3ClEgNTE4LjQ0ODY0OSAxNDMuNjk4Mjk3IDUxMi40MTYyMTYgMTQzLjY5ODI5NwpMIDM4OC43NTEzNTEgMTQzLjY5ODI5NwpRIDM4Mi43MTg5MTkgMTQzLjY5ODI5NyAzODIuNzE4OTE5IDE0OC40NjYxMzcKTCAzODIuNzE4OTE5IDIwNS42ODAyMTcKUSAzODIuNzE4OTE5IDIxMC40NDgwNTcgMzg4Ljc1MTM1MSAyMTAuNDQ4MDU3CnoKIiBjbGlwLXBhdGg9InVybCgjcDc2OTk5MjE4MDgpIiBzdHlsZT0iZmlsbDogI2ZmZjFlNjsgc3Ryb2tlOiAjYzdkOGRjOyBzdHJva2UtbGluZWpvaW46IG1pdGVyIi8+CiAgIDwvZz4KICAgPGcgaWQ9InBhdGNoXzciPgogICAgPHBhdGggZD0iTSA1NDIuNTc4Mzc4IDIxMC40NDgwNTcKTCA2NjYuMjQzMjQzIDIxMC40NDgwNTcKUSA2NzIuMjc1Njc2IDIxMC40NDgwNTcgNjcyLjI3NTY3NiAyMDUuNjgwMjE3CkwgNjcyLjI3NTY3NiAxNDguNDY2MTM3ClEgNjcyLjI3NTY3NiAxNDMuNjk4Mjk3IDY2Ni4yNDMyNDMgMTQzLjY5ODI5NwpMIDU0Mi41NzgzNzggMTQzLjY5ODI5NwpRIDUzNi41NDU5NDYgMTQzLjY5ODI5NyA1MzYuNTQ1OTQ2IDE0OC40NjYxMzcKTCA1MzYuNTQ1OTQ2IDIwNS42ODAyMTcKUSA1MzYuNTQ1OTQ2IDIxMC40NDgwNTcgNTQyLjU3ODM3OCAyMTAuNDQ4MDU3CnoKIiBjbGlwLXBhdGg9InVybCgjcDc2OTk5MjE4MDgpIiBzdHlsZT0iZmlsbDogI2VhZjRmNDsgc3Ryb2tlOiAjYzdkOGRjOyBzdHJva2UtbGluZWpvaW46IG1pdGVyIi8+CiAgIDwvZz4KICAgPGcgaWQ9InRleHRfMTAiPgogICAgPHRleHQgc3R5bGU9ImZpbGw6ICMyMTNjNDY7IGZvbnQ6IDcwMCAxMnB4ICdEZWphVnUgU2Fucyc7IHRleHQtYW5jaG9yOiBtaWRkbGUiIHg9IjUyNS45ODkxODkiIHk9Ijc3LjExMzgxNiIgdHJhbnNmb3JtPSJyb3RhdGUoLTAgNTI1Ljk4OTE4OSA3Ny4xMTM4MTYpIj5PbmUgYWNjZXB0ZWQgcmVhZCBncm91cDwvdGV4dD4KICAgPC9nPgogICA8ZyBpZD0idGV4dF8xMSI+CiAgICA8dGV4dCBzdHlsZT0iZmlsbDogIzIxM2M0NjsgZm9udDogMTBweCAnRGVqYVZ1IFNhbnMnOyB0ZXh0LWFuY2hvcjogbWlkZGxlIiB4PSI1MjUuOTg5MTg5IiB5PSI5NS4yMDMzOTIiIHRyYW5zZm9ybT0icm90YXRlKC0wIDUyNS45ODkxODkgOTUuMjAzMzkyKSI+VHdvIGNvbnRyaWJ1dGluZyBhbGlnbm1lbnRzIChzaW1wbGUgZXhhbXBsZSk8L3RleHQ+CiAgIDwvZz4KICAgPGcgaWQ9InRleHRfMTIiPgogICAgPHRleHQgc3R5bGU9ImZpbGw6ICMyMTNjNDY7IGZvbnQ6IDcwMCAxMnB4ICdEZWphVnUgU2Fucyc7IHRleHQtYW5jaG9yOiBtaWRkbGUiIHg9IjQ1MC41ODM3ODQiIHk9IjE2OC44OTM5MzIiIHRyYW5zZm9ybT0icm90YXRlKC0wIDQ1MC41ODM3ODQgMTY4Ljg5MzkzMikiPi0td2VpZ2h0X3R5cGUgMDwvdGV4dD4KICAgPC9nPgogICA8ZyBpZD0idGV4dF8xMyI+CiAgICA8dGV4dCBzdHlsZT0iZmlsbDogIzIxM2M0NjsgZm9udDogMTBweCAnRGVqYVZ1IFNhbnMnIiB0cmFuc2Zvcm09InRyYW5zbGF0ZSg0MjYuMzA0MDk2IDE4Ni4xNTMyNDYpIj4xICsgMSA9IDI8L3RleHQ+CiAgICA8dGV4dCBzdHlsZT0iZmlsbDogIzIxM2M0NjsgZm9udDogMTBweCAnRGVqYVZ1IFNhbnMnIiB0cmFuc2Zvcm09InRyYW5zbGF0ZSgzOTYuNzM5MjUzIDE5Ny4zNTEwNTkpIj5GdWxsIGFsaWdubWVudCB3ZWlnaHQ8L3RleHQ+CiAgIDwvZz4KICAgPGcgaWQ9InRleHRfMTQiPgogICAgPHRleHQgc3R5bGU9ImZpbGw6ICMyMTNjNDY7IGZvbnQ6IDcwMCAxMnB4ICdEZWphVnUgU2Fucyc7IHRleHQtYW5jaG9yOiBtaWRkbGUiIHg9IjYwNC40MTA4MTEiIHk9IjE2OC44OTM5MzIiIHRyYW5zZm9ybT0icm90YXRlKC0wIDYwNC40MTA4MTEgMTY4Ljg5MzkzMikiPi0td2VpZ2h0X3R5cGUgMTwvdGV4dD4KICAgPC9nPgogICA8ZyBpZD0idGV4dF8xNSI+CiAgICA8dGV4dCBzdHlsZT0iZmlsbDogIzIxM2M0NjsgZm9udDogMTBweCAnRGVqYVZ1IFNhbnMnIiB0cmFuc2Zvcm09InRyYW5zbGF0ZSg1NzYuODAxNDM2IDE4Ni4xNTMyNDYpIj7CvSArIMK9ID0gMTwvdGV4dD4KICAgIDx0ZXh0IHN0eWxlPSJmaWxsOiAjMjEzYzQ2OyBmb250OiAxMHB4ICdEZWphVnUgU2FucyciIHRyYW5zZm9ybT0idHJhbnNsYXRlKDU2MS41NTE0MzYgMTk3LjM1MTA1OSkiPkZyYWN0aW9uYWwgd2VpZ2h0PC90ZXh0PgogICA8L2c+CiAgIDxnIGlkPSJ0ZXh0XzE2Ij4KICAgIDx0ZXh0IHN0eWxlPSJmaWxsOiAjMjEzYzQ2OyBmb250OiAxMHB4ICdEZWphVnUgU2Fucyc7IHRleHQtYW5jaG9yOiBtaWRkbGUiIHg9IjUyNS45ODkxODkiIHk9IjI1NC41NTA1NzciIHRyYW5zZm9ybT0icm90YXRlKC0wIDUyNS45ODkxODkgMjU0LjU1MDU3NykiPlNwZWNpZnkgdGhlIHdlaWdodGluZyBleHBsaWNpdGx5IGluIHlvdXIgY29tbWFuZC48L3RleHQ+CiAgIDwvZz4KICAgPGcgaWQ9InRleHRfMTciPgogICAgPHRleHQgc3R5bGU9ImZpbGw6ICMyMTNjNDY7IGZvbnQ6IDEwcHggJ0RlamFWdSBTYW5zJyIgdHJhbnNmb3JtPSJ0cmFuc2xhdGUoNDI3LjMyODI1MiAyNjcuMTkxOTY1KSI+VGhlc2UgYXJlIGRhbWFnZS1jb3VudCBjb250cmlidXRpb25zLDwvdGV4dD4KICAgIDx0ZXh0IHN0eWxlPSJmaWxsOiAjMjEzYzQ2OyBmb250OiAxMHB4ICdEZWphVnUgU2FucyciIHRyYW5zZm9ybT0idHJhbnNsYXRlKDQxMC41MzkxODkgMjc4LjM4OTc3NykiPm5vdCBhIGRlZmluaXRpb24gb2YgZXZlcnkgb3V0cHV0IGNvdW50IGNvbHVtbi48L3RleHQ+CiAgIDwvZz4KICAgPGcgaWQ9InRleHRfMTgiPgogICAgPHRleHQgc3R5bGU9ImZpbGw6ICMyMTNjNDY7IGZvbnQ6IDcwMCAxMy4ycHggJ0RlamFWdSBTYW5zJzsgdGV4dC1hbmNob3I6IHN0YXJ0IiB4PSIzNzUuMTc4Mzc4IiB5PSIxNy4yMjk5MzciIHRyYW5zZm9ybT0icm90YXRlKC0wIDM3NS4xNzgzNzggMTcuMjI5OTM3KSI+V2VpZ2h0aW5nOiBhIHNlcGFyYXRlIGNvdW50aW5nIGRlY2lzaW9uPC90ZXh0PgogICA8L2c+CiAgPC9nPgogPC9nPgogPGRlZnM+CiAgPGNsaXBQYXRoIGlkPSJwMDhjZjlkZGQzNyI+CiAgIDxyZWN0IHg9IjcuMiIgeT0iMzUuMjI5OTM3IiB3aWR0aD0iMzAxLjYyMTYyMiIgaGVpZ2h0PSIyMzguMzkyIi8+CiAgPC9jbGlwUGF0aD4KICA8Y2xpcFBhdGggaWQ9InA3Njk5OTIxODA4Ij4KICAgPHJlY3QgeD0iMzc1LjE3ODM3OCIgeT0iMzUuMjI5OTM3IiB3aWR0aD0iMzAxLjYyMTYyMiIgaGVpZ2h0PSIyMzguMzkyIi8+CiAgPC9jbGlwUGF0aD4KIDwvZGVmcz4KPC9zdmc+Cg==" alt="Illustration of LCA assignment and fractional alignment weighting." /></p>
+<p>For a fixture-based LCA trial, substitute <code>results/quickstart/reads.qname.bam</code> and the three files in <code>test/data/</code>, use <code>--fix_ncbi 0</code> as in the integration tests, and use a separate output prefix. Taxonomy name normalization must match your database; see the advanced reference.</p>
+<h3 id="c-per-read-pmd-scores">C. Per-read PMD scores</h3>
+<pre class="bash"><code>./metaDMG-cpp pmd sample.qname.bam &gt; results/sample/pmd.tsv</code></pre>
+<p>Output is <code>read_name&lt;TAB&gt;PMD: score</code>. This is a read-level score, distinct from a fitted taxon-level damage amplitude. The default <code>-a 1</code> excludes paired-end records and keeps single-end/collapsed reads; use <code>-a 0</code> if including paired-end records is intentional. PMD currently runs single-threaded. See <a href="commands.md#pmd-read-level-scores">PMD options</a>.</p>
+</div></section><section class="chapter" id="5-understand-the-results"><h2>5. Understand the results</h2><div class="body"><div class="lab" aria-label="Interactive damage model illustration">
+<div class="plate"><span class="eyebrow">Plate 03 · Try the model</span>
+<svg viewBox="0 0 520 330" role="img" aria-labelledby="plot-title plot-description"><title id="plot-title">Terminal damage mean curve</title><desc id="plot-description">Illustrative curve, no measured data.</desc>
+<g font-family="sans-serif" font-size="12" fill="#526057">
+<text x="18" y="22">Expected damage frequency</text>
+<path d="M62 48H462 M62 121.33H462 M62 194.67H462 M62 268H462" fill="none" stroke="#dce2d8"/>
+<text x="25" y="52">60%</text><text x="25" y="125">40%</text><text x="25" y="199">20%</text><text x="32" y="272">0%</text>
+<text x="58" y="290">0</text><text x="170" y="290">4</text><text x="284" y="290">8</text><text x="394" y="290">12</text><text x="454" y="290">14</text>
+<text x="260" y="318" text-anchor="middle">Distance inward (terminal base = 0)</text></g>
+<path d="M62 48V268H462" fill="none" stroke="#526057"/>
+<line id="background-line" x1="62" x2="462" y1="260.67" y2="260.67" stroke="#285e45" stroke-dasharray="6 5" stroke-width="2"/>
+<path id="model-line" d="M62 187.33 L90.57 209.33 L119.14 224.73 L147.71 235.51 L176.29 243.06 L204.86 248.34 L233.43 252.04 L262 254.63 L290.57 256.44 L319.14 257.71 L347.71 258.60 L376.29 259.22 L404.86 259.65 L433.43 259.96 L462 260.17" fill="none" stroke="#ba481f" stroke-width="3"/>
+</svg>
+<p class="caption">Orange: expected mean D(x). Dashed green: background c. Illustrative parameters only; no observations or confidence band.</p>
+<div class="controls">
+<div class="control"><label for="amplitude">A · amplitude <output id="amplitude-value" for="amplitude">20%</output></label><input id="amplitude" type="range" min="0" max="0.4" step="0.01" value="0.20"></div>
+<div class="control"><label for="decay">q · decay <output id="decay-value" for="decay">0.30</output></label><input id="decay" type="range" min="0.01" max="0.95" step="0.01" value="0.30"></div>
+<div class="control"><label for="background">c · background <output id="background-value" for="background">2.0%</output></label><input id="background" type="range" min="0" max="0.1" step="0.005" value="0.02"></div>
+<div class="control"><label for="concentration">phi · concentration <output id="concentration-value" for="concentration">100</output></label><input id="concentration" type="range" min="1" max="1000" step="1" value="100"></div>
+</div><div class="readout" aria-live="polite">First base, A + c: <strong id="terminal">22.0%</strong><br>At distance 14: <strong id="interior">2.14%</strong><br>Illustrative frequency SD at the first base, N = 100: <strong id="dispersion">5.83 percentage points</strong></div>
+<p class="caption">SD = √[p(1−p)(N+phi)/(N(1+phi))], p = A+c. This is beta-binomial count variation at a fixed mean, not the fitted uncertainty of A or a Zfit calculation. Slider limits are demonstration ranges, not recommended filters.</p>
+<button class="reset" id="reset-model" type="button">Reset illustration</button><noscript><p>Enable JavaScript to move the controls. The initial curve and all instructions remain readable.</p></noscript></div>
+<div class="marks">
+<div class="mark"><span class="kind">01 · Mean model</span><h3>D(x) = A(1 − q)<sup>x</sup> + c</h3><p>Start at the read end, x = 0, and move towards its interior. The first-base prediction is A + c.</p></div>
+<div class="mark"><span class="kind">02 · Terminal excess</span><h3>A raises the terminal signal</h3><p>Amplitude measures damage above the background component. Moving A changes the height of the curve near the read end.</p></div>
+<div class="mark"><span class="kind">03 · Shape</span><h3>q sets how quickly it falls</h3><p>A larger decay rate concentrates the signal at the terminus. A smaller value extends it further into the read.</p></div>
+<div class="mark"><span class="kind">04 · Baseline</span><h3>c shifts the background</h3><p>The background can include several mismatch sources. It is not a direct measure of sequencing error alone.</p></div>
+<div class="mark"><span class="kind">05 · Variation around the mean</span><h3>phi changes dispersion</h3><p>Move phi: the mean curve stays fixed, but the illustrative standard deviation changes. Larger values approach binomial variation; phi alone does not diagnose reference quality.</p></div>
+</div></div>
+
+<p>The fitted mean is <code>D(x) = A × (1 − q)^x + c</code>, with terminal distance <code>x = 0</code> at the first base.</p>
+<div class="table-wrap"><table>
+<thead>
+<tr class="header">
+<th>Quantity</th>
+<th>Meaning</th>
+<th>Interpretation</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>A</code></td>
+<td>Terminal amplitude above background</td>
+<td>The predicted first-base frequency is <strong>A + c</strong>, not A alone</td>
+</tr>
+<tr class="even">
+<td><code>q</code></td>
+<td>Decay per position</td>
+<td>Larger q gives a faster decline towards the interior</td>
+</tr>
+<tr class="odd">
+<td><code>c</code></td>
+<td>Background mismatch component</td>
+<td>Can reflect several sources of mismatch; not solely sequencing error</td>
+</tr>
+<tr class="even">
+<td><code>phi</code></td>
+<td>Beta-binomial concentration</td>
+<td>Larger values approach binomial variation; not a confidence interval</td>
+</tr>
+<tr class="odd">
+<td><code>A_b</code>, <code>q_b</code>, <code>c_b</code>, <code>phi_b</code></td>
+<td>Bootstrap summaries in this C++ checkout</td>
+<td>These are not Bayesian MAP estimates</td>
+</tr>
+<tr class="even">
+<td><code>*_CI_l</code>, <code>*_CI_h</code></td>
+<td>Bootstrap confidence bounds</td>
+<td>Interpret with the selected resampling/CI method; not Bayesian credible intervals</td>
+</tr>
+<tr class="odd">
+<td><code>sigmaD_old</code>, <code>sigmaD_new</code></td>
+<td>Legacy and updated uncertainty estimates</td>
+<td>Keep their matching <code>Zfit</code> columns together</td>
+</tr>
+<tr class="even">
+<td><code>Zfit_old</code>, <code>Zfit_new</code></td>
+<td>Corresponding damage scores</td>
+<td>Not probabilities that a taxon is ancient or correctly identified</td>
+</tr>
+</tbody>
+</table></div>
+<p>Use <code>--lib ds</code> for the double-stranded model (5′ C→T and 3′ G→A) and <code>--lib ss</code> for the single-stranded model (C→T at both ends). Match this to library preparation. In this checkout, <code>--nbootstrap 1</code> runs the beta-binomial fit without bootstrap summaries; values <strong>greater than 1</strong> enable resampling and additional summaries. A value of 0 is rejected. Two replicates can exercise the code but do not establish a useful confidence interval.</p>
+<p>Inspect terminal counts, curve shape, fit behaviour, read support, and mapping/taxonomic evidence together. Sparse groups may give unstable or boundary estimates. Damage alone does not establish taxonomic identity, sample age, or authenticity; library treatment can also alter the pattern.</p>
+<h3 id="which-file-should-i-open">Which file should I open?</h3>
+<div class="table-wrap"><table>
+<thead>
+<tr class="header">
+<th>File</th>
+<th>Contents / next step</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>*.bdamage.gz</code></td>
+<td>Binary substitution counts; use <code>metaDMG-cpp print</code>, not a text viewer</td>
+</tr>
+<tr class="even">
+<td><code>*.dfit.gz</code></td>
+<td>Compressed tab-separated fit parameters; read with <code>gzip -dc</code></td>
+</tr>
+<tr class="odd">
+<td><code>*.lca.gz</code></td>
+<td>Per-read LCA assignments and associated fields</td>
+</tr>
+<tr class="even">
+<td><code>*.stat.gz</code> from counting/LCA</td>
+<td>Group summary statistics</td>
+</tr>
+<tr class="odd">
+<td><code>summary.stat.gz</code> from <code>aggregate --out summary</code></td>
+<td>Taxonomic roll-up, plus fit columns if <code>--dfit</code> was supplied</td>
+</tr>
+<tr class="even">
+<td><code>*.rlens.gz</code></td>
+<td>Read-length distributions; optionally aggregated with <code>--rlens</code></td>
+</tr>
+<tr class="odd">
+<td><code>*.usedreads.bam</code>, <code>*.famoutreads.bam</code></td>
+<td>Optional LCA alignment outputs</td>
+</tr>
+</tbody>
+</table></div>
+<p>Keep prefixes distinct for counting, fitting, and aggregation to avoid overwriting statistics. Read columns by <strong>header name</strong>, not fixed position. In per-reference mode, numeric IDs are BAM reference offsets; in LCA/taxid mode they are taxids. Ancestor and descendant summaries overlap, so summing all taxonomy rows double-counts evidence.</p>
+<p>To export frequencies or counts:</p>
+<pre class="bash"><code>./metaDMG-cpp print results/sample/lca.bdamage.gz -ctga &gt; results/sample/damage.tsv
+./metaDMG-cpp print results/sample/lca.bdamage.gz -countout &gt; results/sample/counts.tsv</code></pre>
+</div></section><section class="chapter" id="6-troubleshooting"><h2>6. Troubleshooting</h2><div class="body"><div class="table-wrap"><table>
+<thead>
+<tr class="header">
+<th>Symptom</th>
+<th>Check / action</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>metaDMG-cpp: command not found</code></td>
+<td>Activate the Conda environment, or use <code>./metaDMG-cpp</code> from the build directory</td>
+</tr>
+<tr class="even">
+<td>Missing HTSlib/GSL headers or libraries</td>
+<td>Use <code>HTSSRC=systemwide</code>, the correct <code>PREFIX</code>, and matching compiler/library architectures</td>
+</tr>
+<tr class="odd">
+<td>Input is not sorted</td>
+<td>Run <code>samtools sort -n</code>; check <code>@HD</code> contains <code>SO:queryname</code></td>
+</tr>
+<tr class="even">
+<td>Missing MD/NM/AS tags</td>
+<td>Preserve aligner tags; regenerate MD/NM with the original mapping reference; AS is needed for <code>--best_as 1</code></td>
+</tr>
+<tr class="odd">
+<td>Missing accession/taxid or rank mapping</td>
+<td>Check BAM reference names against the mapping and taxonomy snapshot; set <code>METADAMAGE_RANK_LEVELS</code> when outside the repository</td>
+</tr>
+<tr class="even">
+<td>Few or no results</td>
+<td>Check read length, ANI/edit-distance, MAPQ, rank, and flag filters; inspect the log before changing thresholds</td>
+</tr>
+<tr class="odd">
+<td>Multi-mappers disappear</td>
+<td>Positive MAPQ thresholds may remove ambiguous alignments; check the aligner's MAPQ semantics</td>
+</tr>
+<tr class="even">
+<td>Unexpected output filename</td>
+<td>Fits use <code>.dfit.gz</code>; aggregate uses <code>.stat.gz</code> in this checkout</td>
+</tr>
+<tr class="odd">
+<td>Test checksum differs</td>
+<td>Read the log and <a href="reorganization-validation.md">known local discrepancy</a>; do not change expected hashes merely to pass</td>
+</tr>
+</tbody>
+</table></div>
+<p>For reproducible runs, retain the software revision, exact commands, library type, random seed, reference/taxonomy versions, input provenance, and logs. A fixed seed does not guarantee identical numerical results across platforms or thread settings.</p>
+<p>More detail: <a href="commands.md">advanced command reference</a>, <a href="formats.pdf">binary format reference</a>, and <a href="development.md">source/development guide</a>. Report reproducible problems through <a href="https://github.com/metaDMG-dev/metaDMG-cpp/issues">GitHub issues</a>, including the command, version, and relevant diagnostics.</p>
+<p>The <a href="field-guide.html">offline field guide</a> is generated from this README and local presentation assets. To regenerate it, install Pandoc and run <code>python3 doc/build_field_guide.py</code>.</p>
+</div></section><section class="chapter" id="parameter-reference"><h2>7. Parameter field notes</h2><div class="body"><p>Look up the command options and output columns used in this guide. Definitions refer to this C++ checkout; downstream pipelines can rename fields.</p><div class="lookup"><label for="term-search">Find a parameter</label><input type="search" id="term-search" placeholder="Try bootstrap, weight, or frequency"></div><p id="term-status" role="status">18 entries</p><div class="table-wrap"><table id="parameter-table"><thead><tr><th scope="col">Symbol</th><th scope="col">Role</th><th scope="col">What it tells you</th></tr></thead><tbody><tr><td>MD:Z</td><td>Input tag</td><td>Reference mismatch description used to reconstruct aligned reference bases. Required for damage counting.</td></tr><tr><td>NM:i / AS:i</td><td>Input tags</td><td>Keep NM for edit-distance/ANI filtering. AS is required when --best_as 1 is enabled.</td></tr><tr><td>--run_mode</td><td>Counting choice</td><td>0 pools alignments; 1 groups by BAM reference; 2 groups references by mapped taxid without LCA.</td></tr><tr><td>--weight_type</td><td>LCA option</td><td>Source default is 0 (full alignment weight). Specify 1 for fractional alignment contributions to damage counts.</td></tr><tr><td>--lca_rank</td><td>LCA option</td><td>Controls rank acceptance for damage/statistics. An ambiguous genus assignment is not resolved to species.</td></tr><tr><td>--lib ds / ss</td><td>Library model</td><td>ds: 5′ C→T and 3′ G→A. ss: C→T at both ends. Match the library preparation.</td></tr><tr><td>--nbootstrap</td><td>Fit option</td><td>1: default fit without bootstrap summaries. Values &gt;1 enable resampling. 0 is rejected in this checkout.</td></tr><tr><td>A / q / c / phi</td><td>Fit outputs</td><td>Amplitude above background / positional decay / background mismatch component / beta-binomial concentration.</td></tr><tr><td>fwK{i} / bwK{i}</td><td>Observed counts</td><td>Numerator counts for the informative substitutions at each end; interpreted with the selected library model.</td></tr><tr><td>fwN{i} / bwN{i}</td><td>Reference counts</td><td>Denominators for substitution frequencies. Support varies by position and group; zero support needs care.</td></tr><tr><td>fwf{i} / bwf{i}</td><td>Observed frequencies</td><td>K/N at terminal index i. Index 0 denotes the first base. Available with --showfits 2.</td></tr><tr><td>fwdx{i} / bwdx{i}</td><td>Fitted frequencies</td><td>Model predictions at index i, rather than raw observed frequencies. Available with --showfits 1 or 2.</td></tr><tr><td>sigmaD_old / sigmaD_new</td><td>Fit uncertainty</td><td>Legacy and updated uncertainty estimates. Pair each with the corresponding Zfit column.</td></tr><tr><td>Zfit_old / Zfit_new</td><td>Damage scores</td><td>Not probabilities that a taxon is ancient, correctly mapped, or correctly classified.</td></tr><tr><td>A_b / q_b / c_b / phi_b</td><td>Bootstrap summaries</td><td>In this C++ checkout these summarize bootstrap estimates; they are not Bayesian MAP outputs.</td></tr><tr><td>*_CI_l / *_CI_h</td><td>Bootstrap intervals</td><td>Lower and upper confidence bounds under the chosen resampling and CI method; do not label them Bayesian credible intervals.</td></tr><tr><td>nalign / nreads</td><td>Count fields</td><td>Keep alignment support distinct from read-group counts and weighted mismatch counts. Ancestor and descendant rows overlap.</td></tr><tr><td>.bdamage.gz / .dfit.gz</td><td>Output files</td><td>Binary substitution matrix (export with print) / compressed tab-separated fitted results (open with gzip -dc).</td></tr></tbody></table></div><p>Detailed options: <a href="commands.md">advanced command reference</a>. This dictionary intentionally distinguishes this checkout's bootstrap fields from the terminology in the Holi reference guide.</p></div></section><footer class="footer"><p>Documentation for the dev2026 checkout · Visual structure inspired by the supplied Holi Field Guide. The README is the source for installation and workflow instructions; the parameter notes and model explorer are maintained alongside the generator.</p><p>All model illustrations are synthetic. This guide loads offline; links to repository Markdown/PDF references require the accompanying repository files. No external scripts or fonts are loaded.</p></footer></main><script>'use strict';
+const $=id=>document.getElementById(id);
+function draw(){
+ const A=+$('amplitude').value,q=+$('decay').value,c=+$('background').value,phi=+$('concentration').value;
+ $('amplitude-value').textContent=(100*A).toFixed(0)+'%';$('decay-value').textContent=q.toFixed(2);$('background-value').textContent=(100*c).toFixed(1)+'%';$('concentration-value').textContent=phi;
+ const x=i=>62+i*400/14,y=v=>268-v*220/.6;
+ const coords=Array.from({length:15},(_,i)=>[x(i),y(A*Math.pow(1-q,i)+c)]);
+ $('model-line').setAttribute('d',coords.map((p,i)=>(i?'L':'M')+p.join(',')).join(' '));
+ $('background-line').setAttribute('y1',y(c));$('background-line').setAttribute('y2',y(c));
+ $('terminal').textContent=(100*(A+c)).toFixed(1)+'%';$('interior').textContent=(100*(A*Math.pow(1-q,14)+c)).toFixed(2)+'%';
+ const p=A+c,N=100;const sd=Math.sqrt(N*p*(1-p)*(N+phi)/(1+phi))/N;
+ $('dispersion').textContent=(100*sd).toFixed(2)+' percentage points';
+ $('plot-description').textContent=`Illustrative mean damage curve. First-base frequency ${(100*(A+c)).toFixed(1)} percent. Distance 14 frequency ${(100*(A*Math.pow(1-q,14)+c)).toFixed(2)} percent. No observations or fitted confidence intervals.`;
+}
+for(const id of ['amplitude','decay','background','concentration'])$(id).addEventListener('input',draw);
+$('reset-model').addEventListener('click',()=>{for(const [id,v] of Object.entries({amplitude:.20,decay:.30,background:.02,concentration:100}))$(id).value=v;draw();});
+draw();
+for(const pre of document.querySelectorAll('pre')){
+ const code=pre.querySelector('code');if(!code)continue;
+ const button=document.createElement('button');button.className='copy';button.textContent='Copy';button.type='button';button.setAttribute('aria-label','Copy command block');
+ button.addEventListener('click',async()=>{try{await navigator.clipboard.writeText(code.textContent);button.textContent='Copied';}catch{const range=document.createRange();range.selectNodeContents(code);const selection=window.getSelection();selection.removeAllRanges();selection.addRange(range);button.textContent='Selected — copy manually';}setTimeout(()=>button.textContent='Copy',2500);});pre.append(button);
+}
+const termRows=[...document.querySelectorAll('#parameter-table tbody tr')];
+$('term-search').addEventListener('input',()=>{const q=$('term-search').value.trim().toLowerCase();let count=0;for(const r of termRows){r.hidden=!r.textContent.toLowerCase().includes(q);if(!r.hidden)count++;}$('term-status').textContent=count+' matching entries';});
+const nav=[...document.querySelectorAll('nav a')];
+if('IntersectionObserver' in window){const observer=new IntersectionObserver(entries=>{for(const entry of entries){if(entry.isIntersecting){for(const a of nav)a.setAttribute('aria-current',a.hash==='#'+entry.target.id?'true':'false');}}},{rootMargin:'-125px 0px -55% 0px'});document.querySelectorAll('.chapter').forEach(s=>observer.observe(s));}
+</script></body></html>

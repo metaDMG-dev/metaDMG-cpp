@@ -2,7 +2,7 @@
 #include <cstdio>
 #include <cstring>
 
-#include "../main_pmd.cpp"
+#include "../src/main_pmd.cpp"
 
 static double reference_match(double damage, double total_error, double polymorphism) {
     const double base_error = total_error / 3.0;

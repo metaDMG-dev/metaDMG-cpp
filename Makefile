@@ -11,8 +11,10 @@ LDHTS    := -lbz2 -llzma -lcurl
 CC  ?= gcc
 CXX ?= g++
 
-CXXSRC := $(wildcard *.cpp)
-CSRC   := $(wildcard *.c)
+CPPFLAGS += -Isrc -I.
+
+CXXSRC := $(wildcard src/*.cpp)
+CSRC   := $(wildcard src/*.c)
 OBJ    := $(CSRC:.c=.o) $(CXXSRC:.cpp=.o)
 
 
@@ -118,6 +120,8 @@ version.h:
 	@cmp -s version.h.tmp version.h || mv version.h.tmp version.h
 	@rm -f version.h.tmp
 
+$(OBJ): version.h
+
 $(PROGRAM): version.h $(OBJ) $(LIBHTS)
 	$(CXX) $(CXXFLAGS) $(CPPFLAGS) -o $@ $(OBJ) $(LDFLAGS) $(LDLIBS)
 
@@ -128,7 +132,7 @@ misc: $(LIBHTS) $(OBJ)
 # --- Automatisk afhængighedshåndtering ---
 -include $(OBJ:.o=.d)
 
-bfgs.o: bfgs.cpp $(LIBHTS)
+src/bfgs.o: src/bfgs.cpp $(LIBHTS)
 	$(CXX) -c $(CPPFLAGS) $(filter-out -Wall -Wextra,$(CXXFLAGS)) -w $< -o $@
 
 %.o: %.c $(LIBHTS)
@@ -162,7 +166,7 @@ print:
 	@echo "LDLIBS origin   = $(origin LDLIBS)"
 
 clean: 
-	rm -f *.o *.d $(PROGRAM) version.h *~
+	rm -f src/*.o src/*.d *.o *.d $(PROGRAM) version.h *~
 ifneq ($(HTSSRC),systemwide)
 	rm -rf $(HTSSRC)
 endif

@@ -78,9 +78,9 @@ $(LIBHTS):
 		exit 1; \
 	fi
 
-../shared.o:
-	@if [ ! -f "../shared.o" ]; then \
-		echo "Error: ../shared.o not found; ensure parent Makefile has built it"; \
+../src/shared.o:
+	@if [ ! -f "../src/shared.o" ]; then \
+		echo "Error: ../src/shared.o not found; ensure parent Makefile has built it"; \
 		exit 1; \
 	fi
 
@@ -97,8 +97,8 @@ M3Load.o: M3Load.cpp
 compressbam: compressbam.cpp
 	$(CXX) $(CXXFLAGS) $(CPPFLAGS) compressbam.cpp -o compressbam $(LDFLAGS) $(LDLIBS)
 
-extract_reads: extract_reads.cpp ../shared.o
-	$(CXX) $(CXXFLAGS) $(CPPFLAGS) extract_reads.cpp ../shared.o -o extract_reads $(LDFLAGS) $(LDLIBS)
+extract_reads: extract_reads.cpp ../src/shared.o
+	$(CXX) $(CXXFLAGS) $(CPPFLAGS) extract_reads.cpp ../src/shared.o -o extract_reads $(LDFLAGS) $(LDLIBS)
 
 sort_taxonomy_output: sort_taxonomy_output.cpp
 	$(CXX) $(CXXFLAGS) $(CPPFLAGS) sort_taxonomy_output.cpp -std=c++11 -o sort_taxonomy_output $(LDFLAGS) -lz

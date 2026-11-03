@@ -127,7 +127,7 @@ test_dust_unit() {
     fi
 
     run_logged "Compiling dust unit test" \
-        c++ -O2 -Wall -Wextra -I.. ${hts_inc} "${unit_src}" ../shared.o \
+        c++ -O2 -Wall -Wextra -I.. -I../src ${hts_inc} "${unit_src}" ../src/shared.o \
         -o "${unit_bin}" ${hts_link}
 
     if [[ -x "${unit_bin}" ]]; then
@@ -156,7 +156,7 @@ test_pmd_model() {
 
     run_logged "Compiling PMD model test" \
         c++ -O2 -Wall -Wextra -ffunction-sections -fdata-sections \
-        -I.. ${hts_inc} "${unit_src}" ${section_gc} \
+        -I.. -I../src ${hts_inc} "${unit_src}" ${section_gc} \
         -o "${unit_bin}" ${hts_link}
 
     if [[ -x "${unit_bin}" ]]; then
