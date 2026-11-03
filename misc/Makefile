@@ -101,7 +101,7 @@ extract_reads: extract_reads.cpp ../shared.o
 	$(CXX) $(CXXFLAGS) $(CPPFLAGS) extract_reads.cpp ../shared.o -o extract_reads $(LDFLAGS) $(LDLIBS)
 
 sort_taxonomy_output: sort_taxonomy_output.cpp
-	$(CXX) $(CXXFLAGS) sort_taxonomy_output.cpp -std=c++11 -o sort_taxonomy_output -lz
+	$(CXX) $(CXXFLAGS) $(CPPFLAGS) sort_taxonomy_output.cpp -std=c++11 -o sort_taxonomy_output $(LDFLAGS) -lz
 
 MAP: MAP.cpp M3Load.o kmath.o Likelihood.o
 	$(CXX) $(CXXFLAGS) $(CPPFLAGS) -D__WITH_MAIN__ -std=c++11 MAP.cpp M3Load.o kmath.o Likelihood.o -o MAP $(LDFLAGS) $(LDLIBS)
