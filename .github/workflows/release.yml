@@ -4,6 +4,12 @@ on:
   push:
     tags:
       - 'v*'
+  workflow_dispatch:
+    inputs:
+      release_tag:
+        description: 'Existing or new release tag to publish'
+        required: true
+        type: string
 
 permissions:
   contents: write
@@ -45,18 +51,19 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          version="${GITHUB_REF_NAME}"
+          version="${{ inputs.release_tag || github.ref_name }}"
           package="metaDMG-cpp-${version}"
           mkdir -p "dist/${package}"
           cp metaDMG-cpp rank2level.txt README.md "dist/${package}/"
           cp misc/compressbam misc/extract_reads misc/sort_taxonomy_output "dist/${package}/"
           cp doc/formats.pdf doc/formats.tex "dist/${package}/"
-          tar -C dist -czf "${package}.tar.gz" "${package}"
+          tar -czf "dist/${package}.tar.gz" -C dist "${package}"
           sha256sum "dist/${package}.tar.gz" > "dist/${package}.tar.gz.sha256"
 
       - name: Publish GitHub release
         uses: softprops/action-gh-release@v3
         with:
+          tag_name: ${{ inputs.release_tag || github.ref_name }}
           generate_release_notes: true
           files: |
             dist/*.tar.gz
