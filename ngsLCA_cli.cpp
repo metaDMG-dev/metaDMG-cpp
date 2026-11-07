@@ -69,6 +69,22 @@ void pars_free(pars *p) {
 }
 
 
+static int header_has_tag_in_first_line(const char *header, const char *tag) {
+  const char *line_end = strchr(header, '\n');
+  const size_t tag_len = strlen(tag);
+  const char *match = header;
+
+  while ((match = strstr(match, tag)) != NULL) {
+    const char *after_tag = match + tag_len;
+    if ((!line_end || match < line_end) &&
+        (match == header || match[-1] == '\t') &&
+        (after_tag == line_end || *after_tag == '\t' || *after_tag == '\0'))
+      return 1;
+    match = after_tag;
+  }
+  return 0;
+}
+
 int checkIfSorted(char *str){
   
   //check if proper header exists
@@ -77,14 +93,11 @@ int checkIfSorted(char *str){
     fprintf(stderr,"\t-> We observed: \'%.10s\' will exit\n",str);
     return 1;
   }
-  //check if SO:coordinate exists
-  char *so = strstr(str,"SO:queryname");
-  if(so==NULL){
-    fprintf(stderr,"\t-> ERROR: We require files to be sorted by readname, will exit\n");
-    return 2;
-  }
-  if(strchr(str,'\n')<so){
-    fprintf(stderr,"\t-> We require a SO:queryname tag in the first line of header\n");
+  // Alignments must be grouped by read name. SAM permits this to be declared
+  // either as a queryname sort order or as GO:query grouping.
+  if (!header_has_tag_in_first_line(str, "SO:queryname") &&
+      !header_has_tag_in_first_line(str, "GO:query")) {
+    fprintf(stderr,"\t-> ERROR: We require alignments to be grouped by read name (SO:queryname or GO:query), will exit\n");
     return 3;
   }
   return 0;

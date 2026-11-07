@@ -428,7 +428,7 @@ test_best_as_filters() {
     local sam_tie="output_data2/as_best_tie.sam"
 
     cat > "${sam_single}" <<'EOF'
-@HD	VN:1.6	SO:queryname
+@HD	VN:1.5	SO:unsorted	GO:query
 @SQ	SN:ref1	LN:1000
 @SQ	SN:ref2	LN:1000
 @SQ	SN:ref3	LN:1000
