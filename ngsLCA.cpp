@@ -20,6 +20,7 @@ int mod_out[] = {1333996, 1333996, 1582270, 1914213, 1917265, 1915309, 263865, 2
 
 #include "ngsLCA_cli.h"  // for pars, get_pars, pars_free, prin...
 #include "profile.h"     // for damage, destroy_damage, bam_is_...
+#include "rank2level.h"  // built-in taxonomic rank levels
 #include "shared.h"      // for queue, bamRefId2tax, destroy_queue
 #include "types.h"       // for int2int, int2char, char2int
 #include "version.h"     // for METADAMAGE_VERSION
@@ -48,37 +49,15 @@ char2int setlevels(int norank2species, char *key, int &value, int &family_level)
     char2int c2i;
     value = -1;
     family_level = -1;
-    const char *rank_file = getenv("METADAMAGE_RANK_LEVELS");
-    FILE *fp = rank_file ? fopen(rank_file, "r") : fopen("rank2level.txt", "r");
-    if (!fp && !rank_file)
-        fp = fopen("../rank2level.txt", "r");
-    if (!fp) {
-        fprintf(stderr, "\t-> Could not open rank level file%s%s\n",
-                rank_file ? ": " : " (tried rank2level.txt and ../rank2level.txt)",
-                rank_file ? rank_file : "");
-        exit(1);
-    }
-
-    char line[512];
-    while (fgets(line, sizeof(line), fp)) {
-        char *separator = strchr(line, '\t');
-        if (!separator)
-            continue;
-        *separator = '\0';
-        char *rank_name = line;
-        char *end = rank_name + strlen(rank_name);
-        while (end > rank_name && (end[-1] == ' ' || end[-1] == '\r'))
-            *--end = '\0';
-        if (*rank_name == '\0')
-            continue;
-        int rank_value = atoi(separator + 1);
+    for (int i = 0; i < RANK_LEVELS_COUNT; ++i) {
+        const char *rank_name = RANK_LEVELS[i].name;
+        int rank_value = RANK_LEVELS[i].level;
         c2i[strdup(rank_name)] = rank_value;
         if (strcmp(key, rank_name) == 0)
             value = rank_value;
         if (strcmp("family", rank_name) == 0)
             family_level = rank_value;
     }
-    fclose(fp);
     if (value == -1) {
         fprintf(stderr, "\t-> Unknown level defined for -lca_rank: %s\n", key);
         exit(0);

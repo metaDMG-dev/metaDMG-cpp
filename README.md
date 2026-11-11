@@ -209,7 +209,7 @@ Options:
   --lca_rank		(default: species) Can be family/genus/species. This function makes the summary statistics to be calculated for reads unique to the specified taxonomic rank, rather than summing up the tree from species. 
   --used_reads		<0|1> (default: 1) Controls whether metaDMG writes a BAM file containing the reads that passed all filters and were actually used for damage/LCA calculations.
   --famout		<0|1> (default: 1) Writes alignments for read groups whose LCA is family or a more specific rank to <out_prefix>.famoutreads.bam. Set to 0 to disable this output.
-  Rank levels are read from rank2level.txt. Set METADAMAGE_RANK_LEVELS to an alternative rank-level file when running from another directory.
+  Taxonomic rank levels are built into the executable, so LCA analyses do not depend on the current working directory or an external rank-level file.
   --maxreads INT	stop after processing this many read groups (default: -1, no limit)
   --rlens_flat_out <0|1>	write flat read-length bin output (default: 0; `-rfo` is an alias)
   --no_rank2species	<0|1> (default: 0) Controls how NCBI “no rank” nodes are treated when mapping taxonomic ranks to internal levels:
