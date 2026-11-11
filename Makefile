@@ -108,7 +108,7 @@ $(LIBHTS): .clone_htslib
 	$(info CPPFLAGS=$(CPPFLAGS) HTSSRC=$(HTSSRC) (absolute path))
 
 # --- Versionsnummer og version.h ---
-PACKAGE_VERSION := 0.5.0
+PACKAGE_VERSION := unknown
 ifneq ("$(wildcard .git)","")
   PACKAGE_VERSION := $(shell git describe --tags --always --dirty)
 endif
