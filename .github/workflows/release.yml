@@ -23,6 +23,11 @@ jobs:
         uses: actions/checkout@v6
         with:
           fetch-depth: 0
+          ref: ${{ inputs.release_tag || github.ref }}
+
+      - name: Determine package version from Git tag
+        id: version
+        run: echo "package_version=$(git describe --tags --exact-match HEAD)" >> "$GITHUB_OUTPUT"
 
       - name: Install build dependencies
         run: |
@@ -42,19 +47,19 @@ jobs:
           make -C htslib
 
       - name: Build metaDMG-cpp
-        run: make HTSSRC="$GITHUB_WORKSPACE/htslib"
+        run: make PACKAGE_VERSION="${{ steps.version.outputs.package_version }}" HTSSRC="$GITHUB_WORKSPACE/htslib"
 
       - name: Run test suite
-        run: make test HTSSRC="$GITHUB_WORKSPACE/htslib"
+        run: make test PACKAGE_VERSION="${{ steps.version.outputs.package_version }}" HTSSRC="$GITHUB_WORKSPACE/htslib"
 
       - name: Package release assets
         shell: bash
         run: |
           set -euo pipefail
-          version="${{ inputs.release_tag || github.ref_name }}"
+          version="${{ steps.version.outputs.package_version }}"
           package="metaDMG-cpp-${version}"
           mkdir -p "dist/${package}"
-          cp metaDMG-cpp rank2level.txt README.md "dist/${package}/"
+          cp metaDMG-cpp README.md "dist/${package}/"
           cp misc/compressbam misc/extract_reads misc/sort_taxonomy_output "dist/${package}/"
           cp doc/formats.pdf doc/formats.tex "dist/${package}/"
           tar -czf "dist/${package}.tar.gz" -C dist "${package}"
