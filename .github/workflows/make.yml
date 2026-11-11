@@ -12,7 +12,7 @@ jobs:
     runs-on: ubuntu-latest
   
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
     - name: Install dependencies
       run: sudo apt-get update;sudo apt-get install -y libbz2-dev liblzma-dev libcurl4-openssl-dev libgsl-dev samtools
     - name: prepare htslib
@@ -28,5 +28,5 @@ jobs:
         name: test-output
         path: |
           test/output
-          test/testAll.sh
-          test/testAll.sh.log
+          test/testAll2.sh
+          test/testAll2.sh.log
