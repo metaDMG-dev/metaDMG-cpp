@@ -173,8 +173,17 @@ void reconstructRefWithPosHTS(const bam1_t *b, std::pair<kstring_t *, std::vecto
 
     int at = 0;
     for (int32_t i = 0; i < n_cigar_op; i++) {
-        char opchr = bam_cigar_opchr(cigar[i]);
+        int op = bam_cigar_op(cigar[i]);
+        // D, N, H and P do not consume query bases; deletions are handled via '^' in the MD tag
+        if (!(bam_cigar_type(op) & 1))
+            continue;
+        // '=' and 'X' are aligned bases just like 'M'; the MD tag tells us the reference base
+        char opchr = (op == BAM_CEQUAL || op == BAM_CDIFF) ? 'M' : bam_cigar_opchr(cigar[i]);
         int32_t oplen = bam_cigar_oplen(cigar[i]);
+        if (at + oplen > b->core.l_qseq) {
+            fprintf(stderr, "CIGAR query length exceeds sequence length for read: %s\n", bam_get_qname(b));
+            exit(1);
+        }
         memset(reconstructedTemp + at, opchr, oplen);
         at += oplen;
     }

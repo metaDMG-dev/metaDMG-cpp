@@ -190,6 +190,30 @@ test_softclips() {
     fi
 }
 
+test_cigar_ops() {
+    local unit_src="test_cigar_ops.cpp"
+    local unit_bin="test_cigar_ops"
+    local hts_inc=""
+    local hts_link=""
+
+    if [[ -f ../htslib/libhts.a ]]; then
+        hts_inc="-I../htslib"
+        hts_link="../htslib/libhts.a -lbz2 -llzma -lcurl -lz -lm -lpthread"
+    else
+        hts_link="-lhts -lz -lm -lpthread"
+    fi
+
+    run_logged "Compiling CIGAR ops profile test" \
+        c++ -O2 -Wall -Wextra ${hts_inc} "${unit_src}" ../profile.cpp \
+        -o "${unit_bin}" ${hts_link}
+
+    if [[ -x "${unit_bin}" ]]; then
+        run_logged "Running CIGAR ops profile test (long D/N, =/X, H)" "./${unit_bin}"
+    else
+        mark_fail "Problem building CIGAR ops profile test binary: ${unit_bin}"
+    fi
+}
+
 test_getdamage() {
     run_logged "Running getdamage global" \
         "${PRG}" getdamage --run_mode 0 --min_length 35 --print_length 5 \
@@ -776,6 +800,7 @@ main() {
     test_dust_unit
     test_pmd_model
     test_softclips
+    test_cigar_ops
     test_getdamage
     test_lca_aggregate
     test_dfit
