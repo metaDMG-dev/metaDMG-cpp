@@ -166,6 +166,30 @@ test_pmd_model() {
     fi
 }
 
+test_softclips() {
+    local unit_src="test_softclips.cpp"
+    local unit_bin="test_softclips"
+    local hts_inc=""
+    local hts_link=""
+
+    if command -v pkg-config >/dev/null 2>&1 && pkg-config --exists htslib; then
+        hts_inc="$(pkg-config --cflags htslib)"
+        hts_link="$(pkg-config --libs htslib)"
+    else
+        hts_link="-lhts -lz -lm -lpthread"
+    fi
+
+    run_logged "Compiling softclip profile test" \
+        c++ -O2 -Wall -Wextra ${hts_inc} "${unit_src}" ../profile.cpp \
+        -o "${unit_bin}" ${hts_link} -lz -lm -lpthread
+
+    if [[ -x "${unit_bin}" ]]; then
+        run_logged "Running softclip profile test" "./${unit_bin}"
+    else
+        mark_fail "Problem building softclip profile test binary: ${unit_bin}"
+    fi
+}
+
 test_getdamage() {
     run_logged "Running getdamage global" \
         "${PRG}" getdamage --run_mode 0 --min_length 35 --print_length 5 \
@@ -751,6 +775,7 @@ main() {
 
     test_dust_unit
     test_pmd_model
+    test_softclips
     test_getdamage
     test_lca_aggregate
     test_dfit

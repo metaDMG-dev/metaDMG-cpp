@@ -112,7 +112,6 @@ void wrapper(const bam1_t *b, const char *reconstructedReference, const std::vec
         qualBase = int(bam_get_qual(b)[i]);
 
         if (refeBase == 'S') {  // don't care about soft clipped or indels
-            j--;
             continue;
         }
 
