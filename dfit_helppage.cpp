@@ -73,23 +73,24 @@ int HelpPage(FILE *fp){
   fprintf(fp,"\n\n---- Optimization model specific ---- \n");
   fprintf(stderr, "\n\n------  Beta-binomial model ------\n\n");
   fprintf(fp,"--showfits: \t\t\t Verbose parameter, stored in the .dfit.txt.gz, default = 0, see documentation for full description of columns\n");
-  fprintf(fp,"\t--showfits 0\t\t [id;A;q;c;phi;llh;ncall;sigmaD;Zfit] \n");
+  fprintf(fp,"\t--showfits 0\t\t [id;A;q;c;phi;llh;ncall;sigmaD_old;Zfit_old;sigmaD_new;Zfit_new;llh_null;lrt] \n");
   fprintf(fp,"\t\t\t\t id:contig; A:amplitute of damage; q:decrease in damage; c:offset (background noise); phi:variance between Beta-binomial and binomial model\n");
-  fprintf(fp,"\t\t\t\t llh:minimized negative log-likelihood; ncall:optimization calls; sigmaD: standard deviation; Zfit: significance score\n");
+  fprintf(fp,"\t\t\t\t llh:minimized negative log-likelihood; ncall:optimization calls; sigmaD_old/Zfit_old, sigmaD_new/Zfit_new: standard deviation and significance score\n");
+  fprintf(fp,"\t\t\t\t llh_null: log-likelihood of the no-damage model (A=0); lrt: likelihood-ratio test for damage, 2*(llh-llh_null), lrt>4 ~ Z>2, lrt>9 ~ Z>3\n");
   //showfits 1
-  fprintf(fp,"\n\t--showfits 1\t\t [id;A;q;c;phi;llh;ncall;sigmaD;Zfit;\n");
+  fprintf(fp,"\n\t--showfits 1\t\t [id;A;q;c;phi;llh;ncall;sigmaD_old;Zfit_old;sigmaD_new;Zfit_new;llh_null;lrt;\n");
   fprintf(fp,"\t\t\t\t fwdxi;fwdxConfi;..;fwdxn;fwdxConfn..;\n\t\t\t\t\t bwdx;dxConfn;..;bwdxn;bwdxConfn]\n");
   fprintf(fp,"\t\t\t\t fwdx: damage estimates forward strand; fwdxConf: confidence interval; fbwdx: reverse strand; bwdxConfn: confidence interval.\n \t\t\t\t\t i position 1 to position n (zero-index)\n");
   //showfits 2
-  fprintf(fp,"\n\t--showfits 2\t\t [id;A;q;c;phi;llh;ncall;sigmaD;Zfit;\n");
+  fprintf(fp,"\n\t--showfits 2\t\t [id;A;q;c;phi;llh;ncall;sigmaD_old;Zfit_old;sigmaD_new;Zfit_new;llh_null;lrt;\n");
   fprintf(fp,"\t\t\t\t fwKi;fwNi;fwdxi;fwf0;fwdxConfi;..;fwKi;fwNi;fwdxi;fwfi;fwdxConfi..;\n\t\t\t\t\t bwKi;bwNi;bwdxi;bwfi;bwdxConfi;..;bwKn;bwNn;bwdxn;fwfn;bwdxConfn]\n");
   fprintf(fp,"\t\t\t\t fwKi: Number of transitions forward strand (C>T); fwNi: Number reference counts forward strand (C); fwfi: C>T frequency based on forward strand from bdamage file\n");
   fprintf(fp,"\t\t\t\t bwKi: Number of transitions reverse strand (G>A); bwNi: Number reference counts reverse strand (G); bwfi: C>T frequency based on reverse strand from bdamage file\n");
   
   fprintf(stderr, "\n\n---------- Binomial model ----------\n\n");
   fprintf(fp,"--showfits: \t\t\t Verbose parameter, stored in the .dfit.txt.gz, default = 0\n");
-  fprintf(fp,"\t--showfits 0\t\t [id;A;q;c;phi;llh;ncall;sigmaD;Zfit;A_b;q_b;c_b;phi_b;A_CI_l;A_CI_h;q_CI_l;q_CI_h;c_CI_l;c_CI_h;phi_CI_l;phi_CI_h] \n");
-  fprintf(fp,"\t\t\t\t\t id;A;q;c;phi;llh;ncall;sigmaD;Zfit estimates from beta-binomial (see above)\n");
+  fprintf(fp,"\t--showfits 0\t\t [id;A;q;c;phi;llh;ncall;sigmaD_old;Zfit_old;sigmaD_new;Zfit_new;llh_null;lrt;A_b;q_b;c_b;phi_b;A_CI_l;A_CI_h;q_CI_l;q_CI_h;c_CI_l;c_CI_h;phi_CI_l;phi_CI_h] \n");
+  fprintf(fp,"\t\t\t\t\t id;A;q;c;phi;llh;ncall;sigmaD_old;Zfit_old;sigmaD_new;Zfit_new;llh_null;lrt estimates from beta-binomial (see above)\n");
   fprintf(fp,"\t\t\t\t\t A_b;q_b;c_b;phi_b;A_CI_l;A_CI_h;q_CI_l;q_CI_h;c_CI_l;c_CI_h;phi_CI_l;phi_CI_h estimates binomial model with bootstrap method (*_b), confidence interval (*_CI_l) and  (*_CI_h)\n");
   fprintf(fp,"\n\t--showfits 1\t\t similar columns added as described above, using the bootstrap estimated parameters;\n");
   fprintf(fp,"\n\t--showfits 2\t\t similar columns added as described above, using the bootstrap estimated parameters;\n");

@@ -130,7 +130,7 @@ The output format depends on the supplied parameters and run mode. It can contai
 per file, the per reference or the per species estimate of damage.\\ \noindent
 The current output starts with the following columns, independent of run mode:
 \begin{verbatim}
-taxid A q c phi llh ncall sigmaD_old Zfit_old sigmaD_new Zfit_new
+taxid A q c phi llh ncall sigmaD_old Zfit_old sigmaD_new Zfit_new llh_null lrt
 A_b q_b c_b phi_b A_CI_l A_CI_h q_CI_l q_CI_h c_CI_l c_CI_h
 phi_CI_l phi_CI_h
 \end{verbatim}
@@ -160,7 +160,9 @@ The exact number of cycles is determined by the input mismatch matrix.\\ \noinde
   {\sf $\sigma_{D,old}$} & Legacy Z value\\
   {\sf Zfit\_old} & Legacy significance\\
   {\sf $\sigma_{D,new}$} & Current effective-N Z value\\
-  {\sf Zfit\_new} & Current effective-N significance\\\hline 
+  {\sf Zfit\_new} & Current effective-N significance\\
+  {\sf llh\_null} & Log-likelihood of the no-damage model ($A=0$, constant background $c$)\\
+  {\sf lrt} & Likelihood-ratio test for damage, $2(\mathrm{llh}-\mathrm{llh_{null}})$; $>4$ corresponds to $Z>2$, $>9$ to $Z>3$\\\hline 
   {\sf } & \textit{--showfits} 1, \textit{i} signifies position inferred from \textit{.bdamage.gz}\\ \hline  
   {\sf $fwdxi$} & damage estimates forward strand \\
   {\sf $fwdConfi$} & forward strand confidence interval $\pm$\\
@@ -202,6 +204,8 @@ Providing \textit{-nbootstrap} $>$ 1 numerical optimizations of the binomial dis
   {\sf Zfit\_old} & Legacy significance\\
   {\sf $\sigma_{D,new}$} & Current effective-N Z value\\
   {\sf Zfit\_new} & Current effective-N significance\\
+  {\sf llh\_null} & Log-likelihood of the no-damage model ($A=0$, constant background $c$)\\
+  {\sf lrt} & Likelihood-ratio test for damage, $2(\mathrm{llh}-\mathrm{llh_{null}})$; $>4$ corresponds to $Z>2$, $>9$ to $Z>3$\\
   {\sf A\_b} & Dfit statistic from bootstrap estimate. Damage at position one, taking into account offset\\
   {\sf q\_b} & per cycle decrease from bootstrap estimate\\
   {\sf c\_b} & background substitution rate or noise baseline from bootstrap estimate\\ 

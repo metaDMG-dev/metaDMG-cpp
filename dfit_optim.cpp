@@ -152,6 +152,40 @@ double optim1(double *invec,double **dat){
   return lik;
 }
 
+// Null model without damage: A = 0, so D(x) = c and q has no effect. Only c and phi are fitted,
+// with the same bounds as the full model, so the two models are nested and
+// lrt = 2 * (llh - llh_null) is a likelihood-ratio test for damage. Returns the log-likelihood.
+static double compute_log_likelihood_null(const double inpars[], const void *dats){
+  double pars[4] = {0.0, 0.5, inpars[0], inpars[1]};
+  return compute_log_likelihood(pars, dats);
+}
+
+double optim_null(double **dat){
+  double lowbound[] = {0.00000001, 2};
+  double upbound[] = {0.25, 100000};
+  int nbd[] = {2, 1};
+  double ncall = dat[0][1];  // keep the ncall column about the full model only
+  int nrows = dat[0][0];
+  double ksum = 0, nsum = 0;
+  for (int i = 0; i < nrows; i++) {
+    ksum += dat[1][i];
+    nsum += dat[2][i];
+  }
+  // start c at the overall mismatch rate, and try a narrow and a wide beta-binomial
+  double c0 = nsum > 0 ? ksum / nsum : 0.01;
+  c0 = std::min(std::max(c0, 0.000001), 0.25);
+  double phis[] = {1000, 10};
+  double best = 0;
+  for (int i = 0; i < 2; i++) {
+    double pars[2] = {c0, phis[i]};
+    double lik = findmax_bfgs(2, pars, dat, compute_log_likelihood_null, nullptr, lowbound, upbound, nbd, -1);
+    if (i == 0 || lik > best)
+      best = lik;
+  }
+  dat[0][1] = ncall;
+  return best;
+}
+
 double optimoptim(double *invec,double **dat,int nopt,mrand_t *rand_alloc){
   //mrand_t *rand_alloc = mrand_alloc(rng_type,loc_seedval);
 

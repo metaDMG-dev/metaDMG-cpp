@@ -305,19 +305,21 @@ lca mode: 	  damage estimated over the lca tree at different ranks
 ------  Beta-binomial model ------
 
 --showfits: 			 Verbose parameter, stored in the .dfit.txt.gz, default = 0, see documentation for full description of columns
-		--showfits 0		 [id;A;q;c;phi;llh;ncall;sigmaD_old;Zfit_old;sigmaD_new;Zfit_new] 
+		--showfits 0		 [id;A;q;c;phi;llh;ncall;sigmaD_old;Zfit_old;sigmaD_new;Zfit_new;llh_null;lrt] 
 					 id:contig; A:amplitute of damage; q:decrease in damage; c:offset (background noise); phi:variance between Beta-binomial and binomial model
 					 llh:minimized negative log-likelihood; ncall:optimization calls
 					 sigmaD_old / Zfit_old: legacy standard deviation and score based on the original first-position approximation
 					 sigmaD_new / Zfit_new: updated standard deviation and score based on a weighted effective N across positions
+					 llh_null: log-likelihood of the no-damage model (A=0, constant background c)
+					 lrt: likelihood-ratio test for damage, 2*(llh-llh_null); lrt>4 corresponds to Z>2, lrt>9 to Z>3
 
-		--showfits 1		 [id;A;q;c;phi;llh;ncall;sigmaD_old;Zfit_old;sigmaD_new;Zfit_new;
+		--showfits 1		 [id;A;q;c;phi;llh;ncall;sigmaD_old;Zfit_old;sigmaD_new;Zfit_new;llh_null;lrt;
 					 fwdxi;fwdxConfi;..;fwdxn;fwdxConfn..;
 						 bwdx;dxConfn;..;bwdxn;bwdxConfn]
 					 fwdx: damage estimates forward strand; fwdxConf: confidence interval; fbwdx: reverse strand; bwdxConfn: confidence interval.
 	 					 i position 1 to position n (zero-index)
 
-		--showfits 2		 [id;A;q;c;phi;llh;ncall;sigmaD_old;Zfit_old;sigmaD_new;Zfit_new;
+		--showfits 2		 [id;A;q;c;phi;llh;ncall;sigmaD_old;Zfit_old;sigmaD_new;Zfit_new;llh_null;lrt;
 					 fwKi;fwNi;fwdxi;fwf0;fwdxConfi;..;fwKi;fwNi;fwdxi;fwfi;fwdxConfi..;
 						 bwKi;bwNi;bwdxi;bwfi;bwdxConfi;..;bwKn;bwNn;bwdxn;fwfn;bwdxConfn]
 					 fwKi: Number of transitions forward strand (C>T); fwNi: Number reference counts forward strand (C); fwfi: C>T frequency based on forward strand from bdamage file
@@ -327,7 +329,7 @@ lca mode: 	  damage estimated over the lca tree at different ranks
 ---------- Binomial model ----------
 
 --showfits: 			 Verbose parameter, stored in the .dfit.txt.gz, default = 0
-		--showfits 0		 [id;A;q;c;phi;llh;ncall;sigmaD_old;Zfit_old;sigmaD_new;Zfit_new;A_b;q_b;c_b;phi_b;A_CI_l;A_CI_h;q_CI_l;q_CI_h;c_CI_l;c_CI_h;phi_CI_l;phi_CI_h] 
+		--showfits 0		 [id;A;q;c;phi;llh;ncall;sigmaD_old;Zfit_old;sigmaD_new;Zfit_new;llh_null;lrt;A_b;q_b;c_b;phi_b;A_CI_l;A_CI_h;q_CI_l;q_CI_h;c_CI_l;c_CI_h;phi_CI_l;phi_CI_h] 
 						 id;A;q;c;phi;llh;ncall;sigmaD_old;Zfit_old;sigmaD_new;Zfit_new estimates from beta-binomial (see above)
 						 A_b;q_b;c_b;phi_b;A_CI_l;A_CI_h;q_CI_l;q_CI_h;c_CI_l;c_CI_h;phi_CI_l;phi_CI_h estimates binomial model with bootstrap method (*_b), confidence interval (*_CI_l) and  (*_CI_h)
 
