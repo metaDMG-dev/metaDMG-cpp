@@ -12,6 +12,7 @@
 #include <cstdlib>  // for atoi, exit, malloc
 #include <ctime>    // for time
 #include <map>      // for operator!=, __map_iterator, operator==
+#include <set>
 #include <vector>   // for vector
 
 static int decode_nt16_acgt(uint8_t nt16) {
@@ -357,6 +358,109 @@ void parse_nodes(const char *fname, int2char &rank, int2int &parent, int2intvec 
         }
     }
     delete[] toks;
+}
+
+static int2int load_ncbi_merged(const char *fname) {
+    int2int merged;
+    if (fname == NULL)
+        return merged;
+
+    gzFile gz = gzopen(fname, "rb");
+    if (gz == Z_NULL) {
+        fprintf(stderr, "\t-> Problems opening merged TaxID file: '%s'\n", fname);
+        exit(1);
+    }
+
+    char buf[4096];
+    int old_taxid = 0;
+    int new_taxid = 0;
+    while (gzgets(gz, buf, sizeof(buf))) {
+        if (sscanf(buf, "%d\t|\t%d", &old_taxid, &new_taxid) != 2) {
+            fprintf(stderr, "\t-> Malformed merged.dmp entry in '%s': %.80s\n", fname, buf);
+            exit(1);
+        }
+        merged[old_taxid] = new_taxid;
+    }
+    gzclose(gz);
+    fprintf(stderr, "\t-> Loaded %lu TaxID redirects from %s\n", merged.size(), fname);
+    return merged;
+}
+
+static int2int load_ncbi_delnodes(const char *fname) {
+    int2int delnodes;
+    if (fname == NULL)
+        return delnodes;
+
+    gzFile gz = gzopen(fname, "rb");
+    if (gz == Z_NULL) {
+        fprintf(stderr, "\t-> Problems opening deleted TaxID file: '%s'\n", fname);
+        exit(1);
+    }
+
+    char buf[4096];
+    int taxid = 0;
+    while (gzgets(gz, buf, sizeof(buf))) {
+        if (sscanf(buf, "%d\t|", &taxid) != 1) {
+            fprintf(stderr, "\t-> Malformed delnodes.dmp entry in '%s': %.80s\n", fname, buf);
+            exit(1);
+        }
+        delnodes[taxid] = 1;
+    }
+    gzclose(gz);
+    fprintf(stderr, "\t-> Loaded %lu deleted TaxIDs from %s\n", delnodes.size(), fname);
+    return delnodes;
+}
+
+static int resolve_ncbi_merged_taxid(int taxid, const int2int &merged, int &resolved) {
+    std::set<int> seen;
+    resolved = taxid;
+    while (merged.count(resolved)) {
+        if (!seen.insert(resolved).second)
+            return 0;
+        resolved = merged.find(resolved)->second;
+    }
+    return 1;
+}
+
+void normalize_ncbi_taxids(int2int &ref2tax, const char *mergedfile, const char *delnodesfile,
+                           const int2int &parent) {
+    if (mergedfile == NULL && delnodesfile == NULL)
+        return;
+
+    const int2int merged = load_ncbi_merged(mergedfile);
+    const int2int delnodes = load_ncbi_delnodes(delnodesfile);
+    size_t remapped = 0;
+    size_t removed_deleted = 0;
+    size_t removed_missing = 0;
+    int warning_count = 3;
+
+    for (int2int::iterator it = ref2tax.begin(); it != ref2tax.end();) {
+        const int original_taxid = it->second;
+        int resolved_taxid = original_taxid;
+        const int resolved = resolve_ncbi_merged_taxid(original_taxid, merged, resolved_taxid);
+
+        if (!resolved || delnodes.count(resolved_taxid) || !parent.count(resolved_taxid)) {
+            if (warning_count-- > 0) {
+                fprintf(stderr, "\t-> Skipping BAM reference index %d: TaxID %d %s\n", it->first,
+                        original_taxid, !resolved ? "has a cycle in merged.dmp"
+                                      : (delnodes.count(resolved_taxid) ? "is deleted" : "is absent from nodes.dmp"));
+            }
+            if (!resolved || delnodes.count(resolved_taxid))
+                ++removed_deleted;
+            else
+                ++removed_missing;
+            it = ref2tax.erase(it);
+            continue;
+        }
+
+        if (resolved_taxid != original_taxid) {
+            it->second = resolved_taxid;
+            ++remapped;
+        }
+        ++it;
+    }
+    fprintf(stderr, "\t-> NCBI TaxID normalization: %lu remapped, %lu deleted, %lu absent from nodes.dmp\n",
+            remapped, removed_deleted, removed_missing);
 }
 
 // this generates a downtree, parent to childs taxid->vector<taxids>

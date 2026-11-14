@@ -377,6 +377,26 @@ test_data2() {
     fi
 }
 
+test_ncbi_taxid_normalization() {
+    run_logged "Running lca with merged and deleted NCBI TaxIDs" \
+        "${PRG}" lca --bam data2/sam2.sam --names data2/names.dmp \
+        --nodes data2/nodes.dmp --acc2tax data2/acc2taxid.map \
+        --merged data2/merged.dmp --delnodes data2/delnodes.dmp \
+        --sim_score_low 0.9 --sim_score_high 1.0 --edit_dist_min 0 \
+        --edit_dist_max 10 --min_mapq 0 --how_many 35 --weight_type 1 \
+        --out_prefix output_data2/ncbi_taxid
+
+    assert_gzip_contains output_data2/ncbi_taxid.lca.gz $'read1\tTTTTTTTTTTTTTTTTTTTTTTTTTTTTTT\t30\t2\t1\t'
+    if ! gunzip -c output_data2/ncbi_taxid.stat.gz | \
+        awk 'BEGIN{FS=OFS="\t"} NR==1{next} $1=="10" && $2=="1" {ok=1} END{exit(ok?0:1)}'; then
+        mark_fail "Problem validating merged TaxID in output_data2/ncbi_taxid.stat.gz"
+    fi
+    if gunzip -c output_data2/ncbi_taxid.stat.gz | \
+        awk 'BEGIN{FS=OFS="\t"} NR==1{next} $1=="12" {found=1} END{exit(found?0:1)}'; then
+        mark_fail "Deleted TaxID 12 was retained in output_data2/ncbi_taxid.stat.gz"
+    fi
+}
+
 test_data2_getdamage() {
     run_logged "Running data2 getdamage sam2" \
         "${PRG}" getdamage --run_mode 1 --min_length 0 --print_length 5 \
@@ -737,6 +757,7 @@ main() {
     test_aggregate_with_dfit
     test_prints
     test_data2
+    test_ncbi_taxid_normalization
     test_data2_getdamage
     test_best_as_filters
     test_filter_bdamage

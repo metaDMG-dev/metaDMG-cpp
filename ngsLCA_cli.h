@@ -13,6 +13,8 @@ typedef struct {
     char *namesfile;
     char *acc2taxfile;
     char *filteredAcc2taxfile;
+    char *mergedfile;
+    char *delnodesfile;
     // hts strucutures
     samFile *hts;
     bam_hdr_t *header;
@@ -38,7 +40,8 @@ typedef struct {
     int howmany;
     char *usedreads_sam;
   char *famout_sam;
-    int fixdb;  // used for disabling mod_db function
+    int fixdb;  // legacy hard-coded TaxID corrections
+    int fixdb_explicit;
     int nthreads;
     int weighttype;
     char *tempfolder;

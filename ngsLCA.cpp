@@ -117,7 +117,7 @@ void mod_db(int *in, int *out, int2int &parent, int2char &rank, int2char &name_m
     int2char::iterator itc;
     for (int i = 0; i < 24; i++) {
         if (parent.count(out[i]) != 1) {
-            fprintf(stderr, "\t-> Problem \"fixing\" database entries with known issues, consider add --fix_ncbi 0 when running program\n");
+            fprintf(stderr, "\t-> Legacy --fix_ncbi correction cannot be applied to this taxonomy dump\n");
             exit(0);
         }
         iti = parent.find(in[i]);
@@ -927,6 +927,9 @@ int main_lca(int argc, char **argv) {
         fprintf(stderr, "  --names FILE\n");
         fprintf(stderr, "  --nodes FILE\n");
         fprintf(stderr, "  --acc2tax FILE\n");
+        fprintf(stderr, "  --merged FILE           NCBI merged.dmp TaxID redirects\n");
+        fprintf(stderr, "  --delnodes FILE         NCBI delnodes.dmp deleted TaxIDs\n");
+        fprintf(stderr, "  --fix_ncbi <0|1>        Deprecated legacy hard-coded corrections (default: 1)\n");
         fprintf(stderr, "Filtering options:\n");
         fprintf(stderr, "  --edit_dist_min INT      (default: -1 disabled)\n");
         fprintf(stderr, "  --edit_dist_max INT      (default: -1 disabled)\n");
@@ -988,6 +991,7 @@ int main_lca(int argc, char **argv) {
     int2char name_map = parse_names(p->namesfile);
 
     parse_nodes(p->nodesfile, rank, parent, child, 0);
+    normalize_ncbi_taxids(*ref2tax, p->mergedfile, p->delnodesfile, parent);
     int lca_rank;
     int family_level;
     // converts each taxid to a intrepresentation of the rank, we call this level
@@ -1003,7 +1007,7 @@ int main_lca(int argc, char **argv) {
     //   fprintf(stderr,"\t-> Number of items in closest_species map:%lu\n",closest_species.size());
 
     if (p->fixdb) {
-        fprintf(stderr, "\t-> Will add some fixes of the ncbi database due to merged names\n");
+        fprintf(stderr, "\t-> Warning: applying deprecated hard-coded --fix_ncbi corrections\n");
         mod_db(mod_in, mod_out, parent, rank, name_map,ref2tax);
     }
     samFile *usedreads_sam = NULL;

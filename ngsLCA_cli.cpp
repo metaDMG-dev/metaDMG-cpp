@@ -17,6 +17,8 @@ pars *pars_init() {
     p->htsfile = strdup("CHL_155_12485.sort.bam");
     p->acc2taxfile = strdup("nucl_gb.accession2taxid.gz");
     p->filteredAcc2taxfile = NULL;
+    p->mergedfile = NULL;
+    p->delnodesfile = NULL;
     p->namesfile = strdup("names.dmp.gz");
     p->nodesfile = strdup("nodes.dmp.gz");
     p->hts = NULL;
@@ -40,6 +42,7 @@ pars *pars_init() {
     p->usedreads_sam = NULL;
     p->famout_sam = NULL;
     p->fixdb = 1;
+    p->fixdb_explicit = 0;
     p->nthreads = 4;
     p->weighttype = 0;
     p->tempfolder = strdup("");
@@ -62,6 +65,8 @@ void pars_free(pars *p) {
     free(p->lca_rank);
     free(p->htsfile);
     free(p->acc2taxfile);
+    free(p->mergedfile);
+    free(p->delnodesfile);
     free(p->namesfile);
     free(p->nodesfile);
     free(p->tempfolder);
@@ -231,6 +236,12 @@ pars *get_pars(int argc, char **argv) {
             p->acc2taxfile = strdup(val);
         } else if (!strcasecmp("--filtered_acc2tax", key)) {
             p->filteredAcc2taxfile = strdup(val);
+        } else if (!strcasecmp("--merged", key)) {
+            free(p->mergedfile);
+            p->mergedfile = strdup(val);
+        } else if (!strcasecmp("--delnodes", key)) {
+            free(p->delnodesfile);
+            p->delnodesfile = strdup(val);
         } else if (!strcasecmp("--edit_dist_min", key))
             p->editdistMin = atoi(val);
         else if (!strcasecmp("--edit_dist_max", key))
@@ -257,8 +268,11 @@ pars *get_pars(int argc, char **argv) {
         } else if (!strcasecmp("--out", key) || !strcasecmp("--out_prefix", key)) {
             free(p->outnames);
             p->outnames = strdup(val);
-        } else if (!strcasecmp("--fix_ncbi", key))
+        } else if (!strcasecmp("--fix_ncbi", key) || !strcasecmp("--fix-ncbi", key)) {
             p->fixdb = atoi(val);
+            p->fixdb_explicit = 1;
+            fprintf(stderr, "\t-> Warning: --fix_ncbi is deprecated; use --merged and --delnodes from the same NCBI taxdump instead.\n");
+        }
         else if (!strcasecmp("--discard", key))
             p->discard = atoi(val);
         else if (!strcasecmp("--how_many", key))
@@ -293,6 +307,11 @@ pars *get_pars(int argc, char **argv) {
         }
 
         ++argv;
+    }
+
+    if (!p->fixdb_explicit && (p->mergedfile != NULL || p->delnodesfile != NULL)) {
+        p->fixdb = 0;
+        fprintf(stderr, "\t-> Using --merged/--delnodes; disabling deprecated default --fix_ncbi corrections.\n");
     }
     pthread_t thread1;
 
@@ -351,6 +370,8 @@ void print_pars(FILE *fp, pars *p) {
     fprintf(fp, "\t-> --names\t%s\n", p->namesfile);
     fprintf(fp, "\t-> --nodes\t%s\n", p->nodesfile);
     fprintf(fp, "\t-> --acc2tax\t%s\n", p->acc2taxfile);
+    fprintf(fp, "\t-> --merged\t%s\n", p->mergedfile ? p->mergedfile : "NULL");
+    fprintf(fp, "\t-> --delnodes\t%s\n", p->delnodesfile ? p->delnodesfile : "NULL");
     fprintf(fp, "\t-> --edit_dist_min\t%d\n", p->editdistMin);
     fprintf(fp, "\t-> --edit_dist_max\t%d\n", p->editdistMax);
     fprintf(fp, "\t-> --best_as\t%d\n", p->best_as);
