@@ -172,16 +172,16 @@ test_softclips() {
     local hts_inc=""
     local hts_link=""
 
-    if command -v pkg-config >/dev/null 2>&1 && pkg-config --exists htslib; then
-        hts_inc="$(pkg-config --cflags htslib)"
-        hts_link="$(pkg-config --libs htslib)"
+    if [[ -f ../htslib/libhts.a ]]; then
+        hts_inc="-I../htslib"
+        hts_link="../htslib/libhts.a -lbz2 -llzma -lcurl -lz -lm -lpthread"
     else
         hts_link="-lhts -lz -lm -lpthread"
     fi
 
     run_logged "Compiling softclip profile test" \
         c++ -O2 -Wall -Wextra ${hts_inc} "${unit_src}" ../profile.cpp \
-        -o "${unit_bin}" ${hts_link} -lz -lm -lpthread
+        -o "${unit_bin}" ${hts_link}
 
     if [[ -x "${unit_bin}" ]]; then
         run_logged "Running softclip profile test" "./${unit_bin}"
