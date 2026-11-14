@@ -214,6 +214,22 @@ test_cigar_ops() {
     fi
 }
 
+test_dfit_bounds() {
+    local unit_src="test_dfit_bounds.cpp"
+    local unit_bin="test_dfit_bounds"
+
+    # bfgs.cpp is third-party and very noisy with -Wall, so no warning flags here
+    run_logged "Compiling dfit bounds test" \
+        c++ -O2 "${unit_src}" ../dfit_optim.cpp ../bfgs.cpp ../mrand.cpp \
+        -o "${unit_bin}" -lz -lm
+
+    if [[ -x "${unit_bin}" ]]; then
+        run_logged "Running dfit bounds test (A + c < 1)" "./${unit_bin}"
+    else
+        mark_fail "Problem building dfit bounds test binary: ${unit_bin}"
+    fi
+}
+
 test_getdamage() {
     run_logged "Running getdamage global" \
         "${PRG}" getdamage --run_mode 0 --min_length 35 --print_length 5 \
@@ -801,6 +817,7 @@ main() {
     test_pmd_model
     test_softclips
     test_cigar_ops
+    test_dfit_bounds
     test_getdamage
     test_lca_aggregate
     test_dfit

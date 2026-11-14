@@ -1,3 +1,4 @@
+#include <algorithm>
 #include <cmath>
 #include <cstring>
 #include <vector>
@@ -116,6 +117,13 @@ double compute_log_likelihood(const double DMGparam[], const void *dats){
     return -like_sum;
 }
 
+// Same likelihood, but parameterised as (A', q, c, phi) with A = A' * (1 - c).
+// For A' in (0,1) this keeps D(x) = A(1-q)^x + c strictly below 1, so beta = (1-D)*phi > 0.
+static double compute_log_likelihood_reparam(const double inpars[], const void *dats){
+  double pars[4] = {inpars[0] * (1 - inpars[2]), inpars[1], inpars[2], inpars[3]};
+  return compute_log_likelihood(pars, dats);
+}
+
 //invec is 4 double long, pre values are start, post value are the optimized parameters
 // A q c phi
 double optim1(double *invec,double **dat){
@@ -125,7 +133,19 @@ double optim1(double *invec,double **dat){
   int nbd[] = {2,2,2,1}; //2 is both lower/upper bound
   int noisy = -1;
   //  dat[0][1] = 1;
+  double start[4];
+  memcpy(start, invec, sizeof(start));
   double lik = findmax_bfgs(numpars, invec, dat,compute_log_likelihood,nullptr,lowbound,upbound,nbd,noisy);
+  // The box bounds allow A + c > 1, i.e. D(0) > 1 and beta < 0. The likelihood is then
+  // invalid (lgamma of negative values, poles that can even give llh > 0), so redo the fit
+  // in a parameterisation that cannot leave the valid region. Valid fits are left untouched.
+  if (invec[0] + invec[2] >= 1) {
+    memcpy(invec, start, sizeof(start));
+    invec[2] = std::min(std::max(invec[2], lowbound[2]), upbound[2]);
+    invec[0] = std::min(std::max(invec[0] / (1 - invec[2]), lowbound[0]), upbound[0]);
+    lik = findmax_bfgs(numpars, invec, dat,compute_log_likelihood_reparam,nullptr,lowbound,upbound,nbd,noisy);
+    invec[0] = invec[0] * (1 - invec[2]);  // back from A' to A
+  }
   // fprintf(stderr,"\t-> Optimized DMGparam A:%f \t q:%f \t c:%f \t phi:%f lik:%f nit: %.0f\n",invec[0],invec[1],invec[2],invec[3],lik,dat[0][1]);
   invec[4] = lik;
   invec[5] = dat[0][1];//<- plugin ncall of the objective function
