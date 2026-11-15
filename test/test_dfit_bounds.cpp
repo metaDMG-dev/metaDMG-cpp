@@ -11,6 +11,7 @@
 // when damage is close to 1 (where Zfit = A / sigma explodes because sigma -> 0).
 
 #include <cmath>
+#include <cstring>
 #include <cstdio>
 #include <vector>
 
