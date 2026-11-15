@@ -169,7 +169,7 @@ endif
 	$(MAKE) -C misc clean
 
 testclean:
-	rm -f test/*.bam.bin test/*.log test/testAll.sh.log test/testAll2.sh.log
+	rm -f test/*.bam.bin test/*.log test/testAll2.sh.log
 	rm -rf test/bin
 	rm -f test/test_softclips test/test_cigar_ops test/test_dfit_bounds
 	rm -f test/*.bam
