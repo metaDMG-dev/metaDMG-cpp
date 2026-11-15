@@ -181,8 +181,11 @@ misc/sort_taxonomy_output:
 	$(MAKE) -C misc sort_taxonomy_output
 
 # --- Unit tests: small C++ programs, no test data or samtools needed ---
-UNITTEST_BIN := test/bin/test_dust_score test/bin/test_pmd_model \
-                test/bin/test_softclips test/bin/test_cigar_ops test/bin/test_dfit_bounds
+# Every test/unit/test_*.cpp is built to test/bin/test_* and run by make unittest.
+UNITTEST_SRC := $(wildcard test/unit/test_*.cpp)
+UNITTEST_BIN := $(patsubst test/unit/%.cpp,test/bin/%,$(UNITTEST_SRC))
+# tests include project headers as "shared.h" etc., so the top directory goes on the include path
+UNIT_CPPFLAGS := -I.
 
 # objects each unit test links against, besides htslib and LDLIBS
 test/bin/test_dust_score:  shared.o
@@ -197,9 +200,9 @@ else
 endif
 test/bin/test_pmd_model: UNIT_EXTRA := -ffunction-sections -fdata-sections $(UNIT_GC)
 
-test/bin/%: test/%.cpp version.h $(LIBHTS)
+test/bin/%: test/unit/%.cpp version.h $(LIBHTS)
 	@mkdir -p test/bin
-	$(CXX) $(CPPFLAGS) $(CXXFLAGS) $(UNIT_EXTRA) -o $@ $< $(filter %.o,$^) $(LDFLAGS) $(LDLIBS)
+	$(CXX) $(UNIT_CPPFLAGS) $(CPPFLAGS) $(CXXFLAGS) $(UNIT_EXTRA) -o $@ $< $(filter %.o,$^) $(LDFLAGS) $(LDLIBS)
 
 -include $(UNITTEST_BIN:=.d)
 

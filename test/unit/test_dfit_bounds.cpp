@@ -15,8 +15,8 @@
 #include <cstdio>
 #include <vector>
 
-#include "../dfit_optim.h"
-#include "../mrand.h"
+#include "dfit_optim.h"
+#include "mrand.h"
 
 static const int HOWMANY = 15;
 static const int NOPT = 10;

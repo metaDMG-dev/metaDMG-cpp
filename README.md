@@ -466,8 +466,9 @@ Useful when aggregating results from multiple runs, libraries, or samples prior 
 
 The tests are split in two:
 
-- `make unittest` builds and runs the small C++ unit tests (`test/test_*.cpp`,
-  binaries go to `test/bin/`) and the taxonomy-output sorting test
+- `make unittest` builds and runs the small C++ unit tests
+  (`test/unit/test_*.cpp`, binaries go to `test/bin/`; a new
+  `test/unit/test_*.cpp` is picked up automatically) and the taxonomy-output sorting test
   (`misc/test_sort_taxonomy_output.sh`). They take a few seconds and need
   neither samtools nor the test data.
 - `make regtest` runs `metaDMG-cpp` on the data in `test/` via

@@ -17,7 +17,7 @@
 
 #include <htslib/sam.h>
 
-#include "../profile.h"
+#include "profile.h"
 
 static const int PRINT_LENGTH = 8;
 static const int LONG_GAP = 1000000;  // far larger than the 512-byte initial buffer
