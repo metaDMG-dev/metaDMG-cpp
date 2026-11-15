@@ -53,11 +53,12 @@ double dust_score_nt16(const uint8_t *seq, int32_t l, int32_t window) {
                 if (wCount[x] > 0)
                     score -= --wCount[x];
                 score += wCount[t]++;
-                if (score > maxScore)
-                    maxScore = score;
             } else {
                 score += wCount[t]++;
             }
+            // include the first full window (n == window - 1), not only the later ones
+            if (n >= window - 1 && score > maxScore)
+                maxScore = score;
             wSeq[k] = t;
         }
     }
