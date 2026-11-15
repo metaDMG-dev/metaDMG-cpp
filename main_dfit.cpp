@@ -268,10 +268,10 @@ void make_dfit_header(kstring_t *kstr,int showfits,int nbootstrap,int howmany ){
     //fprintf(stderr,"INSIDE THE FIRST SHOWFITS loop 0 \n");
     // Without bootstrap
     if(nbootstrap < 2){
-      ksprintf(kstr,"taxid\tA\tq\tc\tphi\tllh\tncall\tsigmaD_old\tZfit_old\tsigmaD_new\tZfit_new\n");
+      ksprintf(kstr,"taxid\tA\tq\tc\tphi\tllh\tncall\tsigmaD_old\tZfit_old\tsigmaD_new\tZfit_new\tllh_null\tlrt\n");
     }
     else{
-      ksprintf(kstr,"taxid\tA\tq\tc\tphi\tllh\tncall\tsigmaD_old\tZfit_old\tsigmaD_new\tZfit_new\tA_b\tq_b\tc_b\tphi_b\tA_CI_l\tA_CI_h\tq_CI_l\tq_CI_h\tc_CI_l\tc_CI_h\tphi_CI_l\tphi_CI_h\n");
+      ksprintf(kstr,"taxid\tA\tq\tc\tphi\tllh\tncall\tsigmaD_old\tZfit_old\tsigmaD_new\tZfit_new\tllh_null\tlrt\tA_b\tq_b\tc_b\tphi_b\tA_CI_l\tA_CI_h\tq_CI_l\tq_CI_h\tc_CI_l\tc_CI_h\tphi_CI_l\tphi_CI_h\n");
     }
   }
   else if(showfits==1){
@@ -279,10 +279,10 @@ void make_dfit_header(kstring_t *kstr,int showfits,int nbootstrap,int howmany ){
     // With bootstrap
       
     if(nbootstrap < 2){
-      ksprintf(kstr,"taxid\tA\tq\tc\tphi\tllh\tncall\tsigmaD_old\tZfit_old\tsigmaD_new\tZfit_new");
+      ksprintf(kstr,"taxid\tA\tq\tc\tphi\tllh\tncall\tsigmaD_old\tZfit_old\tsigmaD_new\tZfit_new\tllh_null\tlrt");
     }
     else{
-      ksprintf(kstr,"taxid\tA\tq\tc\tphi\tllh\tncall\tsigmaD_old\tZfit_old\tsigmaD_new\tZfit_new\tA_b\tq_b\tc_b\tphi_b\tA_CI_l\tA_CI_h\tq_CI_l\tq_CI_h\tc_CI_l\tc_CI_h\tphi_CI_l\tphi_CI_h");
+      ksprintf(kstr,"taxid\tA\tq\tc\tphi\tllh\tncall\tsigmaD_old\tZfit_old\tsigmaD_new\tZfit_new\tllh_null\tlrt\tA_b\tq_b\tc_b\tphi_b\tA_CI_l\tA_CI_h\tq_CI_l\tq_CI_h\tc_CI_l\tc_CI_h\tphi_CI_l\tphi_CI_h");
     }
     // And fwd + bwd dx and Conf information
     for(int i=0;i<howmany;i++){
@@ -298,10 +298,10 @@ void make_dfit_header(kstring_t *kstr,int showfits,int nbootstrap,int howmany ){
     //fprintf(stderr,"INSIDE THE FIRST SHOWFITS loop 2 \n");
     // With bootstrap
     if(nbootstrap < 2){
-      ksprintf(kstr,"taxid\tA\tq\tc\tphi\tllh\tncall\tsigmaD_old\tZfit_old\tsigmaD_new\tZfit_new");
+      ksprintf(kstr,"taxid\tA\tq\tc\tphi\tllh\tncall\tsigmaD_old\tZfit_old\tsigmaD_new\tZfit_new\tllh_null\tlrt");
     }
     else{
-      ksprintf(kstr,"taxid\tA\tq\tc\tphi\tllh\tncall\tsigmaD_old\tZfit_old\tsigmaD_new\tZfit_new\tA_b\tq_b\tc_b\tphi_b\tA_CI_l\tA_CI_h\tq_CI_l\tq_CI_h\tc_CI_l\tc_CI_h\tphi_CI_l\tphi_CI_h");
+      ksprintf(kstr,"taxid\tA\tq\tc\tphi\tllh\tncall\tsigmaD_old\tZfit_old\tsigmaD_new\tZfit_new\tllh_null\tlrt\tA_b\tq_b\tc_b\tphi_b\tA_CI_l\tA_CI_h\tq_CI_l\tq_CI_h\tc_CI_l\tc_CI_h\tphi_CI_l\tphi_CI_h");
     }
     // And fwd + bwd k, N, dx, f and Conf information
     for(int i=0;i<howmany;i++){
@@ -395,6 +395,14 @@ void slave_block(std::map<int, mydataD> &retmap,int howmany,sam_hdr_t *hdr,int2c
 
     double pars[6] = {0.1,0.1,0.01,1000};//last one will contain the llh,and the ncall for the objective function
     optimoptim(pars,dat,nopt,rand_alloc);
+    double nullpars[2];
+    double llh_null = optim_null(dat, nullpars);
+    if (pars[4] < llh_null) {
+      double fallback[6] = {};
+      optim_from_null_start(fallback, dat, nullpars);
+      if (fallback[4] > pars[4])
+        memcpy(pars, fallback, sizeof(pars));
+    }
       
     double pars_b[6] = {0.1,0.1,0.01,1000};//last one will contain the llh,and the ncall for the objective function
     
@@ -526,6 +534,11 @@ void slave_block(std::map<int, mydataD> &retmap,int howmany,sam_hdr_t *hdr,int2c
     }
       
     ksprintf(kstr,"\t%f\t%f\t%f\t%f",stats[0],stats[1],stats[2],stats[3]);
+    {
+      // likelihood-ratio test against the no-damage model; tiny negative values are optimiser tolerance
+      double lrt = 2 * (pars[4] - llh_null);
+      ksprintf(kstr,"\t%f\t%f",llh_null, lrt > 0 ? lrt : 0.0);
+    }
       
     if(showfits == 0){
       if(nbootstrap > 1){
