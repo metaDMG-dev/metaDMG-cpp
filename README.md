@@ -464,13 +464,22 @@ Useful when aggregating results from multiple runs, libraries, or samples prior 
 
 # Testing
 
-`make test` builds and runs the taxonomy-output sorting regression test before
-running the main integration test suite. The sorting test can also be run on
-its own:
+The tests are split in two:
+
+- `make unittest` builds and runs the small C++ unit tests
+  (`test/unit/test_*.cpp`, binaries go to `test/bin/`; a new
+  `test/unit/test_*.cpp` is picked up automatically) and the taxonomy-output sorting test
+  (`misc/test_sort_taxonomy_output.sh`). They take a few seconds and need
+  neither samtools nor the test data.
+- `make regtest` runs `metaDMG-cpp` on the data in `test/` via
+  `test/testAll2.sh` and compares the output with known results
+  (`test/output.md5`). It needs samtools.
+
+`make test` runs both, unit tests first. A single unit test can be built and
+run on its own, e.g.:
 
 ```bash
-make -C misc sort_taxonomy_output
-misc/test_sort_taxonomy_output.sh
+make test/bin/test_dfit_bounds && test/bin/test_dfit_bounds
 ```
 
 # New functionality: taxonomy output sorting

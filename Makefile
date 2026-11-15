@@ -139,7 +139,7 @@ bfgs.o: bfgs.cpp $(LIBHTS)
 
 
 # --- Rens og tests ---
-.PHONY: clean test testclean force
+.PHONY: clean test unittest regtest testclean force
 
 .PHONY: print
 print:
@@ -169,7 +169,9 @@ endif
 	$(MAKE) -C misc clean
 
 testclean:
-	rm -f test/*.bam.bin test/*.log test/testAll.sh.log test/testAll2.sh.log
+	rm -f test/*.bam.bin test/*.log test/testAll2.sh.log
+	rm -rf test/bin
+	rm -f test/test_softclips test/test_cigar_ops test/test_dfit_bounds
 	rm -f test/*.bam
 	rm -rf test/output_extract_reads
 	rm -f test/data/f570b1db7c.dedup.filtered.rname.bam
@@ -178,9 +180,42 @@ testclean:
 misc/sort_taxonomy_output:
 	$(MAKE) -C misc sort_taxonomy_output
 
-test: misc/sort_taxonomy_output
+# --- Unit tests: small C++ programs, no test data or samtools needed ---
+# Every test/unit/test_*.cpp is built to test/bin/test_* and run by make unittest.
+UNITTEST_SRC := $(wildcard test/unit/test_*.cpp)
+UNITTEST_BIN := $(patsubst test/unit/%.cpp,test/bin/%,$(UNITTEST_SRC))
+# tests include project headers as "shared.h" etc., so the top directory goes on the include path
+UNIT_CPPFLAGS := -I.
+
+# objects each unit test links against, besides htslib and LDLIBS
+test/bin/test_dust_score:  shared.o
+test/bin/test_softclips:   profile.o
+test/bin/test_cigar_ops:   profile.o
+test/bin/test_dfit_bounds: dfit_optim.o bfgs.o mrand.o
+# test_pmd_model includes main_pmd.cpp directly; let the linker drop unused code
+ifeq ($(shell uname -s),Darwin)
+  UNIT_GC := -Wl,-dead_strip
+else
+  UNIT_GC := -Wl,--gc-sections
+endif
+test/bin/test_pmd_model: UNIT_EXTRA := -ffunction-sections -fdata-sections $(UNIT_GC)
+
+test/bin/%: test/unit/%.cpp version.h $(LIBHTS)
+	@mkdir -p test/bin
+	$(CXX) $(UNIT_CPPFLAGS) $(CPPFLAGS) $(CXXFLAGS) $(UNIT_EXTRA) -o $@ $< $(filter %.o,$^) $(LDFLAGS) $(LDLIBS)
+
+-include $(UNITTEST_BIN:=.d)
+
+unittest: $(UNITTEST_BIN) misc/sort_taxonomy_output
 	@echo "Running unit tests for metaDMG"
+	@set -e; for t in $(UNITTEST_BIN); do echo "== $$t"; ./$$t; done
 	./misc/test_sort_taxonomy_output.sh
+
+# --- Regression tests: run metaDMG-cpp on test data and compare output ---
+regtest: $(PROGRAM) misc
+	@echo "Running regression tests for metaDMG"
 	cd test ; ./testAll2.sh
+
+test: unittest regtest
 
 force:

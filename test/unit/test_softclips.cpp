@@ -3,7 +3,7 @@
 
 #include <htslib/sam.h>
 
-#include "../profile.h"
+#include "profile.h"
 
 int main() {
     bam1_t *read = bam_init1();

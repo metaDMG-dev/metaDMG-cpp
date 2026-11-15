@@ -112,124 +112,6 @@ assert_gzip_not_contains() {
     fi
 }
 
-test_dust_unit() {
-    local unit_src="test_dust_score.cpp"
-    local unit_bin="output/test_dust_score_unit"
-    local hts_inc=""
-    local hts_link=""
-
-    if [[ -f ../htslib/libhts.a ]]; then
-        hts_inc="-I../htslib"
-        hts_link="../htslib/libhts.a -lbz2 -llzma -lcurl -lz -lm -lpthread"
-    else
-        hts_inc=""
-        hts_link="-lhts -lz -lm -lpthread"
-    fi
-
-    run_logged "Compiling dust unit test" \
-        c++ -O2 -Wall -Wextra -I.. ${hts_inc} "${unit_src}" ../shared.o \
-        -o "${unit_bin}" ${hts_link}
-
-    if [[ -x "${unit_bin}" ]]; then
-        run_logged "Running dust unit test" "${unit_bin}"
-    else
-        mark_fail "Problem building dust unit test binary: ${unit_bin}"
-    fi
-}
-
-test_pmd_model() {
-    local unit_src="test_pmd_model.cpp"
-    local unit_bin="output/test_pmd_model"
-    local hts_inc=""
-    local hts_link=""
-    local section_gc="-Wl,--gc-sections"
-
-    if [[ -f ../htslib/libhts.a ]]; then
-        hts_inc="-I../htslib"
-        hts_link="../htslib/libhts.a -lbz2 -llzma -lcurl -lz -lm -lpthread"
-    else
-        hts_link="-lhts -lz -lm -lpthread"
-    fi
-    if [[ "$(uname -s)" == "Darwin" ]]; then
-        section_gc="-Wl,-dead_strip"
-    fi
-
-    run_logged "Compiling PMD model test" \
-        c++ -O2 -Wall -Wextra -ffunction-sections -fdata-sections \
-        -I.. ${hts_inc} "${unit_src}" ${section_gc} \
-        -o "${unit_bin}" ${hts_link}
-
-    if [[ -x "${unit_bin}" ]]; then
-        run_logged "Running PMD model test" "${unit_bin}"
-    else
-        mark_fail "Problem building PMD model test binary: ${unit_bin}"
-    fi
-}
-
-test_softclips() {
-    local unit_src="test_softclips.cpp"
-    local unit_bin="test_softclips"
-    local hts_inc=""
-    local hts_link=""
-
-    if [[ -f ../htslib/libhts.a ]]; then
-        hts_inc="-I../htslib"
-        hts_link="../htslib/libhts.a -lbz2 -llzma -lcurl -lz -lm -lpthread"
-    else
-        hts_link="-lhts -lz -lm -lpthread"
-    fi
-
-    run_logged "Compiling softclip profile test" \
-        c++ -O2 -Wall -Wextra ${hts_inc} "${unit_src}" ../profile.cpp \
-        -o "${unit_bin}" ${hts_link}
-
-    if [[ -x "${unit_bin}" ]]; then
-        run_logged "Running softclip profile test" "./${unit_bin}"
-    else
-        mark_fail "Problem building softclip profile test binary: ${unit_bin}"
-    fi
-}
-
-test_cigar_ops() {
-    local unit_src="test_cigar_ops.cpp"
-    local unit_bin="test_cigar_ops"
-    local hts_inc=""
-    local hts_link=""
-
-    if [[ -f ../htslib/libhts.a ]]; then
-        hts_inc="-I../htslib"
-        hts_link="../htslib/libhts.a -lbz2 -llzma -lcurl -lz -lm -lpthread"
-    else
-        hts_link="-lhts -lz -lm -lpthread"
-    fi
-
-    run_logged "Compiling CIGAR ops profile test" \
-        c++ -O2 -Wall -Wextra ${hts_inc} "${unit_src}" ../profile.cpp \
-        -o "${unit_bin}" ${hts_link}
-
-    if [[ -x "${unit_bin}" ]]; then
-        run_logged "Running CIGAR ops profile test (long D/N, =/X, H)" "./${unit_bin}"
-    else
-        mark_fail "Problem building CIGAR ops profile test binary: ${unit_bin}"
-    fi
-}
-
-test_dfit_bounds() {
-    local unit_src="test_dfit_bounds.cpp"
-    local unit_bin="test_dfit_bounds"
-
-    # bfgs.cpp is third-party and very noisy with -Wall, so no warning flags here
-    run_logged "Compiling dfit bounds test" \
-        c++ -O2 "${unit_src}" ../dfit_optim.cpp ../bfgs.cpp ../mrand.cpp \
-        -o "${unit_bin}" -lz -lm
-
-    if [[ -x "${unit_bin}" ]]; then
-        run_logged "Running dfit bounds test (A + c < 1)" "./${unit_bin}"
-    else
-        mark_fail "Problem building dfit bounds test binary: ${unit_bin}"
-    fi
-}
-
 test_getdamage() {
     run_logged "Running getdamage global" \
         "${PRG}" getdamage --run_mode 0 --min_length 35 --print_length 5 \
@@ -802,9 +684,6 @@ main() {
     note "Testing Existence of samtools"
     require_cmd samtools || exit 1
 
-    note "Testing Existence of c++"
-    require_cmd c++ || exit 1
-
     note "Testing Existence of ${BAM1}"
     require_file "${BAM1}" || exit 1
 
@@ -813,11 +692,6 @@ main() {
         mark_fail "Problem running samtools sort -n"
     fi
 
-    test_dust_unit
-    test_pmd_model
-    test_softclips
-    test_cigar_ops
-    test_dfit_bounds
     test_getdamage
     test_lca_aggregate
     test_dfit
