@@ -160,7 +160,7 @@ static double compute_log_likelihood_null(const double inpars[], const void *dat
   return compute_log_likelihood(pars, dats);
 }
 
-double optim_null(double **dat){
+double optim_null(double **dat, double outpars[]){
   double lowbound[] = {0.00000001, 2};
   double upbound[] = {0.25, 100000};
   int nbd[] = {2, 1};
@@ -176,12 +176,17 @@ double optim_null(double **dat){
   c0 = std::min(std::max(c0, 0.000001), 0.25);
   double phis[] = {1000, 10};
   double best = 0;
+  double bestpars[2] = {c0, phis[0]};
   for (int i = 0; i < 2; i++) {
     double pars[2] = {c0, phis[i]};
     double lik = findmax_bfgs(2, pars, dat, compute_log_likelihood_null, nullptr, lowbound, upbound, nbd, -1);
-    if (i == 0 || lik > best)
+    if (i == 0 || lik > best) {
       best = lik;
+      memcpy(bestpars, pars, sizeof(bestpars));
+    }
   }
+  if (outpars != nullptr)
+    memcpy(outpars, bestpars, sizeof(bestpars));
   dat[0][1] = ncall;
   return best;
 }
@@ -204,8 +209,19 @@ double optimoptim(double *invec,double **dat,int nopt,mrand_t *rand_alloc){
       memcpy(invec,pars,sizeof(double)*6);
     }
   }
-    
+
   return llhs;
+}
+
+// Retry the full model from the fitted null model only when its numerical
+// optimum is worse than the null model. A cannot be zero in the full fit, so
+// start at the smallest allowed positive value.
+double optim_from_null_start(double *invec, double **dat, const double nullpars[]) {
+  invec[0] = 0.00000001;
+  invec[1] = 0.5;
+  invec[2] = nullpars[0];
+  invec[3] = nullpars[1];
+  return optim1(invec, dat);
 }
 
 
